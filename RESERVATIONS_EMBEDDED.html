@@ -128,6 +128,11 @@ html, body {
 .badge-oos       { background: rgba(244,63,94,.1);   color: var(--danger);  border: 1px solid rgba(244,63,94,.2); }
 .badge-checkin   { background: rgba(34,211,165,.15); color: var(--success); border: 1px solid rgba(34,211,165,.3); }
 .badge-checkout  { background: rgba(245,158,11,.15); color: var(--warning); border: 1px solid rgba(245,158,11,.3); }
+/* Couleurs par type d'unité */
+.type-chambre    { color: #818cf8; }
+.type-studio     { color: #22d3a5; }
+.type-suite      { color: #f8b500; }
+.type-appartement{ color: #38bdf8; }
 
 /* ── CARDS ────────────────────────────────────────────────── */
 .card {
@@ -724,20 +729,7 @@ function fmtDateShort(d) {
 }
 
 // ── UNITÉS ──────────────────────────────────────────────────────
-var UNITS = [
-  { id:'ch101', label:'Ch. 101', type:'Chambre',      icon:'🛏️', priceHT: 25000,  capacity:2 },
-  { id:'ch102', label:'Ch. 102', type:'Chambre',      icon:'🛏️', priceHT: 25000,  capacity:2 },
-  { id:'ch103', label:'Ch. 103', type:'Chambre',      icon:'🛏️', priceHT: 25000,  capacity:2 },
-  { id:'ch104', label:'Ch. 104', type:'Chambre',      icon:'🛏️', priceHT: 28000,  capacity:2 },
-  { id:'ch105', label:'Ch. 105', type:'Chambre',      icon:'🛏️', priceHT: 28000,  capacity:2 },
-  { id:'ch106', label:'Ch. 106', type:'Chambre vue',  icon:'🛏️', priceHT: 35000,  capacity:2 },
-  { id:'app105',label:'App. 105',type:'Appartement',  icon:'🏠', priceHT: 55000,  capacity:4 },
-  { id:'st201', label:'St. 201', type:'Studio',       icon:'🛋️', priceHT: 42000,  capacity:2 },
-  { id:'st202', label:'St. 202', type:'Studio',       icon:'🛋️', priceHT: 42000,  capacity:2 },
-  { id:'st203', label:'St. 203', type:'Studio vue',   icon:'🛋️', priceHT: 48000,  capacity:2 },
-  { id:'st204', label:'St. 204', type:'Studio vue',   icon:'🛋️', priceHT: 48000,  capacity:2 },
-  { id:'suite', label:'Suite',   type:'Suite Prés.',  icon:'👑', priceHT: 120000, capacity:4 },
-];
+var UNITS = [];  // chargé depuis Supabase (veraluz_units)
 
 // ── DONNÉES RÉSERVATIONS (Supabase) ─────────────────────────────
 /* ── Supabase helper ──────────────────────────────────────── */
@@ -805,9 +797,23 @@ function loadReservationsFromSupabase(callback) {
     var rezRows   = results[0] || [];
     var unitRows  = results[1] || [];
 
-    // Construire UNITS_MAP
+    // Construire UNITS_MAP et UNITS à partir de Supabase
     UNITS_MAP = {};
     unitRows.forEach(function(u) { UNITS_MAP[u.id] = u; });
+
+    // Mapper vers le format attendu par le module
+    var TYPE_LABELS = { chambre:'Chambre', studio:'Studio', suite:'Suite', appartement:'Appartement' };
+    UNITS = unitRows.map(function(u) {
+      return {
+        id:       u.id,
+        label:    u.name,
+        type:     TYPE_LABELS[u.type] || u.type || 'Chambre',
+        _type:    u.type,   // type brut Supabase pour les couleurs
+        icon:     u.emoji || '🛏️',
+        priceHT:  u.price || 0,
+        capacity: u.capacity || 2
+      };
+    });
 
     // Mapper les réservations
     RESERVATIONS = rezRows.map(mapRezRow);
@@ -935,10 +941,12 @@ function renderPlanning() {
   // Lignes par unité
   UNITS.forEach(function(unit) {
     html += '<div class="pg-room-row" style="grid-template-columns:' + colTemplate + '">';
+    var typeColors2 = { chambre:'#818cf8', studio:'#22d3a5', suite:'#f8b500', appartement:'#38bdf8' };
+    var typeColor2 = typeColors2[unit._type] || 'var(--text3)';
     html += '<div class="pg-room-label">' +
       '<div>' +
-        '<div>' + unit.label + '</div>' +
-        '<div class="r-type">' + unit.type + '</div>' +
+        '<div style="font-size:12px;font-weight:700">' + unit.icon + ' ' + unit.label + '</div>' +
+        '<div class="r-type" style="color:' + typeColor2 + '">' + unit.type + '</div>' +
       '</div>' +
     '</div>';
 
@@ -962,8 +970,16 @@ function renderPlanning() {
           else break;
         }
 
-        var colors = { occupied:'#6c63ff', checkin:'#22d3a5', checkout:'#f59e0b', confirmed:'#38bdf8', reserved:'#38bdf8' };
-        var color = colors[rez.status] || '#6c63ff';
+        // Couleurs par type d'unité + nuance par statut
+        var typeColors = { chambre:'#6c63ff', studio:'#22d3a5', suite:'#f8b500', appartement:'#38bdf8' };
+        var unitForColor = UNITS.find(function(u) { return u.id === rez.unitId; });
+        var unitType = unitForColor ? unitForColor._type : 'chambre';
+        var baseColor = typeColors[unitType] || '#6c63ff';
+        var statusOpacity = { confirmed:'cc', occupied:'ff', checkout:'99', checkin:'ee' };
+        var opacity = statusOpacity[rez.status] || 'ff';
+        var color = baseColor + (opacity !== 'ff' ? '' : '');
+        // Statut spécifique override
+        if (rez.status === 'checkout') color = '#f59e0b';
         var guestFirst = rez.client.split(' ')[0];
 
         // Le bloc sera positionné en absolute et s'étend sur plusieurs colonnes — on le met dans la 1ère cellule
@@ -1045,6 +1061,14 @@ function renderRoomsGrid() {
       actions += '<button class="btn btn-success btn-sm" onclick="doCheckinByUnit(\'' + u.id + '\',event)">✅ Check-in</button>';
     }
 
+    // Couleurs bordure/fond par type d'unité
+    var TYPE_BORDER = { chambre:'rgba(108,99,255,.5)', studio:'rgba(34,211,165,.5)',
+                        suite:'rgba(248,181,0,.55)', appartement:'rgba(56,189,248,.5)' };
+    var TYPE_BG     = { chambre:'rgba(108,99,255,.03)', studio:'rgba(34,211,165,.03)',
+                        suite:'rgba(248,181,0,.04)', appartement:'rgba(56,189,248,.03)' };
+    var tBorder = TYPE_BORDER[u._type] || '';
+    var tBg     = TYPE_BG[u._type]     || '';
+    var extraSt = (tBorder ? 'border-color:' + tBorder + ';' : '') + (tBg ? 'background:' + tBg + ';' : '');
     return '<div class="room-card ' + status + '" onclick="showUnitDetail(\'' + u.id + '\')">' +
       '<div class="rc-top">' +
         '<div class="rc-icon">' + u.icon + '</div>' +
@@ -1064,6 +1088,15 @@ var rezSearch = '';
 
 function filterRezList(q) { rezSearch = q.toLowerCase(); renderRezList(); }
 function filterRezStatus(v) { rezFilter = v; renderRezList(); }
+
+// ── FORMATAGE UNITÉ AVEC TYPE COLORÉ ──────────────────────────
+function formatUnitWithType(unitId) {
+  var u = UNITS.find(function(x) { return x.id === unitId; });
+  if (!u) return unitId || '—';
+  var typeClass = { 'chambre':'type-chambre','studio':'type-studio','suite':'type-suite','appartement':'type-appartement' };
+  var cls = typeClass[u._type] || '';
+  return '<span class="' + cls + '">' + u.label + '</span>';
+}
 
 function renderRezList() {
   var list = document.getElementById('rez-list');
@@ -1229,10 +1262,13 @@ function doCheckinRez(rezId, evt) {
   var r = RESERVATIONS.find(function(x) { return x.id === rezId; });
   if (!r) return;
   r.status = 'occupied';
-  toast('Check-in effectué pour ' + r.client, 'success');
+  toast('✅ Check-in — ' + r.client, 'success');
   emitToCore('room.checkin', { rezId: rezId, client: r.client, unitId: r.unitId });
   emitToCore('badge.update', { module: 'reservations', count: getActiveCount() });
   refreshCurrentTab();
+  // Persister dans Supabase
+  if (_sbUrl) sbPatchRez(rezId, { status: 'checkedin', updated_at: new Date().toISOString() })
+    .catch(function(e) { console.warn('[Rez] Erreur check-in:', e); });
 }
 
 function doCheckout(unitId, evt) {
@@ -1247,11 +1283,14 @@ function doCheckoutRez(rezId, evt) {
   var r = RESERVATIONS.find(function(x) { return x.id === rezId; });
   if (!r) return;
   r.status = 'completed';
-  toast('Check-out effectué pour ' + r.client + '. Chambre à nettoyer.', 'success');
+  toast('🚪 Check-out — ' + r.client + ' · Chambre à nettoyer', 'success');
   emitToCore('room.checkout', { rezId: rezId, client: r.client, unitId: r.unitId });
   emitToCore('room.status_changed', { chambre: r.unitId, from: 'occupied', to: 'dirty' });
   emitToCore('badge.update', { module: 'housekeeping', count: 1 });
   refreshCurrentTab();
+  // Persister dans Supabase
+  if (_sbUrl) sbPatchRez(rezId, { status: 'checkedout', updated_at: new Date().toISOString() })
+    .catch(function(e) { console.warn('[Rez] Erreur check-out:', e); });
 }
 
 function cancelRez(rezId, evt) {
@@ -1263,6 +1302,9 @@ function cancelRez(rezId, evt) {
   toast('Réservation annulée — ' + r.client, 'warning');
   emitToCore('rez.cancelled', { rezId: rezId, client: r.client });
   refreshCurrentTab();
+  // Persister dans Supabase
+  if (_sbUrl) sbPatchRez(rezId, { status: 'cancelled', updated_at: new Date().toISOString() })
+    .catch(function(e) { console.warn('[Rez] Erreur annulation:', e); });
 }
 
 function markClean(unitId, evt) {
@@ -1402,19 +1444,36 @@ function submitNewRez() {
   var nights = Math.round((new Date(departure) - new Date(arrival)) / 86400000);
   if (nights <= 0) { toast('La date de départ doit être après l\'arrivée', 'warning'); return; }
 
+  var nights2 = Math.round((new Date(departure) - new Date(arrival)) / 86400000);
+  var unit2   = UNITS.find(function(u) { return u.id === unitId; });
+  var total2  = unit2 ? unit2.priceHT * nights2 : 0;
+  var localId = 'rez-' + Date.now() + '-' + Math.random().toString(36).slice(2,7);
   var newRez = {
-    id: 'REZ-' + String(RESERVATIONS.length + 1).padStart(3,'0'),
-    ref: 'REZ-2026-' + String(RESERVATIONS.length + 14).padStart(3,'0'),
+    id: localId, ref: localId.slice(0,12).toUpperCase(),
     client: prenom + ' ' + nom, email: email, tel: tel,
     unitId: unitId, arrival: arrival, departure: departure,
-    adults: adults, children: children,
+    adults: adults, children: children, nights: nights2,
+    total: total2, paid: 0,
     status: 'confirmed', payment: payment, notes: notes
   };
   RESERVATIONS.push(newRez);
 
-  toast('Réservation créée — ' + newRez.client + ' (' + newRez.ref + ')', 'success');
+  toast('✅ Réservation créée — ' + newRez.client, 'success');
   emitToCore('rez.created', { rezId: newRez.id, client: newRez.client, unitId: unitId });
   emitToCore('badge.update', { module: 'reservations', count: getActiveCount() });
+
+  // Persister dans Supabase
+  if (_sbUrl) {
+    sbPost('veraluz_reservations', {
+      id: localId,
+      unit_id: unitId, client_name: prenom + ' ' + nom,
+      client_email: email || null, client_phone: tel || null,
+      check_in: arrival, check_out: departure,
+      guests: adults + children, nights: nights2,
+      total: total2, paid: 0,
+      status: 'confirmed', source: 'direct', notes: notes || null
+    }).catch(function(e) { console.warn('[Rez] Erreur création Supabase:', e); });
+  }
 
   // Reset form
   ['new-prenom','new-nom','new-email','new-tel','new-notes'].forEach(function(id) {

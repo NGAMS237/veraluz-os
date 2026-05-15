@@ -1,982 +1,909 @@
 <!DOCTYPE html>
-
 <html lang="fr">
-<head><script>window.__MODULE_NAME__ = 'paiements';</script>
+<head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Veraluz OS — Module Paiements (Maquette)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Paiements — Veraluz OS</title>
 <style>
-  :root {
-    --amber: #f59e0b; --amber-light: #fbbf24; --amber-dark: #d97706;
-    --stone-950: #0c0a09; --stone-900: #1c1917; --stone-800: #292524;
-    --stone-700: #44403c; --stone-600: #57534e; --stone-500: #78716c;
-    --stone-400: #a8a29e; --stone-300: #d6d3d1; --stone-200: #e7e5e4; --stone-100: #f5f5f4;
-    --emerald: #10b981; --rose: #f43f5e; --blue: #3b82f6; --cyan: #06b6d4;
-    --orange: #f97316; --yellow: #eab308; --purple: #a855f7;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--stone-950); color: var(--stone-200); min-height: 100vh; }
-  
-  /* Layout */
-  .shell { display: flex; height: 100vh; overflow: hidden; }
-  .sidebar { width: 220px; background: var(--stone-900); border-right: 1px solid var(--stone-800); display: flex; flex-direction: column; flex-shrink: 0; }
-  .main { flex: 1; overflow-y: auto; background: var(--stone-950); }
-  .content { padding: 24px; max-width: 1100px; }
+/* ── Hérite des variables CSS du Core ─────────────────────────── */
+:root {
+  --bg:      #0d0d1a; --bg2: #11112a; --bg3: #181830; --bg4: #1e1e3a;
+  --bg-hover:#252546;
+  --border:  rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+  --accent:  #6c63ff; --accent2: #8b7fff; --accent3: #a89dff;
+  --success: #22d3a5; --warning: #f59e0b; --danger: #f43f5e; --info: #38bdf8;
+  --text:    #e8e6ff; --text2: #9990cc; --text3: #5a5580;
+  --radius:  10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* Sidebar */
-  .logo { padding: 20px 16px; border-bottom: 1px solid var(--stone-800); }
-  .logo-name { color: var(--amber); font-size: 22px; font-weight: 800; letter-spacing: 0.05em; font-family: Georgia, serif; }
-  .logo-sub { color: var(--stone-500); font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; margin-top: 2px; }
-  .nav { padding: 8px; flex: 1; }
-  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; cursor: pointer; font-size: 13px; color: var(--stone-400); transition: all 0.15s; margin-bottom: 2px; }
-  .nav-item:hover { background: var(--stone-800); color: var(--stone-200); }
-  .nav-item.active { background: rgba(245,158,11,0.15); color: var(--amber); font-weight: 600; }
-  .nav-item .badge { margin-left: auto; background: var(--amber); color: var(--stone-950); font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 20px; }
-
-  /* Typography */
-  h1 { font-size: 24px; font-weight: 700; color: var(--amber); font-family: Georgia, serif; }
-  h2 { font-size: 15px; font-weight: 600; color: var(--stone-200); }
-  h3 { font-size: 13px; font-weight: 600; color: var(--stone-300); }
-
-  /* Buttons */
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.15s; }
-  .btn-primary { background: var(--amber); color: var(--stone-950); }
-  .btn-primary:hover { background: var(--amber-light); }
-  .btn-ghost { background: var(--stone-800); color: var(--stone-300); border: 1px solid var(--stone-700); }
-  .btn-ghost:hover { background: var(--stone-700); }
-  .btn-success { background: rgba(16,185,129,0.15); color: var(--emerald); border: 1px solid rgba(16,185,129,0.3); }
-  .btn-success:hover { background: rgba(16,185,129,0.25); }
-  .btn-danger { background: rgba(244,63,94,0.15); color: var(--rose); border: 1px solid rgba(244,63,94,0.3); }
-  .btn-danger:hover { background: rgba(244,63,94,0.25); }
-  .btn-blue { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
-  .btn-sm { padding: 6px 12px; font-size: 12px; }
-
-  /* Cards */
-  .card { background: var(--stone-900); border: 1px solid var(--stone-800); border-radius: 14px; }
-  .card-header { padding: 14px 18px; border-bottom: 1px solid var(--stone-800); display: flex; align-items: center; justify-content: space-between; }
-
-  /* KPI Grid */
-  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-  .kpi { background: var(--stone-900); border: 1px solid var(--stone-800); border-radius: 14px; padding: 16px; }
-  .kpi-label { font-size: 11px; color: var(--stone-500); text-transform: uppercase; letter-spacing: 0.05em; }
-  .kpi-value { font-size: 22px; font-weight: 700; margin-top: 6px; }
-  .kpi-sub { font-size: 11px; margin-top: 4px; }
-
-  /* Badges */
-  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid; }
-  .badge-pending  { color: var(--amber);   background: rgba(245,158,11,0.1);  border-color: rgba(245,158,11,0.3); }
-  .badge-validated{ color: var(--emerald); background: rgba(16,185,129,0.1);  border-color: rgba(16,185,129,0.3); }
-  .badge-refunded { color: var(--blue);    background: rgba(59,130,246,0.1);  border-color: rgba(59,130,246,0.3); }
-  .badge-failed   { color: var(--rose);    background: rgba(244,63,94,0.1);   border-color: rgba(244,63,94,0.3); }
-
-  /* Method badges */
-  .method { font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 4px; }
-  .method-cash    { color: var(--emerald); }
-  .method-orange  { color: var(--orange); }
-  .method-mtn     { color: var(--yellow); }
-  .method-card    { color: var(--blue); }
-  .method-virement{ color: var(--purple); }
-  .method-cinetpay{ color: var(--cyan); }
-
-  /* Table */
-  .tx-list { background: var(--stone-900); border: 1px solid var(--stone-800); border-radius: 14px; overflow: hidden; }
-  .tx-header { padding: 12px 18px; border-bottom: 1px solid var(--stone-800); display: flex; align-items: center; justify-content: space-between; }
-  .tx-row { padding: 14px 18px; border-bottom: 1px solid rgba(68,64,60,0.5); display: flex; align-items: center; gap: 14px; cursor: pointer; transition: background 0.1s; }
-  .tx-row:last-child { border-bottom: none; }
-  .tx-row:hover { background: rgba(41,37,36,0.7); }
-  .tx-avatar { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: font-size: 16px; background: var(--stone-800); align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
-  .tx-info { flex: 1; min-width: 0; }
-  .tx-name { font-size: 13px; font-weight: 500; color: var(--stone-100); }
-  .tx-meta { font-size: 11px; color: var(--stone-500); margin-top: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .tx-amount { text-align: right; flex-shrink: 0; }
-  .tx-amount-main { font-size: 14px; font-weight: 700; color: var(--stone-100); }
-  .tx-amount-refund { font-size: 11px; color: var(--blue); }
-
-  /* Filters */
-  .filters { display: flex; gap: 10px; flex-wrap: wrap; }
-  .filter-input { background: var(--stone-900); border: 1px solid var(--stone-800); border-radius: 10px; padding: 8px 12px; font-size: 13px; color: var(--stone-200); outline: none; }
-  .filter-input:focus { border-color: var(--amber); }
-  .search-wrap { position: relative; flex: 1; min-width: 200px; }
-  .search-wrap input { width: 100%; padding-left: 36px; }
-  .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--stone-500); font-size: 14px; }
-
-  /* Alert */
-  .alert { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 12px; }
-  .alert-warning { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); }
-
-  /* Modal */
-  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
-  .overlay.open { display: flex; }
-  .modal { background: var(--stone-900); border: 1px solid var(--stone-800); border-radius: 18px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px rgba(0,0,0,0.5); animation: slideUp 0.2s ease; }
-  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-  .modal-header { padding: 18px 20px; border-bottom: 1px solid var(--stone-800); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--stone-900); border-radius: 18px 18px 0 0; }
-  .modal-body { padding: 20px; }
-  .modal-footer { padding: 16px 20px; border-top: 1px solid var(--stone-800); display: flex; gap: 10px; }
-  .close-btn { background: none; border: none; color: var(--stone-500); font-size: 18px; cursor: pointer; padding: 4px; }
-  .close-btn:hover { color: var(--stone-200); }
-
-  /* Form */
-  .form-group { margin-bottom: 16px; }
-  .form-label { display: block; font-size: 11px; color: var(--stone-400); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
-  .form-input, .form-select, .form-textarea {
-    width: 100%; background: var(--stone-800); border: 1px solid var(--stone-700);
-    border-radius: 10px; padding: 10px 12px; font-size: 13px; color: var(--stone-100);
-    outline: none; font-family: inherit; transition: border-color 0.15s;
-  }
-  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--amber); }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .form-textarea { resize: vertical; min-height: 64px; }
-
-  /* Detail card */
-  .amount-display { background: var(--stone-800); border-radius: 14px; padding: 20px; text-align: center; }
-  .amount-big { font-size: 32px; font-weight: 800; color: var(--amber); }
-  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .detail-item .label { font-size: 11px; color: var(--stone-500); text-transform: uppercase; letter-spacing: 0.05em; }
-  .detail-item .value { font-size: 13px; color: var(--stone-200); margin-top: 3px; font-weight: 500; }
-  .receipt-box { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.25); border-radius: 10px; padding: 10px 14px; }
-  .receipt-num { color: var(--emerald); font-family: monospace; font-size: 13px; font-weight: 600; }
-  .refund-box { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.25); border-radius: 12px; padding: 14px; }
-  .cinetpay-note { background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.25); border-radius: 10px; padding: 10px 14px; color: var(--cyan); font-size: 12px; }
-
-  /* Workflow steps */
-  .workflow { display: flex; gap: 0; margin-bottom: 20px; }
-  .wf-step { flex: 1; text-align: center; position: relative; }
-  .wf-step::after { content: '→'; position: absolute; right: -8px; top: 50%; transform: translateY(-50%); color: var(--stone-600); font-size: 12px; }
-  .wf-step:last-child::after { display: none; }
-  .wf-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: font-size: 12px; margin: 0 auto 6px; font-size: 13px; align-items: center; justify-content: center; border: 2px solid; }
-  .wf-dot.done { background: rgba(16,185,129,0.2); border-color: var(--emerald); color: var(--emerald); }
-  .wf-dot.active { background: rgba(245,158,11,0.2); border-color: var(--amber); color: var(--amber); }
-  .wf-dot.future { background: var(--stone-800); border-color: var(--stone-700); color: var(--stone-600); }
-  .wf-label { font-size: 10px; color: var(--stone-500); }
-
-  /* Stats bar */
-  .method-stats { display: flex; flex-direction: column; gap: 8px; }
-  .method-bar { display: flex; align-items: center; gap: 10px; }
-  .method-bar-label { width: 110px; font-size: 12px; color: var(--stone-400); flex-shrink: 0; }
-  .method-bar-track { flex: 1; background: var(--stone-800); border-radius: 4px; height: 8px; }
-  .method-bar-fill { height: 100%; border-radius: 4px; }
-  .method-bar-val { width: 70px; text-align: right; font-size: 12px; color: var(--stone-400); flex-shrink: 0; }
-
-  /* Tab bar */
-  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--stone-800); margin-bottom: 20px; }
-  .tab { padding: 10px 16px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; color: var(--stone-500); transition: all 0.15s; }
-  .tab.active { color: var(--amber); border-bottom-color: var(--amber); font-weight: 600; }
-  .tab:hover:not(.active) { color: var(--stone-300); }
-
-  /* Responsive */
-  @media (max-width: 768px) {
-    .sidebar { display: none; }
-    .kpi-grid { grid-template-columns: 1fr 1fr; }
-    .form-grid { grid-template-columns: 1fr; }
-    .detail-grid { grid-template-columns: 1fr; }
-  }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--stone-950); }
-  ::-webkit-scrollbar-thumb { background: var(--stone-700); border-radius: 3px; }
-
-  /* Toast */
-  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--stone-800); border: 1px solid var(--stone-700); border-radius: 12px; padding: 12px 18px; font-size: 13px; color: var(--stone-100); display: flex; align-items: center; gap: 8px; z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,0.4); transform: translateY(80px); opacity: 0; transition: all 0.3s; }
-  .toast.show { transform: translateY(0); opacity: 1; }
-  .toast.success { border-color: rgba(16,185,129,0.4); color: var(--emerald); }
-  .toast.error   { border-color: rgba(244,63,94,0.4); color: var(--rose); }
-</style>
-<style data-injected="embedded-mode">
-/* ═══════════════════════════════════════
-   EMBEDDED MODE — injecté par create_embedded.py
-   Supprime toute interface interne et force le module
-   à occuper 100% du cadre iframe du Core
-═══════════════════════════════════════ */
 html, body {
-  margin: 0 !important;
-  padding: 0 !important;
-  height: 100% !important;
-  overflow: hidden !important;
-  background: var(--bg-main, #0f172a) !important;
-}
-
-/* Supprimer les wrappers inutiles */
-.app {
-  display: block !important;
-  height: 100vh !important;
-  overflow: hidden !important;
-}
-
-/* .main occupe tout l'espace */
-.main {
-  display: flex !important;
-  flex-direction: column !important;
-  height: 100vh !important;
-  width: 100% !important;
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: var(--bg-main, #0f172a) !important;
-}
-
-/* Tabs collés en haut */
-.tabs {
-  flex-shrink: 0 !important;
-}
-
-/* Content scrollable prend le reste */
-.content {
-  flex: 1 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding: 20px !important;
-  box-sizing: border-box !important;
-}
-
-/* RESTAURANT: les .view occupent tout le .main */
-.main > .view {
-  display: none;
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
   height: 100%;
-  box-sizing: border-box;
+  overflow: hidden;
 }
-.main > .view.active {
+
+/* ── Layout principal ──────────────────────────────────────────── */
+.pm-shell {
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
-/* Masquer sidebar, topbar, toast internes */
-.sidebar,
-aside.sidebar,
-.topbar,
-#toast,
-.toast,
-.bottom-nav,
-nav.bottom-nav {
-  display: none !important;
+/* ── Tabs ──────────────────────────────────────────────────────── */
+.pm-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 10px 12px 0;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  flex-shrink: 0;
+  scrollbar-width: none;
 }
-</style></head>
-<body><script data-injected="embedded-bridge">
-/* ═══════════════════════════════════════
-   EMBEDDED BRIDGE — Communication avec Veraluz OS Core
-   Injecté par create_embedded.py
-═══════════════════════════════════════ */
+.pm-tabs::-webkit-scrollbar { display: none; }
+.pm-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px 8px 0 0;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; color: var(--text2);
+  border: none; background: none;
+  white-space: nowrap;
+  transition: all .18s;
+  border-bottom: 2px solid transparent;
+}
+.pm-tab:hover { color: var(--text); background: var(--bg3); }
+.pm-tab.active { color: var(--accent2); border-bottom-color: var(--accent); background: var(--bg3); }
+.pm-tab .badge {
+  background: var(--accent); color: #fff;
+  font-size: 10px; font-weight: 700;
+  padding: 1px 5px; border-radius: 20px;
+}
+
+/* ── Contenu ────────────────────────────────────────────────────── */
+.pm-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; }
+.pm-pane { display: none; }
+.pm-pane.active { display: block; }
+
+/* ── Barre filtres / recherche ─────────────────────────────────── */
+.pm-toolbar {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  align-items: center; margin-bottom: 14px;
+}
+.pm-search {
+  flex: 1; min-width: 180px;
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 7px 12px;
+}
+.pm-search input {
+  background: none; border: none; outline: none;
+  color: var(--text); font-size: 13px; width: 100%;
+}
+.pm-search input::placeholder { color: var(--text3); }
+.pm-filter {
+  background: var(--bg3); border: 1px solid var(--border2);
+  color: var(--text2); border-radius: var(--radius);
+  padding: 7px 12px; font-size: 12px; cursor: pointer;
+  outline: none;
+}
+.pm-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: var(--radius);
+  font-size: 12px; font-weight: 600; cursor: pointer; border: none;
+  transition: all .15s; white-space: nowrap;
+}
+.pm-btn-primary { background: var(--accent); color: #fff; }
+.pm-btn-primary:hover { background: var(--accent2); }
+.pm-btn-ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
+.pm-btn-ghost:hover { background: var(--bg4); color: var(--text); }
+.pm-btn-success { background: rgba(34,211,165,.15); color: var(--success); border: 1px solid rgba(34,211,165,.3); }
+.pm-btn-danger  { background: rgba(244,63,94,.12); color: var(--danger); border: 1px solid rgba(244,63,94,.3); }
+.pm-btn-warning { background: rgba(245,158,11,.12); color: var(--warning); border: 1px solid rgba(245,158,11,.3); }
+.pm-btn-sm { padding: 5px 10px; font-size: 11px; }
+
+/* ── KPI Cards ─────────────────────────────────────────────────── */
+.pm-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px; margin-bottom: 14px;
+}
+.pm-kpi {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px;
+}
+.pm-kpi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.pm-kpi-val   { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+.pm-kpi-sub   { font-size: 11px; color: var(--text2); margin-top: 4px; }
+.pm-kpi.success .pm-kpi-val { color: var(--success); }
+.pm-kpi.warning .pm-kpi-val { color: var(--warning); }
+.pm-kpi.danger  .pm-kpi-val { color: var(--danger); }
+.pm-kpi.accent  .pm-kpi-val { color: var(--accent2); }
+
+/* ── Table ─────────────────────────────────────────────────────── */
+.pm-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; margin-bottom: 14px;
+}
+.pm-card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.pm-card-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.pm-table-wrap { overflow-x: auto; }
+table.pm-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pm-table th {
+  text-align: left; padding: 10px 14px;
+  color: var(--text3); font-size: 10px; text-transform: uppercase;
+  letter-spacing: .06em; font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3); white-space: nowrap;
+}
+.pm-table td {
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+  color: var(--text2); vertical-align: middle;
+}
+.pm-table tr:last-child td { border-bottom: none; }
+.pm-table tr:hover td { background: var(--bg-hover); color: var(--text); }
+.pm-table td:first-child { color: var(--text); font-weight: 600; }
+
+/* ── Badges statut ─────────────────────────────────────────────── */
+.pm-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 10px; font-weight: 700; white-space: nowrap;
+}
+.pm-badge.ok      { background: rgba(34,211,165,.15); color: var(--success); }
+.pm-badge.pending { background: rgba(245,158,11,.15); color: var(--warning); }
+.pm-badge.failed  { background: rgba(244,63,94,.12); color: var(--danger);  }
+.pm-badge.refund  { background: rgba(56,189,248,.12); color: var(--info);   }
+.pm-badge.review  { background: rgba(168,157,255,.15); color: var(--accent3); }
+
+/* ── Méthode paiement ──────────────────────────────────────────── */
+.pm-method {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600;
+}
+.pm-method .dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.dot-orange { background: #f97316; }
+.dot-yellow { background: #eab308; }
+.dot-green  { background: var(--success); }
+.dot-blue   { background: var(--info); }
+.dot-purple { background: var(--accent); }
+
+/* ── Actions rapides (boutons ligne table) ─────────────────────── */
+.pm-row-actions { display: flex; gap: 5px; }
+
+/* ── Formulaire modal ──────────────────────────────────────────── */
+.pm-modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.6); z-index: 100;
+  align-items: center; justify-content: center; padding: 16px;
+}
+.pm-modal-overlay.open { display: flex; }
+.pm-modal {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 16px; width: 100%; max-width: 480px;
+  max-height: 90vh; overflow-y: auto;
+}
+.pm-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.pm-modal-title { font-size: 15px; font-weight: 700; }
+.pm-modal-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 20px; line-height: 1; padding: 4px;
+}
+.pm-modal-body { padding: 20px; }
+.pm-modal-footer {
+  display: flex; gap: 8px; justify-content: flex-end;
+  padding: 14px 20px; border-top: 1px solid var(--border);
+}
+.pm-field { margin-bottom: 14px; }
+.pm-label { font-size: 11px; color: var(--text2); margin-bottom: 5px; display: block; font-weight: 600; }
+.pm-input, .pm-select, .pm-textarea {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+  color: var(--text); border-radius: var(--radius); padding: 9px 12px;
+  font-size: 13px; outline: none;
+}
+.pm-input:focus, .pm-select:focus, .pm-textarea:focus { border-color: var(--accent); }
+.pm-textarea { resize: vertical; min-height: 80px; }
+.pm-row-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ── Workflow ───────────────────────────────────────────────────── */
+.pm-workflow {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+}
+.pm-wf-step {
+  flex: 1; min-width: 120px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px; text-align: center;
+  position: relative;
+}
+.pm-wf-step.active { border-color: var(--accent); background: rgba(108,99,255,.08); }
+.pm-wf-step.done   { border-color: var(--success); background: rgba(34,211,165,.06); }
+.pm-wf-icon { font-size: 22px; margin-bottom: 6px; }
+.pm-wf-label { font-size: 11px; font-weight: 700; color: var(--text); }
+.pm-wf-sub   { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+/* ── Journal audit ─────────────────────────────────────────────── */
+.pm-log-entry {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.pm-log-entry:last-child { border-bottom: none; }
+.pm-log-icon {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0; margin-top: 2px;
+}
+.pm-log-icon.ok     { background: rgba(34,211,165,.15); }
+.pm-log-icon.warn   { background: rgba(245,158,11,.15); }
+.pm-log-icon.err    { background: rgba(244,63,94,.12); }
+.pm-log-icon.info   { background: rgba(56,189,248,.12); }
+.pm-log-text { flex: 1; }
+.pm-log-msg  { font-size: 12px; color: var(--text); font-weight: 600; }
+.pm-log-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.pm-log-time { font-size: 10px; color: var(--text3); white-space: nowrap; }
+
+/* ── Responsive mobile ─────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .pm-content { padding: 10px; }
+  .pm-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .pm-table th, .pm-table td { padding: 8px 10px; }
+  .pm-row-fields { grid-template-columns: 1fr; }
+  .pm-hide-mobile { display: none !important; }
+}
+
+/* ── Toast local ───────────────────────────────────────────────── */
+.pm-toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--bg4); border: 1px solid var(--border2);
+  color: var(--text); padding: 10px 20px; border-radius: 30px;
+  font-size: 13px; font-weight: 600; z-index: 999;
+  opacity: 0; transition: opacity .25s; pointer-events: none;
+}
+.pm-toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ═══ EMBEDDED BRIDGE ═══ -->
+<script data-injected="embedded-bridge">
 (function() {
   'use strict';
-
-  /* 1. Toast → déléguer au parent */
+  window.__MODULE_NAME__ = 'paiements';
   window.toast = function(msg, type) {
     try {
-      if (window.parent && window.parent !== window) {
-        window.parent.showToast(msg, type || 'info');
-      }
-    } catch(e) {
-      console.log('[Embedded toast]', msg, type);
-    }
+      if (window.parent && window.parent !== window)
+        window.parent.showToast(msg, '', type || 'info');
+      else showLocalToast(msg, type);
+    } catch(e) { showLocalToast(msg, type); }
   };
-
-  /* Aussi patcher showToast si défini localement */
   window.showToast = window.toast;
-
-  /* 2. Émettre un événement vers le Core via postMessage */
   window.emitToCore = function(type, data) {
-    try {
-      window.parent.postMessage({
-        veraluzEvent: true,
-        type: type,
-        data: data,
-        source: window.__MODULE_NAME__ || 'embedded-module'
-      }, '*');
-    } catch(e) {}
+    try { window.parent.postMessage({ veraluzEvent: true, type, data, source: 'paiements' }, '*'); }
+    catch(e) {}
   };
-
-  /* 3. Recevoir des événements du Core */
   window.addEventListener('message', function(e) {
     if (!e.data || !e.data.veraluzEvent) return;
-    var evt = new CustomEvent('veraluz:' + e.data.type, { detail: e.data.data });
-    window.dispatchEvent(evt);
+    if (e.data.type === 'auth.context') window.__AUTH__ = e.data.data;
+    window.dispatchEvent(new CustomEvent('veraluz:' + e.data.type, { detail: e.data.data }));
   });
-
-  /* 4. Signaler au Core que le module est chargé */
   window.addEventListener('DOMContentLoaded', function() {
-    window.emitToCore('module:ready', { module: window.__MODULE_NAME__ });
+    window.emitToCore('module:ready', { module: 'paiements' });
   });
 })();
 </script>
-<div class="shell">
-<!-- Sidebar -->
 
-<!-- Main -->
-<main class="main">
-<div class="content">
-<!-- Header -->
-<div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
-<div>
-<h1>Paiements</h1>
-<p style="color:var(--stone-500); font-size:13px; margin-top:4px">Transactions · Validations · Remboursements</p>
-</div>
-<div style="display:flex; gap:8px;">
-<button class="btn btn-ghost btn-sm" onclick="showTab('audit')">📋 Journal audit</button>
-<button class="btn btn-primary" onclick="openCreateModal()">+ Nouveau paiement</button>
-</div>
-</div>
-<!-- Tabs -->
-<div class="tabs">
-<div class="tab active" id="tab-transactions" onclick="showTab('transactions')">Transactions</div>
-<div class="tab" id="tab-analytics" onclick="showTab('analytics')">Analytique</div>
-<div class="tab" id="tab-audit" onclick="showTab('audit')">Journal audit</div>
-<div class="tab" id="tab-workflow" onclick="showTab('workflow')">Workflow</div>
-</div>
-<!-- KPI Cards -->
-<div class="kpi-grid" style="margin-bottom:16px;">
-<div class="kpi">
-<div class="kpi-label">Collecté (validé)</div>
-<div class="kpi-value" id="kpi-collected" style="color:var(--emerald)">2 450 000 FCFA</div>
-<div class="kpi-sub" style="color:var(--stone-500)">Ce mois</div>
-</div>
-<div class="kpi">
-<div class="kpi-label">En attente</div>
-<div class="kpi-value" id="kpi-pending" style="color:var(--amber)">315 000 FCFA</div>
-<div class="kpi-sub" onclick="filterByStatus('pending')" style="color:var(--amber); cursor:pointer">3 à valider →</div>
-</div>
-<div class="kpi">
-<div class="kpi-label">Remboursé</div>
-<div class="kpi-value" id="kpi-refunded" style="color:var(--blue)">85 000 FCFA</div>
-<div class="kpi-sub" style="color:var(--stone-500)">2 opérations</div>
-</div>
-<div class="kpi">
-<div class="kpi-label">Transactions</div>
-<div class="kpi-value" id="kpi-count" style="color:var(--stone-200)">24</div>
-<div class="kpi-sub" style="color:var(--stone-500)">Toutes méthodes</div>
-</div>
-</div>
-<!-- ====================== TAB TRANSACTIONS ====================== -->
-<div id="view-transactions">
-<!-- Alerte -->
-<div class="alert alert-warning" id="pending-alert" style="margin-bottom:14px;">
-<span style="font-size:18px">⚠️</span>
-<div>
-<div style="color:var(--amber); font-weight:600; font-size:13px">3 paiements en attente de validation</div>
-<div style="color:var(--stone-500); font-size:11px; margin-top:2px">315 000 FCFA à confirmer</div>
-</div>
-<button class="btn btn-ghost btn-sm" onclick="filterByStatus('pending')" style="margin-left:auto">Voir →</button>
-</div>
-<!-- Filtres -->
-<div class="filters" style="margin-bottom:16px;">
-<div class="search-wrap">
-<span class="search-icon">🔍</span>
-<input class="filter-input" id="search-input" oninput="applyFilters()" placeholder="Client, référence, reçu..." type="text"/>
-</div>
-<select class="filter-input" id="filter-status" onchange="applyFilters()">
-<option value="">Tous statuts</option>
-<option value="pending">En attente</option>
-<option value="validated">Validé</option>
-<option value="refunded">Remboursé</option>
-<option value="failed">Échoué</option>
-</select>
-<select class="filter-input" id="filter-method" onchange="applyFilters()">
-<option value="">Toutes méthodes</option>
-<option value="cash">💵 Espèces</option>
-<option value="orange_money">🟠 Orange Money</option>
-<option value="mtn_momo">🟡 MTN MoMo</option>
-<option value="card">💳 Carte</option>
-<option value="virement">🏦 Virement</option>
-<option value="cinetpay">⚡ CinetPay</option>
-</select>
-<select class="filter-input" id="filter-type" onchange="applyFilters()">
-<option value="">Tous types</option>
-<option value="reservation">🏨 Réservation</option>
-<option value="deposit">📋 Acompte</option>
-<option value="restaurant">🍽️ Restaurant</option>
-<option value="manual">✏️ Manuel</option>
-</select>
-</div>
-<!-- Liste transactions -->
-<div class="tx-list">
-<div class="tx-header">
-<span id="tx-count" style="font-size:13px; color:var(--stone-400)">24 transactions</span>
-<button class="btn btn-ghost btn-sm" onclick="showToast('Export CSV en cours...','info')">⬇ Exporter CSV</button>
-</div>
-<div id="tx-body"></div>
-</div>
-</div>
-<!-- ====================== TAB ANALYTICS ====================== -->
-<div id="view-analytics" style="display:none;">
-<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-<div class="card">
-<div class="card-header"><h2>Répartition par méthode</h2></div>
-<div class="method-stats" id="method-stats" style="padding:18px;"></div>
-</div>
-<div class="card">
-<div class="card-header"><h2>Répartition par type</h2></div>
-<div class="method-stats" id="type-stats" style="padding:18px;"></div>
-</div>
-<div class="card" style="grid-column:1/-1;">
-<div class="card-header"><h2>📅 Activité des 7 derniers jours</h2></div>
-<div style="padding:18px;">
-<div style="display:flex; gap:6px; align-items:flex-end; height:80px;">
-<div style="flex:1; background:rgba(245,158,11,0.3); border-radius:4px 4px 0 0; height:60%; position:relative;">
-<div style="position:absolute; bottom:-20px; left:0; right:0; text-align:center; font-size:10px; color:var(--stone-500)">Lun</div>
-</div>
-<div style="flex:1; background:rgba(245,158,11,0.5); border-radius:4px 4px 0 0; height:80%;">
-<div style="position:absolute; bottom:-20px; font-size:10px; color:var(--stone-500)">Mar</div>
-</div>
-<div style="flex:1; background:rgba(245,158,11,0.35); border-radius:4px 4px 0 0; height:50%;"></div>
-<div style="flex:1; background:rgba(245,158,11,0.7); border-radius:4px 4px 0 0; height:100%;"></div>
-<div style="flex:1; background:rgba(245,158,11,0.45); border-radius:4px 4px 0 0; height:65%;"></div>
-<div style="flex:1; background:rgba(245,158,11,0.3); border-radius:4px 4px 0 0; height:40%;"></div>
-<div style="flex:1; background:rgba(16,185,129,0.5); border-radius:4px 4px 0 0; height:75%;"></div>
-</div>
-<div style="display:flex; gap:6px; margin-top:24px;">
-<div style="flex:1; text-align:center; font-size:10px; color:var(--stone-500)">Lun</div>
-<div style="flex:1; text-align:center; font-size:10px; color:var(--stone-500)">Mar</div>
-<div style="flex:1; text-align:center; font-size:10px; color:var(--stone-500)">Mer</div>
-<div style="flex:1; text-align:center; font-size:10px; color:var(--stone-500)">Jeu</div>
-<div style="flex:1; text-align:center; font-size:10px; color:var(--stone-500)">Ven</div>
-<div style="flex:1; text-align:center; font-size:10px; color:var(--stone-500)">Sam</div>
-<div style="flex:1; text-align:center; font-size:10px; color:var(--stone-500); color:var(--emerald)">Auj</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-<!-- ====================== TAB AUDIT ====================== -->
-<div id="view-audit" style="display:none;">
-<div class="tx-list">
-<div class="tx-header">
-<h2>Journal des actions</h2>
-<span style="font-size:12px; color:var(--stone-500)">Toutes les modifications tracées</span>
-</div>
-<div id="audit-body"></div>
-</div>
-</div>
-<!-- ====================== TAB WORKFLOW ====================== -->
-<div id="view-workflow" style="display:none;">
-<div class="card" style="margin-bottom:16px;">
-<div class="card-header"><h2>Cycle de vie d'un paiement</h2></div>
-<div style="padding:24px;">
-<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center;">
-<div style="text-align:center;">
-<div style="width:48px; height:48px; border-radius:12px; background:rgba(245,158,11,0.15); border:2px solid var(--amber); display:flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto 6px;">➕</div>
-<div style="font-size:11px; color:var(--stone-400); font-weight:600;">CRÉÉ</div>
-<div style="font-size:10px; color:var(--stone-600); margin-top:2px;">pending</div>
-</div>
-<div style="color:var(--stone-600); font-size:20px;">→</div>
-<div style="text-align:center;">
-<div style="width:48px; height:48px; border-radius:12px; background:rgba(16,185,129,0.15); border:2px solid var(--emerald); display:flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto 6px;">✅</div>
-<div style="font-size:11px; color:var(--stone-400); font-weight:600;">VALIDÉ</div>
-<div style="font-size:10px; color:var(--stone-600); margin-top:2px;">validated</div>
-</div>
-<div style="color:var(--stone-600); font-size:20px;">→</div>
-<div style="text-align:center;">
-<div style="width:48px; height:48px; border-radius:12px; background:rgba(59,130,246,0.15); border:2px solid var(--blue); display:flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto 6px;">↩️</div>
-<div style="font-size:11px; color:var(--stone-400); font-weight:600;">REMBOURSÉ</div>
-<div style="font-size:10px; color:var(--stone-600); margin-top:2px;">refunded</div>
-</div>
-</div>
-<div style="display:flex; justify-content:center; gap:60px; margin-top:16px;">
-<div style="text-align:center;">
-<div style="color:var(--stone-600); font-size:12px; margin-bottom:4px;">Alternative</div>
-<div style="width:48px; height:48px; border-radius:12px; background:rgba(244,63,94,0.15); border:2px solid var(--rose); display:flex; align-items:center; justify-content:center; font-size:20px; margin:0 auto 6px;">❌</div>
-<div style="font-size:11px; color:var(--stone-400); font-weight:600;">REJETÉ</div>
-<div style="font-size:10px; color:var(--stone-600); margin-top:2px;">failed</div>
-</div>
-</div>
-</div>
-</div>
-<div class="card">
-<div class="card-header"><h2>Méthodes de paiement</h2></div>
-<div style="padding:18px;">
-<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
-<div style="background:var(--stone-800); border-radius:12px; padding:14px; text-align:center;">
-<div style="font-size:24px; margin-bottom:6px;">💵</div>
-<div style="font-weight:600; font-size:13px; color:var(--emerald)">Espèces</div>
-<div style="font-size:11px; color:var(--stone-500); margin-top:4px;">Reçu auto généré</div>
-</div>
-<div style="background:var(--stone-800); border-radius:12px; padding:14px; text-align:center;">
-<div style="font-size:24px; margin-bottom:6px;">🟠</div>
-<div style="font-weight:600; font-size:13px; color:var(--orange)">Orange Money</div>
-<div style="font-size:11px; color:var(--stone-500); margin-top:4px;">N° transaction requis</div>
-</div>
-<div style="background:var(--stone-800); border-radius:12px; padding:14px; text-align:center;">
-<div style="font-size:24px; margin-bottom:6px;">🟡</div>
-<div style="font-weight:600; font-size:13px; color:var(--yellow)">MTN MoMo</div>
-<div style="font-size:11px; color:var(--stone-500); margin-top:4px;">N° transaction requis</div>
-</div>
-<div style="background:var(--stone-800); border-radius:12px; padding:14px; text-align:center;">
-<div style="font-size:24px; margin-bottom:6px;">💳</div>
-<div style="font-weight:600; font-size:13px; color:var(--blue)">Carte bancaire</div>
-<div style="font-size:11px; color:var(--stone-500); margin-top:4px;">Référence terminal</div>
-</div>
-<div style="background:var(--stone-800); border-radius:12px; padding:14px; text-align:center;">
-<div style="font-size:24px; margin-bottom:6px;">🏦</div>
-<div style="font-weight:600; font-size:13px; color:var(--purple)">Virement</div>
-<div style="font-size:11px; color:var(--stone-500); margin-top:4px;">Référence bancaire</div>
-</div>
-<div style="background:rgba(6,182,212,0.08); border:1px dashed rgba(6,182,212,0.4); border-radius:12px; padding:14px; text-align:center;">
-<div style="font-size:24px; margin-bottom:6px;">⚡</div>
-<div style="font-weight:600; font-size:13px; color:var(--cyan)">CinetPay</div>
-<div style="font-size:11px; color:var(--cyan); margin-top:4px; opacity:0.7">Phase 3 — Intégration API</div>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div><!-- /content -->
-</main>
-</div><!-- /shell -->
-<!-- ====================== MODAL CRÉER PAIEMENT ====================== -->
-<div class="overlay" id="modal-create">
-<div class="modal">
-<div class="modal-header">
-<div>
-<h2>Nouveau paiement</h2>
-<div style="font-size:11px; color:var(--stone-500); margin-top:2px;">Enregistrer une transaction</div>
-</div>
-<button class="close-btn" onclick="closeModal('modal-create')">✕</button>
-</div>
-<div class="modal-body">
-<div class="form-grid">
-<div class="form-group">
-<label class="form-label">Type de paiement</label>
-<select class="form-select" id="new-type" onchange="onTypeChange()">
-<option value="reservation">🏨 Réservation</option>
-<option value="deposit">📋 Acompte</option>
-<option value="restaurant">🍽️ Restaurant</option>
-<option value="manual">✏️ Manuel</option>
-</select>
-</div>
-<div class="form-group">
-<label class="form-label">Méthode</label>
-<select class="form-select" id="new-method" onchange="onMethodChange()">
-<option value="cash">💵 Espèces</option>
-<option value="orange_money">🟠 Orange Money</option>
-<option value="mtn_momo">🟡 MTN MoMo</option>
-<option value="card">💳 Carte bancaire</option>
-<option value="virement">🏦 Virement</option>
-<option value="cinetpay">⚡ CinetPay</option>
-</select>
-</div>
-</div>
-<div class="form-group">
-<label class="form-label">Montant (FCFA)</label>
-<input class="form-input" id="new-amount" placeholder="Ex: 45 000" type="number"/>
-</div>
-<div class="form-group" id="client-row">
-<label class="form-label">Client / Référence réservation</label>
-<input class="form-input" id="new-client" placeholder="Nom du client ou ID réservation" type="text"/>
-</div>
-<div class="form-group" id="ref-row" style="display:none;">
-<label class="form-label">Référence transaction Mobile Money</label>
-<input class="form-input" id="new-ref" placeholder="Ex: OM2024051403728" type="text"/>
-</div>
-<div class="form-group">
-<label class="form-label">Notes (optionnel)</label>
-<textarea class="form-textarea" id="new-notes" placeholder="Observations, numéro de chambre..."></textarea>
-</div>
-<div class="cinetpay-note" id="cinetpay-note" style="display:none;">
-        ⚡ <strong>CinetPay :</strong> L'intégration API est prévue en Phase 3. Le paiement sera enregistré manuellement pour l'instant.
-      </div>
-<div class="receipt-box" id="receipt-note" style="display:none; margin-top:12px;">
-        ✅ <strong style="color:var(--emerald)">Reçu automatique</strong> — Un reçu sera généré automatiquement pour ce paiement en espèces.
-      </div>
-</div>
-<div class="modal-footer">
-<button class="btn btn-ghost" onclick="closeModal('modal-create')" style="flex:1">Annuler</button>
-<button class="btn btn-primary" onclick="submitPayment()" style="flex:1.5">💳 Enregistrer</button>
-</div>
-</div>
-</div>
-<!-- ====================== MODAL DÉTAIL PAIEMENT ====================== -->
-<div class="overlay" id="modal-detail">
-<div class="modal">
-<div class="modal-header">
-<div>
-<h2>Détail paiement</h2>
-<div id="detail-id" style="font-size:11px; color:var(--stone-500); margin-top:2px;">—</div>
-</div>
-<button class="close-btn" onclick="closeModal('modal-detail')">✕</button>
-</div>
-<div class="modal-body" id="detail-body"></div>
-</div>
-</div>
-<!-- Toast -->
+<!-- ═══ MODULE WRAP ═══ -->
+<div class="pm-shell">
 
-<script>
-// ====================== DATA ======================
-let payments = [
-  { id:'pay-001', client:'Famille Mbarga', type:'reservation', method:'orange_money', amount:120000, status:'validated', ref:'OM2024051401928', receipt:'VRL-REC-2024-0021', date:'2024-05-14T08:30:00', notes:'Chambre 102 — 3 nuits', refund:null },
-  { id:'pay-002', client:'Jean-Pierre Essomba', type:'deposit', method:'cash', amount:50000, status:'pending', ref:null, receipt:'VRL-REC-2024-0022', date:'2024-05-14T09:15:00', notes:'Acompte suite présidentielle', refund:null },
-  { id:'pay-003', client:'Table 5 — Restaurant', type:'restaurant', method:'mtn_momo', amount:18500, status:'pending', ref:'MTN0514A8832', receipt:null, date:'2024-05-14T12:30:00', notes:'Déjeuner + boissons', refund:null },
-  { id:'pay-004', client:'Kouamé Alice', type:'reservation', method:'card', amount:95000, status:'validated', ref:'TERM-2847', receipt:'VRL-REC-2024-0019', date:'2024-05-13T16:00:00', notes:'Studio vue mer — 2 nuits', refund:null },
-  { id:'pay-005', client:'Biya Raymond', type:'reservation', method:'virement', amount:180000, status:'validated', ref:'VIR-BK-20240512', receipt:'VRL-REC-2024-0018', date:'2024-05-12T10:00:00', notes:'Appartement 2BR — 4 nuits', refund:null },
-  { id:'pay-006', client:'Nguema Patricia', type:'reservation', method:'orange_money', amount:85000, status:'refunded', ref:'OM2024051301729', receipt:'VRL-REC-2024-0017', date:'2024-05-11T14:20:00', notes:'Annulation — force majeure', refund:{amount:85000, reason:'Annulation vol', date:'2024-05-12'} },
-  { id:'pay-007', client:'Table 3 — Restaurant', type:'restaurant', method:'cash', amount:12000, status:'validated', ref:null, receipt:'VRL-REC-2024-0016', date:'2024-05-13T19:45:00', notes:'Dîner romantique', refund:null },
-  { id:'pay-008', client:'Obiang Michel', type:'deposit', method:'mtn_momo', amount:147000, status:'pending', ref:'MTN0513C7721', receipt:null, date:'2024-05-13T11:00:00', notes:'Acompte réservation groupe', refund:null },
-  { id:'pay-009', client:'Tchamou Sarah', type:'reservation', method:'cash', amount:60000, status:'validated', ref:null, receipt:'VRL-REC-2024-0015', date:'2024-05-10T15:30:00', notes:'Chambre double — 2 nuits', refund:null },
-  { id:'pay-010', client:'Abouna David', type:'reservation', method:'card', amount:240000, status:'refunded', ref:'TERM-2901', receipt:'VRL-REC-2024-0014', date:'2024-05-09T09:00:00', notes:'Réservation annulée', refund:{amount:220000, reason:'Remboursement partiel — frais annulation', date:'2024-05-10'} },
-];
+  <!-- Tabs navigation -->
+  <div class="pm-tabs">
+    <button class="pm-tab active" onclick="pmTab('transactions')" id="tab-transactions">
+      💳 Transactions <span class="badge">12</span>
+    </button>
+    <button class="pm-tab" onclick="pmTab('validation')" id="tab-validation">
+      ✅ Validations <span class="badge" style="background:var(--warning)">3</span>
+    </button>
+    <button class="pm-tab" onclick="pmTab('remboursements')" id="tab-remboursements">
+      ↩️ Remboursements
+    </button>
+    <button class="pm-tab" onclick="pmTab('workflow')" id="tab-workflow">
+      🔄 Workflow
+    </button>
+    <button class="pm-tab" onclick="pmTab('journal')" id="tab-journal">
+      📋 Journal audit
+    </button>
+  </div>
 
-const auditLog = [
-  { action:'validated', user:'Smith (Propriétaire)', payment:'Famille Mbarga — 120 000 FCFA', date:'2024-05-14 08:45', icon:'✅', color:'var(--emerald)' },
-  { action:'created', user:'Réception (Marie)', payment:'Jean-Pierre — 50 000 FCFA acompte', date:'2024-05-14 09:15', icon:'➕', color:'var(--amber)' },
-  { action:'created', user:'Réception (Marie)', payment:'Table 5 — 18 500 FCFA restaurant', date:'2024-05-14 12:32', icon:'➕', color:'var(--amber)' },
-  { action:'validated', user:'Smith (Propriétaire)', payment:'Kouamé Alice — 95 000 FCFA', date:'2024-05-13 16:20', icon:'✅', color:'var(--emerald)' },
-  { action:'refunded', user:'Smith (Propriétaire)', payment:'Abouna David — 220 000 FCFA', date:'2024-05-10 10:15', icon:'↩️', color:'var(--blue)' },
-  { action:'refunded', user:'Comptable (Paul)', payment:'Nguema Patricia — 85 000 FCFA', date:'2024-05-12 09:30', icon:'↩️', color:'var(--blue)' },
-];
+  <!-- Contenu principal -->
+  <div class="pm-content">
 
-const methodConfig = {
-  cash:        { label:'Espèces',      icon:'💵', color:'method-cash' },
-  orange_money:{ label:'Orange Money', icon:'🟠', color:'method-orange' },
-  mtn_momo:   { label:'MTN MoMo',     icon:'🟡', color:'method-mtn' },
-  card:        { label:'Carte',        icon:'💳', color:'method-card' },
-  virement:    { label:'Virement',     icon:'🏦', color:'method-virement' },
-  cinetpay:    { label:'CinetPay',     icon:'⚡', color:'method-cinetpay' },
-};
-const typeConfig = {
-  reservation: { label:'Réservation', icon:'🏨' },
-  deposit:     { label:'Acompte',     icon:'📋' },
-  restaurant:  { label:'Restaurant',  icon:'🍽️' },
-  manual:      { label:'Manuel',      icon:'✏️' },
-};
+    <!-- ══ TRANSACTIONS ══ -->
+    <div class="pm-pane active" id="pane-transactions">
 
-// ====================== HELPERS ======================
-const fmt = n => new Intl.NumberFormat('fr-CM',{style:'currency',currency:'XAF',maximumFractionDigits:0}).format(n);
-const fmtDate = d => new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-
-/* showToast() delegated to embedded bridge */
-
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-// ====================== TABS ======================
-function showTab(tab) {
-  ['transactions','analytics','audit','workflow'].forEach(t => {
-    document.getElementById('view-'+t).style.display = t===tab ? '' : 'none';
-    document.getElementById('tab-'+t).classList.toggle('active', t===tab);
-  });
-  if(tab==='analytics') renderAnalytics();
-  if(tab==='audit') renderAudit();
-}
-
-// ====================== RENDER ======================
-function renderPayments(list) {
-  const tbody = document.getElementById('tx-body');
-  document.getElementById('tx-count').textContent = list.length + ' transaction' + (list.length!==1?'s':'');
-  if(!list.length) {
-    tbody.innerHTML = '<div style="padding:40px;text-align:center;color:var(--stone-600)">Aucune transaction trouvée</div>';
-    return;
-  }
-  tbody.innerHTML = list.map(p => {
-    const mc = methodConfig[p.method] || {};
-    const tc = typeConfig[p.type] || {};
-    return `<div class="tx-row" onclick="openDetail('${p.id}')">
-      <div class="tx-avatar">${tc.icon||'💳'}</div>
-      <div class="tx-info">
-        <div class="tx-name">${p.client}</div>
-        <div class="tx-meta">
-          <span class="method ${mc.color}">${mc.icon} ${mc.label}</span>
-          <span>${tc.label}</span>
-          ${p.receipt ? `<span style="color:var(--emerald);font-family:monospace;font-size:10px">${p.receipt}</span>` : ''}
-          <span>${fmtDate(p.date)}</span>
+      <!-- KPIs -->
+      <div class="pm-kpi-grid">
+        <div class="pm-kpi success">
+          <div class="pm-kpi-label">Encaissé ce mois</div>
+          <div class="pm-kpi-val">4 280 000</div>
+          <div class="pm-kpi-sub">FCFA · 38 transactions</div>
+        </div>
+        <div class="pm-kpi warning">
+          <div class="pm-kpi-label">En attente</div>
+          <div class="pm-kpi-val">620 000</div>
+          <div class="pm-kpi-sub">FCFA · 3 transactions</div>
+        </div>
+        <div class="pm-kpi danger">
+          <div class="pm-kpi-label">Échoués</div>
+          <div class="pm-kpi-val">85 000</div>
+          <div class="pm-kpi-sub">FCFA · 2 transactions</div>
+        </div>
+        <div class="pm-kpi accent">
+          <div class="pm-kpi-label">Remboursés</div>
+          <div class="pm-kpi-val">130 000</div>
+          <div class="pm-kpi-sub">FCFA · 1 transaction</div>
         </div>
       </div>
-      <div class="tx-amount">
-        <div class="tx-amount-main">${fmt(p.amount)}</div>
-        ${p.refund ? `<div class="tx-amount-refund">-${fmt(p.refund.amount)}</div>` : ''}
+
+      <!-- Toolbar -->
+      <div class="pm-toolbar">
+        <div class="pm-search">
+          <span>🔍</span>
+          <input type="text" placeholder="Rechercher par nom, montant, méthode..." oninput="pmSearch(this.value)"/>
+        </div>
+        <select class="pm-filter" onchange="pmFilter('method', this.value)">
+          <option value="">Toutes méthodes</option>
+          <option value="orange">Orange Money</option>
+          <option value="mtn">MTN MoMo</option>
+          <option value="cash">Cash</option>
+          <option value="carte">Carte bancaire</option>
+          <option value="virement">Virement</option>
+        </select>
+        <select class="pm-filter" onchange="pmFilter('status', this.value)">
+          <option value="">Tous statuts</option>
+          <option value="ok">Validé</option>
+          <option value="pending">En attente</option>
+          <option value="failed">Échoué</option>
+          <option value="refund">Remboursé</option>
+        </select>
+        <button class="pm-btn pm-btn-ghost pm-btn-sm" onclick="pmExportCSV()">📥 Export CSV</button>
+        <button class="pm-btn pm-btn-primary pm-btn-sm" onclick="openNewPaiement()">+ Nouveau</button>
       </div>
-      <span class="badge badge-${p.status}">${{pending:'En attente',validated:'Validé',refunded:'Remboursé',failed:'Échoué'}[p.status]}</span>
-    </div>`;
-  }).join('');
-}
 
-function renderAnalytics() {
-  // Par méthode
-  const byMethod = {};
-  payments.filter(p=>p.status==='validated').forEach(p => {
-    byMethod[p.method] = (byMethod[p.method]||0) + p.amount;
-  });
-  const maxM = Math.max(...Object.values(byMethod));
-  document.getElementById('method-stats').innerHTML = Object.entries(byMethod).sort((a,b)=>b[1]-a[1]).map(([m,v])=>{
-    const mc = methodConfig[m]||{};
-    return `<div class="method-bar">
-      <div class="method-bar-label"><span class="${mc.color}">${mc.icon} ${mc.label}</span></div>
-      <div class="method-bar-track"><div class="method-bar-fill" style="width:${(v/maxM*100).toFixed(0)}%;background:currentColor;" class="${mc.color}"></div></div>
-      <div class="method-bar-val" style="color:var(--amber)">${fmt(v)}</div>
-    </div>`;
-  }).join('');
-
-  // Par type
-  const byType = {};
-  payments.filter(p=>p.status==='validated').forEach(p => {
-    byType[p.type] = (byType[p.type]||0) + p.amount;
-  });
-  const maxT = Math.max(...Object.values(byType));
-  document.getElementById('type-stats').innerHTML = Object.entries(byType).sort((a,b)=>b[1]-a[1]).map(([t,v])=>{
-    const tc = typeConfig[t]||{};
-    return `<div class="method-bar">
-      <div class="method-bar-label">${tc.icon} ${tc.label}</div>
-      <div class="method-bar-track"><div class="method-bar-fill" style="width:${(v/maxT*100).toFixed(0)}%;background:var(--amber);opacity:0.7;"></div></div>
-      <div class="method-bar-val" style="color:var(--amber)">${fmt(v)}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderAudit() {
-  document.getElementById('audit-body').innerHTML = auditLog.map(a => `
-    <div class="tx-row">
-      <div style="width:36px;height:36px;border-radius:10px;background:var(--stone-800);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">${a.icon}</div>
-      <div class="tx-info">
-        <div class="tx-name" style="color:${a.color}">${a.action.toUpperCase()}</div>
-        <div class="tx-meta"><span>${a.payment}</span><span>par ${a.user}</span></div>
+      <!-- Table transactions -->
+      <div class="pm-card">
+        <div class="pm-card-header">
+          <span class="pm-card-title">Transactions récentes</span>
+          <span style="font-size:11px;color:var(--text3)" id="tx-count">12 transactions</span>
+        </div>
+        <div class="pm-table-wrap">
+          <table class="pm-table" id="tx-table">
+            <thead>
+              <tr>
+                <th>Réf.</th>
+                <th>Client</th>
+                <th class="pm-hide-mobile">Chambre</th>
+                <th>Méthode</th>
+                <th>Montant</th>
+                <th>Statut</th>
+                <th class="pm-hide-mobile">Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tx-body"></tbody>
+          </table>
+        </div>
       </div>
-      <div style="font-size:11px;color:var(--stone-600);flex-shrink:0">${a.date}</div>
     </div>
-  `).join('');
+
+    <!-- ══ VALIDATIONS ══ -->
+    <div class="pm-pane" id="pane-validation">
+      <div class="pm-card" style="margin-bottom:14px">
+        <div class="pm-card-header">
+          <span class="pm-card-title">⚠️ Paiements en attente de validation</span>
+          <span class="pm-badge pending">3 en attente</span>
+        </div>
+        <div class="pm-table-wrap">
+          <table class="pm-table">
+            <thead>
+              <tr>
+                <th>Réf.</th><th>Client</th><th>Méthode</th>
+                <th>Montant</th><th>Reçu</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="val-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-header">
+          <span class="pm-card-title">Règles de validation automatique</span>
+        </div>
+        <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg3);border-radius:var(--radius)">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text)">Orange Money / MTN MoMo</div>
+              <div style="font-size:11px;color:var(--text3)">Validation automatique via webhook CinetPay</div>
+            </div>
+            <span class="pm-badge ok">✅ Actif</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg3);border-radius:var(--radius)">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text)">Cash</div>
+              <div style="font-size:11px;color:var(--text3)">Validation manuelle par réceptionniste</div>
+            </div>
+            <span class="pm-badge pending">Manuel</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg3);border-radius:var(--radius)">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text)">Virement bancaire</div>
+              <div style="font-size:11px;color:var(--text3)">Validation sous 24-48h après confirmation</div>
+            </div>
+            <span class="pm-badge review">En révision</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ REMBOURSEMENTS ══ -->
+    <div class="pm-pane" id="pane-remboursements">
+      <div class="pm-toolbar">
+        <button class="pm-btn pm-btn-warning" onclick="openRemboursement()">↩️ Nouveau remboursement</button>
+      </div>
+      <div class="pm-card">
+        <div class="pm-card-header">
+          <span class="pm-card-title">Historique des remboursements</span>
+        </div>
+        <div class="pm-table-wrap">
+          <table class="pm-table">
+            <thead>
+              <tr>
+                <th>Réf. original</th><th>Client</th><th>Motif</th>
+                <th>Montant</th><th>Statut</th><th class="pm-hide-mobile">Date</th>
+              </tr>
+            </thead>
+            <tbody id="refund-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ WORKFLOW ══ -->
+    <div class="pm-pane" id="pane-workflow">
+      <div style="margin-bottom:14px">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:12px">
+          Suivi du cycle de vie d'un paiement de la création à la clôture.
+        </div>
+        <div class="pm-workflow">
+          <div class="pm-wf-step done">
+            <div class="pm-wf-icon">🧾</div>
+            <div class="pm-wf-label">Initiation</div>
+            <div class="pm-wf-sub">Réservation créée</div>
+          </div>
+          <div class="pm-wf-step done">
+            <div class="pm-wf-icon">📱</div>
+            <div class="pm-wf-label">Paiement</div>
+            <div class="pm-wf-sub">Méthode sélectionnée</div>
+          </div>
+          <div class="pm-wf-step active">
+            <div class="pm-wf-icon">⏳</div>
+            <div class="pm-wf-label">Vérification</div>
+            <div class="pm-wf-sub">En cours</div>
+          </div>
+          <div class="pm-wf-step">
+            <div class="pm-wf-icon">✅</div>
+            <div class="pm-wf-label">Validation</div>
+            <div class="pm-wf-sub">Confirmation</div>
+          </div>
+          <div class="pm-wf-step">
+            <div class="pm-wf-icon">🏁</div>
+            <div class="pm-wf-label">Clôture</div>
+            <div class="pm-wf-sub">Reçu émis</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pm-card">
+        <div class="pm-card-header">
+          <span class="pm-card-title">Paiements en cours de traitement</span>
+        </div>
+        <div class="pm-table-wrap">
+          <table class="pm-table">
+            <thead>
+              <tr><th>Réf.</th><th>Client</th><th>Méthode</th><th>Montant</th><th>Étape</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="wf-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ JOURNAL AUDIT ══ -->
+    <div class="pm-pane" id="pane-journal">
+      <div class="pm-toolbar">
+        <div class="pm-search">
+          <span>🔍</span>
+          <input type="text" placeholder="Rechercher dans le journal..."/>
+        </div>
+        <select class="pm-filter">
+          <option>Tous les événements</option>
+          <option>Succès</option>
+          <option>Erreurs</option>
+          <option>Avertissements</option>
+        </select>
+        <button class="pm-btn pm-btn-ghost pm-btn-sm" onclick="pmExportCSV()">📥 Export</button>
+      </div>
+      <div class="pm-card">
+        <div class="pm-card-header">
+          <span class="pm-card-title">Journal des événements paiements</span>
+          <span style="font-size:11px;color:var(--text3)">Temps réel</span>
+        </div>
+        <div style="padding:14px" id="journal-list"></div>
+      </div>
+    </div>
+
+  </div><!-- /pm-content -->
+</div><!-- /pm-shell -->
+
+<!-- Modal nouveau paiement -->
+<div class="pm-modal-overlay" id="modal-paiement">
+  <div class="pm-modal">
+    <div class="pm-modal-header">
+      <span class="pm-modal-title">💳 Nouveau paiement</span>
+      <button class="pm-modal-close" onclick="closeModal('modal-paiement')">×</button>
+    </div>
+    <div class="pm-modal-body">
+      <div class="pm-row-fields">
+        <div class="pm-field">
+          <label class="pm-label">Client</label>
+          <input class="pm-input" type="text" placeholder="Nom du client"/>
+        </div>
+        <div class="pm-field">
+          <label class="pm-label">Réservation</label>
+          <input class="pm-input" type="text" placeholder="RES-XXX"/>
+        </div>
+      </div>
+      <div class="pm-row-fields">
+        <div class="pm-field">
+          <label class="pm-label">Montant (FCFA)</label>
+          <input class="pm-input" type="number" placeholder="0"/>
+        </div>
+        <div class="pm-field">
+          <label class="pm-label">Méthode</label>
+          <select class="pm-select">
+            <option>Orange Money</option>
+            <option>MTN MoMo</option>
+            <option>Cash</option>
+            <option>Carte bancaire</option>
+            <option>Virement</option>
+          </select>
+        </div>
+      </div>
+      <div class="pm-field">
+        <label class="pm-label">Numéro de téléphone (mobile money)</label>
+        <input class="pm-input" type="tel" placeholder="+237 6XX XXX XXX"/>
+      </div>
+      <div class="pm-field">
+        <label class="pm-label">Notes</label>
+        <textarea class="pm-textarea" placeholder="Acompte, solde, autre..."></textarea>
+      </div>
+    </div>
+    <div class="pm-modal-footer">
+      <button class="pm-btn pm-btn-ghost" onclick="closeModal('modal-paiement')">Annuler</button>
+      <button class="pm-btn pm-btn-primary" onclick="submitPaiement()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal remboursement -->
+<div class="pm-modal-overlay" id="modal-remboursement">
+  <div class="pm-modal">
+    <div class="pm-modal-header">
+      <span class="pm-modal-title">↩️ Remboursement</span>
+      <button class="pm-modal-close" onclick="closeModal('modal-remboursement')">×</button>
+    </div>
+    <div class="pm-modal-body">
+      <div class="pm-field">
+        <label class="pm-label">Référence paiement original</label>
+        <input class="pm-input" type="text" placeholder="PAY-XXX"/>
+      </div>
+      <div class="pm-field">
+        <label class="pm-label">Montant à rembourser (FCFA)</label>
+        <input class="pm-input" type="number" placeholder="0"/>
+      </div>
+      <div class="pm-field">
+        <label class="pm-label">Motif</label>
+        <select class="pm-select">
+          <option>Annulation réservation</option>
+          <option>Erreur de facturation</option>
+          <option>Double paiement</option>
+          <option>Autre</option>
+        </select>
+      </div>
+      <div class="pm-field">
+        <label class="pm-label">Commentaire</label>
+        <textarea class="pm-textarea" placeholder="Détails du remboursement..."></textarea>
+      </div>
+    </div>
+    <div class="pm-modal-footer">
+      <button class="pm-btn pm-btn-ghost" onclick="closeModal('modal-remboursement')">Annuler</button>
+      <button class="pm-btn pm-btn-warning" onclick="submitRemboursement()">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast local -->
+<div class="pm-toast" id="pm-toast"></div>
+
+<script>
+'use strict';
+
+/* ── Données simulées ─────────────────────────────────────────── */
+var METHODS = {
+  orange:   { label: 'Orange Money',    dot: 'dot-orange' },
+  mtn:      { label: 'MTN MoMo',        dot: 'dot-yellow' },
+  cash:     { label: 'Cash',            dot: 'dot-green'  },
+  carte:    { label: 'Carte bancaire',  dot: 'dot-blue'   },
+  virement: { label: 'Virement',        dot: 'dot-purple' },
+};
+
+var TRANSACTIONS = [
+  { ref:'PAY-2841', client:'Martin Ewodo',    chambre:'202',method:'orange', montant:185000, statut:'ok',      date:'2026-05-15 09:12' },
+  { ref:'PAY-2840', client:'Sophie Manga',    chambre:'105',method:'mtn',    montant:92000,  statut:'ok',      date:'2026-05-15 08:45' },
+  { ref:'PAY-2839', client:'Jean-Paul Biya',  chambre:'301',method:'cash',   montant:320000, statut:'pending', date:'2026-05-14 18:30' },
+  { ref:'PAY-2838', client:'Amina Diallo',    chambre:'408',method:'carte',  montant:210000, statut:'ok',      date:'2026-05-14 15:20' },
+  { ref:'PAY-2837', client:'Robert Nkoa',     chambre:'110',method:'orange', montant:78000,  statut:'failed',  date:'2026-05-14 11:05' },
+  { ref:'PAY-2836', client:'Claire Fouda',    chambre:'207',method:'virement',montant:450000,statut:'pending', date:'2026-05-13 16:00' },
+  { ref:'PAY-2835', client:'David Essono',    chambre:'312',method:'mtn',    montant:130000, statut:'refund',  date:'2026-05-13 10:30' },
+  { ref:'PAY-2834', client:'Fatima Abena',    chambre:'503',method:'cash',   montant:95000,  statut:'ok',      date:'2026-05-12 14:15' },
+  { ref:'PAY-2833', client:'Paul Mbarga',     chambre:'201',method:'orange', montant:185000, statut:'ok',      date:'2026-05-12 09:00' },
+  { ref:'PAY-2832', client:'Hélène Zang',     chambre:'404',method:'carte',  montant:280000, statut:'ok',      date:'2026-05-11 19:45' },
+  { ref:'PAY-2831', client:'Christophe Eba',  chambre:'308',method:'mtn',    montant:115000, statut:'pending', date:'2026-05-11 08:20' },
+  { ref:'PAY-2830', client:'Marie-Claire Ndi',chambre:'102',method:'virement',montant:360000,statut:'ok',      date:'2026-05-10 16:30' },
+];
+
+var JOURNAL = [
+  { type:'ok',   icon:'✅', msg:'Paiement PAY-2841 validé — 185 000 FCFA (Orange Money)', user:'Système', time:'15/05 09:12' },
+  { type:'ok',   icon:'✅', msg:'Paiement PAY-2840 validé — 92 000 FCFA (MTN MoMo)',      user:'Système', time:'15/05 08:45' },
+  { type:'warn', icon:'⚠️', msg:'Tentative paiement PAY-2837 échouée — timeout Orange',   user:'Système', time:'14/05 11:05' },
+  { type:'info', icon:'ℹ️', msg:'Remboursement PAY-2835 initié par Marie Dupont',          user:'Réception',time:'13/05 10:30' },
+  { type:'ok',   icon:'✅', msg:'Export CSV généré — 38 transactions',                     user:'Admin',   time:'13/05 09:00' },
+  { type:'err',  icon:'❌', msg:'Webhook CinetPay — erreur de signature',                  user:'Système', time:'12/05 22:15' },
+  { type:'ok',   icon:'✅', msg:'Paiement PAY-2834 validé — 95 000 FCFA (Cash)',           user:'Réception',time:'12/05 14:15' },
+  { type:'info', icon:'ℹ️', msg:'Règle validation virement mise à jour',                   user:'Admin',   time:'11/05 17:00' },
+];
+
+var filteredTx = TRANSACTIONS.slice();
+
+/* ── Rendu ────────────────────────────────────────────────────── */
+function statusBadge(s) {
+  var map = { ok:'ok', pending:'pending', failed:'failed', refund:'refund', review:'review' };
+  var labels = { ok:'Validé', pending:'En attente', failed:'Échoué', refund:'Remboursé', review:'En révision' };
+  return '<span class="pm-badge ' + (map[s]||'') + '">' + (labels[s]||s) + '</span>';
+}
+function methodTag(m) {
+  var info = METHODS[m] || { label: m, dot: 'dot-purple' };
+  return '<span class="pm-method"><span class="dot ' + info.dot + '"></span>' + info.label + '</span>';
+}
+function fmtMontant(n) {
+  return n.toLocaleString('fr-FR') + ' FCFA';
 }
 
-// ====================== FILTERS ======================
-function applyFilters() {
-  const q = document.getElementById('search-input').value.toLowerCase();
-  const st = document.getElementById('filter-status').value;
-  const me = document.getElementById('filter-method').value;
-  const ty = document.getElementById('filter-type').value;
-  const filtered = payments.filter(p =>
-    (!q || p.client.toLowerCase().includes(q) || (p.ref||'').toLowerCase().includes(q) || (p.receipt||'').toLowerCase().includes(q))
-    && (!st || p.status===st)
-    && (!me || p.method===me)
-    && (!ty || p.type===ty)
-  );
-  renderPayments(filtered);
+function renderTransactions(list) {
+  var body = document.getElementById('tx-body');
+  if (!body) return;
+  document.getElementById('tx-count').textContent = list.length + ' transaction' + (list.length > 1 ? 's' : '');
+  body.innerHTML = list.map(function(t) {
+    return '<tr>' +
+      '<td>' + t.ref + '</td>' +
+      '<td>' + t.client + '</td>' +
+      '<td class="pm-hide-mobile">' + t.chambre + '</td>' +
+      '<td>' + methodTag(t.method) + '</td>' +
+      '<td style="font-weight:700;color:var(--text)">' + fmtMontant(t.montant) + '</td>' +
+      '<td>' + statusBadge(t.statut) + '</td>' +
+      '<td class="pm-hide-mobile" style="color:var(--text3);font-size:11px">' + t.date + '</td>' +
+      '<td><div class="pm-row-actions">' +
+        '<button class="pm-btn pm-btn-ghost pm-btn-sm" onclick="viewTx(\'' + t.ref + '\')">👁</button>' +
+        (t.statut === 'pending' ? '<button class="pm-btn pm-btn-success pm-btn-sm" onclick="validateTx(\'' + t.ref + '\')">✅</button>' : '') +
+        (t.statut === 'ok' ? '<button class="pm-btn pm-btn-warning pm-btn-sm" onclick="refundTx(\'' + t.ref + '\')">↩️</button>' : '') +
+      '</div></td>' +
+    '</tr>';
+  }).join('');
 }
 
-function filterByStatus(status) {
-  document.getElementById('filter-status').value = status;
+function renderValidations() {
+  var pending = TRANSACTIONS.filter(function(t) { return t.statut === 'pending'; });
+  var body = document.getElementById('val-body');
+  if (!body) return;
+  body.innerHTML = pending.map(function(t) {
+    return '<tr>' +
+      '<td>' + t.ref + '</td>' +
+      '<td>' + t.client + '</td>' +
+      '<td>' + methodTag(t.method) + '</td>' +
+      '<td style="font-weight:700;color:var(--text)">' + fmtMontant(t.montant) + '</td>' +
+      '<td>' + t.date + '</td>' +
+      '<td><div class="pm-row-actions">' +
+        '<button class="pm-btn pm-btn-success pm-btn-sm" onclick="validateTx(\'' + t.ref + '\')">✅ Valider</button>' +
+        '<button class="pm-btn pm-btn-danger pm-btn-sm" onclick="rejectTx(\'' + t.ref + '\')">❌</button>' +
+      '</div></td>' +
+    '</tr>';
+  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">Aucun paiement en attente</td></tr>';
+}
+
+function renderRefunds() {
+  var refunds = TRANSACTIONS.filter(function(t) { return t.statut === 'refund'; });
+  var body = document.getElementById('refund-body');
+  if (!body) return;
+  body.innerHTML = refunds.map(function(t) {
+    return '<tr>' +
+      '<td>' + t.ref + '</td>' +
+      '<td>' + t.client + '</td>' +
+      '<td>Annulation</td>' +
+      '<td style="color:var(--warning);font-weight:700">' + fmtMontant(t.montant) + '</td>' +
+      '<td>' + statusBadge('refund') + '</td>' +
+      '<td class="pm-hide-mobile" style="font-size:11px;color:var(--text3)">' + t.date + '</td>' +
+    '</tr>';
+  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">Aucun remboursement</td></tr>';
+}
+
+function renderWorkflow() {
+  var pending = TRANSACTIONS.filter(function(t) { return t.statut === 'pending'; });
+  var body = document.getElementById('wf-body');
+  if (!body) return;
+  body.innerHTML = pending.map(function(t) {
+    var step = t.method === 'virement' ? 'Confirmation bancaire' : 'Vérification opérateur';
+    return '<tr>' +
+      '<td>' + t.ref + '</td>' +
+      '<td>' + t.client + '</td>' +
+      '<td>' + methodTag(t.method) + '</td>' +
+      '<td style="font-weight:700;color:var(--text)">' + fmtMontant(t.montant) + '</td>' +
+      '<td><span class="pm-badge review">' + step + '</span></td>' +
+      '<td><button class="pm-btn pm-btn-success pm-btn-sm" onclick="validateTx(\'' + t.ref + '\')">✅ Valider</button></td>' +
+    '</tr>';
+  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">Aucun paiement en cours</td></tr>';
+}
+
+function renderJournal() {
+  var list = document.getElementById('journal-list');
+  if (!list) return;
+  list.innerHTML = JOURNAL.map(function(e) {
+    return '<div class="pm-log-entry">' +
+      '<div class="pm-log-icon ' + e.type + '">' + e.icon + '</div>' +
+      '<div class="pm-log-text">' +
+        '<div class="pm-log-msg">' + e.msg + '</div>' +
+        '<div class="pm-log-meta">Par : ' + e.user + '</div>' +
+      '</div>' +
+      '<div class="pm-log-time">' + e.time + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+/* ── Navigation tabs ──────────────────────────────────────────── */
+function pmTab(name) {
+  document.querySelectorAll('.pm-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.pm-pane').forEach(function(p) { p.classList.remove('active'); });
+  var tab = document.getElementById('tab-' + name);
+  var pane = document.getElementById('pane-' + name);
+  if (tab) tab.classList.add('active');
+  if (pane) pane.classList.add('active');
+  window.emitToCore && window.emitToCore('paiements:tab', { tab: name });
+}
+
+/* ── Recherche / filtres ──────────────────────────────────────── */
+var _searchQ = '', _filterMethod = '', _filterStatus = '';
+function pmSearch(q) {
+  _searchQ = q.toLowerCase();
   applyFilters();
-  showTab('transactions');
 }
-
-// ====================== CREATE MODAL ======================
-function openCreateModal() {
-  document.getElementById('new-amount').value='';
-  document.getElementById('new-client').value='';
-  document.getElementById('new-ref').value='';
-  document.getElementById('new-notes').value='';
-  document.getElementById('new-method').value='cash';
-  document.getElementById('new-type').value='reservation';
-  onMethodChange(); onTypeChange();
-  openModal('modal-create');
+function pmFilter(type, val) {
+  if (type === 'method') _filterMethod = val;
+  if (type === 'status') _filterStatus = val;
+  applyFilters();
 }
-
-function onMethodChange() {
-  const m = document.getElementById('new-method').value;
-  const needsRef = ['orange_money','mtn_momo','card','virement','cinetpay'].includes(m);
-  document.getElementById('ref-row').style.display = needsRef ? '' : 'none';
-  document.getElementById('cinetpay-note').style.display = m==='cinetpay' ? '' : 'none';
-  document.getElementById('receipt-note').style.display = m==='cash' ? '' : 'none';
-}
-
-function onTypeChange() {
-  const t = document.getElementById('new-type').value;
-  const lbl = {reservation:'Nom du client ou ID réservation',deposit:'Nom du client (acompte)',restaurant:'Table / Commande',manual:'Description'}[t];
-  document.getElementById('new-client').placeholder = lbl;
-}
-
-function submitPayment() {
-  const amount = parseFloat(document.getElementById('new-amount').value);
-  const client = document.getElementById('new-client').value;
-  const method = document.getElementById('new-method').value;
-  const type   = document.getElementById('new-type').value;
-  const ref    = document.getElementById('new-ref').value;
-  const notes  = document.getElementById('new-notes').value;
-
-  if(!amount || amount<=0) { showToast('Montant invalide','error'); return; }
-  if(!client) { showToast('Client/référence requis','error'); return; }
-
-  const now = new Date().toISOString();
-  const newId = 'pay-' + String(payments.length+1).padStart(3,'0');
-  const receipt = (method==='cash'||type==='restaurant') ? `VRL-REC-2024-${String(payments.length+23).padStart(4,'0')}` : null;
-
-  payments.unshift({
-    id: newId, client, type, method, amount, status:'pending',
-    ref: ref||null, receipt, date:now, notes:notes||null, refund:null
+function applyFilters() {
+  filteredTx = TRANSACTIONS.filter(function(t) {
+    var matchQ = !_searchQ || t.client.toLowerCase().includes(_searchQ) ||
+                 t.ref.toLowerCase().includes(_searchQ) ||
+                 String(t.montant).includes(_searchQ);
+    var matchM = !_filterMethod || t.method === _filterMethod;
+    var matchS = !_filterStatus || t.statut === _filterStatus;
+    return matchQ && matchM && matchS;
   });
+  renderTransactions(filteredTx);
+}
 
-  auditLog.unshift({
-    action:'created', user:'Smith (Propriétaire)',
-    payment:`${client} — ${fmt(amount)}`,
-    date: new Date().toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}),
-    icon:'➕', color:'var(--amber)'
+/* ── Actions ──────────────────────────────────────────────────── */
+function viewTx(ref) {
+  showLocalToast('Détail ' + ref + ' — à connecter à la base', 'info');
+}
+function validateTx(ref) {
+  var t = TRANSACTIONS.find(function(x) { return x.ref === ref; });
+  if (t) { t.statut = 'ok'; applyFilters(); renderValidations(); renderWorkflow(); }
+  showLocalToast('✅ ' + ref + ' validé', 'success');
+  window.emitToCore && window.emitToCore('paiements:validated', { ref: ref });
+}
+function rejectTx(ref) {
+  var t = TRANSACTIONS.find(function(x) { return x.ref === ref; });
+  if (t) { t.statut = 'failed'; applyFilters(); renderValidations(); }
+  showLocalToast('❌ ' + ref + ' rejeté', 'error');
+}
+function refundTx(ref) {
+  var t = TRANSACTIONS.find(function(x) { return x.ref === ref; });
+  if (t) { t.statut = 'refund'; applyFilters(); renderRefunds(); }
+  showLocalToast('↩️ Remboursement ' + ref + ' initié', 'info');
+  window.emitToCore && window.emitToCore('paiements:refund', { ref: ref });
+}
+
+function openNewPaiement()     { document.getElementById('modal-paiement').classList.add('open'); }
+function openRemboursement()   { document.getElementById('modal-remboursement').classList.add('open'); }
+function closeModal(id)        { document.getElementById(id).classList.remove('open'); }
+
+function submitPaiement() {
+  closeModal('modal-paiement');
+  showLocalToast('💳 Paiement enregistré', 'success');
+  window.emitToCore && window.emitToCore('paiements:new', {});
+}
+function submitRemboursement() {
+  closeModal('modal-remboursement');
+  showLocalToast('↩️ Remboursement soumis pour approbation', 'info');
+}
+
+/* ── Export CSV ───────────────────────────────────────────────── */
+function pmExportCSV() {
+  var headers = ['Réf.','Client','Chambre','Méthode','Montant FCFA','Statut','Date'];
+  var rows = filteredTx.map(function(t) {
+    return [t.ref, t.client, t.chambre, METHODS[t.method]?.label || t.method, t.montant, t.statut, t.date].join(',');
   });
-
-  updateKPIs();
-  renderPayments(payments);
-  updatePendingBadge();
-  closeModal('modal-create');
-  showToast(`Paiement enregistré${receipt?' — Reçu '+receipt:''}`, 'success');
+  var csv = [headers.join(',')].concat(rows).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'paiements-veraluz.csv'; a.click();
+  URL.revokeObjectURL(url);
+  showLocalToast('📥 Export CSV téléchargé', 'success');
 }
 
-// ====================== DETAIL MODAL ======================
-function openDetail(id) {
-  const p = payments.find(x=>x.id===id);
-  if(!p) return;
-  const mc = methodConfig[p.method]||{};
-  const tc = typeConfig[p.type]||{};
-  const statusLabels = {pending:'En attente',validated:'Validé',refunded:'Remboursé',failed:'Échoué'};
-  document.getElementById('detail-id').textContent = p.id.toUpperCase();
-
-  const isPending   = p.status==='pending';
-  const isValidated = p.status==='validated';
-
-  document.getElementById('detail-body').innerHTML = `
-    <div class="amount-display" style="margin-bottom:16px">
-      <div class="amount-big">${fmt(p.amount)}</div>
-      <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-top:10px">
-        <span class="method ${mc.color}">${mc.icon} ${mc.label}</span>
-        <span style="color:var(--stone-600)">·</span>
-        <span class="badge badge-${p.status}">${statusLabels[p.status]}</span>
-      </div>
-    </div>
-
-    <div class="detail-grid" style="margin-bottom:16px">
-      <div class="detail-item"><div class="label">Type</div><div class="value">${tc.icon} ${tc.label}</div></div>
-      <div class="detail-item"><div class="label">Date</div><div class="value">${fmtDate(p.date)}</div></div>
-      <div class="detail-item"><div class="label">Client</div><div class="value">${p.client}</div></div>
-      ${p.ref?`<div class="detail-item"><div class="label">Référence</div><div class="value" style="font-family:monospace;font-size:12px">${p.ref}</div></div>`:''}
-    </div>
-
-    ${p.receipt?`<div class="receipt-box" style="margin-bottom:14px">
-      <div style="font-size:11px;color:var(--stone-500);margin-bottom:3px">N° Reçu</div>
-      <div class="receipt-num">${p.receipt}</div>
-    </div>`:''}
-
-    ${p.notes?`<div style="background:var(--stone-800);border-radius:10px;padding:12px;margin-bottom:14px">
-      <div style="font-size:11px;color:var(--stone-500);margin-bottom:4px">Notes</div>
-      <div style="font-size:13px;color:var(--stone-300)">${p.notes}</div>
-    </div>`:''}
-
-    ${p.refund?`<div class="refund-box" style="margin-bottom:14px">
-      <div style="font-size:11px;color:var(--blue);font-weight:600;margin-bottom:6px">↩️ Remboursement effectué</div>
-      <div style="font-size:18px;font-weight:700;color:var(--blue)">${fmt(p.refund.amount)}</div>
-      <div style="font-size:12px;color:var(--stone-400);margin-top:4px">${p.refund.reason}</div>
-    </div>`:''}
-
-    ${isPending?`
-    <div style="margin-bottom:12px">
-      <label style="display:block;font-size:11px;color:var(--stone-400);margin-bottom:6px">Commentaire (optionnel)</label>
-      <input type="text" id="validate-comment" placeholder="Raison de la décision..." class="form-input">
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-      <button class="btn btn-danger" onclick="doValidate('${p.id}','reject')">❌ Rejeter</button>
-      <button class="btn btn-success" onclick="doValidate('${p.id}','validate')">✅ Valider</button>
-    </div>`:''}
-
-    ${isValidated?`
-    <div id="refund-section">
-      <button class="btn btn-blue" style="width:100%" onclick="showRefundForm('${p.id}',${p.amount})">↩️ Initier un remboursement</button>
-    </div>`:''}
-
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="showToast('Reçu PDF généré','success')">🖨️ Imprimer reçu</button>
-      <button class="btn btn-ghost btn-sm" style="flex:1" onclick="showToast('Reçu envoyé sur WhatsApp','success')">📱 WhatsApp</button>
-    </div>
-  `;
-  openModal('modal-detail');
+/* ── Toast local ──────────────────────────────────────────────── */
+var _toastTimer = null;
+function showLocalToast(msg, type) {
+  var el = document.getElementById('pm-toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.background = type === 'error' ? 'rgba(244,63,94,.2)' :
+                        type === 'success' ? 'rgba(34,211,165,.2)' : 'var(--bg4)';
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function() { el.classList.remove('show'); }, 3000);
 }
 
-function doValidate(id, action) {
-  const p = payments.find(x=>x.id===id);
-  if(!p) return;
-  const comment = document.getElementById('validate-comment')?.value || '';
-  p.status = action==='validate' ? 'validated' : 'failed';
-  auditLog.unshift({
-    action: action==='validate'?'validated':'rejected',
-    user:'Smith (Propriétaire)',
-    payment:`${p.client} — ${fmt(p.amount)}`,
-    date: new Date().toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}),
-    icon: action==='validate'?'✅':'❌',
-    color: action==='validate'?'var(--emerald)':'var(--rose)'
+/* ── Init ─────────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  renderTransactions(TRANSACTIONS);
+  renderValidations();
+  renderRefunds();
+  renderWorkflow();
+  renderJournal();
+  // Fermer modales en cliquant l'overlay
+  document.querySelectorAll('.pm-modal-overlay').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      if (e.target === el) el.classList.remove('open');
+    });
   });
-  updateKPIs(); renderPayments(payments); updatePendingBadge();
-  closeModal('modal-detail');
-  showToast(action==='validate'?'Paiement validé ✅':'Paiement rejeté','success');
-}
-
-function showRefundForm(id, maxAmount) {
-  document.getElementById('refund-section').innerHTML = `
-    <div class="refund-box">
-      <div style="font-size:13px;color:var(--blue);font-weight:600;margin-bottom:12px">↩️ Remboursement</div>
-      <div style="margin-bottom:10px">
-        <label class="form-label">Montant à rembourser (max ${fmt(maxAmount)})</label>
-        <input type="number" id="refund-amount" class="form-input" value="${maxAmount}" max="${maxAmount}">
-      </div>
-      <div style="margin-bottom:12px">
-        <label class="form-label">Raison *</label>
-        <input type="text" id="refund-reason" class="form-input" placeholder="Motif du remboursement">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button class="btn btn-ghost btn-sm" onclick="showRefundForm('${id}',${maxAmount})" style="margin:0">Annuler</button>
-        <button class="btn btn-blue btn-sm" onclick="doRefund('${id}')" style="margin:0">Confirmer</button>
-      </div>
-    </div>
-  `;
-}
-
-function doRefund(id) {
-  const p = payments.find(x=>x.id===id);
-  if(!p) return;
-  const amount = parseFloat(document.getElementById('refund-amount').value);
-  const reason = document.getElementById('refund-reason').value;
-  if(!reason) { showToast('Raison requise','error'); return; }
-  if(amount<=0 || amount>p.amount) { showToast('Montant invalide','error'); return; }
-  p.status = 'refunded';
-  p.refund = { amount, reason, date: new Date().toISOString().split('T')[0] };
-  auditLog.unshift({
-    action:'refunded', user:'Smith (Propriétaire)',
-    payment:`${p.client} — ${fmt(amount)}`,
-    date: new Date().toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}),
-    icon:'↩️', color:'var(--blue)'
-  });
-  updateKPIs(); renderPayments(payments); updatePendingBadge();
-  closeModal('modal-detail');
-  showToast(`Remboursement de ${fmt(amount)} effectué`,'success');
-}
-
-// ====================== KPIs ======================
-function updateKPIs() {
-  const collected = payments.filter(p=>p.status==='validated').reduce((s,p)=>s+p.amount,0);
-  const pending   = payments.filter(p=>p.status==='pending').reduce((s,p)=>s+p.amount,0);
-  const refunded  = payments.filter(p=>p.status==='refunded').reduce((s,p)=>s+(p.refund?.amount||p.amount),0);
-  document.getElementById('kpi-collected').textContent = fmt(collected);
-  document.getElementById('kpi-pending').textContent   = fmt(pending);
-  document.getElementById('kpi-refunded').textContent  = fmt(refunded);
-  document.getElementById('kpi-count').textContent     = payments.length;
-
-  const pendingCount = payments.filter(p=>p.status==='pending').length;
-  const alert = document.getElementById('pending-alert');
-  if(pendingCount>0) {
-    alert.style.display='';
-    alert.querySelector('div div:first-child').textContent = pendingCount + ' paiement' + (pendingCount>1?'s':'') + ' en attente de validation';
-    alert.querySelector('div div:last-child').textContent = fmt(pending) + ' à confirmer';
-  } else {
-    alert.style.display='none';
-  }
-}
-
-function updatePendingBadge() {
-  const n = payments.filter(p=>p.status==='pending').length;
-  const badge = document.getElementById('pending-badge');
-  badge.style.display = n>0 ? '' : 'none';
-  badge.textContent = n;
-}
-
-// ====================== INIT ======================
-renderPayments(payments);
-updateKPIs();
-updatePendingBadge();
-
-// Close overlay on background click
-document.querySelectorAll('.overlay').forEach(el => {
-  el.addEventListener('click', e => { if(e.target===el) el.classList.remove('open'); });
+  console.log('[Paiements] Module initialisé ✓');
 });
 </script>
+
 </body>
 </html>

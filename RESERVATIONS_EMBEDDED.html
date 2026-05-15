@@ -733,28 +733,96 @@ var UNITS = [
   { id:'suite', label:'Suite',   type:'Suite Prés.',  icon:'👑', priceHT: 120000, capacity:4 },
 ];
 
-// ── DONNÉES RÉSERVATIONS (simulées) ─────────────────────────────
+// ── DONNÉES RÉSERVATIONS (Supabase) ─────────────────────────────
+/* ── Supabase helper ──────────────────────────────────────── */
+var _sbUrl = (typeof window !== 'undefined' && window.__SUPABASE_URL__) ? window.__SUPABASE_URL__ : '';
+var _sbKey = (typeof window !== 'undefined' && window.__SUPABASE_KEY__) ? window.__SUPABASE_KEY__ : '';
+
+function sbGet(path) {
+  return fetch(_sbUrl + path, {
+    headers: { 'apikey': _sbKey, 'Authorization': 'Bearer ' + _sbKey, 'Accept': 'application/json' }
+  }).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+}
+
+function sbPost(table, data) {
+  return fetch(_sbUrl + '/rest/v1/' + table, {
+    method: 'POST',
+    headers: { 'apikey': _sbKey, 'Authorization': 'Bearer ' + _sbKey,
+      'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  }).then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+}
+
+function sbPatchRez(id, data) {
+  return fetch(_sbUrl + '/rest/v1/veraluz_reservations?id=eq.' + id, {
+    method: 'PATCH',
+    headers: { 'apikey': _sbKey, 'Authorization': 'Bearer ' + _sbKey,
+      'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    body: JSON.stringify(data)
+  });
+}
+
+function mapRezRow(row) {
+  var statusMap = { checkedin:'occupied', checkedout:'checkout', confirmed:'confirmed',
+                    cancelled:'cancelled', pending:'checkin', completed:'completed' };
+  return {
+    id:        row.id,
+    ref:       row.id.toUpperCase().slice(0, 12),
+    client:    row.client_name || '—',
+    email:     row.client_email || '',
+    tel:       row.client_phone || '',
+    unitId:    row.unit_id || '',
+    arrival:   row.check_in  || '',
+    departure: row.check_out || '',
+    adults:    row.guests    || 1,
+    children:  0,
+    status:    statusMap[row.status] || row.status || 'confirmed',
+    payment:   'orange_money',
+    notes:     row.notes || '',
+    total:     row.total || 0,
+    paid:      row.paid  || 0
+  };
+}
+
+function loadReservationsFromSupabase(callback) {
+  if (!_sbUrl || !_sbKey) {
+    console.warn('[Réservations] Supabase non disponible — données vides');
+    callback && callback();
+    return;
+  }
+
+  // Charger réservations + unités en parallèle
+  Promise.all([
+    sbGet('/rest/v1/veraluz_reservations?select=*&order=created_at.desc'),
+    sbGet('/rest/v1/veraluz_units?select=id,name,type,price,capacity,emoji,status&order=sort_order.asc')
+  ]).then(function(results) {
+    var rezRows   = results[0] || [];
+    var unitRows  = results[1] || [];
+
+    // Construire UNITS_MAP
+    UNITS_MAP = {};
+    unitRows.forEach(function(u) { UNITS_MAP[u.id] = u; });
+
+    // Mapper les réservations
+    RESERVATIONS = rezRows.map(mapRezRow);
+
+    console.log('[Réservations] ' + RESERVATIONS.length + ' réservations chargées depuis Supabase');
+    callback && callback();
+  }).catch(function(err) {
+    console.warn('[Réservations] Erreur Supabase:', err);
+    emitToCore('module.error', { module:'reservations', error: err.message });
+    callback && callback();
+  });
+}
+
 var today = new Date(); today.setHours(0,0,0,0);
 function daysFromToday(n) {
   var d = new Date(today); d.setDate(d.getDate() + n);
   return d.toISOString().slice(0,10);
 }
 
-var RESERVATIONS = [
-  { id:'REZ-001', client:'Nkoulou Patrick',   email:'p.nkoulou@gmail.com', tel:'+237 699 123 456', unitId:'ch101', arrival: daysFromToday(-3), departure: daysFromToday(1),  adults:2, children:0, status:'occupied',   payment:'orange_money', notes:'Vue mer demandée',       ref:'REZ-2026-001' },
-  { id:'REZ-002', client:'Manga Célestine',   email:'celestine@gmail.com', tel:'+237 677 234 567', unitId:'ch103', arrival: daysFromToday(0),  departure: daysFromToday(5),  adults:2, children:1, status:'checkin',    payment:'mtn_momo',     notes:'',                       ref:'REZ-2026-002' },
-  { id:'REZ-003', client:'Essama Bruno',      email:'bessama@gmail.com',   tel:'+237 655 345 678', unitId:'app105',arrival: daysFromToday(-1), departure: daysFromToday(0),  adults:3, children:2, status:'checkout',   payment:'cash',         notes:'Famille avec enfants',   ref:'REZ-2026-003' },
-  { id:'REZ-004', client:'Ondoa Marie-Claire',email:'mc.ondoa@yahoo.fr',   tel:'+237 690 456 789', unitId:'st201', arrival: daysFromToday(2),  departure: daysFromToday(7),  adults:2, children:0, status:'confirmed',  payment:'cinetpay',     notes:'Lune de miel',           ref:'REZ-2026-004' },
-  { id:'REZ-005', client:'Biyong Charles',    email:'cbiyong@gmail.com',   tel:'+237 677 567 890', unitId:'suite', arrival: daysFromToday(-2), departure: daysFromToday(3),  adults:2, children:0, status:'occupied',   payment:'virement',     notes:'Client VIP',             ref:'REZ-2026-005' },
-  { id:'REZ-006', client:'Abomo Jean-Pierre', email:'jp.abomo@gmail.com',  tel:'+237 655 678 901', unitId:'ch104', arrival: daysFromToday(5),  departure: daysFromToday(9),  adults:1, children:0, status:'confirmed',  payment:'orange_money', notes:'',                       ref:'REZ-2026-006' },
-  { id:'REZ-007', client:'Fouda Thérèse',    email:'therfouda@gmail.com',  tel:'+237 699 789 012', unitId:'st203', arrival: daysFromToday(-5), departure: daysFromToday(-1), adults:2, children:0, status:'completed',  payment:'cash',         notes:'',                       ref:'REZ-2026-007' },
-  { id:'REZ-008', client:'Melingui Paul',     email:'pmelingui@gmail.com', tel:'+237 677 890 123', unitId:'ch102', arrival: daysFromToday(0),  departure: daysFromToday(4),  adults:2, children:0, status:'checkin',    payment:'mtn_momo',     notes:'Arrivée après 16h',      ref:'REZ-2026-008' },
-  { id:'REZ-009', client:'Ateba Cyrille',     email:'cateba@gmail.com',    tel:'+237 655 901 234', unitId:'st202', arrival: daysFromToday(3),  departure: daysFromToday(10), adults:3, children:1, status:'confirmed',  payment:'orange_money', notes:'',                       ref:'REZ-2026-009' },
-  { id:'REZ-010', client:'Owono Sophie',      email:'sowono@gmail.com',    tel:'+237 699 012 345', unitId:'ch106', arrival: daysFromToday(1),  departure: daysFromToday(6),  adults:2, children:0, status:'confirmed',  payment:'cinetpay',     notes:'Vue mer',                ref:'REZ-2026-010' },
-  { id:'REZ-011', client:'Nana Bertrand',     email:'bnana@gmail.com',     tel:'+237 677 123 456', unitId:'st204', arrival: daysFromToday(0),  departure: daysFromToday(3),  adults:2, children:0, status:'checkin',    payment:'cash',         notes:'',                       ref:'REZ-2026-011' },
-  { id:'REZ-012', client:'Mvondo Hélène',    email:'hmvondo@yahoo.fr',     tel:'+237 655 234 567', unitId:'ch105', arrival: daysFromToday(-4), departure: daysFromToday(-2), adults:1, children:0, status:'completed',  payment:'orange_money', notes:'',                       ref:'REZ-2026-012' },
-  { id:'REZ-013', client:'Beti Rodrigue',     email:'rbeti@gmail.com',     tel:'+237 699 345 678', unitId:'app105',arrival: daysFromToday(8),  departure: daysFromToday(14), adults:4, children:2, status:'confirmed',  payment:'virement',     notes:'Séjour famille',         ref:'REZ-2026-013' },
-];
+var RESERVATIONS = [];  // rempli depuis Supabase
+var UNITS_MAP   = {};   // id → {name, type, price, capacity, emoji}
 
 // Calculer les statuts dynamiques des chambres
 function getRoomStatus(unitId) {
@@ -765,14 +833,17 @@ function getRoomStatus(unitId) {
            r.status !== 'cancelled' && r.status !== 'completed';
   });
   if (!rez) {
-    // Vérifier si réservée dans le futur proche
     var future = RESERVATIONS.find(function(r) {
       return r.unitId === unitId && r.arrival > todayStr && r.status === 'confirmed';
     });
     if (future) return 'reserved';
-    // Quelques chambres dirty pour démo
-    if (['ch103','st201'].includes(unitId)) return 'dirty';
-    if (unitId === 'ch105') return 'oos';
+    // Vérifier le statut réel de l'unité dans UNITS_MAP
+    var unit = UNITS_MAP[unitId];
+    if (unit) {
+      if (unit.status === 'dirty')        return 'dirty';
+      if (unit.status === 'maintenance')  return 'oos';
+      if (unit.status === 'occupied')     return 'occupied';
+    }
     return 'available';
   }
   if (rez.status === 'checkout') return 'dirty';
@@ -1378,15 +1449,16 @@ function refreshCurrentTab() {
 
 // ── INIT ──────────────────────────────────────────────────────
 (function init() {
-  renderPlanning();
-  renderChambreStats();
-  // Compter les check-ins du jour
-  var todayStr = today.toISOString().slice(0,10);
-  var count = RESERVATIONS.filter(function(r) {
-    return r.arrival === todayStr && r.status !== 'cancelled';
-  }).length;
-  emitToCore('badge.update', { module: 'reservations', count: count });
-
+  // Charger d'abord depuis Supabase, puis rendre
+  loadReservationsFromSupabase(function() {
+    renderPlanning();
+    renderChambreStats();
+    var todayStr = today.toISOString().slice(0,10);
+    var count = RESERVATIONS.filter(function(r) {
+      return r.arrival === todayStr && r.status !== 'cancelled';
+    }).length;
+    emitToCore('badge.update', { module: 'reservations', count: count });
+  });
   // Touch: fermer modals avec swipe-down (mobile)
   document.querySelectorAll('.modal').forEach(function(modal) {
     var startY = 0;

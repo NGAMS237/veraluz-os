@@ -650,42 +650,118 @@ table.pm-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 <script>
 'use strict';
 
-/* ── Données simulées ─────────────────────────────────────────── */
+/* ── Config ───────────────────────────────────────────────────── */
 var METHODS = {
   orange:   { label: 'Orange Money',    dot: 'dot-orange' },
   mtn:      { label: 'MTN MoMo',        dot: 'dot-yellow' },
+  momo:     { label: 'MTN MoMo',        dot: 'dot-yellow' },
   cash:     { label: 'Cash',            dot: 'dot-green'  },
   carte:    { label: 'Carte bancaire',  dot: 'dot-blue'   },
   virement: { label: 'Virement',        dot: 'dot-purple' },
 };
 
-var TRANSACTIONS = [
-  { ref:'PAY-2841', client:'Martin Ewodo',    chambre:'202',method:'orange', montant:185000, statut:'ok',      date:'2026-05-15 09:12' },
-  { ref:'PAY-2840', client:'Sophie Manga',    chambre:'105',method:'mtn',    montant:92000,  statut:'ok',      date:'2026-05-15 08:45' },
-  { ref:'PAY-2839', client:'Jean-Paul Biya',  chambre:'301',method:'cash',   montant:320000, statut:'pending', date:'2026-05-14 18:30' },
-  { ref:'PAY-2838', client:'Amina Diallo',    chambre:'408',method:'carte',  montant:210000, statut:'ok',      date:'2026-05-14 15:20' },
-  { ref:'PAY-2837', client:'Robert Nkoa',     chambre:'110',method:'orange', montant:78000,  statut:'failed',  date:'2026-05-14 11:05' },
-  { ref:'PAY-2836', client:'Claire Fouda',    chambre:'207',method:'virement',montant:450000,statut:'pending', date:'2026-05-13 16:00' },
-  { ref:'PAY-2835', client:'David Essono',    chambre:'312',method:'mtn',    montant:130000, statut:'refund',  date:'2026-05-13 10:30' },
-  { ref:'PAY-2834', client:'Fatima Abena',    chambre:'503',method:'cash',   montant:95000,  statut:'ok',      date:'2026-05-12 14:15' },
-  { ref:'PAY-2833', client:'Paul Mbarga',     chambre:'201',method:'orange', montant:185000, statut:'ok',      date:'2026-05-12 09:00' },
-  { ref:'PAY-2832', client:'Hélène Zang',     chambre:'404',method:'carte',  montant:280000, statut:'ok',      date:'2026-05-11 19:45' },
-  { ref:'PAY-2831', client:'Christophe Eba',  chambre:'308',method:'mtn',    montant:115000, statut:'pending', date:'2026-05-11 08:20' },
-  { ref:'PAY-2830', client:'Marie-Claire Ndi',chambre:'102',method:'virement',montant:360000,statut:'ok',      date:'2026-05-10 16:30' },
-];
+/* ── Données (chargées depuis Supabase) ───────────────────── */
+var TRANSACTIONS = [];
+var JOURNAL = [];
+var filteredTx = [];
 
-var JOURNAL = [
-  { type:'ok',   icon:'✅', msg:'Paiement PAY-2841 validé — 185 000 FCFA (Orange Money)', user:'Système', time:'15/05 09:12' },
-  { type:'ok',   icon:'✅', msg:'Paiement PAY-2840 validé — 92 000 FCFA (MTN MoMo)',      user:'Système', time:'15/05 08:45' },
-  { type:'warn', icon:'⚠️', msg:'Tentative paiement PAY-2837 échouée — timeout Orange',   user:'Système', time:'14/05 11:05' },
-  { type:'info', icon:'ℹ️', msg:'Remboursement PAY-2835 initié par Marie Dupont',          user:'Réception',time:'13/05 10:30' },
-  { type:'ok',   icon:'✅', msg:'Export CSV généré — 38 transactions',                     user:'Admin',   time:'13/05 09:00' },
-  { type:'err',  icon:'❌', msg:'Webhook CinetPay — erreur de signature',                  user:'Système', time:'12/05 22:15' },
-  { type:'ok',   icon:'✅', msg:'Paiement PAY-2834 validé — 95 000 FCFA (Cash)',           user:'Réception',time:'12/05 14:15' },
-  { type:'info', icon:'ℹ️', msg:'Règle validation virement mise à jour',                   user:'Admin',   time:'11/05 17:00' },
-];
+/* ── Supabase helper ──────────────────────────────────────── */
+var _sbUrl = (typeof window !== 'undefined' && window.__SUPABASE_URL__) ? window.__SUPABASE_URL__ : '';
+var _sbKey = (typeof window !== 'undefined' && window.__SUPABASE_KEY__) ? window.__SUPABASE_KEY__ : '';
 
-var filteredTx = TRANSACTIONS.slice();
+function sbFetch(path) {
+  return fetch(_sbUrl + path, {
+    headers: {
+      'apikey': _sbKey,
+      'Authorization': 'Bearer ' + _sbKey,
+      'Accept': 'application/json'
+    }
+  }).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  });
+}
+
+function sbPatch(table, id, data) {
+  return fetch(_sbUrl + '/rest/v1/' + table + '?id=eq.' + id, {
+    method: 'PATCH',
+    headers: {
+      'apikey': _sbKey,
+      'Authorization': 'Bearer ' + _sbKey,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify(data)
+  });
+}
+
+function mapPaymentRow(row) {
+  var statusMap = { pending:'pending', validated:'ok', rejected:'failed', refunded:'refund' };
+  var methodMap = { orange:'orange', momo:'mtn', mtn:'mtn', cash:'cash', carte:'carte', virement:'virement' };
+  var d = new Date(row.created_at);
+  var dateStr = d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var shortRef = ('PAY-' + row.id.replace(/[^0-9]/g,'').slice(-4)).replace('PAY-', 'PAY-');
+  // Construct a readable ref from the id
+  var idParts = row.id.split('-');
+  var refNum = idParts.length > 1 ? idParts[idParts.length-1].slice(0,5).toUpperCase() : row.id.slice(0,8).toUpperCase();
+  return {
+    _id: row.id,
+    ref: 'PAY-' + refNum,
+    _reservationId: row.reservation_id,
+    client: (row.reservation && row.reservation.client_name) ? row.reservation.client_name : (row.reservation_id || '—').slice(0,8),
+    chambre: (row.reservation && row.reservation.unit_id) ? row.reservation.unit_id.toUpperCase() : '—',
+    method: methodMap[row.method] || row.method || 'cash',
+    montant: row.amount || 0,
+    statut: statusMap[row.status] || 'pending',
+    date: dateStr,
+    notes: row.notes || ''
+  };
+}
+
+function loadFromSupabase() {
+  if (!_sbUrl || !_sbKey) {
+    console.warn('[Paiements] Supabase non disponible — mode démo');
+    showLocalToast('ℹ️ Mode démo — Supabase non connecté', 'info');
+    renderAll();
+    return;
+  }
+
+  sbFetch('/rest/v1/veraluz_payments?select=*,reservation:veraluz_reservations(client_name,unit_id)&order=created_at.desc')
+    .then(function(rows) {
+      TRANSACTIONS = rows.map(mapPaymentRow);
+      filteredTx = TRANSACTIONS.slice();
+      renderAll();
+      return sbFetch('/rest/v1/veraluz_payments?select=id,status,amount,method,created_at&order=created_at.desc&limit=15');
+    })
+    .then(function(events) {
+      JOURNAL = events.map(function(e) {
+        var type = e.status === 'validated' ? 'ok' : e.status === 'rejected' ? 'err' : 'info';
+        var icon = e.status === 'validated' ? '✅' : e.status === 'rejected' ? '❌' : 'ℹ️';
+        var amount = (e.amount || 0).toLocaleString('fr-FR');
+        var d = new Date(e.created_at);
+        var time = d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        var methodLabels = { orange:'Orange Money', momo:'MTN MoMo', cash:'Cash', carte:'Carte', virement:'Virement' };
+        var methodLabel = methodLabels[e.method] || e.method || '';
+        var msg = e.status === 'validated' ? '✅ Paiement validé — ' + amount + ' FCFA (' + methodLabel + ')' :
+                  e.status === 'rejected'  ? '❌ Paiement rejeté — ' + amount + ' FCFA' :
+                  'ℹ️ Paiement en attente — ' + amount + ' FCFA (' + methodLabel + ')';
+        return { type:type, icon:icon, msg:msg, user:'Système', time:time };
+      });
+      renderJournal();
+    })
+    .catch(function(err) {
+      console.warn('[Paiements] Erreur Supabase:', err);
+      showLocalToast('⚠️ Erreur chargement données', 'error');
+    });
+}
+
+function renderAll() {
+  renderTransactions(filteredTx);
+  renderValidations();
+  renderRefunds();
+  renderWorkflow();
+  renderJournal();
+}
 
 /* ── Rendu ────────────────────────────────────────────────────── */
 function statusBadge(s) {
@@ -830,20 +906,38 @@ function viewTx(ref) {
 }
 function validateTx(ref) {
   var t = TRANSACTIONS.find(function(x) { return x.ref === ref; });
-  if (t) { t.statut = 'ok'; applyFilters(); renderValidations(); renderWorkflow(); }
+  if (!t) return;
+  t.statut = 'ok';
+  applyFilters(); renderValidations(); renderWorkflow();
   showLocalToast('✅ ' + ref + ' validé', 'success');
   window.emitToCore && window.emitToCore('paiements:validated', { ref: ref });
+  if (_sbUrl && _sbKey && t._id) {
+    sbPatch('veraluz_payments', t._id, { status: 'validated', validated_at: new Date().toISOString() })
+      .catch(function(e) { console.warn('[Paiements] Erreur validation:', e); });
+  }
 }
 function rejectTx(ref) {
   var t = TRANSACTIONS.find(function(x) { return x.ref === ref; });
-  if (t) { t.statut = 'failed'; applyFilters(); renderValidations(); }
+  if (!t) return;
+  t.statut = 'failed';
+  applyFilters(); renderValidations();
   showLocalToast('❌ ' + ref + ' rejeté', 'error');
+  if (_sbUrl && _sbKey && t._id) {
+    sbPatch('veraluz_payments', t._id, { status: 'rejected' })
+      .catch(function(e) { console.warn('[Paiements] Erreur rejet:', e); });
+  }
 }
 function refundTx(ref) {
   var t = TRANSACTIONS.find(function(x) { return x.ref === ref; });
-  if (t) { t.statut = 'refund'; applyFilters(); renderRefunds(); }
+  if (!t) return;
+  t.statut = 'refund';
+  applyFilters(); renderRefunds();
   showLocalToast('↩️ Remboursement ' + ref + ' initié', 'info');
   window.emitToCore && window.emitToCore('paiements:refund', { ref: ref });
+  if (_sbUrl && _sbKey && t._id) {
+    sbPatch('veraluz_payments', t._id, { status: 'refunded' })
+      .catch(function(e) { console.warn('[Paiements] Erreur remboursement:', e); });
+  }
 }
 
 function openNewPaiement()     { document.getElementById('modal-paiement').classList.add('open'); }
@@ -852,8 +946,10 @@ function closeModal(id)        { document.getElementById(id).classList.remove('o
 
 function submitPaiement() {
   closeModal('modal-paiement');
-  showLocalToast('💳 Paiement enregistré', 'success');
+  showLocalToast('💳 Paiement enregistré — rechargement...', 'success');
   window.emitToCore && window.emitToCore('paiements:new', {});
+  // Recharger les données depuis Supabase
+  setTimeout(function() { loadFromSupabase(); }, 800);
 }
 function submitRemboursement() {
   closeModal('modal-remboursement');
@@ -890,11 +986,7 @@ function showLocalToast(msg, type) {
 
 /* ── Init ─────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function() {
-  renderTransactions(TRANSACTIONS);
-  renderValidations();
-  renderRefunds();
-  renderWorkflow();
-  renderJournal();
+  loadFromSupabase();
   // Fermer modales en cliquant l'overlay
   document.querySelectorAll('.pm-modal-overlay').forEach(function(el) {
     el.addEventListener('click', function(e) {

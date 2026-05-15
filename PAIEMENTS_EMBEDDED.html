@@ -650,6 +650,10 @@ table.pm-table { width: 100%; border-collapse: collapse; font-size: 12px; }
 <script>
 'use strict';
 
+/* ── Supabase credentials (autonomes — chaque module gère sa DB) ─ */
+window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://dfdmasejsoibxrvubegu.supabase.co';
+window.__SUPABASE_KEY__ = window.__SUPABASE_KEY__ || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+
 /* ── Config ───────────────────────────────────────────────────── */
 var METHODS = {
   orange:   { label: 'Orange Money',    dot: 'dot-orange' },

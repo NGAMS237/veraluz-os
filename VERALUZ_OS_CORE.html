@@ -1691,43 +1691,33 @@ function loadModule(moduleName) {
   var iframe = document.getElementById('module-iframe');
   iframe.classList.remove('loaded');
 
-  // ── Chargement via fetch + srcdoc (fiable sur https://) ────────────────────
+  // ── Chargement direct iframe.src (fiable sur HTTPS / GitHub Pages) ───────
   iframe.onload  = null;
   iframe.onerror = null;
-  iframe.removeAttribute('src');
   if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
 
+  var _loaded = false;
   function onModuleReady() {
+    if (_loaded) return;
+    _loaded = true;
+    if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
     loading.classList.remove('show');
     iframe.classList.add('loaded');
     console.log('[Core] Module prêt ✓ —', mod.file);
     EventBus.emit('module.loaded', { module: moduleName, file: mod.file });
-    setTimeout(sendAuthContext, 200);
+    setTimeout(sendAuthContext, 150);
   }
 
-  fetch(mod.file)
-    .then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.text();
-    })
-    .then(function(html) {
-      // Injecter la config Supabase dans le HTML du module
-      var sbScript = '<script>window.__SUPABASE_URL__="' + SUPABASE_URL +
-                     '";window.__SUPABASE_KEY__="' + SUPABASE_ANON_KEY + '";<\/script>';
-      html = html.replace('</head>', sbScript + '</head>');
-      iframe.srcdoc = html;
-      // srcdoc déclenche onload de façon fiable
-      iframe.onload = function() { onModuleReady(); };
-      // Sécurité : si onload tarde quand même
-      loadTimeout = setTimeout(onModuleReady, 3000);
-    })
-    .catch(function(err) {
-      loading.classList.remove('show');
-      document.getElementById('module-error').classList.add('show');
-      document.getElementById('err-msg').textContent =
-        'Impossible de charger ' + mod.file + ' (' + err.message + ')';
-      console.error('[Core] fetch erreur —', mod.file, err);
-    });
+  iframe.onload = function() { onModuleReady(); };
+  iframe.onerror = function() {
+    if (loadTimeout) clearTimeout(loadTimeout);
+    loading.classList.remove('show');
+    document.getElementById('module-error').classList.add('show');
+    document.getElementById('err-msg').textContent = 'Impossible de charger ' + mod.file;
+    console.error('[Core] onerror —', mod.file);
+  };
+  loadTimeout = setTimeout(onModuleReady, 6000); // fallback 6s max
+  iframe.src = mod.file;
 
   EventBus.emit('module.navigate', { to: moduleName, from: currentPage });
 }

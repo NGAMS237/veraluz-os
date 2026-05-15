@@ -398,7 +398,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
       <div class="spane" id="sp-mvt" style="position:absolute;inset:0;"></div>
       <div class="spane" id="sp-cmd" style="position:absolute;inset:0;">
         <div style="padding:8px 10px;border-bottom:1px solid var(--border);">
-          <button class="btn bp bs" onclick="openSOMd()">+ Bon de commande</button>
+          <button class="btn bp bs" onclick="openSOMd(null)">&#43; Bon de commande</button>
         </div>
         <div id="so-list"></div>
       </div>
@@ -463,6 +463,25 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 </div>
 
 <!-- Paiement -->
+<!-- BILL MODAL -->
+<div class="ov" id="md-bill">
+  <div class="md">
+    <div class="mdh">
+      <span class="mdt">&#128203; <span id="bill-title">Table</span></span>
+      <button class="mdc" onclick="closeMd('md-bill')">&#10005;</button>
+    </div>
+    <div class="mdb" id="bill-items" style="max-height:260px;overflow-y:auto;padding:4px 0;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:2px solid var(--accent);">
+      <span style="font-size:13px;font-weight:700;color:var(--text2);">TOTAL</span>
+      <span style="font-size:20px;font-weight:800;color:var(--accent);" id="bill-total">0 FCFA</span>
+    </div>
+    <div class="mdf">
+      <button class="btn bg bs" style="flex:1;" id="bill-add-btn" onclick="closeMd('md-bill');goTab('cmd')">&#43; Ajouter</button>
+      <button class="btn bp bs" style="flex:2;" id="bill-pay-btn" onclick="closeMd('md-bill');openPayMd(this.dataset.id)">&#128179; Encaisser</button>
+    </div>
+  </div>
+</div>
+
 <div class="ov" id="md-pay">
   <div class="md">
     <div class="mdh"><span class="mdt">&#128179; Encaissement</span><button class="mdc" onclick="closeMd('md-pay')">&#10005;</button></div>
@@ -561,19 +580,40 @@ html,body{height:100%;background:var(--bg);color:var(--text);
   </div>
 </div>
 
-<!-- Bon fournisseur -->
+<!-- Bon fournisseur — workflow rapide -->
 <div class="ov" id="md-so">
-  <div class="md">
-    <div class="mdh"><span class="mdt">Bon de commande fournisseur</span><button class="mdc" onclick="closeMd('md-so')">&#10005;</button></div>
+  <div class="md" style="max-height:92vh;overflow-y:auto;">
+    <div class="mdh"><span class="mdt">&#128666; Bon de commande</span><button class="mdc" onclick="closeMd('md-so')">&#10005;</button></div>
     <div class="mdb">
-      <div class="fg"><label class="fl">Fournisseur</label><select class="fs" id="so-sup"></select></div>
-      <div class="fg"><label class="fl">Articles (une ligne: Nom;Qt&#233;;Prix unit.)</label>
-        <textarea class="fta" id="so-items" placeholder="Riz 5kg;10;3000&#10;Huile 1L;20;1500"></textarea></div>
-      <div class="fg"><label class="fl">Notes</label><input class="fi" id="so-notes" placeholder="Livraison urgente..."></div>
+      <!-- Fournisseur -->
+      <div style="margin-bottom:10px;">
+        <label style="font-size:11px;color:var(--text3);">FOURNISSEUR</label>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <select id="so-sup" class="fi" style="flex:1;" onchange="soSupChange(this)">
+            <option value="">&#8212; Choisir &#8212;</option>
+          </select>
+          <button class="btn bg bs" onclick="soNewSup()" style="flex-shrink:0;font-size:12px;">&#43; Nouveau</button>
+        </div>
+        <input id="so-sup-new" class="fi" placeholder="Nom nouveau fournisseur..." style="display:none;margin-top:6px;">
+      </div>
+      <!-- Lignes articles -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <label style="font-size:11px;color:var(--text3);">ARTICLES</label>
+          <button class="btn bg bs" style="font-size:11px;padding:3px 10px;" onclick="soAddLine()">&#43; Ligne</button>
+        </div>
+        <div id="so-lines"></div>
+      </div>
+      <!-- Notes -->
+      <textarea id="so-notes" class="fta" rows="2" placeholder="Notes (livraison, conditions...)"></textarea>
+      <div style="display:flex;justify-content:flex-end;align-items:center;margin-top:8px;gap:8px;">
+        <span style="font-size:12px;color:var(--text3);">Total :</span>
+        <span style="font-size:16px;font-weight:800;color:var(--accent);" id="so-total-disp">0 FCFA</span>
+      </div>
     </div>
     <div class="mdf">
       <button class="btn bg" onclick="closeMd('md-so')" style="flex:1">Annuler</button>
-      <button class="btn bp" onclick="saveSO()" style="flex:2">&#128190; Cr&#233;er bon</button>
+      <button class="btn bp" onclick="saveSO()" style="flex:2">&#128190; Cr&#233;er &amp; Imprimer</button>
     </div>
   </div>
 </div>
@@ -752,7 +792,7 @@ function renderTables(){
       +'<div class="tc-nom">'+esc(t.name)+'</div>'
       +'<div class="tc-cap">'+(t.capacity||2)+' pers.</div>'
       +'<div class="tc-st '+t.status+'">'+(lb[t.status]||t.status)+'</div>'
-      +(ord?'<div style="font-size:11px;font-weight:700;color:var(--accent);margin-top:3px;">'+fmt(ord.total_amount)+'</div>'
+      +(ord?'<div style="font-size:11px;font-weight:700;color:var(--accent);margin-top:3px;">'+fmt(ord.total||ord.total_amount||0)+'</div>'
        +'<button class="btn bp bs" style="font-size:10px;padding:3px 8px;margin-top:4px;width:100%;" data-id="'+ord.id+'" onclick="event.stopPropagation();openPayMd(this.dataset.id)">&#128179; Encaisser</button>'
        +'<button class="btn bw bs" style="font-size:10px;padding:2px 6px;margin-top:2px;width:100%;" data-id="'+t.id+'" onclick="event.stopPropagation();tblClick(this.dataset.id)">&#43; Ajouter</button>':'')
       +'</div>';
@@ -764,8 +804,30 @@ function tblClick(id){
   if(!tbl||tbl.status==='nettoyage'){toast('Table en nettoyage','er');return;}
   cartTbl=tbl;cartType=mode==='r'?'table':'bar';
   var ord=ORDERS.find(function(o){return o.table_id===id&&(o.status==='ouvert'||o.status==='en_preparation'||o.status==='pret');});
-  if(ord){cartOrd=ord;loadOrdToCart(ord);}else{cartOrd=null;clearCart();updCartH();}
-  goTab('cmd');
+  if(ord){
+    cartOrd=ord;loadOrdToCart(ord);
+    openBillMd(ord,tbl);  /* afficher facture en cours */
+  } else {
+    cartOrd=null;clearCart();updCartH();
+    goTab('cmd');
+  }
+}
+function openBillMd(ord,tbl){
+  var items=ord.items_json||[];
+  var tot=ord.total||ord.total_amount||0;
+  var nm=ord.type==='room'?'Room '+esc(ord.room_number||'?'):esc(tbl?tbl.name:'Table');
+  document.getElementById('bill-title').textContent=nm;
+  document.getElementById('bill-items').innerHTML=items.length
+    ?items.map(function(it){
+        return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);">'
+          +'<span>'+it.qty+'&times; '+esc(it.name)+'</span>'
+          +'<span style="font-weight:700;">'+fmt((it.price||0)*it.qty)+'</span></div>';
+      }).join('')
+    :'<div style="color:var(--text3);font-style:italic;text-align:center;padding:12px;">D&#233;tail non disponible</div>';
+  document.getElementById('bill-total').textContent=fmt(tot);
+  document.getElementById('bill-pay-btn').dataset.id=ord.id;
+  document.getElementById('bill-add-btn').dataset.id=tbl?tbl.id:'';
+  openMd('md-bill');
 }
 
 /* Menu */
@@ -838,7 +900,7 @@ function updCartH(){
 }
 function loadOrdToCart(o){
   CART=[];payOid=o.id;
-  (o.items_json||[]).forEach(function(it){
+  (o.items||o.items_json||[]).forEach(function(it){
     var p=PRODS.find(function(x){return x.id===it.product_id;})||{id:it.product_id,name:it.name||'?',price:it.price||0,station:'cuisine'};
     CART.push({p:p,q:it.qty||1});
   });
@@ -876,17 +938,21 @@ function sendKitchen(){
   if(cartOrd){
     /* Ajouter à la commande existante */
     var merged=(cartOrd.items_json||[]).concat(newItems);
-    var newTot=(cartOrd.total_amount||0)+cartTot();
-    PATCH('veraluz_restaurant_orders',cartOrd.id,{items_json:merged,total_amount:newTot}).then(function(){
-      cartOrd.items_json=merged;cartOrd.total_amount=newTot;
+    var newTot=(cartOrd.total||cartOrd.total_amount||0)+cartTot();
+    var newCnt=(cartOrd.items_count||0)+CART.reduce(function(s,c){return s+c.q;},0);
+    PATCH('veraluz_restaurant_orders',cartOrd.id,{items_json:merged,total:newTot,total_amount:newTot,items_count:newCnt}).then(function(){
+      cartOrd.items_json=merged;cartOrd.total=newTot;cartOrd.total_amount=newTot;cartOrd.items_count=newCnt;
       clearCart();updCartH();updateBdg();renderTables();
       toast('Articles ajout&#233;s &#9989;','ok');
     }).catch(function(e){toast('Erreur: '+e,'er');});
   } else {
     /* Nouvelle commande */
-    var data={table_id:cartTbl&&!cartTbl.id.startsWith('room_')?cartTbl.id:null,
-      type:cartType,room_number:cartRoom||null,items_json:newItems,
-      status:'ouvert',total_amount:cartTot(),notes:document.getElementById('cnote').value.trim()||null};
+    var tot=cartTot();var ict=CART.reduce(function(s,c){return s+c.q;},0);
+    var tblN=cartTbl&&!cartTbl.id.startsWith('room_')?cartTbl.name:null;
+    var data={id:gid(),table_id:cartTbl&&!cartTbl.id.startsWith('room_')?cartTbl.id:null,
+      table_name:tblN,type:cartType,room_number:cartRoom||null,
+      items_json:newItems,items_count:ict,total:tot,total_amount:tot,
+      status:'ouvert',notes:document.getElementById('cnote').value.trim()||null};
     POST('veraluz_restaurant_orders',data).then(function(r){
       var saved=r[0]||data;ORDERS.unshift(saved);
       if(saved.table_id)PATCH('veraluz_restaurant_tables',saved.table_id,{status:'occupee'}).then(function(){
@@ -931,7 +997,7 @@ function kdsUpd(oid,st){
 function openPayMd(oid){
   var o=ORDERS.find(function(x){return x.id===oid;});if(!o)return;
   payOid=oid;
-  document.getElementById('pay-tot').textContent=fmt(o.total_amount||0);
+  document.getElementById('pay-tot').textContent=fmt(o.total||o.total_amount||0);
   document.getElementById('pay-recv').value='';
   document.getElementById('pay-chg').textContent='0 FCFA';
   document.querySelectorAll('.pm').forEach(function(m){m.classList.remove('on');});
@@ -946,7 +1012,7 @@ function selPay(el){
 }
 function calcChange(){
   var o=ORDERS.find(function(x){return x.id===payOid;});
-  var tot=o?o.total_amount:0;
+  var tot=o?(o.total||o.total_amount||0):0;
   var recv=parseFloat(document.getElementById('pay-recv').value)||0;
   document.getElementById('pay-chg').textContent=fmt(Math.max(0,recv-tot));
 }
@@ -962,13 +1028,13 @@ function confirmPay(){
       });
       o.status='paye';
       /* Mouvements de stock au moment du paiement */
-      (o.items_json||[]).forEach(function(it){
+      (o.items||o.items_json||[]).forEach(function(it){
         var w=(it.name||'').toLowerCase().split(' ')[0];
         var si=STOCK.find(function(s){return s.name&&s.name.toLowerCase().includes(w);});
         if(si){
           var nq=Math.max(0,(si.quantity||0)-it.qty);
           PATCH('veraluz_restaurant_stock',si.id,{quantity:nq});
-          POST('veraluz_restaurant_stock_movements',{stock_id:si.id,type:'sortie',qty:it.qty,
+          POST('veraluz_restaurant_stock_movements',{id:gid(),stock_id:si.id,type:'sortie',qty:it.qty,
             reason:'Vente #'+(payOid||'').slice(-6)+' ('+payMeth+')',order_id:payOid});
           si.quantity=nq;
         }
@@ -996,7 +1062,7 @@ function renderTix(){
   el.innerHTML=list.map(function(o){
     var tbl=TABLES.find(function(t){return t.id===o.table_id;});
     var tnm=o.type==='room'?'Room '+esc(o.room_number||'?'):tbl?esc(tbl.name):'Emporter';
-    var its=(o.items_json||[]).map(function(it){return it.qty+'&#215; '+esc(it.name);}).join(', ');
+    var its=(o.items||o.items_json||[]).map(function(it){return it.qty+'&#215; '+esc(it.name);}).join(', ');
     return '<div class="tkcard">'
       +'<div class="tkh"><span class="tkt">'+tnm+'</span><span class="tkbdg '+o.status+'">'+(lb[o.status]||o.status)+'</span></div>'
       +'<div class="tkits">'+its.slice(0,80)+'</div>'
@@ -1018,7 +1084,7 @@ function renderRS(){
   el.innerHTML=list.length?list.map(function(o){
     return '<div class="tkcard"><div class="tkh"><span class="tkt">&#128718; Chambre '+esc(o.room_number||'?')+'</span>'
       +'<span class="tkbdg '+o.status+'">'+(lb[o.status]||o.status)+'</span></div>'
-      +'<div class="tkits">'+((o.items_json||[]).map(function(it){return it.qty+'&#215; '+esc(it.name);}).join(', '))+'</div>'
+      +'<div class="tkits">'+((o.items||o.items_json||[]).map(function(it){return it.qty+'&#215; '+esc(it.name);}).join(', '))+'</div>'
       +'<div class="tkacts">'+(o.status!=='paye'&&o.status!=='annule'?'<button class="btn bp bs" data-id="'+o.id+'" onclick="openPayMd(this.dataset.id)">&#128179; Encaisser</button>':'')+'</div>'
       +'</div>';
   }).join(''):'<div class="empty"><div class="eico">&#128718;</div>Aucun room service</div>';
@@ -1118,22 +1184,116 @@ function adjStock(sid){
   });
 }
 
-/* Supplier orders */
-function openSOMd(){
-  document.getElementById('so-sup').innerHTML=SUPS.map(function(s){return'<option value="'+s.id+'">'+esc(s.name)+'</option>';}).join('');
-  document.getElementById('so-items').value='';document.getElementById('so-notes').value='';
+/* Supplier orders — workflow rapide */
+var soLines=[];
+function openSOMd(sid){
+  soLines=[];
+  var sel=document.getElementById('so-sup');
+  sel.innerHTML='<option value="">&#8212; Choisir &#8212;</option>'
+    +SUPS.map(function(s){return'<option value="'+s.id+'"'+(sid&&s.id===sid?' selected':'')+'>'+esc(s.name)+'</option>';}).join('');
+  document.getElementById('so-sup-new').style.display='none';
+  document.getElementById('so-notes').value='';
+  document.getElementById('so-total-disp').textContent='0 FCFA';
+  soRenderLines();soAddLine();
   openMd('md-so');
+}
+function soSupChange(el){document.getElementById('so-sup-new').style.display='none';}
+function soNewSup(){
+  var el=document.getElementById('so-sup-new');
+  el.style.display=el.style.display==='none'?'':'none';
+  if(el.style.display!=='none'){document.getElementById('so-sup').value='';el.focus();}
+}
+function soAddLine(){soLines.push({pid:'',pname:'',qty:1,pu:0});soRenderLines();}
+function soDelLine(i){soLines.splice(i,1);soRenderLines();soCalcTotal();}
+function soRenderLines(){
+  var el=document.getElementById('so-lines');
+  if(!soLines.length){el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px;">Aucun article</div>';return;}
+  el.innerHTML=soLines.map(function(l,i){
+    var selProd='<option value="">Article...</option>'
+      +'<optgroup label="Stock">'+STOCK.map(function(s){return'<option value="s_'+s.id+'"'+(l.pid==='s_'+s.id?' selected':'')+'>'+esc(s.name)+'</option>';}).join('')+'</optgroup>'
+      +'<optgroup label="Menu">'+PRODS.map(function(p){return'<option value="p_'+p.id+'"'+(l.pid==='p_'+p.id?' selected':'')+'>'+esc(p.name)+'</option>';}).join('')+'</optgroup>'
+      +'<option value="new">&#43; Nouvel article</option>';
+    return '<div style="display:grid;grid-template-columns:1fr 52px 72px 28px;gap:4px;margin-bottom:6px;">'
+      +'<div>'
+      +'<select class="fi" style="font-size:11px;margin-bottom:3px;" onchange="soLineArt('+i+',this.value)">'+selProd+'</select>'
+      +'<input class="fi" type="text" placeholder="D&#233;signation libre" value="'+esc(l.pname)+'" style="'+(l.pid==='new'?'':'display:none;')+'font-size:11px;" onchange="soLineName('+i+',this.value)">'
+      +'</div>'
+      +'<input class="fi" type="number" min="1" value="'+l.qty+'" placeholder="Qt&#233;" style="font-size:11px;" onchange="soLineQty('+i+',this.value)">'
+      +'<input class="fi" type="number" min="0" value="'+(l.pu||'')+'" placeholder="PU FCFA" style="font-size:11px;" onchange="soLinePU('+i+',this.value)">'
+      +'<button class="btn bd" style="padding:2px;font-size:12px;" onclick="soDelLine('+i+')">&#10005;</button>'
+      +'</div>';
+  }).join('');
+}
+function soLineArt(i,val){
+  soLines[i].pid=val;
+  if(val==='new'){soLines[i].pname='';soLines[i].pu=0;}
+  else if(val.startsWith('s_')){var s=STOCK.find(function(x){return x.id===val.slice(2);});if(s){soLines[i].pname=s.name;soLines[i].pu=s.unit_cost||s.cost_price||0;}}
+  else if(val.startsWith('p_')){var p=PRODS.find(function(x){return x.id===val.slice(2);});if(p){soLines[i].pname=p.name;soLines[i].pu=p.price||0;}}
+  soRenderLines();soCalcTotal();
+}
+function soLineName(i,v){soLines[i].pname=v;}
+function soLineQty(i,v){soLines[i].qty=parseFloat(v)||1;soCalcTotal();}
+function soLinePU(i,v){soLines[i].pu=parseFloat(v)||0;soCalcTotal();}
+function soCalcTotal(){
+  var tot=soLines.reduce(function(s,l){return s+(l.qty||0)*(l.pu||0);},0);
+  document.getElementById('so-total-disp').textContent=fmt(tot);
 }
 function saveSO(){
   var sid=document.getElementById('so-sup').value;
-  var sup=SUPS.find(function(s){return s.id===sid;});
-  var raw=document.getElementById('so-items').value.trim();
+  var supNew=document.getElementById('so-sup-new');
+  var supName='';var supId=sid;
+  if(supNew.style.display!=='none'&&supNew.value.trim()){
+    supName=supNew.value.trim();supId='sup_'+gid();
+    POST('veraluz_restaurant_suppliers',{id:supId,name:supName,contact:'',email:''}).then(function(r){var ns=r[0]||{id:supId,name:supName};SUPS.push(ns);}).catch(function(){});
+  } else {
+    var sup=SUPS.find(function(s){return s.id===sid;});
+    if(!sup&&!sid){toast('S&#233;lectionnez un fournisseur','er');return;}
+    supName=sup?sup.name:sid;
+  }
+  var lines=soLines.filter(function(l){return l.pname||l.pid;});
+  if(!lines.length){toast('Ajoutez au moins un article','er');return;}
+  var items=lines.map(function(l){return{name:l.pname||l.pid,qty:l.qty||1,pu:l.pu||0,total:(l.qty||1)*(l.pu||0)};});
+  var tot=items.reduce(function(s,i){return s+i.total;},0);
   var notes=document.getElementById('so-notes').value.trim();
-  var items=raw.split('\n').filter(Boolean).map(function(l){var p=l.split(';');return{name:p[0]||'',qty:parseFloat(p[1])||0,unit_price:parseFloat(p[2])||0};});
-  var tot=items.reduce(function(s,i){return s+i.qty*i.unit_price;},0);
-  POST('veraluz_restaurant_supplier_orders',{id:gid(),supplier_id:sid,supplier_name:sup?sup.name:'',items:items,status:'brouillon',total_amount:tot,notes:notes,created_at:new Date().toISOString()})
-  .then(function(r){SOS.unshift(r[0]);closeMd('md-so');renderSOs();toast('Bon cr&#233;&#233;','ok');})
-  .catch(function(e){toast('Erreur: '+e,'er');});
+  var data={id:gid(),supplier_id:supId,supplier_name:supName,items:items,status:'brouillon',total_amount:tot,notes:notes||null};
+  POST('veraluz_restaurant_supplier_orders',data).then(function(r){
+    var saved=r[0]||data;SOS.unshift(saved);
+    closeMd('md-so');renderSOs();toast('Bon cr&#233;&#233; &#9989;','ok');
+    setTimeout(function(){printSO(saved);},400);
+  }).catch(function(e){toast('Erreur: '+e,'er');});
+}
+function printSO(o){
+  var items=o.items||[];var tot=o.total_amount||0;
+  var now=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+  var rows=items.map(function(it,i){
+    return'<tr><td style="padding:6px 8px;border:1px solid #ddd;">'+(i+1)+'</td><td style="padding:6px 8px;border:1px solid #ddd;">'+String(it.name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</td>'
+      +'<td style="padding:6px 8px;border:1px solid #ddd;text-align:center;">'+it.qty+'</td>'
+      +'<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;">'+Number(it.pu||0).toLocaleString('fr-FR')+' FCFA</td>'
+      +'<td style="padding:6px 8px;border:1px solid #ddd;text-align:right;font-weight:700;">'+Number(it.total||0).toLocaleString('fr-FR')+' FCFA</td></tr>';
+  }).join('');
+  var supStr=String(o.supplier_name||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  var notesStr=o.notes?('<div style="margin-top:8px;color:#555;font-style:italic;">Notes : '+String(o.notes).replace(/&/g,'&amp;')+'</div>'):'';
+  var html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Bon de Commande #'+o.id.slice(-6).toUpperCase()+'</title>'
+    +'<style>*{box-sizing:border-box;}body{font-family:Arial,sans-serif;font-size:12px;color:#111;padding:24px;max-width:800px;margin:0 auto;}'
+    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #22d3a5;}'
+    +'.co{font-size:22px;font-weight:800;color:#22d3a5;letter-spacing:-0.5px;}table{width:100%;border-collapse:collapse;margin-top:16px;}'
+    +'th{background:#e8faf5;padding:8px;border:1px solid #ccc;font-size:11px;text-align:left;}'
+    +'.tot{text-align:right;font-size:16px;font-weight:800;margin-top:14px;color:#22d3a5;}'
+    +'.sig{margin-top:50px;display:flex;justify-content:space-between;}.sig div{width:45%;text-align:center;}'
+    +'.sig .line{border-top:1px solid #999;margin-top:35px;padding-top:5px;font-size:10px;color:#666;}'
+    +'@media print{.noprint{display:none!important;}@page{margin:1cm;}}</style></head><body>'
+    +'<div class="hdr"><div><div class="co">&#127965; R&#233;sidence Veraluz</div><div style="color:#555;margin-top:4px;">Kribi, Cameroun</div><div style="color:#555;">restaurant@veraluz.cm</div></div>'
+    +'<div style="text-align:right;"><div style="font-size:18px;font-weight:800;text-transform:uppercase;">Bon de Commande</div>'
+    +'<div style="color:#555;margin-top:4px;">N&deg; <b>'+o.id.slice(-8).toUpperCase()+'</b></div>'
+    +'<div style="color:#555;">'+now+'</div></div></div>'
+    +'<div style="margin-bottom:8px;"><b>FOURNISSEUR :</b> '+supStr+'</div>'
+    +notesStr
+    +'<table><thead><tr><th>#</th><th>D&#233;signation</th><th style="text-align:center;">Qt&#233;</th><th style="text-align:right;">Prix Unit.</th><th style="text-align:right;">Total</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<div class="tot">TOTAL : '+Number(tot).toLocaleString('fr-FR')+' FCFA</div>'
+    +'<div class="sig"><div><div class="line">Responsable Restaurant</div></div><div><div class="line">Cachet &amp; Signature Fournisseur</div></div></div>'
+    +'<div style="text-align:center;margin-top:28px;" class="noprint"><button onclick="window.print()" style="background:#22d3a5;color:#fff;border:none;padding:10px 30px;border-radius:8px;font-size:14px;cursor:pointer;font-weight:700;">&#128424; Imprimer le bon</button></div>'
+    +'</body></html>';
+  var w=window.open('','_blank','width=820,height=680');if(w){w.document.write(html);w.document.close();}
 }
 function renderSOs(){
   var el=document.getElementById('so-list');
@@ -1146,7 +1306,7 @@ function renderSOs(){
       +'<div style="font-size:11px;color:var(--text3);margin-bottom:5px;">'+esc(its.slice(0,80))+'</div>'
       +'<div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:5px;">'+fmt(o.total_amount)+'</div>'
       +'<div style="display:flex;gap:5px;">'
-      +(o.status==='brouillon'?'<button class="btn bw bs" data-id="'+o.id+'" data-s="envoye" onclick="updSO(this.dataset.id,this.dataset.s)">&#128228; Envoyer</button>':'')
+      +(o.status==='brouillon'?'<button class="btn bw bs" data-id="'+o.id+'" data-s="envoye" onclick="updSO(this.dataset.id,this.dataset.s)">&#128228; Envoyer</button>':'')+'<button class="btn bg bs" data-id="'+o.id+'" onclick="(function(){var so=SOS.find(function(x){return x.id===document.querySelector(\"[data-id=\''+o.id+'\']\")?x.id===\''+o.id+'\'&&true:false;});printSO(so||o);})()">&#128424;</button>'
       +(o.status==='envoye'?'<button class="btn bp bs" data-id="'+o.id+'" onclick="recvSO(this.dataset.id)">&#9989; R&#233;ceptionner</button>':'')
       +(o.status!=='recu'&&o.status!=='annule'?'<button class="btn bg bs" data-id="'+o.id+'" data-s="annule" onclick="updSO(this.dataset.id,this.dataset.s)">&#10005;</button>':'')
       +'</div></div>';
@@ -1341,10 +1501,10 @@ function renderVentes(){
 
   if(!list.length){el.innerHTML='<div class="empty">Aucune vente'+(curVnt==='today'?' Aujourd\'hui':'')+' </div>';return;}
 
-  var total=list.reduce(function(s,o){return s+(o.total_amount||0);},0);
-  var byCash=list.filter(function(o){return o.payment_method==='cash';}).reduce(function(s,o){return s+(o.total_amount||0);},0);
-  var byMomo=list.filter(function(o){return o.payment_method==='momo';}).reduce(function(s,o){return s+(o.total_amount||0);},0);
-  var byCard=list.filter(function(o){return o.payment_method==='card';}).reduce(function(s,o){return s+(o.total_amount||0);},0);
+  var total=list.reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
+  var byCash=list.filter(function(o){return o.payment_method==='cash';}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
+  var byMomo=list.filter(function(o){return o.payment_method==='momo';}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
+  var byCard=list.filter(function(o){return o.payment_method==='card';}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
 
   var html='<div style="background:var(--bg3);border-radius:12px;padding:14px;margin-bottom:12px;">'
     +'<div style="font-size:11px;color:var(--text3);margin-bottom:6px;">&#128200; '+(curVnt==='today'?'CHIFFRE D\'AFFAIRES AUJOURD\'HUI':'TOTAL HISTORIQUE')+'</div>'
@@ -1360,12 +1520,12 @@ function renderVentes(){
   html+=list.map(function(o){
     var tbl=TABLES.find(function(t){return t.id===o.table_id;});
     var tnm=o.type==='room'?'&#128718; Room '+(o.room_number||'?'):tbl?esc(tbl.name):'Emporter';
-    var items=(o.items_json||[]).map(function(it){return it.qty+'&#215;'+esc(it.name);}).join(', ');
+    var items=(o.items||o.items_json||[]).map(function(it){return it.qty+'&#215;'+esc(it.name);}).join(', ');
     var dt=fdt(o.paid_at||o.created_at);
     return '<div style="background:var(--bg3);border-radius:10px;padding:10px;margin-bottom:8px;border-left:3px solid var(--ok);">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;">'
       +'<span style="font-weight:700;font-size:13px;">'+tnm+'</span>'
-      +'<span style="font-size:13px;font-weight:700;color:var(--accent);">'+fmt(o.total_amount)+'</span>'
+      +'<span style="font-size:13px;font-weight:700;color:var(--accent);">'+fmt(o.total||o.total_amount)+'</span>'
       +'</div>'
       +'<div style="font-size:11px;color:var(--text3);margin-top:3px;">'+items.slice(0,80)+'</div>'
       +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-top:4px;">'
@@ -1380,7 +1540,18 @@ function renderVentes(){
 /* ═══════════════════════════════════════════
    RÉSERVATIONS SALLE (localStorage)
 ═══════════════════════════════════════════ */
-var RESAS=JSON.parse(localStorage.getItem('vz_resas')||'[]');
+var RESAS=(function(){
+  var stored=localStorage.getItem('vz_resas');
+  if(stored)return JSON.parse(stored);
+  /* Données demo au premier démarrage */
+  var demos=[
+    {id:'demo1',event:'Anniversaire 40 ans de Marie',contact:'Marie Fouda +237 690 000 001',date:new Date(Date.now()+4*864e5).toISOString().slice(0,10),hd:'19:00',hf:'23:00',type:'anniversaire',pax:45,acompte:50000,notes:'Gâteau 3 étages prévu. Menu: poisson + poulet',status:'confirme',created:new Date().toISOString()},
+    {id:'demo2',event:'Réunion Corporate TotalEnergies',contact:'Jean Mbarga +237 677 000 002',date:new Date(Date.now()+10*864e5).toISOString().slice(0,10),hd:'08:00',hf:'17:00',type:'corporate',pax:20,acompte:100000,notes:'Déjeuner de travail inclus. Projecteur requis',status:'confirme',created:new Date().toISOString()},
+    {id:'demo3',event:'Mariage Ngo & Fils',contact:'Famille Ngo +237 699 000 003',date:new Date(Date.now()+21*864e5).toISOString().slice(0,10),hd:'15:00',hf:'01:00',type:'mariage',pax:120,acompte:200000,notes:'Décoration florale. Groupe de musique prévu',status:'confirme',created:new Date().toISOString()}
+  ];
+  localStorage.setItem('vz_resas',JSON.stringify(demos));
+  return demos;
+})();
 var editResaId=null;
 var RESA_TYPES={anniversaire:'🎂 Anniversaire',mariage:'💍 Mariage/Fiançailles',corporate:'💼 Corporate',bapteme:'🩷 Baptême',autre:'⭐ Autre'};
 

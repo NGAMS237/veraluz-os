@@ -269,15 +269,16 @@ function sbGet(path) {
 
 /* ── Modules actifs (ajouter ici quand un module est prêt) ── */
 var MODULES = [
-  { id: 'reservations', label: 'Réservations', icon: '🛏️',
-    file: 'RESERVATIONS_EMBEDDED.html', desc: 'Planning & Check-in/out' },
-  { id: 'paiements',    label: 'Paiements',    icon: '💳',
-    file: 'PAIEMENTS_EMBEDDED.html',    desc: 'Transactions & Validations' },
+  { id: 'reservations',  label: 'Réservations',  icon: '🛏️',
+    file: 'RESERVATIONS_EMBEDDED.html',  desc: 'Planning & Check-in/out' },
+  { id: 'paiements',     label: 'Paiements',     icon: '💳',
+    file: 'PAIEMENTS_EMBEDDED.html',     desc: 'Transactions & Validations' },
+  { id: 'housekeeping',  label: 'Housekeeping',  icon: '🧹',
+    file: 'HOUSEKEEPING_EMBEDDED.html',  desc: 'Nettoyage & Maintenance' },
 ];
 
 /* Modules pas encore développés */
 var COMING = [
-  { label: 'Housekeeping', icon: '🧹' },
   { label: 'Restaurant',   icon: '🍽️' },
   { label: 'Finance',      icon: '📊' },
   { label: 'Analytiques',  icon: '📈' },
@@ -502,11 +503,4 @@ function closeMobileSidebar() {
 }
 
 /* ── Init ─────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', function() {
-  buildNav();
-  initGreeting();
-  loadDashboardData();
-});
-</script>
-</body>
-</html>
+document.addEventListener('DOMContentLoade

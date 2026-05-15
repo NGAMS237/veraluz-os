@@ -275,11 +275,12 @@ var MODULES = [
     file: 'PAIEMENTS_EMBEDDED.html',     desc: 'Transactions & Validations' },
   { id: 'housekeeping',  label: 'Housekeeping',  icon: '🧹',
     file: 'HOUSEKEEPING_EMBEDDED.html',  desc: 'Nettoyage & Maintenance' },
+  { id: 'restaurant',    label: 'Restaurant',    icon: '🍽️',
+    file: 'RESTAURANT_EMBEDDED.html',    desc: 'POS · Bar · Room Service' },
 ];
 
 /* Modules pas encore développés */
 var COMING = [
-  { label: 'Restaurant',   icon: '🍽️' },
   { label: 'Finance',      icon: '📊' },
   { label: 'Analytiques',  icon: '📈' },
   { label: 'RH',           icon: '👥' },
@@ -503,11 +504,4 @@ function closeMobileSidebar() {
 }
 
 /* ── Init ─────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', function() {
-  buildNav();
-  initGreeting();
-  loadDashboardData();
-});
-</script>
-</body>
-</html>
+document.addEventListener('DOMContentLoaded',

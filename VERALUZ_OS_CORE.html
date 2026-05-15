@@ -186,54 +186,44 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 <!-- MAIN -->
 <div id="main">
   <div id="topbar">
-    <button class="tb-menu" onclick="toggleMobileSidebar()" aria-label="Menu">☰</button>
+    <button class="tb-menu" onclick="toggleMobileSidebar()" aria-label="Menu">&#9776;</button>
     <div style="flex:1;min-width:0">
       <div class="tb-title" id="tb-title">Dashboard</div>
       <div class="tb-sub" id="tb-sub">Résidence Veraluz · Kribi</div>
     </div>
     <div class="tb-actions">
-      <span class="tb-tag">DEV</span>
-      <button class="tb-btn" onclick="refreshCurrent()">↻</button>
+      <span class="tb-tag">LIVE</span>
+      <button class="tb-btn" onclick="refreshCurrent()">&#8635;</button>
     </div>
   </div>
 
   <div id="content">
-    <!-- Loader -->
     <div id="loader">
       <div class="ld-ring"></div>
       <div class="ld-text" id="ld-text">Chargement...</div>
     </div>
-
-    <!-- Erreur -->
     <div id="mod-error">
-      <div class="err-ico">⚠️</div>
+      <div class="err-ico">&#9888;&#65039;</div>
       <div class="err-title">Module inaccessible</div>
       <div class="err-msg" id="err-msg">Impossible de charger le module.</div>
       <button class="err-retry" onclick="retryModule()">Réessayer</button>
     </div>
-
-    <!-- Dashboard -->
     <div id="view-dashboard" class="view active">
-      <div class="dash-greeting" id="dash-greeting">Bonjour 👋</div>
+      <div class="dash-greeting" id="dash-greeting">Bonjour &#128075;</div>
       <div class="dash-sub" id="dash-date">Résidence Veraluz · Kribi</div>
-
       <div class="dash-stats">
         <div class="stat-card"><div class="stat-val a" id="st-rez">…</div><div class="stat-label">Réservations actives</div></div>
         <div class="stat-card"><div class="stat-val" id="st-pay">…</div><div class="stat-label">Paiements en attente</div></div>
         <div class="stat-card"><div class="stat-val" id="st-units">…</div><div class="stat-label">Unités disponibles</div></div>
         <div class="stat-card"><div class="stat-val w" id="st-rev">…</div><div class="stat-label">Revenus validés (FCFA)</div></div>
       </div>
-
-      <div class="dash-section">Modules</div>
+      <div class="dash-section">Modules actifs</div>
       <div class="modules-grid" id="dash-grid"></div>
-
       <div class="dash-section">Réservations récentes</div>
       <div class="recent-list" id="recent-list">
         <div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Chargement…</div></div>
       </div>
     </div>
-
-    <!-- Module iframe -->
     <div id="view-module" class="view">
       <iframe id="module-frame" title="Module Veraluz OS"
         sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups">
@@ -241,21 +231,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     </div>
   </div>
 
-  <!-- Bottom nav mobile -->
   <nav id="bottom-nav">
     <button class="bn-btn active" id="bn-dashboard" onclick="goTo('dashboard')">
-      <span class="bn-icon">🏠</span><span class="bn-label">Dashboard</span>
+      <span class="bn-icon">&#127968;</span><span class="bn-label">Dashboard</span>
     </button>
     <div id="bn-modules" style="display:contents"></div>
   </nav>
 </div>
 
-<!-- Overlay mobile sidebar -->
 <div id="sb-ov" onclick="closeMobileSidebar()"
   style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;"></div>
 
 <script>
 'use strict';
+
+/* ================================================================
+   VERALUZ OS CORE — v3.1
+   RÈGLE : Ne jamais éditer ce fichier avec l'outil Edit.
+            Utiliser rebuild_core.py pour toute modification.
+   ================================================================ */
 
 /* ── Supabase ─────────────────────────────────────────────── */
 var SB_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
@@ -263,27 +257,31 @@ var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 
 function sbGet(path) {
   return fetch(SB_URL + path, {
-    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Accept': 'application/json' }
-  }).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); });
+    headers:{ apikey:SB_KEY, Authorization:'Bearer '+SB_KEY, Accept:'application/json' }
+  }).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); });
 }
 
-/* ── Modules actifs (ajouter ici quand un module est prêt) ── */
+/* ================================================================
+   MODULES — SEULE SECTION À MODIFIER VIA rebuild_core.py
+   Pour ajouter un module :
+     { id:'monmodule', label:'Mon Module', icon:'🔧',
+       file:'MONMODULE_EMBEDDED.html', desc:'Description courte' }
+   ================================================================ */
 var MODULES = [
-  { id: 'reservations',  label: 'Réservations',  icon: '🛏️',
-    file: 'RESERVATIONS_EMBEDDED.html',  desc: 'Planning & Check-in/out' },
-  { id: 'paiements',     label: 'Paiements',     icon: '💳',
-    file: 'PAIEMENTS_EMBEDDED.html',     desc: 'Transactions & Validations' },
-  { id: 'housekeeping',  label: 'Housekeeping',  icon: '🧹',
-    file: 'HOUSEKEEPING_EMBEDDED.html',  desc: 'Nettoyage & Maintenance' },
-  { id: 'restaurant',    label: 'Restaurant',    icon: '🍽️',
-    file: 'RESTAURANT_EMBEDDED.html',    desc: 'POS · Bar · Room Service' },
+  { id:'reservations', label:'Réservations', icon:'🛏️',
+    file:'RESERVATIONS_EMBEDDED.html', desc:'Planning & Check-in/out' },
+  { id:'paiements',    label:'Paiements',    icon:'💳',
+    file:'PAIEMENTS_EMBEDDED.html',    desc:'Transactions & Validations' },
+  { id:'housekeeping', label:'Housekeeping', icon:'🧹',
+    file:'HOUSEKEEPING_EMBEDDED.html', desc:'Nettoyage & Maintenance' },
+  { id:'restaurant',   label:'Restaurant',   icon:'🍽️',
+    file:'RESTAURANT_EMBEDDED.html',   desc:'POS · Bar · Room Service' },
 ];
 
-/* Modules pas encore développés */
 var COMING = [
-  { label: 'Finance',      icon: '📊' },
-  { label: 'Analytiques',  icon: '📈' },
-  { label: 'RH',           icon: '👥' },
+  { label:'Finance',     icon:'📊' },
+  { label:'Analytiques', icon:'📈' },
+  { label:'RH',          icon:'👥' },
 ];
 
 /* ── État ─────────────────────────────────────────────────── */
@@ -293,56 +291,46 @@ var loadTimer     = null;
 
 /* ── Navigation ───────────────────────────────────────────── */
 function goTo(pageId) {
-  var mod = MODULES.find(function(m) { return m.id === pageId; });
-
+  var mod = MODULES.find(function(m){ return m.id === pageId; });
   closeMobileSidebar();
   setActive(pageId);
   currentPage = pageId;
-
   if (pageId === 'dashboard') {
     currentModule = null;
-    setTopbar('Dashboard', 'Résidence Veraluz · Kribi');
+    setTopbar('Dashboard','Résidence Veraluz · Kribi');
     showDashView();
     return;
   }
-
   if (!mod) return;
   currentModule = mod;
-  setTopbar(mod.icon + ' ' + mod.label, mod.desc || '');
+  setTopbar(mod.icon+' '+mod.label, mod.desc||'');
   loadModuleFrame(mod);
 }
 
 function loadModuleFrame(mod) {
   var iframe = document.getElementById('module-frame');
   var loader = document.getElementById('loader');
-
-  // Reset
-  iframe.onload  = null;
+  iframe.onload = null;
   iframe.onerror = null;
-  if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
-
-  // Masquer les vues, montrer le loader
-  document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+  if (loadTimer){ clearTimeout(loadTimer); loadTimer = null; }
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
   document.getElementById('mod-error').classList.remove('show');
-  document.getElementById('ld-text').textContent = 'Chargement ' + mod.label + '…';
+  document.getElementById('ld-text').textContent = 'Chargement '+mod.label+'…';
   loader.classList.add('show');
-
-  // Vider l'iframe d'abord
   iframe.src = 'about:blank';
-
-  setTimeout(function() {
+  setTimeout(function(){
     var done = false;
-    function onReady() {
-      if (done) return; done = true;
-      if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+    function onReady(){
+      if(done) return; done = true;
+      if(loadTimer){ clearTimeout(loadTimer); loadTimer = null; }
       loader.classList.remove('show');
       showView('module');
     }
-    iframe.onload  = function() { onReady(); };
-    iframe.onerror = function() {
-      if (loadTimer) clearTimeout(loadTimer);
+    iframe.onload  = function(){ onReady(); };
+    iframe.onerror = function(){
+      if(loadTimer) clearTimeout(loadTimer);
       loader.classList.remove('show');
-      document.getElementById('err-msg').textContent = 'Impossible de charger ' + mod.file;
+      document.getElementById('err-msg').textContent = 'Impossible de charger '+mod.file;
       document.getElementById('mod-error').classList.add('show');
     };
     loadTimer = setTimeout(onReady, 8000);
@@ -350,158 +338,195 @@ function loadModuleFrame(mod) {
   }, 80);
 }
 
-function refreshCurrent() {
-  if (currentPage === 'dashboard') { loadDashboardData(); }
-  else if (currentModule)          { loadModuleFrame(currentModule); }
+function refreshCurrent(){
+  if(currentPage==='dashboard') loadDashboardData();
+  else if(currentModule) loadModuleFrame(currentModule);
 }
 
-function retryModule() {
+function retryModule(){
   document.getElementById('mod-error').classList.remove('show');
-  if (currentModule) loadModuleFrame(currentModule);
+  if(currentModule) loadModuleFrame(currentModule);
 }
 
-/* ── Vues ─────────────────────────────────────────────────── */
-function showView(name) {
-  document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
-  document.getElementById('view-' + name).classList.add('active');
+function showView(name){
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  document.getElementById('view-'+name).classList.add('active');
 }
-function showDashView() {
+function showDashView(){
   document.getElementById('loader').classList.remove('show');
   document.getElementById('mod-error').classList.remove('show');
   showView('dashboard');
 }
-
-/* ── Topbar ───────────────────────────────────────────────── */
-function setTopbar(title, sub) {
+function setTopbar(title,sub){
   document.getElementById('tb-title').textContent = title;
   document.getElementById('tb-sub').textContent   = sub;
 }
-
-/* ── Active nav ───────────────────────────────────────────── */
-function setActive(id) {
-  document.querySelectorAll('.sb-btn, .bn-btn').forEach(function(b) { b.classList.remove('active'); });
-  var sb = document.getElementById('nav-' + id);
-  var bn = document.getElementById('bn-' + id);
-  if (sb) sb.classList.add('active');
-  if (bn) bn.classList.add('active');
+function setActive(id){
+  document.querySelectorAll('.sb-btn,.bn-btn').forEach(function(b){ b.classList.remove('active'); });
+  var sb = document.getElementById('nav-'+id);
+  var bn = document.getElementById('bn-'+id);
+  if(sb) sb.classList.add('active');
+  if(bn) bn.classList.add('active');
 }
 
-/* ── Build navigation ─────────────────────────────────────── */
-function buildNav() {
-  var sbMods  = document.getElementById('sb-modules');
-  var sbComing= document.getElementById('sb-coming');
-  var bnMods  = document.getElementById('bn-modules');
-  var grid    = document.getElementById('dash-grid');
+/* ── Build nav — construit UNE SEULE FOIS au DOMContentLoaded ─ */
+function buildNav(){
+  var sbMods   = document.getElementById('sb-modules');
+  var sbComing = document.getElementById('sb-coming');
+  var bnMods   = document.getElementById('bn-modules');
+  var grid     = document.getElementById('dash-grid');
   sbMods.innerHTML = bnMods.innerHTML = sbComing.innerHTML = grid.innerHTML = '';
 
-  MODULES.forEach(function(m) {
-    // Sidebar button
+  MODULES.forEach(function(m){
     var sb = document.createElement('button');
-    sb.className = 'sb-btn'; sb.id = 'nav-' + m.id;
-    sb.innerHTML = '<span class="sb-icon">' + m.icon + '</span> ' + m.label;
-    sb.onclick = function() { goTo(m.id); };
+    sb.className='sb-btn'; sb.id='nav-'+m.id;
+    sb.innerHTML='<span class="sb-icon">'+m.icon+'</span> '+m.label;
+    sb.onclick=function(){ goTo(m.id); };
     sbMods.appendChild(sb);
 
-    // Bottom nav button
     var bn = document.createElement('button');
-    bn.className = 'bn-btn'; bn.id = 'bn-' + m.id;
-    bn.innerHTML = '<span class="bn-icon">' + m.icon + '</span><span class="bn-label">' + m.label + '</span>';
-    bn.onclick = function() { goTo(m.id); };
+    bn.className='bn-btn'; bn.id='bn-'+m.id;
+    bn.innerHTML='<span class="bn-icon">'+m.icon+'</span><span class="bn-label">'+m.label+'</span>';
+    bn.onclick=function(){ goTo(m.id); };
     bnMods.appendChild(bn);
 
-    // Dashboard card
     var card = document.createElement('button');
-    card.className = 'mod-card';
-    card.innerHTML = '<div class="mod-icon">' + m.icon + '</div>'
-      + '<div class="mod-name">' + m.label + '</div>'
-      + '<div class="mod-desc">' + m.desc + '</div>'
-      + '<span class="mod-badge">Actif</span>';
-    card.onclick = function() { goTo(m.id); };
+    card.className='mod-card';
+    card.innerHTML='<div class="mod-icon">'+m.icon+'</div>'
+      +'<div class="mod-name">'+m.label+'</div>'
+      +'<div class="mod-desc">'+m.desc+'</div>'
+      +'<span class="mod-badge">Actif</span>';
+    card.onclick=function(){ goTo(m.id); };
     grid.appendChild(card);
   });
 
-  // À venir (sidebar + dashboard)
-  COMING.forEach(function(c) {
+  COMING.forEach(function(c){
     var el = document.createElement('div');
-    el.className = 'sb-future';
-    el.innerHTML = '<span style="font-size:15px">' + c.icon + '</span> ' + c.label;
+    el.className='sb-future';
+    el.innerHTML='<span style="font-size:15px">'+c.icon+'</span> '+c.label;
     sbComing.appendChild(el);
 
     var card = document.createElement('div');
-    card.className = 'mod-card dim';
-    card.innerHTML = '<div class="mod-icon">' + c.icon + '</div>'
-      + '<div class="mod-name">' + c.label + '</div>'
-      + '<span class="mod-badge s">Bientôt</span>';
+    card.className='mod-card dim';
+    card.innerHTML='<div class="mod-icon">'+c.icon+'</div>'
+      +'<div class="mod-name">'+c.label+'</div>'
+      +'<span class="mod-badge s">Bientôt</span>';
     grid.appendChild(card);
   });
 }
 
 /* ── Dashboard data ───────────────────────────────────────── */
-function loadDashboardData() {
+function loadDashboardData(){
   Promise.all([
     sbGet('/rest/v1/veraluz_reservations?select=id,status,client_name,unit_id,check_in&order=created_at.desc&limit=6'),
     sbGet('/rest/v1/veraluz_payments?select=id,status,amount&order=created_at.desc'),
     sbGet('/rest/v1/veraluz_units?select=id,status'),
-  ]).then(function(r) {
-    var rezs  = r[0] || [];
-    var pays  = r[1] || [];
-    var units = r[2] || [];
-
-    var active  = rezs.filter(function(x) { return x.status === 'checkedin' || x.status === 'confirmed'; });
-    var pending = pays.filter(function(x) { return x.status === 'pending'; });
-    var avail   = units.filter(function(x) { return x.status === 'available'; });
-    var rev     = pays.filter(function(x) { return x.status === 'validated'; })
-                     .reduce(function(s, p) { return s + (p.amount || 0); }, 0);
-
+  ]).then(function(r){
+    var rezs  = r[0]||[];
+    var pays  = r[1]||[];
+    var units = r[2]||[];
+    var active  = rezs.filter(function(x){ return x.status==='checkedin'||x.status==='confirmed'; });
+    var pending = pays.filter(function(x){ return x.status==='pending'; });
+    var avail   = units.filter(function(x){ return x.status==='available'; });
+    var rev     = pays.filter(function(x){ return x.status==='validated'; })
+                      .reduce(function(s,p){ return s+(p.amount||0); },0);
     document.getElementById('st-rez').textContent   = active.length;
     document.getElementById('st-pay').textContent   = pending.length;
     document.getElementById('st-units').textContent = avail.length;
     document.getElementById('st-rev').textContent   = rev.toLocaleString('fr-FR');
-
-    // Activité récente
     var list = document.getElementById('recent-list');
-    if (!rezs.length) {
-      list.innerHTML = '<div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Aucune réservation</div></div>';
+    if(!rezs.length){
+      list.innerHTML='<div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Aucune réservation</div></div>';
       return;
     }
-    list.innerHTML = rezs.slice(0, 5).map(function(r) {
-      var dot = r.status === 'checkedin' ? 'ok' : r.status === 'confirmed' ? 'i' : 'w';
-      var lbl = { checkedin: 'En séjour', confirmed: 'Confirmée', checkedout: 'Départ', cancelled: 'Annulée' }[r.status] || r.status;
+    list.innerHTML=rezs.slice(0,5).map(function(r){
+      var dot=r.status==='checkedin'?'ok':r.status==='confirmed'?'i':'w';
+      var lbl={checkedin:'En séjour',confirmed:'Confirmée',checkedout:'Départ',cancelled:'Annulée'}[r.status]||r.status;
       return '<div class="rec-item">'
-        + '<div class="rec-dot ' + dot + '"></div>'
-        + '<div class="rec-text"><strong>' + (r.client_name || '—') + '</strong> — Unité ' + (r.unit_id || '—') + ' · ' + lbl + '</div>'
-        + '<div class="rec-time">' + (r.check_in || '') + '</div>'
-        + '</div>';
+        +'<div class="rec-dot '+dot+'"></div>'
+        +'<div class="rec-text"><strong>'+(r.client_name||'—')+'</strong> — Unité '+(r.unit_id||'—')+' · '+lbl+'</div>'
+        +'<div class="rec-time">'+(r.check_in||'')+'</div>'
+        +'</div>';
     }).join('');
-  }).catch(function(e) {
-    console.warn('[Core] Supabase error:', e);
-    ['st-rez','st-pay','st-units','st-rev'].forEach(function(id) {
-      document.getElementById(id).textContent = '—';
+  }).catch(function(e){
+    console.warn('[Core] Supabase error:',e);
+    ['st-rez','st-pay','st-units','st-rev'].forEach(function(id){
+      document.getElementById(id).textContent='—';
     });
   });
 }
 
 /* ── Greeting ─────────────────────────────────────────────── */
-function initGreeting() {
-  var h = new Date().getHours();
-  var s = h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir';
-  document.getElementById('dash-greeting').textContent = s + ', Smith 👋';
-  document.getElementById('dash-date').textContent = 'Résidence Veraluz · '
-    + new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+function initGreeting(){
+  var h=new Date().getHours();
+  var s=h<12?'Bonjour':h<18?'Bon après-midi':'Bonsoir';
+  document.getElementById('dash-greeting').textContent=s+', Smith 👋';
+  document.getElementById('dash-date').textContent='Résidence Veraluz · '
+    +new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 }
 
 /* ── Sidebar mobile ───────────────────────────────────────── */
-function toggleMobileSidebar() {
-  var sb = document.getElementById('sidebar');
-  var ov = document.getElementById('sb-ov');
-  if (ov.style.display === 'block') { closeMobileSidebar(); return; }
-  sb.style.cssText = 'display:flex!important;position:fixed;top:0;left:0;bottom:0;z-index:210;width:260px;box-shadow:4px 0 20px rgba(0,0,0,.5);';
-  ov.style.display = 'block';
+function toggleMobileSidebar(){
+  var sb=document.getElementById('sidebar');
+  var ov=document.getElementById('sb-ov');
+  if(ov.style.display==='block'){ closeMobileSidebar(); return; }
+  sb.style.cssText='display:flex!important;position:fixed;top:0;left:0;bottom:0;z-index:210;width:260px;box-shadow:4px 0 20px rgba(0,0,0,.5);';
+  ov.style.display='block';
 }
-function closeMobileSidebar() {
-  document.getElementById('sidebar').style.cssText = '';
-  document.getElementById('sb-ov').style.display   = 'none';
+function closeMobileSidebar(){
+  document.getElementById('sidebar').style.cssText='';
+  document.getElementById('sb-ov').style.display='none';
 }
 
-/* ── Init ─────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded',
+/* ================================================================
+   INIT — DOMContentLoaded
+   IMPORTANT : Ce bloc est suivi d'un buffer de sécurité de 60 lignes.
+   Ne jamais le déplacer vers la fin du fichier.
+   ================================================================ */
+document.addEventListener('DOMContentLoaded', function(){
+  buildNav();
+  initGreeting();
+  loadDashboardData();
+});
+
+/* ================================================================
+   BUFFER DE SÉCURITÉ ANTI-TRONCATURE
+   Ces lignes sont volontairement placées APRÈS l'init pour garantir
+   que même si l'outil d'édition tronque la fin du fichier, le code
+   critique (DOMContentLoaded) reste intact et fonctionnel.
+   Ne pas supprimer ces commentaires.
+   ================================================================
+   [GUARD-LINE-001] Veraluz OS Core Safety Buffer
+   [GUARD-LINE-002] Module: Core Platform
+   [GUARD-LINE-003] Version: 3.1
+   [GUARD-LINE-004] Author: Veraluz OS
+   [GUARD-LINE-005] Project: Résidence Veraluz, Kribi, Cameroun
+   [GUARD-LINE-006] Architecture: Embedded Modules
+   [GUARD-LINE-007] Supabase: dfdmasejsoibxrvubegu
+   [GUARD-LINE-008] GitHub: ngams237/veraluz-os
+   [GUARD-LINE-009] Pages: ngams237.github.io/veraluz-os
+   [GUARD-LINE-010] Last rebuilt: 2026-05-15
+   [GUARD-LINE-011] --- DO NOT EDIT BELOW THIS LINE ---
+   [GUARD-LINE-012] --- USE rebuild_core.py INSTEAD ---
+   [GUARD-LINE-013] ............................................
+   [GUARD-LINE-014] ............................................
+   [GUARD-LINE-015] ............................................
+   [GUARD-LINE-016] ............................................
+   [GUARD-LINE-017] ............................................
+   [GUARD-LINE-018] ............................................
+   [GUARD-LINE-019] ............................................
+   [GUARD-LINE-020] ............................................
+   [GUARD-LINE-021] ............................................
+   [GUARD-LINE-022] ............................................
+   [GUARD-LINE-023] ............................................
+   [GUARD-LINE-024] ............................................
+   [GUARD-LINE-025] ............................................
+   [GUARD-LINE-026] ............................................
+   [GUARD-LINE-027] ............................................
+   [GUARD-LINE-028] ............................................
+   [GUARD-LINE-029] ............................................
+   [GUARD-LINE-030] ............................................
+   ================================================================ */
+</script>
+</body>
+</html>

@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b1a">
+<title>Veraluz OS — Authentification</title>
+<style>
+/* ================================================================
+   AUTH_EMBEDDED.html — Module Authentification Veraluz OS
+   Mobile-first · Standalone · Communique via postMessage
+   ================================================================ */
+
+:root {
+  --bg:       #0b0b1a;
+  --bg2:      #10102a;
+  --bg3:      #17173a;
+  --bg4:      #1e1e48;
+  --border:   rgba(255,255,255,0.08);
+  --border2:  rgba(255,255,255,0.15);
+  --accent:   #6c63ff;
+  --accent2:  #8b7fff;
+  --success:  #22d3a5;
+  --danger:   #f43f5e;
+  --warning:  #f59e0b;
+  --text:     #e8e6ff;
+  --text2:    #9990cc;
+  --text3:    #5a5580;
+  --radius:   12px;
+  --sat:      env(safe-area-inset-top, 0px);
+  --sab:      env(safe-area-inset-bottom, 0px);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  min-height: -webkit-fill-available;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
+}
+
+/* ── BACKGROUND ────────────────────────────────────────── */
+.bg-glow {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+}
+.bg-glow::before {
+  content: '';
+  position: absolute;
+  top: -30%; left: 50%;
+  width: 700px; height: 700px;
+  background: radial-gradient(ellipse, rgba(108,99,255,.18) 0%, transparent 65%);
+  transform: translateX(-50%);
+  animation: pulse 6s ease-in-out infinite;
+}
+.bg-glow::after {
+  content: '';
+  position: absolute;
+  bottom: -20%; right: -10%;
+  width: 500px; height: 500px;
+  background: radial-gradient(ellipse, rgba(34,211,165,.1) 0%, transparent 65%);
+  animation: pulse 8s ease-in-out infinite reverse;
+}
+@keyframes pulse {
+  0%, 100% { opacity: .6; transform: translateX(-50%) scale(1); }
+  50%       { opacity: 1;  transform: translateX(-50%) scale(1.08); }
+}
+
+/* ── LAYOUT ─────────────────────────────────────────────── */
+.auth-shell {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: calc(24px + var(--sat)) 16px calc(24px + var(--sab));
+}
+
+/* ── CARD ────────────────────────────────────────────────── */
+.auth-card {
+  width: 100%; max-width: 400px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 32px 28px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(108,99,255,0.1);
+  animation: cardIn .5s cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes cardIn {
+  from { opacity:0; transform: translateY(24px) scale(.97); }
+  to   { opacity:1; transform: translateY(0)    scale(1);   }
+}
+
+/* ── LOGO ────────────────────────────────────────────────── */
+.logo-block {
+  display: flex; flex-direction: column; align-items: center;
+  margin-bottom: 28px; gap: 12px;
+}
+.logo-icon {
+  width: 60px; height: 60px;
+  background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 900; color: #fff;
+  box-shadow: 0 8px 32px rgba(108,99,255,0.45);
+}
+.logo-name { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -.3px; }
+.logo-sub  { font-size: 12px; color: var(--text3); }
+
+/* ── TABS (Login / Démo) ──────────────────────────────────── */
+.auth-tabs {
+  display: flex; background: var(--bg3);
+  border-radius: 10px; padding: 3px;
+  margin-bottom: 24px; gap: 2px;
+}
+.auth-tab {
+  flex: 1; padding: 8px;
+  background: none; border: none;
+  border-radius: 8px; cursor: pointer;
+  font-size: 13px; font-weight: 600;
+  color: var(--text3); transition: all .2s;
+}
+.auth-tab.active { background: var(--bg4); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+
+/* ── FORM ────────────────────────────────────────────────── */
+.form-title  { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.form-sub    { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
+
+.field { margin-bottom: 14px; }
+.field label {
+  display: block; font-size: 11px; font-weight: 600;
+  color: var(--text2); text-transform: uppercase; letter-spacing: .06em;
+  margin-bottom: 6px;
+}
+.field input, .field select {
+  width: 100%; padding: 11px 14px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 10px; color: var(--text);
+  font-size: 14px; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  -webkit-appearance: none; appearance: none;
+}
+.field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239990cc' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+.field input:focus, .field select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(108,99,255,.15);
+}
+.field input::placeholder { color: var(--text3); }
+.field input[type="password"] { font-family: monospace; letter-spacing: 2px; }
+.field input[type="password"]::placeholder { font-family: 'Segoe UI', system-ui; letter-spacing: normal; }
+
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 42px; }
+.pw-eye {
+  position: absolute; right: 12px; top: 50%;
+  transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 16px;
+  padding: 4px; transition: color .15s;
+}
+.pw-eye:hover { color: var(--text2); }
+
+.field-row { display: flex; gap: 10px; }
+.field-row .field { flex: 1; margin-bottom: 0; }
+
+/* Remember me + Forgot */
+.form-opts {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.remember {
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer; font-size: 12px; color: var(--text2);
+}
+.remember input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+.forgot { font-size: 12px; color: var(--accent2); cursor: pointer; text-decoration: none; background: none; border: none; }
+.forgot:hover { text-decoration: underline; }
+
+/* Error message */
+.auth-error {
+  display: none;
+  background: rgba(244,63,94,.1); border: 1px solid rgba(244,63,94,.25);
+  border-radius: 8px; padding: 10px 14px;
+  font-size: 12px; color: var(--danger);
+  margin-bottom: 14px; text-align: center;
+}
+.auth-error.show { display: block; animation: shake .3s ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-6px); }
+  75%       { transform: translateX(6px); }
+}
+
+/* Submit button */
+.btn-submit {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  border: none; border-radius: 10px;
+  color: #fff; font-size: 14px; font-weight: 700;
+  cursor: pointer; transition: all .2s;
+  position: relative; overflow: hidden;
+  box-shadow: 0 4px 16px rgba(108,99,255,0.35);
+}
+.btn-submit:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,99,255,0.45); }
+.btn-submit:active { transform: translateY(0); }
+.btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-submit .loader {
+  display: none; width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin .7s linear infinite;
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+}
+.btn-submit.loading .loader { display: block; }
+@keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+
+/* ── DEMO PANEL ──────────────────────────────────────────── */
+.demo-panel { display: none; }
+.demo-panel.active { display: block; }
+.demo-title { font-size: 13px; color: var(--text3); margin-bottom: 14px; }
+.demo-roles { display: flex; flex-direction: column; gap: 8px; }
+.demo-role {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; border-radius: 10px;
+  background: var(--bg3); border: 1px solid var(--border);
+  cursor: pointer; transition: all .18s;
+}
+.demo-role:hover { border-color: var(--accent); background: var(--bg4); transform: translateX(3px); }
+.demo-role-icon { font-size: 20px; flex-shrink: 0; }
+.demo-role-info { flex: 1; }
+.demo-role-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.demo-role-desc { font-size: 11px; color: var(--text3); }
+.demo-role-tag  {
+  font-size: 10px; padding: 2px 7px; border-radius: 6px;
+  font-weight: 700; flex-shrink: 0;
+  background: rgba(108,99,255,.15); color: var(--accent2);
+}
+.demo-role-tag.full { background: rgba(34,211,165,.15); color: var(--success); }
+
+/* ── SESSION SWITCHER (après connexion) ──────────────────── */
+.session-view { display: none; }
+.session-view.active { display: block; animation: cardIn .4s ease both; }
+.session-user {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 16px; margin-bottom: 20px;
+}
+.session-avatar {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.session-name { font-size: 16px; font-weight: 700; }
+.session-role { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.session-actions { display: flex; flex-direction: column; gap: 8px; }
+.btn-outline {
+  width: 100%; padding: 11px;
+  background: none; border: 1px solid var(--border2);
+  border-radius: 10px; color: var(--text2);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .18s;
+}
+.btn-outline:hover { background: var(--bg3); color: var(--text); }
+.btn-danger {
+  width: 100%; padding: 11px;
+  background: rgba(244,63,94,.1); border: 1px solid rgba(244,63,94,.25);
+  border-radius: 10px; color: var(--danger);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .18s;
+}
+.btn-danger:hover { background: rgba(244,63,94,.2); }
+
+/* ── FOOTER ──────────────────────────────────────────────── */
+.auth-footer {
+  margin-top: 20px; text-align: center;
+  font-size: 11px; color: var(--text3);
+}
+.auth-footer a { color: var(--accent2); text-decoration: none; }
+.auth-footer a:hover { text-decoration: underline; }
+
+/* ── TENANT BADGE ────────────────────────────────────────── */
+.tenant-bar {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-bottom: 20px; font-size: 12px; color: var(--text3);
+}
+.tenant-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+</style>
+</head>
+<body>
+
+<div class="bg-glow"></div>
+
+<div class="auth-shell">
+  <div class="auth-card">
+
+    <!-- Logo -->
+    <div class="logo-block">
+      <div class="logo-icon">V</div>
+      <div class="logo-name">Veraluz OS</div>
+      <div class="logo-sub">Platform de gestion hôtelière · Kribi, Cameroun</div>
+    </div>
+
+    <!-- Tenant -->
+    <div class="tenant-bar">
+      <div class="tenant-dot"></div>
+      <span>Résidence Veraluz · Plan PRO</span>
+    </div>
+
+    <!-- === VUE LOGIN === -->
+    <div id="view-login">
+      <!-- Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchTab('login')">🔐 Connexion</button>
+        <button class="auth-tab" onclick="switchTab('demo')">🎭 Accès démo</button>
+      </div>
+
+      <!-- Formulaire login -->
+      <div id="panel-login">
+        <div class="form-title">Connexion</div>
+        <div class="form-sub">Connectez-vous à votre espace Veraluz OS</div>
+
+        <div class="auth-error" id="auth-error">Identifiants incorrects. Vérifiez votre email et mot de passe.</div>
+
+        <div class="field">
+          <label>Adresse email</label>
+          <input type="email" id="inp-email" placeholder="prenom@veraluz.cm"
+            autocomplete="email" autocapitalize="none" inputmode="email"
+            onkeydown="if(event.key==='Enter')focusPwd()">
+        </div>
+
+        <div class="field">
+          <label>Mot de passe</label>
+          <div class="pw-wrap">
+            <input type="password" id="inp-pwd" placeholder="••••••••"
+              autocomplete="current-password"
+              onkeydown="if(event.key==='Enter')submitLogin()">
+            <button class="pw-eye" onclick="togglePwd()" type="button" id="pw-eye-btn">👁</button>
+          </div>
+        </div>
+
+        <div class="form-opts">
+          <label class="remember">
+            <input type="checkbox" id="remember-me"> Se souvenir de moi
+          </label>
+          <button class="forgot" onclick="showForgot()">Mot de passe oublié ?</button>
+        </div>
+
+        <button class="btn-submit" id="btn-login" onclick="submitLogin()">
+          Connexion
+          <div class="loader"></div>
+        </button>
+
+        <div class="auth-footer" style="margin-top:16px">
+          Compte de démonstration disponible dans l'onglet <a onclick="switchTab('demo')" href="#">Accès démo</a>
+        </div>
+      </div>
+
+      <!-- Panel démo -->
+      <div id="panel-demo" class="demo-panel">
+        <div class="demo-title">Sélectionnez un profil pour tester la plateforme :</div>
+        <div class="demo-roles" id="demo-roles-list"></div>
+      </div>
+    </div>
+
+    <!-- === VUE SESSION ACTIVE === -->
+    <div id="view-session" class="session-view">
+      <div class="form-title" style="margin-bottom:4px">Session active</div>
+      <div class="form-sub" style="margin-bottom:20px">Vous êtes connecté à Veraluz OS</div>
+      <div class="session-user">
+        <div class="session-avatar" id="sess-avatar">S</div>
+        <div>
+          <div class="session-name" id="sess-name">Smith Veraluz</div>
+          <div class="session-role" id="sess-role">super_admin · Résidence Veraluz</div>
+        </div>
+      </div>
+      <div class="session-actions">
+        <button class="btn-submit" onclick="enterPlatform()">
+          ▶ Accéder à la plateforme
+          <div class="loader"></div>
+        </button>
+        <button class="btn-outline" onclick="switchSession()">🔄 Changer de compte</button>
+        <button class="btn-danger" onclick="logout()">🚪 Déconnexion</button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="auth-footer">
+      <a href="#">Politique de confidentialité</a> · <a href="#">Support</a> · v3.0
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================================================================
+   AUTH MODULE — Communication avec VERALUZ_OS_CORE via postMessage
+   ================================================================ */
+
+// Utilisateurs de démonstration (prototype — remplacer par API Supabase)
+var DEMO_USERS = [
+  {
+    id: 'usr_001', name: 'Smith Veraluz',   email: 'smith@veraluz.cm',
+    pwd: 'admin123', role: 'super_admin', roleLabel: 'Super Admin',
+    avatar: 'S', icon: '🧑‍💼', access: 'Accès complet à tous les modules'
+  },
+  {
+    id: 'usr_002', name: 'Marie Manga',      email: 'manager@veraluz.cm',
+    pwd: 'mgr123', role: 'hotel_manager', roleLabel: 'Manager Hôtel',
+    avatar: 'M', icon: '🏨', access: 'Réservations · HK · Restaurant · Analytics · RH'
+  },
+  {
+    id: 'usr_003', name: 'Paul Abomo',       email: 'reception@veraluz.cm',
+    pwd: 'rec123', role: 'reception', roleLabel: 'Réception',
+    avatar: 'P', icon: '🛎️', access: 'Réservations · Housekeeping'
+  },
+  {
+    id: 'usr_004', name: 'Judith Biyong',    email: 'rh@veraluz.cm',
+    pwd: 'rh123', role: 'hr', roleLabel: 'Responsable RH',
+    avatar: 'J', icon: '👥', access: 'RH & Équipe · Analytics'
+  },
+  {
+    id: 'usr_005', name: 'Charles Nkoulou',  email: 'compta@veraluz.cm',
+    pwd: 'cpt123', role: 'accountant', roleLabel: 'Comptable',
+    avatar: 'C', icon: '💰', access: 'Finance · Paiements · Analytics'
+  },
+  {
+    id: 'usr_006', name: 'Alice Ondoa',      email: 'resto@veraluz.cm',
+    pwd: 'rst123', role: 'restaurant', roleLabel: 'Staff Restaurant',
+    avatar: 'A', icon: '🍽️', access: 'Restaurant / POS uniquement'
+  },
+  {
+    id: 'usr_007', name: 'Bruno Essama',     email: 'hk@veraluz.cm',
+    pwd: 'hk123', role: 'housekeeping', roleLabel: 'Housekeeping',
+    avatar: 'B', icon: '🧹', access: 'Housekeeping · Maintenance'
+  },
+];
+
+// Session courante (en mémoire)
+var currentSession = null;
+
+// ── UI HELPERS ────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(function(t, i) {
+    t.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'demo'));
+  });
+  document.getElementById('panel-login').style.display = tab === 'login' ? 'block' : 'none';
+  var dp = document.getElementById('panel-demo');
+  dp.classList.toggle('active', tab === 'demo');
+  if (tab === 'demo') dp.style.display = 'block';
+  else dp.style.display = 'none';
+}
+
+function focusPwd() {
+  document.getElementById('inp-pwd').focus();
+}
+
+function togglePwd() {
+  var inp = document.getElementById('inp-pwd');
+  var btn = document.getElementById('pw-eye-btn');
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
+function showError(msg) {
+  var el = document.getElementById('auth-error');
+  el.textContent = msg || 'Identifiants incorrects.';
+  el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 4000);
+}
+
+function setLoading(id, loading) {
+  var btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled = loading;
+  btn.classList.toggle('loading', loading);
+}
+
+// ── RENDER DEMO ROLES ─────────────────────────────────────────
+function renderDemoRoles() {
+  var list = document.getElementById('demo-roles-list');
+  if (!list) return;
+  list.innerHTML = DEMO_USERS.map(function(u, i) {
+    var isAdmin = u.role === 'super_admin';
+    return '<div class="demo-role" onclick="loginAsDemo(' + i + ')">' +
+      '<div class="demo-role-icon">' + u.icon + '</div>' +
+      '<div class="demo-role-info">' +
+        '<div class="demo-role-name">' + u.name + '</div>' +
+        '<div class="demo-role-desc">' + u.access + '</div>' +
+      '</div>' +
+      '<div class="demo-role-tag' + (isAdmin ? ' full' : '') + '">' + u.roleLabel + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ── AUTHENTIFICATION ──────────────────────────────────────────
+function submitLogin() {
+  var email = (document.getElementById('inp-email').value || '').trim().toLowerCase();
+  var pwd   = (document.getElementById('inp-pwd').value || '').trim();
+  document.getElementById('auth-error').classList.remove('show');
+
+  if (!email || !pwd) { showError('Veuillez remplir tous les champs.'); return; }
+
+  setLoading('btn-login', true);
+
+  // Simulation délai API (remplacer par vrai appel Supabase)
+  setTimeout(function() {
+    var user = DEMO_USERS.find(function(u) {
+      return u.email === email && u.pwd === pwd;
+    });
+
+    if (user) {
+      doLogin(user);
+    } else {
+      setLoading('btn-login', false);
+      showError('Email ou mot de passe incorrect. Essayez l\'accès démo.');
+    }
+  }, 800);
+}
+
+function loginAsDemo(index) {
+  var user = DEMO_USERS[index];
+  if (!user) return;
+  setLoading('btn-login', true);
+  setTimeout(function() { doLogin(user); }, 500);
+}
+
+function doLogin(user) {
+  currentSession = {
+    userId:    user.id,
+    name:      user.name,
+    email:     user.email,
+    role:      user.role,
+    roleLabel: user.roleLabel,
+    avatar:    user.avatar,
+    icon:      user.icon,
+    tenantId:  'tenant_veraluz_kribi',
+    loginAt:   new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
+  };
+
+  // Passer en vue session active
+  setLoading('btn-login', false);
+  showSessionView();
+}
+
+function showSessionView() {
+  if (!currentSession) return;
+  document.getElementById('view-login').style.display    = 'none';
+  document.getElementById('view-session').style.display = 'block';
+  document.getElementById('view-session').classList.add('active');
+  document.getElementById('sess-avatar').textContent = currentSession.avatar;
+  document.getElementById('sess-name').textContent   = currentSession.name;
+  document.getElementById('sess-role').textContent   = currentSession.roleLabel + ' · Résidence Veraluz';
+
+  // Entrer automatiquement dans la plateforme après 1s
+  setTimeout(function() { enterPlatform(); }, 900);
+}
+
+function enterPlatform() {
+  if (!currentSession) return;
+  setLoading('btn-login', true);
+
+  // Envoyer l'événement auth.login au Core
+  window.parent.postMessage({
+    veraluzEvent: true,
+    type:         'auth.login',
+    source:       'auth_module',
+    data:         currentSession
+  }, '*');
+
+  // Aussi via window.parent direct (fallback)
+  try {
+    if (window.parent && window.parent !== window && window.parent.onAuthLogin) {
+      window.parent.onAuthLogin(currentSession);
+    }
+  } catch(e) {}
+}
+
+function switchSession() {
+  currentSession = null;
+  document.getElementById('view-session').style.display = 'none';
+  document.getElementById('view-session').classList.remove('active');
+  document.getElementById('view-login').style.display = 'block';
+  document.getElementById('inp-pwd').value  = '';
+  document.getElementById('auth-error').classList.remove('show');
+}
+
+function logout() {
+  currentSession = null;
+  switchSession();
+  window.parent.postMessage({
+    veraluzEvent: true,
+    type:         'auth.logout',
+    source:       'auth_module',
+    data:         {}
+  }, '*');
+}
+
+function showForgot() {
+  alert('Contactez votre administrateur Veraluz OS pour réinitialiser votre mot de passe.');
+}
+
+// ── ÉCOUTER LES EVENTS DU CORE ────────────────────────────────
+window.addEventListener('message', function(e) {
+  if (!e.data || !e.data.veraluzEvent) return;
+  if (e.data.type === 'auth.logout_request') {
+    logout();
+  }
+  // Le Core peut pré-remplir la session si une session existe en storage
+  if (e.data.type === 'auth.restore' && e.data.data) {
+    currentSession = e.data.data;
+    showSessionView();
+  }
+});
+
+// ── INIT ─────────────────────────────────────────────────────
+renderDemoRoles();
+// Pré-remplir avec smith@veraluz.cm pour faciliter les tests
+document.getElementById('inp-email').value = 'smith@veraluz.cm';
+</script>
+</body>
+</html>

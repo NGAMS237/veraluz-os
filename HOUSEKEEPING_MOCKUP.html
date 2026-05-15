@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veraluz OS — Housekeeping & Maintenance</title>
+<style>
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#242836;--bg4:#2e3347;--border:#3a3f55;--border2:#4a5068;
+  --accent:#6c63ff;--accent2:#8b7fff;--glow:rgba(108,99,255,.15);
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;--cyan:#06b6d4;
+  --orange:#f97316;--purple:#8b5cf6;--pink:#ec4899;--teal:#14b8a6;
+  --text:#e8eaf6;--text2:#9ca3af;--text3:#6b7280;
+  /* Status colors */
+  --s-available:#10b981;--s-occupied:#3b82f6;--s-checkout:#f97316;
+  --s-dirty:#ef4444;--s-cleaning:#f59e0b;--s-inspecting:#8b5cf6;
+  --s-maintenance:#6b7280;--s-out_of_order:#1f2937;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-serif;font-size:14px;}
+.app{display:flex;height:100vh;overflow:hidden;}
+/* Sidebar */
+.sidebar{width:210px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.logo{padding:14px 16px;border-bottom:1px solid var(--border);}
+.logo-t{font-size:15px;font-weight:700;color:var(--accent2);}
+.logo-s{font-size:10px;color:var(--text3);}
+.nav{padding:6px;flex:1;overflow-y:auto;}
+.nv{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;color:var(--text2);font-size:12.5px;margin-bottom:1px;transition:.15s;}
+.nv:hover{background:var(--bg3);color:var(--text);}
+.nv.active{background:var(--glow);color:var(--accent2);border:1px solid var(--border);}
+.nv-icon{font-size:15px;width:18px;text-align:center;}
+.nv-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;font-weight:600;}
+.nav-user{padding:10px;border-top:1px solid var(--border);}
+.u-wrap{display:flex;align-items:center;gap:8px;}
+.u-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+.u-nm{font-size:12px;font-weight:600;}.u-rl{font-size:10px;color:var(--text3);}
+/* Role switcher */
+.role-sw{margin-top:8px;display:flex;gap:4px;flex-wrap:wrap;}
+.role-btn{padding:2px 7px;border-radius:10px;font-size:9px;cursor:pointer;border:1px solid var(--border);color:var(--text2);background:var(--bg3);transition:.15s;}
+.role-btn.active{color:#fff;border-color:transparent;}
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;}
+.pg-title{font-size:17px;font-weight:700;flex:1;}
+/* Tabs */
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 14px;overflow-x:auto;flex-shrink:0;}
+.tab{padding:10px 13px;font-size:12.5px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent2);border-bottom-color:var(--accent);}
+.tab-badge{background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:3px;font-weight:700;}
+.content{flex:1;overflow-y:auto;padding:14px;}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:8px;margin-bottom:14px;}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;}
+.kpi-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+.kpi-val{font-size:22px;font-weight:700;}
+.kpi-sub{font-size:11px;color:var(--text3);}
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:10px;}
+.card-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr;}.sidebar{display:none;}}
+/* Room status grid */
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:12px;}
+.room-card{border-radius:10px;padding:11px;cursor:pointer;transition:.15s;border:2px solid transparent;position:relative;}
+.room-card:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.room-floor{font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;opacity:.7;margin-bottom:3px;}
+.room-num{font-size:18px;font-weight:800;margin-bottom:2px;}
+.room-type{font-size:10px;opacity:.75;margin-bottom:6px;}
+.room-status-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.room-priority{position:absolute;top:8px;right:8px;font-size:12px;}
+/* Status colors */
+.s-available{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:var(--green);}
+.s-occupied{background:rgba(59,130,246,.15);border-color:rgba(59,130,246,.4);color:var(--blue);}
+.s-checkout{background:rgba(249,115,22,.15);border-color:rgba(249,115,22,.4);color:var(--orange);}
+.s-dirty{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.5);color:var(--red);animation:pulseBorder 2.5s infinite;}
+.s-cleaning{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.4);color:var(--yellow);}
+.s-inspecting{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.4);color:var(--purple);}
+.s-maintenance{background:rgba(107,114,128,.15);border-color:rgba(107,114,128,.4);color:var(--text2);}
+.s-out_of_order{background:#111;border-color:#333;color:var(--text3);}
+@keyframes pulseBorder{0%,100%{border-color:rgba(239,68,68,.5);}50%{border-color:rgba(239,68,68,1);}}
+/* Task cards */
+.task-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;border-left:4px solid transparent;cursor:pointer;transition:.15s;}
+.task-card:hover{border-color:var(--border2);}
+.task-card.priority-vip{border-left-color:var(--pink);}
+.task-card.priority-urgent{border-left-color:var(--red);}
+.task-card.priority-normal{border-left-color:var(--yellow);}
+.task-card.priority-low{border-left-color:var(--green);}
+/* Badges */
+.bdg{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;}
+.bg{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2);}
+.br{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.by{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2);}
+.bb{background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.2);}
+.bp{background:rgba(108,99,255,.1);color:var(--accent2);border:1px solid rgba(108,99,255,.2);}
+.bgr{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.bo{background:rgba(249,115,22,.1);color:var(--orange);border:1px solid rgba(249,115,22,.2);}
+.bpk{background:rgba(236,72,153,.1);color:var(--pink);border:1px solid rgba(236,72,153,.2);}
+.bpu{background:rgba(139,92,246,.1);color:var(--purple);border:1px solid rgba(139,92,246,.2);}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:.15s;}
+.bp_{background:var(--accent);color:#fff;}.bp_:hover{background:var(--accent2);}
+.bg_{background:var(--green);color:#fff;}.bg_:hover{opacity:.85;}
+.br_{background:var(--red);color:#fff;}.br_:hover{opacity:.85;}
+.by_{background:var(--yellow);color:#000;}.by_:hover{opacity:.85;}
+.bo_{background:var(--bg3);border:1px solid var(--border);color:var(--text2);}.bo_:hover{color:var(--text);background:var(--bg4);}
+.btn-sm{padding:4px 9px;font-size:11px;}
+/* Modals */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;align-items:center;justify-content:center;padding:12px;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;}
+.mh{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1;}
+.mt{font-size:14px;font-weight:600;}
+.mc{background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:14px;}
+.mb{padding:16px;}
+.mf{padding:11px 16px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
+/* Form */
+.fg{margin-bottom:10px;}
+label{display:block;font-size:11px;color:var(--text2);margin-bottom:3px;font-weight:500;}
+input,select,textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-size:13px;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+/* Checklist */
+.chk-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:7px;background:var(--bg3);margin-bottom:5px;}
+.chk-box{width:20px;height:20px;border-radius:5px;border:2px solid var(--border2);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s;}
+.chk-box.checked{background:var(--green);border-color:var(--green);color:#fff;font-size:12px;}
+.chk-label{font-size:13px;flex:1;}
+.chk-zone{font-size:10px;color:var(--text3);background:var(--bg4);padding:1px 5px;border-radius:4px;}
+/* Photo grid */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.photo-slot{aspect-ratio:1;border-radius:8px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:24px;transition:.15s;background:var(--bg3);}
+.photo-slot:hover{border-color:var(--accent);background:var(--glow);}
+.photo-slot.filled{border-style:solid;border-color:var(--green);background:var(--bg4);}
+/* Progress */
+.prog-bar{background:var(--bg3);border-radius:8px;height:8px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:8px;transition:.5s;}
+/* Timeline */
+.tl{position:relative;padding-left:18px;}
+.tl::before{content:'';position:absolute;left:5px;top:0;bottom:0;width:2px;background:var(--border);}
+.tl-item{position:relative;margin-bottom:10px;}
+.tl-dot{position:absolute;left:-16px;top:3px;width:9px;height:9px;border-radius:50%;border:2px solid var(--bg2);}
+.tl-time{font-size:10px;color:var(--text3);}
+.tl-txt{font-size:12.5px;margin-top:1px;}
+/* Alert */
+.alert{padding:9px 13px;border-radius:8px;font-size:12.5px;margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.al-warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:var(--yellow);}
+.al-info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:var(--blue);}
+.al-crit{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:var(--red);}
+.al-ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:var(--green);}
+/* Table */
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:6px 10px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
+td{padding:8px 10px;border-bottom:1px solid var(--bg4);font-size:12.5px;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg3);}
+/* Toast */
+.toast{position:fixed;bottom:16px;right:16px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-size:12.5px;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:320px;}
+.toast.show{display:flex;align-items:center;gap:7px;}
+/* Mobile view switcher */
+.view-sw{display:flex;background:var(--bg3);border-radius:8px;padding:3px;margin-bottom:12px;gap:2px;}
+.view-btn{flex:1;text-align:center;padding:6px 8px;border-radius:6px;font-size:12px;cursor:pointer;color:var(--text2);transition:.15s;}
+.view-btn.active{background:var(--accent);color:#fff;}
+::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:8px;}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo"><div class="logo-t">🏨 Veraluz OS</div><div class="logo-s">Housekeeping — Kribi</div></div>
+  <nav class="nav">
+    <div class="nv" onclick="toast('Module simulé')"><span class="nv-icon">🛎️</span>Réception</div>
+    <div class="nv" onclick="toast('Module simulé')"><span class="nv-icon">💰</span>Finance</div>
+    <div class="nv" onclick="toast('Module simulé')"><span class="nv-icon">🔔</span>Notifications <span class="nv-badge">3</span></div>
+    <div class="nv active"><span class="nv-icon">🧹</span>Housekeeping <span class="nv-badge" id="sidebar-badge">4</span></div>
+    <div class="nv" onclick="toast('Module simulé')"><span class="nv-icon">⚙️</span>Paramètres</div>
+  </nav>
+  <div class="nav-user">
+    <div class="u-wrap">
+      <div class="u-av" id="u-av" style="background:rgba(108,99,255,.2);color:var(--accent2);">S</div>
+      <div style="flex:1;"><div class="u-nm" id="u-nm">Smith</div><div class="u-rl" id="u-rl">Owner 🇨🇦</div></div>
+    </div>
+    <div class="role-sw">
+      <div class="role-btn active" onclick="switchRole('owner')" style="background:var(--accent);">Owner</div>
+      <div class="role-btn" onclick="switchRole('supervisor')">Superv.</div>
+      <div class="role-btn" onclick="switchRole('housekeeping')">Ménage</div>
+      <div class="role-btn" onclick="switchRole('maintenance')">Mainte.</div>
+      <div class="role-btn" onclick="switchRole('reception')">Récep.</div>
+    </div>
+  </div>
+</aside>
+<div class="main">
+  <div class="topbar">
+    <span style="font-size:18px;">🧹</span>
+    <div class="pg-title">Housekeeping & Maintenance
+      <div style="font-size:11px;color:var(--text3);font-weight:400;" id="role-subtitle">Vue: Owner — Résidence Veraluz, Kribi · 14/05/2026</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <span class="bdg br" id="dirty-badge">🧹 4 à nettoyer</span>
+      <button class="btn" style="background:rgba(249,115,22,.2);color:var(--orange);border-color:rgba(249,115,22,.4);font-size:12px;padding:5px 10px;" onclick="simulateCheckout()">🚪 Simuler Checkout</button>
+      <button class="btn bp_ btn-sm" onclick="showModal('modal-task')">➕ Tâche</button>
+      <button class="btn bo_ btn-sm" onclick="showModal('modal-maint')">🔧 Incident</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" id="tab-dashboard" onclick="switchTab('dashboard')">📊 Dashboard</div>
+    <div class="tab" id="tab-rooms" onclick="switchTab('rooms')">🏠 Chambres<span class="tab-badge" id="tab-rooms-badge">4</span></div>
+    <div class="tab" id="tab-tasks" onclick="switchTab('tasks')">📋 Tâches<span class="tab-badge" id="tab-tasks-badge">5</span></div>
+    <div class="tab" id="tab-maintenance" onclick="switchTab('maintenance')">🔧 Maintenance<span class="tab-badge" id="tab-maint-badge" style="background:var(--orange);">3</span></div>
+    <div class="tab" id="tab-mobile" onclick="switchTab('mobile')">📱 Vue Agent</div>
+    <div class="tab" id="tab-historique" onclick="switchTab('historique')">📋 Historique</div>
+  </div>
+  <div class="content" id="content"></div>
+</div>
+</div>
+
+<!-- MODAL: Nouvelle tâche -->
+<div class="modal-overlay" id="modal-task">
+<div class="modal">
+  <div class="mh"><span class="mt">📋 Nouvelle Tâche Ménage</span><button class="mc" onclick="closeModal('modal-task')">✕</button></div>
+  <div class="mb">
+    <div class="fg2">
+      <div class="fg"><label>Chambre *</label>
+        <select id="tk-room">
+          <option value="">-- Sélectionner --</option>
+          ${''/* filled by JS */}
+        </select>
+      </div>
+      <div class="fg"><label>Type de tâche</label>
+        <select id="tk-type">
+          <option value="checkout_clean">🚿 Post-checkout (complet)</option>
+          <option value="stayover_clean">🛏️ Ménage en séjour</option>
+          <option value="deep_clean">🧽 Grand nettoyage</option>
+          <option value="turndown">🌙 Service soirée</option>
+          <option value="inspection">🔍 Inspection qualité</option>
+          <option value="pre_arrival">⭐ Pré-arrivée VIP</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg2">
+      <div class="fg"><label>Priorité</label>
+        <select id="tk-priority">
+          <option value="vip">👑 VIP — Immédiat</option>
+          <option value="urgent">🔴 Urgent</option>
+          <option value="normal" selected>🟡 Normal</option>
+          <option value="low">🟢 Faible</option>
+        </select>
+      </div>
+      <div class="fg"><label>Assigner à</label>
+        <select id="tk-agent">
+          <option value="">-- Non assigné --</option>
+          <option value="1">Josephine Etoa (interne)</option>
+          <option value="2">Marie-Claire Basso (interne)</option>
+          <option value="3">SOS Nettoyage Kribi (externe)</option>
+          <option value="4">CleanPro CM (externe)</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Date planifiée</label><input type="date" id="tk-date"></div>
+    <div class="fg"><label>Notes / Instructions</label><textarea id="tk-notes" placeholder="Instructions spéciales, accès, matériel requis..."></textarea></div>
+  </div>
+  <div class="mf">
+    <button class="btn bo_" onclick="closeModal('modal-task')">Annuler</button>
+    <button class="btn bp_" onclick="createTask()">✅ Créer la tâche</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL: Signalement incident -->
+<div class="modal-overlay" id="modal-maint">
+<div class="modal">
+  <div class="mh"><span class="mt">🔧 Signalement Problème / Maintenance</span><button class="mc" onclick="closeModal('modal-maint')">✕</button></div>
+  <div class="mb">
+    <div class="fg2">
+      <div class="fg"><label>Chambre *</label>
+        <select id="mn-room">
+          <option value="">-- Sélectionner --</option>
+        </select>
+      </div>
+      <div class="fg"><label>Type de problème</label>
+        <select id="mn-type">
+          <option value="hvac">❄️ Climatisation</option>
+          <option value="plumbing">🚿 Plomberie</option>
+          <option value="electrical">⚡ Électrique</option>
+          <option value="furniture">🪑 Mobilier cassé</option>
+          <option value="appliance">📺 Équipement</option>
+          <option value="cosmetic">🎨 Esthétique</option>
+          <option value="safety">🔒 Sécurité</option>
+          <option value="pest">🐜 Nuisibles</option>
+          <option value="other">📌 Autre</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg2">
+      <div class="fg"><label>Priorité</label>
+        <select id="mn-priority">
+          <option value="critical">🔴 Critique</option>
+          <option value="high">🟠 Haute</option>
+          <option value="normal" selected>🟡 Normale</option>
+          <option value="low">🟢 Faible</option>
+        </select>
+      </div>
+      <div class="fg"><label>Bloquer la chambre ?</label>
+        <select id="mn-block">
+          <option value="0">Non — chambre utilisable</option>
+          <option value="1">Oui — chambre en maintenance</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Description *</label><textarea id="mn-desc" placeholder="Décrivez le problème précisément: localisation, symptômes..."></textarea></div>
+    <div class="fg"><label>📸 Photo (optionnel)</label>
+      <div style="display:flex;gap:6px;margin-top:4px;">
+        <button class="btn bo_" style="flex:1;justify-content:center;" onclick="toast('📷 Caméra ouverte — Simulé','info')">📷 Prendre photo</button>
+        <button class="btn bo_" style="flex:1;justify-content:center;" onclick="toast('📁 Galerie ouverte — Simulé','info')">📁 Galerie</button>
+      </div>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn bo_" onclick="closeModal('modal-maint')">Annuler</button>
+    <button class="btn br_" onclick="createMaintenance()">🔧 Signaler le problème</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL: Détail tâche (vue agent) -->
+<div class="modal-overlay" id="modal-task-detail">
+<div class="modal" style="max-width:520px;">
+  <div class="mh"><span class="mt" id="td-title">Tâche ménage</span><button class="mc" onclick="closeModal('modal-task-detail')">✕</button></div>
+  <div class="mb" id="td-body"></div>
+  <div class="mf" id="td-footer"></div>
+</div>
+</div>
+
+<!-- MODAL: Détail chambre -->
+<div class="modal-overlay" id="modal-room-detail">
+<div class="modal" style="max-width:480px;">
+  <div class="mh"><span class="mt" id="rd-title">Chambre</span><button class="mc" onclick="closeModal('modal-room-detail')">✕</button></div>
+  <div class="mb" id="rd-body"></div>
+  <div class="mf" id="rd-footer"></div>
+</div>
+</div>
+
+<!-- MODAL: Changer statut chambre -->
+<div class="modal-overlay" id="modal-status">
+<div class="modal" style="max-width:420px;">
+  <div class="mh"><span class="mt">🔄 Changer le statut</span><button class="mc" onclick="closeModal('modal-status')">✕</button></div>
+  <div class="mb" id="status-modal-body">
+    <div style="color:var(--text-dim);font-size:13px;">Cliquez sur une chambre pour changer son statut.</div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════
+const STATUS_CONFIG={
+  available:{label:'Disponible',icon:'✅',cls:'s-available',color:'var(--green)',bg:'rgba(16,185,129,.12)'},
+  occupied:{label:'Occupée',icon:'🛏️',cls:'s-occupied',color:'var(--blue)',bg:'rgba(59,130,246,.12)'},
+  checkout:{label:'Checkout',icon:'🚪',cls:'s-checkout',color:'var(--orange)',bg:'rgba(249,115,22,.12)'},
+  dirty:{label:'À nettoyer',icon:'🧹',cls:'s-dirty',color:'var(--red)',bg:'rgba(239,68,68,.12)'},
+  cleaning:{label:'En cours',icon:'🫧',cls:'s-cleaning',color:'var(--yellow)',bg:'rgba(245,158,11,.12)'},
+  inspecting:{label:'Inspection',icon:'🔍',cls:'s-inspecting',color:'var(--purple)',bg:'rgba(139,92,246,.12)'},
+  maintenance:{label:'Maintenance',icon:'🔧',cls:'s-maintenance',color:'#94a3b8',bg:'rgba(148,163,184,.1)'},
+  out_of_order:{label:'Hors service',icon:'🚫',cls:'s-out_of_order',color:'#64748b',bg:'rgba(100,116,139,.1)'},
+  blocked:{label:'Bloquée',icon:'⛔',cls:'s-blocked',color:'#ef4444',bg:'rgba(239,68,68,.08)'},
+};
+const PRIORITY_CONFIG={
+  vip:{label:'VIP',cls:'bpk',color:'var(--pink)',icon:'👑'},
+  urgent:{label:'Urgent',cls:'br',color:'var(--red)',icon:'🔴'},
+  normal:{label:'Normal',cls:'by',color:'var(--yellow)',icon:'🟡'},
+  low:{label:'Faible',cls:'bg',color:'var(--green)',icon:'🟢'},
+};
+const TASK_STATUS={
+  pending:{label:'En attente',cls:'bgr',icon:'⏳',color:'#94a3b8'},
+  assigned:{label:'Assignée',cls:'bb',icon:'👤',color:'var(--blue)'},
+  in_progress:{label:'En cours',cls:'by',icon:'🫧',color:'var(--yellow)'},
+  done:{label:'À valider',cls:'bp',icon:'✅',color:'var(--purple)'},
+  validated:{label:'Validée ✓',cls:'bg',icon:'✔',color:'var(--green)'},
+  rejected:{label:'Refusée',cls:'br',icon:'✕',color:'var(--red)'},
+};
+const MAINT_STATUS={
+  reported:{label:'Signalé',cls:'br',icon:'🔴'},
+  acknowledged:{label:'Pris en compte',cls:'by',icon:'🟡'},
+  in_progress:{label:'En cours',cls:'bb',icon:'🔧'},
+  resolved:{label:'Résolu',cls:'bg',icon:'✅'},
+  deferred:{label:'Reporté',cls:'bgr',icon:'⏸'},
+};
+const MAINT_TYPES={
+  plumbing:{label:'Plomberie',icon:'🚿'},hvac:{label:'Clim.',icon:'❄️'},
+  electrical:{label:'Électrique',icon:'⚡'},furniture:{label:'Mobilier',icon:'🪑'},
+  appliance:{label:'Équipement',icon:'📺'},cosmetic:{label:'Esthétique',icon:'🎨'},
+  safety:{label:'Sécurité',icon:'🔒'},pest:{label:'Nuisibles',icon:'🐜'},other:{label:'Autre',icon:'📌'},
+  structural:{label:'Structurel',icon:'🏗️'},cleaning:{label:'Nettoyage',icon:'🧽'},
+};
+
+let rooms=[
+  {id:1,num:'101',floor:1,type:'Chambre double',status:'available',priority:'normal',guest:null,checkout_time:null,hk_notes:''},
+  {id:2,num:'102',floor:1,type:'Chambre double',status:'occupied',priority:'normal',guest:'M. Essomba',checkout_time:'2026-05-16',hk_notes:''},
+  {id:3,num:'103',floor:1,type:'Chambre simple',status:'maintenance',priority:'urgent',guest:null,checkout_time:null,hk_notes:'Clim en réparation — TechFroid en cours'},
+  {id:4,num:'104',floor:1,type:'Chambre double',status:'occupied',priority:'normal',guest:'Mme Biyong',checkout_time:'2026-05-15',hk_notes:''},
+  {id:5,num:'105',floor:1,type:'Chambre double',status:'dirty',priority:'urgent',guest:null,checkout_time:null,hk_notes:'Checkout M. Mbarga 15h30'},
+  {id:6,num:'106',floor:1,type:'Chambre simple',status:'dirty',priority:'normal',guest:null,checkout_time:null,hk_notes:'Checkout 12h00'},
+  {id:7,num:'201',floor:2,type:'Studio mer',status:'available',priority:'normal',guest:null,checkout_time:null,hk_notes:''},
+  {id:8,num:'202',floor:2,type:'Studio mer',status:'occupied',priority:'normal',guest:'M. Nguele',checkout_time:'2026-05-19',hk_notes:'Client VIP'},
+  {id:9,num:'203',floor:2,type:'Studio mer',status:'inspecting',priority:'normal',guest:null,checkout_time:null,hk_notes:'Ménage terminé — en attente validation Judith'},
+  {id:10,num:'204',floor:2,type:'Studio mer',status:'checkout',priority:'urgent',guest:null,checkout_time:null,hk_notes:'Checkout automatique 11h22'},
+  {id:11,num:'301',floor:3,type:'Grand studio',status:'available',priority:'normal',guest:null,checkout_time:null,hk_notes:''},
+  {id:12,num:'302',floor:3,type:'Grand studio',status:'cleaning',priority:'normal',guest:null,checkout_time:null,hk_notes:'Marie-Claire en cours depuis 14h10'},
+  {id:13,num:'Suite P.',floor:4,type:'Suite Présidentielle',status:'occupied',priority:'vip',guest:'M. Eto\'o Fils',checkout_time:'2026-05-19',hk_notes:'VIP — protocole spécial'},
+];
+
+let tasks=[
+  {id:1,room:'105',roomId:5,type:'checkout_clean',status:'assigned',priority:'urgent',title:'Ménage post-checkout — Ch. 105',agent:'Josephine Etoa',agentType:'internal',assigned_at:'14h05',created_at:'14h03',auto:true,checklist:[
+    {id:1,label:'Literie complète changée',zone:'chambre',done:true},
+    {id:2,label:'Oreiller housses changées',zone:'chambre',done:true},
+    {id:3,label:'Toilettes désinfectées',zone:'sdb',done:false},
+    {id:4,label:'Douche nettoyée',zone:'sdb',done:false},
+    {id:5,label:'Miroirs essuyés',zone:'sdb',done:false},
+    {id:6,label:'Sol aspiré + lavé',zone:'chambre',done:false},
+    {id:7,label:'Minibar vérifié & rechargé',zone:'chambre',done:false},
+    {id:8,label:'Poubelles vidées',zone:'général',done:true},
+    {id:9,label:'Amenités remplacées',zone:'sdb',done:false},
+    {id:10,label:'Fenêtres essuyées',zone:'général',done:false},
+  ],photos_before:1,photos_after:0,notes:'Client M. Mbarga — checkout 15h30'},
+  {id:2,room:'106',roomId:6,type:'checkout_clean',status:'pending',priority:'normal',title:'Ménage post-checkout — Ch. 106',agent:null,agentType:null,assigned_at:null,created_at:'12h10',auto:true,checklist:[
+    {id:1,label:'Literie complète changée',zone:'chambre',done:false},
+    {id:2,label:'Toilettes désinfectées',zone:'sdb',done:false},
+    {id:3,label:'Douche nettoyée',zone:'sdb',done:false},
+    {id:4,label:'Sol aspiré + lavé',zone:'chambre',done:false},
+    {id:5,label:'Poubelles vidées',zone:'général',done:false},
+    {id:6,label:'Amenités remplacées',zone:'sdb',done:false},
+  ],photos_before:0,photos_after:0,notes:''},
+  {id:3,room:'204',roomId:10,type:'checkout_clean',status:'pending',priority:'urgent',title:'Ménage post-checkout — Studio 204',agent:null,agentType:null,assigned_at:null,created_at:'11h25',auto:true,checklist:[
+    {id:1,label:'Literie complète changée',zone:'chambre',done:false},
+    {id:2,label:'Cuisine américaine nettoyée',zone:'cuisine',done:false},
+    {id:3,label:'Vaisselle lavée',zone:'cuisine',done:false},
+    {id:4,label:'SDB complète nettoyée',zone:'sdb',done:false},
+    {id:5,label:'Terrasse balayée',zone:'terrasse',done:false},
+    {id:6,label:'Sol aspiré + lavé',zone:'général',done:false},
+  ],photos_before:0,photos_after:0,notes:'Checkout automatique'},
+  {id:4,room:'302',roomId:12,type:'stayover_clean',status:'in_progress',priority:'normal',title:'Ménage en séjour — Studio 302',agent:'Marie-Claire Basso',agentType:'internal',assigned_at:'14h00',created_at:'08h00',auto:false,checklist:[
+    {id:1,label:'Literie refaite (sans changer)',zone:'chambre',done:true},
+    {id:2,label:'SDB nettoyée',zone:'sdb',done:true},
+    {id:3,label:'Sol aspiré',zone:'général',done:false},
+    {id:4,label:'Poubelles vidées',zone:'général',done:true},
+    {id:5,label:'Amenités complétées si besoin',zone:'sdb',done:false},
+  ],photos_before:0,photos_after:0,notes:''},
+  {id:5,room:'203',roomId:9,type:'checkout_clean',status:'done',priority:'normal',title:'Ménage post-checkout — Studio 203',agent:'SOS Nettoyage Kribi',agentType:'external',assigned_at:'09h30',created_at:'09h10',auto:true,checklist:[
+    {id:1,label:'Literie complète changée',zone:'chambre',done:true},
+    {id:2,label:'SDB complète nettoyée',zone:'sdb',done:true},
+    {id:3,label:'Sol aspiré + lavé',zone:'général',done:true},
+    {id:4,label:'Terrasse nettoyée',zone:'terrasse',done:true},
+    {id:5,label:'Minibar vérifié',zone:'chambre',done:true},
+  ],photos_before:2,photos_after:3,notes:'Ménage terminé à 13h50 — en attente validation'},
+];
+
+let maintenances=[
+  {id:1,room:'103',roomId:3,type:'hvac',priority:'urgent',status:'in_progress',title:'Climatiseur en panne — Ch. 103',desc:'Compresseur défaillant. TechFroid Kribi en intervention depuis 10h00. Chambre bloquée.',reported_by:'Théodore Mba',reported_at:'08h15',assigned_to:'TechFroid Kribi (externe)',blocks_unit:true,cost_est:65000,photos:2,interventions:[
+    {tech:'Théodore Mba',action:'Diagnostic: compresseur HS + recharge gaz R410A requise',at:'08h20'},
+    {tech:'TechFroid Kribi',action:'Arrivée technicien — démontage panneau + diagnostic confirmé',at:'10h00'},
+    {tech:'TechFroid Kribi',action:'Pièce commandée — compresseur neuf livraison 15h00',at:'11h30'},
+  ]},
+  {id:2,room:'202',roomId:8,type:'plumbing',priority:'high',status:'reported',title:'Fuite douche — Studio 202',desc:'Client M. Nguele signale une fuite au niveau du pommeau de douche. Eau sur carrelage.',reported_by:'Judith Biyong',reported_at:'14h18',assigned_to:null,blocks_unit:false,cost_est:15000,photos:1,interventions:[]},
+  {id:3,room:'101',roomId:1,type:'cosmetic',priority:'low',status:'acknowledged',title:'Peinture écaillée — Mur fenêtre Ch. 101',desc:'Peinture qui s\'écaille au niveau du rebord de fenêtre. Esthétique uniquement.',reported_by:'Josephine Etoa',reported_at:'09h45',assigned_to:'Théodore Mba',blocks_unit:false,cost_est:8000,photos:0,interventions:[
+    {tech:'Théodore Mba',action:'Inspection effectuée — peinture et apprêt commandés',at:'11h00'},
+  ]},
+];
+
+let auditLog=[
+  {date:'14/05 14:05',actor:'Système',role:'Auto',action:'🚪 Checkout Ch.105 → Tâche ménage créée automatiquement',type:'auto'},
+  {date:'14/05 14:05',actor:'Raoul Ondoua',role:'Manager',action:'👤 Tâche #1 assignée à Josephine Etoa',type:'assign'},
+  {date:'14/05 13:50',actor:'SOS Nettoyage',role:'Externe',action:'✅ Ménage Studio 203 terminé — Photos ajoutées',type:'done'},
+  {date:'14/05 14:18',actor:'Judith Biyong',role:'Réception',action:'🔧 Fuite douche Studio 202 signalée',type:'maintenance'},
+  {date:'14/05 11:25',actor:'Système',role:'Auto',action:'🚪 Checkout Studio 204 → Tâche ménage créée automatiquement',type:'auto'},
+  {date:'14/05 10:00',actor:'TechFroid Kribi',role:'Externe',action:'🔧 Intervention clim Ch.103 démarrée',type:'maintenance'},
+  {date:'14/05 14:10',actor:'Marie-Claire Basso',role:'Ménage',action:'🫧 Ménage Studio 302 démarré',type:'start'},
+  {date:'14/05 09:30',actor:'Raoul Ondoua',role:'Manager',action:'👤 Ménage Studio 203 assigné à SOS Nettoyage Kribi',type:'assign'},
+];
+
+let currentTab='dashboard';
+let currentRole='owner';
+let currentView='grid';
+let selectedTask=null;
+let selectedRoom=null;
+
+// Normalize task fields so render functions work regardless of data source shape
+// Original data uses `agent` + `created_at`; new tasks created via UI use `assigned` + `created`
+tasks.forEach(t=>{
+  if(t.agent&&!t.assigned)t.assigned=t.agent;
+  if(t.created_at&&!t.created)t.created=t.created_at;
+  if(t.assigned_at&&!t.created)t.created=t.assigned_at;
+});
+
+// ════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════
+function toast(msg,type='info'){
+  const t=document.getElementById('toast');
+  const ic={info:'ℹ️',success:'✅',warn:'⚠️',error:'❌'};
+  t.innerHTML=`${ic[type]||'ℹ️'} ${msg}`;t.className='toast show';
+  setTimeout(()=>t.className='toast',3000);
+}
+function showModal(id){
+  if(id==='modal-task'||id==='modal-maint'){fillRoomSelects();}
+  document.getElementById(id).classList.add('show');
+}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function fillRoomSelects(){
+  const opts=rooms.map(r=>`<option value="${r.id}">${r.num} — ${r.type} (${STATUS_CONFIG[r.status].label})</option>`).join('');
+  const el1=document.getElementById('tk-room');if(el1)el1.innerHTML='<option value="">-- Sélectionner --</option>'+opts;
+  const el2=document.getElementById('mn-room');if(el2)el2.innerHTML='<option value="">-- Sélectionner --</option>'+opts;
+}
+function statusBadge(s){const c=STATUS_CONFIG[s]||{icon:'?',label:s};return `<span style="font-size:12px;">${c.icon}</span> <span>${c.label}</span>`;}
+function priBadge(p){const c=PRIORITY_CONFIG[p]||{icon:'?',label:p,cls:'bgr'};return `<span class="bdg ${c.cls}">${c.icon} ${c.label}</span>`;}
+function taskStatusBadge(s){const c=TASK_STATUS[s]||{icon:'?',label:s,cls:'bgr'};return `<span class="bdg ${c.cls}">${c.icon} ${c.label}</span>`;}
+function maintStatusBadge(s){const c=MAINT_STATUS[s]||{icon:'?',label:s,cls:'bgr'};return `<span class="bdg ${c.cls}">${c.icon} ${c.label}</span>`;}
+function checklistPct(task){
+  if(!task.checklist||task.checklist.length===0)return 0;
+  return Math.round(task.checklist.filter(i=>i.done).length/task.checklist.length*100);
+}
+function updateBadges(){
+  const dirty=rooms.filter(r=>['dirty','checkout'].includes(r.status)).length;
+  const taskPending=tasks.filter(t=>['pending','assigned','in_progress','done'].includes(t.status)).length;
+  const maintOpen=maintenances.filter(m=>!['resolved','closed','cancelled'].includes(m.status)).length;
+  const el=document.getElementById('dirty-badge');if(el)el.textContent=`🧹 ${dirty} à nettoyer`;
+  const tb=document.getElementById('tab-rooms-badge');if(tb)tb.textContent=dirty;
+  const tt=document.getElementById('tab-tasks-badge');if(tt)tt.textContent=taskPending;
+  const tm=document.getElementById('tab-maint-badge');if(tm)tm.textContent=maintOpen;
+  const sb=document.getElementById('sidebar-badge');if(sb)sb.textContent=dirty;
+}
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const el=document.getElementById('tab-'+tab);if(el)el.classList.add('active');
+  render();
+}
+function switchRole(role){
+  currentRole=role;
+  document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  event.target.style.background=role==='owner'?'var(--accent)':role==='supervisor'?'var(--blue)':role==='housekeeping'?'var(--green)':role==='maintenance'?'var(--orange)':'var(--purple)';
+  const roleColors={owner:'rgba(108,99,255,.3)',supervisor:'rgba(59,130,246,.2)',housekeeping:'rgba(16,185,129,.2)',maintenance:'rgba(249,115,22,.2)',reception:'rgba(139,92,246,.2)'};
+  const roleNames={owner:'Smith (Owner) 🇨🇦',supervisor:'Raoul Ondoua (Superviseur)',housekeeping:'Josephine Etoa (Ménage)',maintenance:'Théodore Mba (Maintenance)',reception:'Judith Biyong (Réception)'};
+  const roleLabels={owner:'Owner 🇨🇦',supervisor:'Superviseur',housekeeping:'Agent ménage',maintenance:'Technicien',reception:'Réceptionniste'};
+  const initials={owner:'S',supervisor:'R',housekeeping:'J',maintenance:'T',reception:'JB'};
+  document.getElementById('u-av').style.background=roleColors[role];
+  document.getElementById('u-nm').textContent=roleNames[role];
+  document.getElementById('u-rl').textContent=roleLabels[role];
+  document.getElementById('u-av').textContent=initials[role];
+  document.getElementById('role-subtitle').textContent=`Vue: ${roleLabels[role]} — Résidence Veraluz, Kribi · 14/05/2026`;
+  if(role==='housekeeping'||role==='maintenance')switchTab('mobile');
+  else if(currentTab==='mobile')switchTab('dashboard');
+  else render();
+}
+function render(){
+  const fns={dashboard:renderDashboard,rooms:renderRooms,tasks:renderTasks,maintenance:renderMaintenance,mobile:renderMobile,historique:renderHistorique};
+  document.getElementById('content').innerHTML=(fns[currentTab]||renderDashboard)();
+  updateBadges();
+}
+</script>
+
+<script>
+// ════════════════════════════════════════════
+// RENDER — DASHBOARD
+// ════════════════════════════════════════════
+function renderDashboard(){
+  const totalRooms=rooms.length;
+  const statusCounts={};
+  Object.keys(STATUS_CONFIG).forEach(k=>statusCounts[k]=0);
+  rooms.forEach(r=>statusCounts[r.status]=(statusCounts[r.status]||0)+1);
+  const available=statusCounts.available||0;
+  const dirty=(statusCounts.dirty||0)+(statusCounts.checkout||0);
+  const cleaning=(statusCounts.cleaning||0)+(statusCounts.inspecting||0);
+  const blocked=(statusCounts.maintenance||0)+(statusCounts.out_of_order||0);
+  const occupied=statusCounts.occupied||0;
+  const pendingTasks=tasks.filter(t=>t.status==='pending').length;
+  const inProgressTasks=tasks.filter(t=>t.status==='in_progress').length;
+  const openMaint=maintenances.filter(m=>!['resolved','closed'].includes(m.status)).length;
+  const urgentMaint=maintenances.filter(m=>m.priority==='urgent'&&!['resolved','closed'].includes(m.status)).length;
+
+  const floorMap={};
+  rooms.forEach(r=>{const fl=r.floor;if(!floorMap[fl])floorMap[fl]=[];floorMap[fl].push(r);});
+
+  let floorHTML='';
+  [1,2,3,4].forEach(fl=>{
+    const flLabel=fl===4?'Niveau 4 — Suite Présidentielle':`Étage ${fl}`;
+    const flRooms=floorMap[fl]||[];
+    const tiles=flRooms.map(r=>{
+      const cfg=STATUS_CONFIG[r.status];
+      const isPulse=['dirty','checkout'].includes(r.status)?'pulse':'';
+      return `<div class="mini-room ${isPulse}" style="background:${cfg.bg};border:1.5px solid ${cfg.color};border-radius:8px;padding:6px 8px;font-size:11px;cursor:pointer;" onclick="switchTab('rooms')">
+        <div style="font-weight:700;color:${cfg.color}">${r.num}</div>
+        <div style="color:${cfg.color};font-size:10px;">${cfg.icon}</div>
+      </div>`;
+    }).join('');
+    floorHTML+=`<div style="margin-bottom:12px;">
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">${flLabel}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">${tiles}</div>
+    </div>`;
+  });
+
+  const urgentTasks=tasks.filter(t=>!['validated'].includes(t.status)).slice(0,3);
+  const taskRows=urgentTasks.map(t=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);" onclick="switchTab('tasks')" style="cursor:pointer;">
+      <div style="font-size:18px;">${TASK_TYPE_ICONS[t.type]||'🧹'}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;">${t.title}</div>
+        <div style="font-size:11px;color:var(--text-dim);">${t.room} · ${t.assigned||'Non assigné'}</div>
+      </div>
+      <div>${taskStatusBadge(t.status)}</div>
+      <div>${priBadge(t.priority)}</div>
+    </div>`).join('');
+
+  const maintRows=maintenances.filter(m=>!['resolved','closed'].includes(m.status)).map(m=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:18px;">${MAINT_ICONS[m.type]||'🔧'}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;">${m.title}</div>
+        <div style="font-size:11px;color:var(--text-dim);">Ch.${m.room} · ${m.assigned_to||'Non assigné'}</div>
+      </div>
+      ${maintStatusBadge(m.status)}
+    </div>`).join('');
+
+  return `<div style="padding:20px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;">
+      <div class="kpi-card" onclick="switchTab('rooms')">
+        <div class="kpi-icon" style="background:rgba(16,185,129,.15);color:var(--green);">🟢</div>
+        <div class="kpi-val" style="color:var(--green);">${available}</div>
+        <div class="kpi-lbl">Disponibles</div>
+      </div>
+      <div class="kpi-card" onclick="switchTab('rooms')">
+        <div class="kpi-icon" style="background:rgba(239,68,68,.15);color:var(--red);">🔴</div>
+        <div class="kpi-val" style="color:var(--red);">${dirty}</div>
+        <div class="kpi-lbl">À nettoyer</div>
+      </div>
+      <div class="kpi-card" onclick="switchTab('rooms')">
+        <div class="kpi-icon" style="background:rgba(99,102,241,.15);color:var(--accent);">🫧</div>
+        <div class="kpi-val" style="color:var(--accent);">${cleaning}</div>
+        <div class="kpi-lbl">En cours</div>
+      </div>
+      <div class="kpi-card" onclick="switchTab('tasks')">
+        <div class="kpi-icon" style="background:rgba(249,115,22,.15);color:var(--orange);">📋</div>
+        <div class="kpi-val" style="color:var(--orange);">${pendingTasks+inProgressTasks}</div>
+        <div class="kpi-lbl">Tâches actives</div>
+      </div>
+      <div class="kpi-card" onclick="switchTab('maintenance')">
+        <div class="kpi-icon" style="background:rgba(245,158,11,.15);color:var(--yellow);">🔧</div>
+        <div class="kpi-val" style="color:${urgentMaint>0?'var(--red)':'var(--yellow)'};">${openMaint}</div>
+        <div class="kpi-lbl">Maintenances</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon" style="background:rgba(59,130,246,.15);color:var(--blue);">🏨</div>
+        <div class="kpi-val" style="color:var(--blue);">${occupied}</div>
+        <div class="kpi-lbl">Occupées</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text-dim);">🗺️ PLAN PAR ÉTAGE</div>
+        ${floorHTML}
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:12px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text-dim);">📋 TÂCHES EN COURS</div>
+          ${taskRows||'<div style="color:var(--text-dim);font-size:13px;padding:8px 0;">Aucune tâche active</div>'}
+          <button class="btn" onclick="switchTab('tasks')" style="margin-top:10px;width:100%;">Voir toutes les tâches →</button>
+        </div>
+        <div class="card">
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text-dim);">🔧 MAINTENANCES OUVERTES</div>
+          ${maintRows||'<div style="color:var(--text-dim);font-size:13px;padding:8px 0;">Aucune maintenance en cours</div>'}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text-dim);">📜 JOURNAL RÉCENT</div>
+      ${auditLog.slice(0,5).map(a=>`
+        <div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);align-items:center;">
+          <span style="font-size:11px;color:var(--text-dim);min-width:75px;">${a.date}</span>
+          <span style="font-size:13px;flex:1;">${a.action}</span>
+          <span style="font-size:10px;color:var(--text-dim);">${a.actor}</span>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════
+// RENDER — ROOMS
+// ════════════════════════════════════════════
+const TASK_TYPE_ICONS={cleaning:'🧹',inspection:'🔍',turnover:'🛏️',deep_clean:'🫧',maintenance_clean:'🔧',checkout_clean:'🚿'};
+const MAINT_ICONS={hvac:'❄️',plumbing:'🚿',electrical:'⚡',cosmetic:'🎨',furniture:'🪑',other:'🔧'};
+
+function renderRooms(){
+  const filters=['all','available','occupied','dirty','checkout','cleaning','inspecting','maintenance','out_of_order'];
+  const sel=window._roomFilter||'all';
+
+  const filtered=sel==='all'?rooms:rooms.filter(r=>r.status===sel);
+  const byFloor={};
+  filtered.forEach(r=>{if(!byFloor[r.floor])byFloor[r.floor]=[];byFloor[r.floor].push(r);});
+
+  const filterBtns=filters.map(f=>{
+    const cfg=f==='all'?{icon:'🏨',label:'Toutes'}:STATUS_CONFIG[f]||{icon:'?',label:f};
+    const isActive=f===sel;
+    return `<button onclick="window._roomFilter='${f}';render();" style="
+      display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;border:1.5px solid ${isActive?'var(--accent)':'var(--border)'};
+      background:${isActive?'rgba(108,99,255,.2)':'transparent'};color:${isActive?'var(--accent)':'var(--text-dim)'};cursor:pointer;font-size:12px;white-space:nowrap;
+    ">${cfg.icon} ${cfg.label}</button>`;
+  }).join('');
+
+  let floorsHTML='';
+  [1,2,3,4].forEach(fl=>{
+    const flRooms=byFloor[fl];if(!flRooms||!flRooms.length)return;
+    const flLabel=fl===4?'Niveau 4 — Suite Présidentielle':`Étage ${fl}`;
+    const tiles=flRooms.map(r=>roomTile(r)).join('');
+    floorsHTML+=`<div style="margin-bottom:20px;">
+      <div style="font-size:12px;color:var(--text-dim);font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">${flLabel}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px;">${tiles}</div>
+    </div>`;
+  });
+
+  return `<div style="padding:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:700;">Statut des chambres</div>
+      <button class="btn" onclick="showModal('modal-status')">+ Changer statut</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">${filterBtns}</div>
+    ${floorsHTML||'<div style="color:var(--text-dim);text-align:center;padding:40px;">Aucune chambre pour ce filtre</div>'}
+  </div>`;
+}
+
+function roomTile(r){
+  const cfg=STATUS_CONFIG[r.status];
+  const isPulse=['dirty','checkout'].includes(r.status)?'pulse':'';
+  const taskForRoom=tasks.find(t=>t.roomId===r.id&&!['validated'].includes(t.status));
+  const maintForRoom=maintenances.find(m=>m.roomId===r.id&&!['resolved','closed'].includes(m.status));
+  return `<div class="room-card ${isPulse}" onclick="openRoomModal(${r.id})" style="border-left:4px solid ${cfg.color};cursor:pointer;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-weight:800;font-size:16px;">${r.num}</div>
+      <span style="font-size:10px;background:${cfg.bg};color:${cfg.color};padding:2px 8px;border-radius:10px;">${cfg.icon} ${cfg.label}</span>
+    </div>
+    <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">${r.type} · ${r.floor===4?'Suite Prés.':'Étage '+r.floor}</div>
+    ${r.guest?`<div style="font-size:11px;background:rgba(59,130,246,.1);color:var(--blue);padding:4px 8px;border-radius:6px;margin-bottom:6px;">👤 ${r.guest}</div>`:''}
+    ${taskForRoom?`<div style="font-size:11px;background:rgba(249,115,22,.1);color:var(--orange);padding:4px 8px;border-radius:6px;margin-bottom:4px;">📋 ${taskForRoom.assigned||'Non assigné'}</div>`:''}
+    ${maintForRoom?`<div style="font-size:11px;background:rgba(239,68,68,.1);color:var(--red);padding:4px 8px;border-radius:6px;">🔧 Maintenance</div>`:''}
+    ${r.notes?`<div style="font-size:11px;color:var(--text-dim);margin-top:6px;">${r.notes}</div>`:''}
+    <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+      ${canChangeStatus()?`<button onclick="event.stopPropagation();quickChangeStatus(${r.id})" style="flex:1;padding:6px;background:rgba(108,99,255,.15);color:var(--accent);border:1px solid rgba(108,99,255,.3);border-radius:6px;cursor:pointer;font-size:11px;">Changer statut</button>`:''}
+      ${(currentRole==='reception'||currentRole==='supervisor'||currentRole==='owner')&&['dirty','checkout'].includes(r.status)?`<button onclick="event.stopPropagation();createTaskFromRoom(${r.id})" style="flex:1;padding:6px;background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3);border-radius:6px;cursor:pointer;font-size:11px;">+ Tâche</button>`:''}
+    </div>
+  </div>`;
+}
+
+function canChangeStatus(){
+  return ['owner','supervisor','reception'].includes(currentRole);
+}
+
+function quickChangeStatus(roomId){
+  const r=rooms.find(x=>x.id===roomId);if(!r)return;
+  const opts=Object.keys(STATUS_CONFIG).filter(s=>s!==r.status);
+  const list=opts.map((s,i)=>{const c=STATUS_CONFIG[s];return `<button onclick="setRoomStatus(${roomId},'${s}')" style="display:block;width:100%;padding:8px 12px;margin:4px 0;background:${c.bg};color:${c.color};border:1px solid ${c.color};border-radius:8px;cursor:pointer;text-align:left;">${c.icon} ${c.label}</button>`;}).join('');
+  document.getElementById('status-modal-body').innerHTML=`
+    <div style="font-weight:700;margin-bottom:12px;">Chambre ${r.num} — Statut actuel: ${STATUS_CONFIG[r.status].icon} ${STATUS_CONFIG[r.status].label}</div>
+    ${list}`;
+  showModal('modal-status');
+}
+
+function setRoomStatus(roomId,newStatus){
+  const r=rooms.find(x=>x.id===roomId);if(!r)return;
+  const old=r.status;r.status=newStatus;
+  if(newStatus==='available')r.notes='';
+  auditLog.unshift({date:'14/05 '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),actor:document.getElementById('u-nm').textContent.split(' (')[0],role:document.getElementById('u-rl').textContent,action:`🔄 Ch.${r.num} : ${STATUS_CONFIG[old].label} → ${STATUS_CONFIG[newStatus].label}`,type:'status'});
+  closeModal('modal-status');
+  toast(`Chambre ${r.num} → ${STATUS_CONFIG[newStatus].label}`,'success');
+  render();
+}
+
+function openRoomModal(roomId){
+  const r=rooms.find(x=>x.id===roomId);if(!r)return;
+  selectedRoom=roomId;
+  quickChangeStatus(roomId);
+}
+
+function createTaskFromRoom(roomId){
+  const r=rooms.find(x=>x.id===roomId);if(!r)return;
+  document.getElementById('tk-room').value=roomId;
+  showModal('modal-task');
+}
+
+// ════════════════════════════════════════════
+// RENDER — TASKS
+// ════════════════════════════════════════════
+function renderTasks(){
+  const canAssign=['owner','supervisor'].includes(currentRole);
+  const canValidate=['owner','supervisor','reception'].includes(currentRole);
+
+  const groups={pending:tasks.filter(t=>t.status==='pending'),assigned:tasks.filter(t=>t.status==='assigned'),in_progress:tasks.filter(t=>t.status==='in_progress'),done:tasks.filter(t=>t.status==='done'),validated:tasks.filter(t=>t.status==='validated')};
+
+  let html=`<div style="padding:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:700;">Gestion des tâches</div>
+      ${canAssign?`<button class="btn" onclick="showModal('modal-task')">+ Nouvelle tâche</button>`:''}
+    </div>`;
+
+  const groupDefs=[
+    {key:'pending',label:'EN ATTENTE',color:'var(--text-dim)'},
+    {key:'assigned',label:'ASSIGNÉES',color:'var(--blue)'},
+    {key:'in_progress',label:'EN COURS',color:'var(--accent)'},
+    {key:'done',label:'TERMINÉES — EN ATTENTE VALIDATION',color:'var(--yellow)'},
+    {key:'validated',label:'VALIDÉES',color:'var(--green)'},
+  ];
+
+  groupDefs.forEach(g=>{
+    const list=groups[g.key];if(!list||!list.length)return;
+    html+=`<div style="margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:700;color:${g.color};text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">${g.label} (${list.length})</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">`;
+    list.forEach(t=>{
+      const pct=checklistPct(t);
+      html+=`<div class="card" style="border-left:4px solid ${TASK_STATUS[t.status]?.color||'var(--border)'};cursor:pointer;" onclick="viewTask(${t.id})">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <div style="font-size:20px;">${TASK_TYPE_ICONS[t.type]||'🧹'}</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">${t.title}</div>
+            <div style="font-size:12px;color:var(--text-dim);">${t.room} · ${t.created}</div>
+          </div>
+          ${priBadge(t.priority)}
+          ${taskStatusBadge(t.status)}
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;font-size:12px;color:var(--text-dim);">
+          <span>👤 ${t.assigned||'Non assigné'}</span>
+          ${t.photos_before||t.photos_after?`<span>📷 ${(t.photos_before||0)+(t.photos_after||0)} photos</span>`:''}
+          ${t.checklist?.length?`<span>✅ ${t.checklist.filter(i=>i.done).length}/${t.checklist.length} items</span>`:''}
+        </div>
+        ${t.checklist?.length?`<div style="background:var(--surface);border-radius:6px;overflow:hidden;height:6px;margin-bottom:8px;">
+          <div style="width:${pct}%;height:100%;background:${pct===100?'var(--green)':'var(--accent)'};transition:width .3s;"></div>
+        </div>`:''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${canAssign&&t.status==='pending'?`<button onclick="event.stopPropagation();assignTask(${t.id})" class="btn" style="font-size:12px;padding:5px 10px;">👤 Assigner</button>`:''}
+          ${t.status==='assigned'?`<button onclick="event.stopPropagation();startTask(${t.id})" class="btn" style="font-size:12px;padding:5px 10px;background:rgba(59,130,246,.2);color:var(--blue);border-color:rgba(59,130,246,.3);">▶ Démarrer</button>`:''}
+          ${t.status==='in_progress'?`<button onclick="event.stopPropagation();completeTask(${t.id})" class="btn" style="font-size:12px;padding:5px 10px;background:rgba(249,115,22,.2);color:var(--orange);border-color:rgba(249,115,22,.3);">✅ Terminer</button>`:''}
+          ${canValidate&&t.status==='done'?`<button onclick="event.stopPropagation();validateTask(${t.id})" class="btn" style="font-size:12px;padding:5px 10px;background:rgba(16,185,129,.2);color:var(--green);border-color:rgba(16,185,129,.3);">✔ Valider</button>`:''}
+          <button onclick="event.stopPropagation();viewTask(${t.id})" style="font-size:12px;padding:5px 10px;background:transparent;color:var(--text-dim);border:1px solid var(--border);border-radius:8px;cursor:pointer;">Détail →</button>
+        </div>
+      </div>`;
+    });
+    html+='</div></div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+function assignTask(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  const agents=['Josephine Etoa','Marie-Claire Basso','SOS Nettoyage Kribi','Bernadette Kodo'];
+  const idx=parseInt(prompt(`Assigner à:\n${agents.map((a,i)=>`${i+1}. ${a}`).join('\n')}\nNuméro:`)||'0')-1;
+  if(idx<0||idx>=agents.length){toast('Annulé','warn');return;}
+  t.assigned=agents[idx];t.status='assigned';
+  auditLog.unshift({date:'14/05 '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),actor:document.getElementById('u-nm').textContent.split(' (')[0],role:document.getElementById('u-rl').textContent,action:`👤 Tâche "${t.title}" assignée à ${t.assigned}`,type:'assign'});
+  toast(`Tâche assignée à ${t.assigned}`,'success');render();
+}
+
+function startTask(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  t.status='in_progress';
+  const r=rooms.find(x=>x.id===t.roomId);if(r&&r.status==='dirty')r.status='cleaning';
+  auditLog.unshift({date:'14/05 '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),actor:t.assigned||'Inconnu',role:'Agent ménage',action:`🫧 Ménage ${t.room} démarré`,type:'start'});
+  toast('Tâche démarrée','success');render();
+}
+
+function completeTask(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  t.status='done';
+  const r=rooms.find(x=>x.id===t.roomId);if(r)r.status='inspecting';
+  auditLog.unshift({date:'14/05 '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),actor:t.assigned||'Inconnu',role:'Agent ménage',action:`✅ Ménage ${t.room} terminé — en attente validation`,type:'done'});
+  toast('Ménage marqué terminé — en attente de validation','success');render();
+}
+
+function validateTask(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  t.status='validated';t.validated_by=document.getElementById('u-nm').textContent.split(' (')[0];
+  const r=rooms.find(x=>x.id===t.roomId);if(r)r.status='available';r&&(r.notes='');
+  auditLog.unshift({date:'14/05 '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),actor:t.validated_by,role:document.getElementById('u-rl').textContent,action:`✔ Chambre ${t.room} validée — Disponible`,type:'validate'});
+  toast(`Chambre ${t.room} validée et marquée DISPONIBLE 🟢`,'success');render();
+}
+
+function viewTask(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  const pct=checklistPct(t);
+  const canCheck=['housekeeping'].includes(currentRole)||t.assigned===document.getElementById('u-nm').textContent.split(' (')[0];
+  const cl=t.checklist?.map((item,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px;background:${item.done?'rgba(16,185,129,.08)':'var(--surface)'};border-radius:8px;margin-bottom:6px;border:1px solid ${item.done?'rgba(16,185,129,.2)':'var(--border)'};">
+      <input type="checkbox" ${item.done?'checked':''} onchange="toggleCheckItem(${id},${i},this.checked)" style="width:18px;height:18px;cursor:pointer;" ${canCheck?'':'disabled'}>
+      <div style="flex:1;">
+        <div style="font-size:13px;${item.done?'text-decoration:line-through;color:var(--text-dim)':''}">${item.label}</div>
+        <div style="font-size:10px;color:var(--text-dim);">Zone: ${item.zone}</div>
+      </div>
+      ${item.done?'<span style="color:var(--green);">✓</span>':''}
+    </div>`).join('')||'<div style="color:var(--text-dim);">Aucune checklist</div>';
+
+  const photos=Array.from({length:(t.photos_before||0)+(t.photos_after||0)},(_,i)=>`
+    <div style="aspect-ratio:1;background:linear-gradient(135deg,#1e1b4b,#1e3a5f);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;position:relative;">
+      📷
+      <div style="position:absolute;bottom:4px;left:4px;font-size:9px;color:rgba(255,255,255,.6);">${i<(t.photos_before||0)?'Avant':'Après'}</div>
+    </div>`).join('');
+
+  document.getElementById('task-detail-body').innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+      <div style="font-size:32px;">${TASK_TYPE_ICONS[t.type]||'🧹'}</div>
+      <div>
+        <div style="font-weight:800;font-size:16px;">${t.title}</div>
+        <div style="font-size:12px;color:var(--text-dim);">${t.room} · ${t.created}</div>
+        <div style="margin-top:4px;">${taskStatusBadge(t.status)} ${priBadge(t.priority)}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:16px;">
+      <div style="background:var(--surface);padding:8px;border-radius:8px;"><span style="color:var(--text-dim);">👤 Assigné à</span><br><b>${t.assigned||'Non assigné'}</b></div>
+      <div style="background:var(--surface);padding:8px;border-radius:8px;"><span style="color:var(--text-dim);">📅 Créé</span><br><b>${t.created}</b></div>
+      ${t.validated_by?`<div style="background:rgba(16,185,129,.08);padding:8px;border-radius:8px;"><span style="color:var(--text-dim);">✔ Validé par</span><br><b style="color:var(--green);">${t.validated_by}</b></div>`:''}
+    </div>
+    ${t.checklist?.length?`
+      <div style="margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">Checklist — ${pct}% complété</div>
+        <div style="background:var(--surface);border-radius:6px;overflow:hidden;height:8px;margin-bottom:10px;">
+          <div style="width:${pct}%;height:100%;background:${pct===100?'var(--green)':'var(--accent)'};transition:width .3s;"></div>
+        </div>
+        ${cl}
+      </div>`:''}
+    ${(t.photos_before||t.photos_after)?`
+      <div style="margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:8px;">📷 Photos (${(t.photos_before||0)+(t.photos_after||0)})</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;">${photos}</div>
+        <button onclick="simAddPhoto(${t.id})" style="margin-top:8px;padding:6px 12px;background:rgba(108,99,255,.15);color:var(--accent);border:1px solid rgba(108,99,255,.3);border-radius:8px;cursor:pointer;font-size:12px;">+ Ajouter photo</button>
+      </div>`:''}
+    ${t.notes?`<div style="background:var(--surface);padding:10px;border-radius:8px;font-size:13px;"><b>Notes:</b> ${t.notes}</div>`:''}`;
+  showModal('modal-task-detail');
+}
+
+function toggleCheckItem(taskId,idx,val){
+  const t=tasks.find(x=>x.id===taskId);if(!t||!t.checklist)return;
+  t.checklist[idx].done=val;
+  const pct=checklistPct(t);
+  const bar=document.querySelector('#task-detail-body .kpi-val');
+  if(pct===100)toast('Checklist complète à 100% ! Pensez à marquer la tâche terminée','success');
+  viewTask(taskId);
+}
+
+function simAddPhoto(taskId){
+  const t=tasks.find(x=>x.id===taskId);if(!t)return;
+  if(!t.photos_after)t.photos_after=0;
+  t.photos_after++;
+  toast('Photo simulée ajoutée','success');
+  viewTask(taskId);
+}
+
+// ════════════════════════════════════════════
+// RENDER — MAINTENANCE
+// ════════════════════════════════════════════
+function renderMaintenance(){
+  const canCreate=['owner','supervisor','reception','maintenance'].includes(currentRole);
+  const canIntervene=['owner','supervisor','maintenance'].includes(currentRole);
+
+  const open=maintenances.filter(m=>!['resolved','closed'].includes(m.status));
+  const closed=maintenances.filter(m=>['resolved','closed'].includes(m.status));
+
+  let html=`<div style="padding:20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:16px;font-weight:700;">Maintenances & Incidents</div>
+      ${canCreate?`<button class="btn" onclick="showModal('modal-maint')">+ Signaler</button>`:''}
+    </div>`;
+
+  if(open.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">OUVERTES (${open.length})</div>`;
+    open.forEach(m=>{
+      const urgentBg=m.priority==='urgent'?'rgba(239,68,68,.06)':'var(--card-bg)';
+      html+=`<div class="card" style="margin-bottom:12px;border-left:4px solid ${m.priority==='urgent'?'var(--red)':m.priority==='high'?'var(--orange)':'var(--border)'};background:${urgentBg};">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <div style="font-size:22px;">${MAINT_ICONS[m.type]||'🔧'}</div>
+          <div style="flex:1;">
+            <div style="font-weight:700;font-size:14px;">${m.title}</div>
+            <div style="font-size:12px;color:var(--text-dim);">Ch.${m.room} · Signalé ${m.reported_at} par ${m.reported_by}</div>
+          </div>
+          ${priBadge(m.priority)}
+          ${maintStatusBadge(m.status)}
+        </div>
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:10px;">${m.desc}</div>
+        <div style="display:flex;gap:16px;font-size:12px;margin-bottom:10px;">
+          <span>👷 ${m.assigned_to||'Non assigné'}</span>
+          ${m.cost_est?`<span>💰 ${m.cost_est.toLocaleString('fr-FR')} FCFA</span>`:''}
+          ${m.blocks_unit?`<span style="color:var(--red);">🚫 Chambre bloquée</span>`:''}
+        </div>
+        ${m.interventions?.length?`
+          <div style="background:var(--surface);border-radius:8px;padding:10px;margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;color:var(--text-dim);margin-bottom:6px;">INTERVENTIONS</div>
+            ${m.interventions.map(iv=>`
+              <div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
+                <span style="font-size:10px;color:var(--text-dim);min-width:55px;">${iv.at}</span>
+                <span style="font-size:12px;flex:1;">${iv.action}</span>
+                <span style="font-size:10px;color:var(--text-dim);">${iv.tech}</span>
+              </div>`).join('')}
+          </div>`:''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${canIntervene&&m.status==='reported'?`<button onclick="ackMaint(${m.id})" class="btn" style="font-size:12px;padding:5px 12px;background:rgba(59,130,246,.2);color:var(--blue);border-color:rgba(59,130,246,.3);">👁 Prendre en charge</button>`:''}
+          ${canIntervene&&['acknowledged','in_progress'].includes(m.status)?`<button onclick="addIntervention(${m.id})" class="btn" style="font-size:12px;padding:5px 12px;background:rgba(249,115,22,.15);color:var(--orange);border-color:rgba(249,115,22,.3);">+ Intervention</button>`:''}
+          ${canIntervene&&m.status!=='resolved'?`<button onclick="resolveMaint(${m.id})" class="btn" style="font-size:12px;padding:5px 12px;background:rgba(16,185,129,.15);color:var(--green);border-color:rgba(16,185,129,.3);">✔ Résoudre</button>`:''}
+        </div>
+      </div>`;
+    });
+  }
+
+  if(closed.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin:16px 0 10px;">RÉSOLUES (${closed.length})</div>`;
+    closed.forEach(m=>{
+      html+=`<div class="card" style="opacity:.6;margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-size:18px;">${MAINT_ICONS[m.type]||'🔧'}</div>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:600;">${m.title}</div>
+          <div style="font-size:11px;color:var(--text-dim);">Ch.${m.room} · ${m.assigned_to||'—'}</div></div>
+          ${maintStatusBadge(m.status)}
+        </div>
+      </div>`;
+    });
+  }
+  html+='</div>';
+  return html;
+}
+
+function ackMaint(id){
+  const m=maintenances.find(x=>x.id===id);if(!m)return;
+  m.status='in_progress';
+  if(!m.assigned_to)m.assigned_to='Théodore Mba';
+  m.interventions.push({tech:document.getElementById('u-nm').textContent.split(' (')[0],action:'Pris en charge — diagnostic en cours',at:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})});
+  auditLog.unshift({date:'14/05 '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),actor:document.getElementById('u-nm').textContent.split(' (')[0],role:document.getElementById('u-rl').textContent,action:`🔧 Maintenance Ch.${m.room} prise en charge`,type:'maintenance'});
+  toast('Maintenance prise en charge','success');render();
+}
+
+function addIntervention(id){
+  const m=maintenances.find(x=>x.id===id);if(!m)return;
+  const action=prompt('Décrire l\'intervention effectuée:');
+  if(!action)return;
+  m.interventions.push({tech:document.getElementById('u-nm').textContent.split(' (')[0],action,at:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})});
+  toast('Intervention enregistrée','success');render();
+}
+
+function resolveMaint(id){
+  const m=maintenances.find(x=>x.id===id);if(!m)return;
+  m.status='resolved';
+  const r=rooms.find(x=>x.id===m.roomId);
+  if(r&&r.status==='maintenance')r.status='dirty';
+  m.interventions.push({tech:document.getElementById('u-nm').textContent.split(' (')[0],action:'✅ Problème résolu — chambre libérée',at:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})});
+  auditLog.unshift({date:'14/05 '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),actor:document.getElementById('u-nm').textContent.split(' (')[0],role:document.getElementById('u-rl').textContent,action:`✔ Maintenance Ch.${m.room} résolue`,type:'validate'});
+  toast('Maintenance résolue','success');render();
+}
+
+// ════════════════════════════════════════════
+// RENDER — MOBILE (Vue Agent)
+// ════════════════════════════════════════════
+function renderMobile(){
+  const agentName={housekeeping:'Josephine Etoa',maintenance:'Théodore Mba'}[currentRole]||'Agent';
+  const myTasks=currentRole==='maintenance'?maintenances.filter(m=>m.assigned_to&&m.assigned_to.includes('Théodore')):tasks.filter(t=>t.assigned===agentName);
+  const pending=myTasks.filter(t=>(t.status||'')!=='validated'&&(t.status||'')!=='resolved');
+
+  let html=`<div style="max-width:420px;margin:0 auto;padding:16px;">
+    <div style="background:linear-gradient(135deg,rgba(108,99,255,.3),rgba(16,185,129,.2));border-radius:16px;padding:20px;margin-bottom:20px;text-align:center;">
+      <div style="font-size:32px;margin-bottom:8px;">${currentRole==='maintenance'?'🔧':'🧹'}</div>
+      <div style="font-weight:800;font-size:18px;">Bonjour, ${agentName.split(' ')[0]} !</div>
+      <div style="color:var(--text-dim);font-size:13px;margin-top:4px;">14 Mai 2026 · Résidence Veraluz</div>
+      <div style="margin-top:12px;background:rgba(0,0,0,.3);border-radius:12px;padding:10px;">
+        <div style="font-size:28px;font-weight:800;color:${pending.length?'var(--orange)':'var(--green)'};">${pending.length}</div>
+        <div style="font-size:12px;color:var(--text-dim);">${pending.length===1?'tâche à faire':'tâches à faire'}</div>
+      </div>
+    </div>`;
+
+  if(!pending.length){
+    html+=`<div style="text-align:center;padding:40px 20px;">
+      <div style="font-size:48px;margin-bottom:12px;">🎉</div>
+      <div style="font-weight:700;font-size:16px;color:var(--green);">Toutes vos tâches sont terminées !</div>
+      <div style="color:var(--text-dim);font-size:13px;margin-top:8px;">Excellent travail aujourd'hui.</div>
+    </div>`;
+  } else {
+    html+=`<div style="font-size:12px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">MES TÂCHES</div>`;
+    pending.forEach(item=>{
+      if(currentRole==='maintenance'){
+        html+=`<div class="card" style="margin-bottom:12px;border-left:4px solid ${item.priority==='urgent'?'var(--red)':item.priority==='high'?'var(--orange)':'var(--border)'};">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+            <div style="font-size:24px;">${MAINT_ICONS[item.type]||'🔧'}</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:14px;">${item.title}</div>
+              <div style="font-size:12px;color:var(--text-dim);">Ch.${item.room}</div>
+            </div>
+            ${priBadge(item.priority)}
+          </div>
+          <div style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">${item.desc}</div>
+          ${['acknowledged','in_progress'].includes(item.status)?`
+            <button onclick="addIntervention(${item.id})" style="width:100%;padding:12px;background:rgba(249,115,22,.15);color:var(--orange);border:1.5px solid rgba(249,115,22,.3);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;">+ Enregistrer intervention</button>
+            <button onclick="resolveMaint(${item.id})" style="width:100%;padding:12px;background:rgba(16,185,129,.15);color:var(--green);border:1.5px solid rgba(16,185,129,.3);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">✔ Marquer résolu</button>`
+          :`<button onclick="ackMaint(${item.id})" style="width:100%;padding:12px;background:rgba(59,130,246,.15);color:var(--blue);border:1.5px solid rgba(59,130,246,.3);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">▶ Prendre en charge</button>`}
+        </div>`;
+      } else {
+        const pct=checklistPct(item);
+        html+=`<div class="card" style="margin-bottom:12px;border-left:4px solid ${TASK_STATUS[item.status]?.color||'var(--border)'};">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+            <div style="font-size:24px;">${TASK_TYPE_ICONS[item.type]||'🧹'}</div>
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:15px;">${item.room}</div>
+              <div style="font-size:12px;color:var(--text-dim);">${item.title}</div>
+            </div>
+            ${priBadge(item.priority)}
+          </div>
+          ${item.checklist?.length?`
+            <div style="background:var(--surface);border-radius:6px;overflow:hidden;height:10px;margin-bottom:10px;">
+              <div style="width:${pct}%;height:100%;background:${pct===100?'var(--green)':'var(--accent)'};transition:width .3s;"></div>
+            </div>
+            <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">${item.checklist.filter(i=>i.done).length} / ${item.checklist.length} items complétés</div>
+            <div style="margin-bottom:12px;">${item.checklist.map((ci,i)=>`
+              <div style="display:flex;align-items:center;gap:10px;padding:10px;background:${ci.done?'rgba(16,185,129,.08)':'var(--surface)'};border-radius:8px;margin-bottom:6px;border:1px solid ${ci.done?'rgba(16,185,129,.2)':'var(--border)'};">
+                <input type="checkbox" ${ci.done?'checked':''} onchange="toggleCheckItem(${item.id},${i},this.checked);renderMobileUpdate();" style="width:22px;height:22px;cursor:pointer;accent-color:var(--green);">
+                <div>
+                  <div style="font-size:13px;${ci.done?'text-decoration:line-through;color:var(--text-dim)':''}">${ci.label}</div>
+                  <div style="font-size:10px;color:var(--text-dim);">${ci.zone}</div>
+                </div>
+              </div>`).join('')}
+            </div>`:''}
+          ${item.status==='assigned'?`<button onclick="startTask(${item.id})" style="width:100%;padding:14px;background:rgba(108,99,255,.2);color:var(--accent);border:2px solid rgba(108,99,255,.4);border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:8px;">▶ Commencer le ménage</button>`:''}
+          ${item.status==='in_progress'?`
+            <button onclick="simAddPhoto(${item.id})" style="width:100%;padding:12px;background:rgba(59,130,246,.15);color:var(--blue);border:1.5px solid rgba(59,130,246,.3);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:8px;">📷 Ajouter photo</button>
+            <button onclick="completeTask(${item.id})" style="width:100%;padding:14px;background:rgba(249,115,22,.2);color:var(--orange);border:2px solid rgba(249,115,22,.4);border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;">✅ Ménage terminé</button>`:''}
+        </div>`;
+      }
+    });
+  }
+  html+=`</div>`;
+  return html;
+}
+
+function renderMobileUpdate(){
+  // Refresh mobile view after checkbox toggle without losing scroll
+  const c=document.getElementById('content');
+  if(currentTab==='mobile')c.innerHTML=renderMobile();
+  updateBadges();
+}
+
+// ════════════════════════════════════════════
+// RENDER — HISTORIQUE
+// ════════════════════════════════════════════
+function renderHistorique(){
+  const typeColors={auto:'var(--accent)',assign:'var(--blue)',start:'var(--purple)',done:'var(--yellow)',validate:'var(--green)',maintenance:'var(--orange)',status:'var(--text-dim)'};
+
+  const taskHistory=tasks.map(t=>({
+    room:t.room,type:t.type,status:t.status,assigned:t.assigned||'—',validated_by:t.validated_by||'—',pct:checklistPct(t),photos:(t.photos_before||0)+(t.photos_after||0)
+  }));
+
+  return `<div style="padding:20px;">
+    <div style="font-size:16px;font-weight:700;margin-bottom:16px;">Historique & Journal d'audit</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:var(--green);">${tasks.filter(t=>t.status==='validated').length}</div>
+        <div style="font-size:12px;color:var(--text-dim);">Tâches validées aujourd'hui</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:var(--accent);">${tasks.reduce((s,t)=>s+(t.photos_before||0)+(t.photos_after||0),0)}</div>
+        <div style="font-size:12px;color:var(--text-dim);">Photos enregistrées</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:var(--yellow);">${maintenances.filter(m=>m.status==='resolved').length}</div>
+        <div style="font-size:12px;color:var(--text-dim);">Maintenances résolues</div>
+      </div>
+      <div class="card" style="text-align:center;">
+        <div style="font-size:28px;font-weight:800;color:var(--blue);">${auditLog.length}</div>
+        <div style="font-size:12px;color:var(--text-dim);">Événements journalisés</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text-dim);">📊 STATUT DES TÂCHES</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="border-bottom:2px solid var(--border);">
+            <th style="text-align:left;padding:8px 6px;color:var(--text-dim);">Chambre</th>
+            <th style="text-align:left;padding:8px 6px;color:var(--text-dim);">Type</th>
+            <th style="text-align:left;padding:8px 6px;color:var(--text-dim);">Assigné</th>
+            <th style="text-align:center;padding:8px 6px;color:var(--text-dim);">Checklist</th>
+            <th style="text-align:center;padding:8px 6px;color:var(--text-dim);">Photos</th>
+            <th style="text-align:left;padding:8px 6px;color:var(--text-dim);">Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${taskHistory.map(t=>`<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:8px 6px;font-weight:600;">${t.room}</td>
+            <td style="padding:8px 6px;color:var(--text-dim);">${t.type}</td>
+            <td style="padding:8px 6px;">${t.assigned}</td>
+            <td style="padding:8px 6px;text-align:center;">
+              <span style="font-size:12px;background:${t.pct===100?'rgba(16,185,129,.15)':'rgba(108,99,255,.1)'};color:${t.pct===100?'var(--green)':'var(--accent)'};padding:2px 8px;border-radius:10px;">${t.pct}%</span>
+            </td>
+            <td style="padding:8px 6px;text-align:center;">${t.photos||0}</td>
+            <td style="padding:8px 6px;">${taskStatusBadge(t.status)}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--text-dim);">📜 JOURNAL D'AUDIT COMPLET</div>
+      ${auditLog.map(a=>`
+        <div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);align-items:flex-start;">
+          <div style="min-width:6px;height:6px;border-radius:50%;background:${typeColors[a.type]||'var(--text-dim)'};margin-top:5px;"></div>
+          <div style="flex:1;">
+            <div style="font-size:13px;">${a.action}</div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">${a.actor} · ${a.role} · ${a.date}</div>
+          </div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ════════════════════════════════════════════
+// ACTIONS — CREATE TASK
+// ════════════════════════════════════════════
+function createTask(){
+  const roomId=parseInt(document.getElementById('tk-room').value);
+  const type=document.getElementById('tk-type').value;
+  const pri=document.getElementById('tk-priority').value;
+  const assignedTo=document.getElementById('tk-assigned').value;
+  const notes=document.getElementById('tk-notes').value;
+  if(!roomId){toast('Sélectionner une chambre','warn');return;}
+  const r=rooms.find(x=>x.id===roomId);
+  const newTask={
+    id:tasks.length+1,
+    roomId,room:r?r.num:'?',
+    type,priority:pri,
+    title:`${type==='cleaning'?'Ménage':type==='inspection'?'Inspection':type==='turnover'?'Préparation départ':type==='deep_clean'?'Grand nettoyage':'Maintenance'} — ${r?r.num:'?'}`,
+    status:assignedTo?'assigned':'pending',
+    assigned:assignedTo||null,
+    created:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    checklist:[
+      {id:1,label:'Literie changée et refaite',zone:'chambre',done:false},
+      {id:2,label:'Sol balayé et lavé',zone:'chambre',done:false},
+      {id:3,label:'Salle de bain nettoyée et désinfectée',zone:'sdb',done:false},
+      {id:4,label:'Poubelles vidées',zone:'general',done:false},
+      {id:5,label:'Minibar vérifié et réapprovisionné',zone:'chambre',done:false},
+    ],
+    photos_before:0,photos_after:0,notes,auto_created:false
+  };
+  tasks.unshift(newTask);
+  if(r&&['dirty','checkout'].includes(r.status))r.status='cleaning';
+  auditLog.unshift({date:'14/05 '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),actor:document.getElementById('u-nm').textContent.split(' (')[0],role:document.getElementById('u-rl').textContent,action:`📋 Tâche créée pour ${r?r.num:'?'}${assignedTo?' → '+assignedTo:''}`,type:'assign'});
+  closeModal('modal-task');
+  toast('Tâche créée avec succès','success');
+  document.getElementById('tk-room').value='';document.getElementById('tk-notes').value='';
+  render();
+}
+
+// ════════════════════════════════════════════
+// ACTIONS — CREATE MAINTENANCE
+// ════════════════════════════════════════════
+function createMaintenance(){
+  const roomId=parseInt(document.getElementById('mn-room').value);
+  const type=document.getElementById('mn-type').value;
+  const pri=document.getElementById('mn-priority').value;
+  const desc=document.getElementById('mn-desc').value;
+  if(!roomId){toast('Sélectionner une chambre','warn');return;}
+  if(!desc.trim()){toast('Décrire le problème','warn');return;}
+  const r=rooms.find(x=>x.id===roomId);
+  const actor=document.getElementById('u-nm').textContent.split(' (')[0];
+  const nm={
+    id:maintenances.length+1,
+    room:r?r.num:'?',roomId,type,priority:pri,
+    status:'reported',
+    title:`${type==='hvac'?'Climatisation':type==='plumbing'?'Plomberie':type==='electrical'?'Électricité':type==='cosmetic'?'Cosmétique':'Autre'} — ${r?r.num:'?'}`,
+    desc,reported_by:actor,reported_at:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    assigned_to:null,blocks_unit:pri==='urgent',cost_est:null,photos:0,interventions:[]
+  };
+  maintenances.unshift(nm);
+  if(pri==='urgent'&&r)r.status='maintenance';
+  auditLog.unshift({date:'14/05 '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),actor,role:document.getElementById('u-rl').textContent,action:`🔧 ${nm.title} signalé`,type:'maintenance'});
+  closeModal('modal-maint');
+  toast('Maintenance signalée','success');
+  document.getElementById('mn-room').value='';document.getElementById('mn-desc').value='';
+  render();
+}
+
+// ════════════════════════════════════════════
+// MODAL CONTENT — STATUS
+// ════════════════════════════════════════════
+function initStatusModal(){
+  const body=document.getElementById('status-modal-body');
+  if(!body.children.length){
+    body.innerHTML=`<div style="color:var(--text-dim);font-size:13px;">Cliquez sur une chambre pour changer son statut.</div>`;
+  }
+}
+
+// ════════════════════════════════════════════
+// SIMULATE — AUTO CHECKOUT TRIGGER
+// ════════════════════════════════════════════
+function simulateCheckout(){
+  const occupied=rooms.filter(r=>r.status==='occupied');
+  if(!occupied.length){toast('Aucune chambre occupée à libérer','warn');return;}
+  const r=occupied[Math.floor(Math.random()*occupied.length)];
+  r.status='checkout';r.guest=null;
+  const newTask={
+    id:tasks.length+1,roomId:r.id,room:r.num,
+    type:'turnover',priority:'urgent',
+    title:`Préparation départ — ${r.num}`,
+    status:'pending',assigned:null,
+    created:new D

@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veraluz OS — Audit Technique d'Architecture v1.0</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #181c24; --card: #1e2330;
+    --border: #2a3042; --border2: #374151;
+    --accent: #6366f1; --blue: #3b82f6; --green: #10b981;
+    --yellow: #f59e0b; --orange: #f97316; --red: #ef4444;
+    --purple: #8b5cf6; --pink: #ec4899; --teal: #14b8a6;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --ok: #10b981; --warn: #f59e0b; --err: #ef4444; --info: #3b82f6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; }
+
+  /* LAYOUT */
+  .wrapper { display: flex; min-height: 100vh; }
+  .toc { width: 260px; min-width: 260px; background: var(--surface); border-right: 1px solid var(--border); position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 20px 0; }
+  .main { flex: 1; padding: 40px 48px; max-width: 1100px; }
+
+  /* TOC */
+  .toc-title { font-size: 11px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: 1.5px; padding: 0 20px 10px; }
+  .toc a { display: block; padding: 5px 20px; color: var(--text2); text-decoration: none; font-size: 12.5px; border-left: 2px solid transparent; transition: all .15s; }
+  .toc a:hover { color: var(--accent); background: rgba(99,102,241,.06); border-left-color: var(--accent); }
+  .toc a.sub { padding-left: 32px; font-size: 11.5px; color: var(--text3); }
+  .toc-sep { border: none; border-top: 1px solid var(--border); margin: 10px 20px; }
+
+  /* HEADINGS */
+  h1 { font-size: 28px; font-weight: 800; margin-bottom: 6px; }
+  h2 { font-size: 20px; font-weight: 700; margin: 48px 0 16px; padding-top: 16px; border-top: 2px solid var(--border); color: var(--text); display: flex; align-items: center; gap: 10px; }
+  h3 { font-size: 15px; font-weight: 700; margin: 24px 0 10px; color: var(--text2); }
+  h4 { font-size: 13px; font-weight: 700; margin: 16px 0 8px; color: var(--accent); text-transform: uppercase; letter-spacing: .5px; }
+
+  /* HERO */
+  .hero { background: linear-gradient(135deg, rgba(99,102,241,.15), rgba(16,185,129,.08)); border: 1px solid rgba(99,102,241,.25); border-radius: 16px; padding: 28px 32px; margin-bottom: 36px; }
+  .hero-meta { display: flex; gap: 24px; margin-top: 12px; flex-wrap: wrap; }
+  .hero-badge { background: rgba(0,0,0,.3); border: 1px solid var(--border2); border-radius: 8px; padding: 6px 14px; font-size: 12px; color: var(--text2); }
+
+  /* SCORE CARD */
+  .score-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin: 20px 0; }
+  .score-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; }
+  .score-val { font-size: 32px; font-weight: 900; margin-bottom: 4px; }
+  .score-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
+  .score-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  th { background: var(--surface); color: var(--text2); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 10px 12px; text-align: left; border-bottom: 2px solid var(--border); }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .ok    { background: rgba(16,185,129,.12); color: var(--ok); border: 1px solid rgba(16,185,129,.25); }
+  .warn  { background: rgba(245,158,11,.12); color: var(--warn); border: 1px solid rgba(245,158,11,.25); }
+  .err   { background: rgba(239,68,68,.12);  color: var(--err);  border: 1px solid rgba(239,68,68,.25); }
+  .info  { background: rgba(59,130,246,.12); color: var(--info); border: 1px solid rgba(59,130,246,.25); }
+  .gap   { background: rgba(139,92,246,.12); color: var(--purple); border: 1px solid rgba(139,92,246,.25); }
+
+  /* CARDS */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; margin: 14px 0; }
+  .card-red    { border-left: 4px solid var(--red); }
+  .card-yellow { border-left: 4px solid var(--yellow); }
+  .card-green  { border-left: 4px solid var(--green); }
+  .card-blue   { border-left: 4px solid var(--blue); }
+  .card-purple { border-left: 4px solid var(--purple); }
+
+  /* CODE */
+  code { background: rgba(99,102,241,.1); color: #a5b4fc; padding: 1px 6px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 12px; }
+  pre { background: #0d1117; border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; font-size: 12px; overflow-x: auto; margin: 12px 0; color: #e2e8f0; line-height: 1.7; font-family: 'Consolas', monospace; }
+  pre .c  { color: #6b7280; } /* comment */
+  pre .k  { color: #c084fc; } /* keyword */
+  pre .s  { color: #86efac; } /* string */
+  pre .n  { color: #7dd3fc; } /* name */
+  pre .err { color: #fca5a5; font-weight: 700; } /* error highlight */
+  pre .fix { color: #6ee7b7; font-weight: 700; } /* fix highlight */
+
+  /* CHECKLIST */
+  .cl { list-style: none; }
+  .cl li { padding: 5px 0; display: flex; align-items: flex-start; gap: 10px; font-size: 13px; }
+  .cl li::before { font-size: 14px; min-width: 20px; }
+  .cl-ok li::before { content: '✅'; }
+  .cl-err li::before { content: '🔴'; }
+  .cl-warn li::before { content: '⚠️'; }
+  .cl-gap li::before { content: '🕳️'; }
+  .cl-fix li::before { content: '🔧'; }
+
+  /* MODULE MATRIX */
+  .matrix { overflow-x: auto; }
+  .matrix table td, .matrix table th { min-width: 80px; text-align: center; }
+  .matrix table td:first-child { text-align: left; min-width: 160px; font-weight: 600; }
+
+  /* PRIORITY BOXES */
+  .priority-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 16px 0; }
+  .pbox { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .pbox-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .pbox ol { padding-left: 18px; }
+  .pbox ol li { font-size: 13px; margin-bottom: 6px; }
+
+  /* ARCH DIAGRAM */
+  .arch { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 24px; font-family: 'Consolas', monospace; font-size: 12px; line-height: 2; }
+  .arch-ok { color: var(--green); }
+  .arch-warn { color: var(--yellow); }
+  .arch-err { color: var(--red); }
+  .arch-new { color: var(--purple); }
+
+  /* TIMELINE */
+  .timeline { border-left: 2px solid var(--border); padding-left: 24px; margin: 20px 0; }
+  .tl-item { margin-bottom: 20px; position: relative; }
+  .tl-item::before { content: ''; position: absolute; left: -29px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); border: 2px solid var(--bg); }
+  .tl-item.red::before { background: var(--red); }
+  .tl-item.yellow::before { background: var(--yellow); }
+  .tl-item.green::before { background: var(--green); }
+  .tl-item.blue::before { background: var(--blue); }
+  .tl-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .tl-body { color: var(--text2); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- ═══════════════════════════ TABLE DES MATIÈRES ═══════════════════════════ -->
+<nav class="toc">
+  <div class="toc-title">Table des matières</div>
+  <a href="#resume">Résumé exécutif</a>
+  <a href="#score">Score global</a>
+  <a href="#matrice">Matrice modules</a>
+  <hr class="toc-sep">
+  <a href="#arch">1. Architecture globale</a>
+  <a href="#api" class="sub">2. Cohérence APIs</a>
+  <a href="#dossiers" class="sub">3. Structure dossiers</a>
+  <a href="#ui" class="sub">4. Composants UI</a>
+  <a href="#permissions">5. Permissions & RLS</a>
+  <a href="#db">6. Base de données</a>
+  <hr class="toc-sep">
+  <a href="#doublons">7. Doublons identifiés</a>
+  <a href="#deps">8. Dépendances dangereuses</a>
+  <a href="#couplage">9. Couplages excessifs</a>
+  <hr class="toc-sep">
+  <a href="#reco">10. Recommandations</a>
+  <a href="#plan">11. Plan d'action</a>
+  <a href="#standard">12. Standard cible</a>
+</nav>
+
+<!-- ═══════════════════════════ CONTENU PRINCIPAL ═══════════════════════════ -->
+<main class="main">
+
+<!-- HERO -->
+<div class="hero">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+    <span style="font-size:32px;">🏗️</span>
+    <div>
+      <h1>Veraluz OS — Audit Technique d'Architecture</h1>
+      <div style="color:var(--text2);font-size:14px;">Analyse de cohérence pré-intégration · 9 modules · 10 migrations SQL · 18 APIs · 10 composants</div>
+    </div>
+  </div>
+  <div class="hero-meta">
+    <span class="hero-badge">📅 14 Mai 2026</span>
+    <span class="hero-badge">🏨 Résidence Veraluz · Kribi, Cameroun</span>
+    <span class="hero-badge">⚡ Next.js 16 + Supabase + TypeScript</span>
+    <span class="hero-badge">🎯 Version 0.1.0 → Pré-intégration</span>
+  </div>
+</div>
+
+<!-- ═══ RÉSUMÉ EXÉCUTIF ═══ -->
+<section id="resume">
+  <h2>🎯 Résumé exécutif</h2>
+  <p style="color:var(--text2);margin-bottom:16px;">L'analyse de l'ensemble des modules Veraluz OS révèle une <strong>base solide</strong> sur les modules core (Auth, Réservations, Paiements, Restaurant) avec des <strong>lacunes critiques</strong> sur les modules récents (Housekeeping, Notifications, Finance). L'architecture multi-tenant est correctement posée autour de la colonne <code>property_id</code>, mais l'intégration globale ne peut pas se faire en l'état — 11 problèmes bloquants doivent être résolus en priorité.</p>
+
+  <div class="card card-red">
+    <div style="font-weight:800;font-size:15px;margin-bottom:10px;color:var(--red);">🔴 3 Blockers critiques (à corriger AVANT intégration)</div>
+    <ul class="cl cl-err">
+      <li>Modules Housekeeping et Notifications ont une DB + maquette mais <strong>zéro API route</strong> dans Next.js — inutilisables en production</li>
+      <li>Finance référence <code>auth.users(id)</code> au lieu de <code>app_users(id)</code> — bypass du modèle utilisateur, casse les jointures RH/profiles</li>
+      <li>Middleware Next.js ne protège pas <code>/hr</code>, <code>/analytics</code>, <code>/housekeeping</code>, <code>/notifications</code> — routes accessibles non authentifiées</li>
+    </ul>
+  </div>
+
+  <div class="card card-yellow">
+    <div style="font-weight:800;font-size:15px;margin-bottom:10px;color:var(--yellow);">⚠️ 8 Problèmes majeurs (à corriger avant déploiement prod)</div>
+    <ul class="cl cl-warn">
+      <li>Incohérence de préfixe SQL — migrations 007-010 omettent <code>public.</code> (risque si <code>search_path</code> change)</li>
+      <li>TAB_ACCESS manque 4 entrées : <code>hr</code>, <code>housekeeping</code>, <code>notifications</code>, <code>analytics</code></li>
+      <li>PERMISSIONS manque 9 actions pour les nouveaux modules</li>
+      <li>Sidebar ne contient pas les liens HR, Housekeeping, Notifications, Analytics</li>
+      <li>Pattern d'auth dupliqué dans 15+ routes API — aucun middleware centralisé</li>
+      <li><code>types/index.ts</code> ne couvre pas 4 modules (HK, Notifications, Finance, HR complet) — TypeScript partiel</li>
+      <li>Tables analytics sans préfixe de schéma cohérent (<code>analytics_*</code>) vs rest (<code>public.table_name</code>)</li>
+      <li>Page <code>/invoices</code> dans la sidebar mais aucun fichier <code>app/(dashboard)/invoices/page.tsx</code></li>
+    </ul>
+  </div>
+
+  <div class="card card-green">
+    <div style="font-weight:800;font-size:15px;margin-bottom:10px;color:var(--green);">✅ Ce qui fonctionne bien</div>
+    <ul class="cl cl-ok">
+      <li>Architecture multi-tenant correcte — <code>property_id</code> présent sur toutes les tables core</li>
+      <li>RLS activé sur toutes les tables (100% couverture dans les migrations)</li>
+      <li>Pattern <code>createClient()</code> de <code>lib/supabase/server.ts</code> adopté par 14/15 routes</li>
+      <li><code>lib/auth/permissions.ts</code> bien structuré — <code>requirePermission</code>, <code>requireTabAccess</code>, <code>logAuthEvent</code></li>
+      <li><code>lib/utils/index.ts</code> : utilitaires FCFA, dates, CN, overlap — réutilisables partout</li>
+      <li>Triggers PostgreSQL bien utilisés : checkout → tâche HK automatique</li>
+      <li>Workflow d'approbation dépenses 4 niveaux (ENUM + FK) correctement modélisé</li>
+      <li>Realtime Supabase activé sur notifications et system_events</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══ SCORE GLOBAL ═══ -->
+<section id="score">
+  <h2>📊 Score global par domaine</h2>
+  <div class="score-grid">
+    <div class="score-card">
+      <div class="score-val" style="color:var(--green);">7/10</div>
+      <div class="score-lbl">Architecture</div>
+      <div class="score-sub">Base solide, lacunes récentes</div>
+    </div>
+    <div class="score-card">
+      <div class="score-val" style="color:var(--yellow);">5/10</div>
+      <div class="score-lbl">APIs</div>
+      <div class="score-sub">2 modules sans routes</div>
+    </div>
+    <div class="score-card">
+      <div class="score-val" style="color:var(--yellow);">6/10</div>
+      <div class="score-lbl">Permissions</div>
+      <div class="score-sub">13 entrées manquantes</div>
+    </div>
+    <div class="score-card">
+      <div class="score-val" style="color:var(--orange);">5/10</div>
+      <div class="score-lbl">Base de données</div>
+      <div class="score-sub">Incohérence schémas</div>
+    </div>
+    <div class="score-card">
+      <div class="score-val" style="color:var(--yellow);">6/10</div>
+      <div class="score-lbl">Types TS</div>
+      <div class="score-sub">4 modules non typés</div>
+    </div>
+    <div class="score-card">
+      <div class="score-val" style="color:var(--red);">4/10</div>
+      <div class="score-lbl">Composants UI</div>
+      <div class="score-sub">3 modules sans composant</div>
+    </div>
+    <div class="score-card">
+      <div class="score-val" style="color:var(--green);">8/10</div>
+      <div class="score-lbl">Sécurité RLS</div>
+      <div class="score-sub">100% des tables activé</div>
+    </div>
+    <div class="score-card">
+      <div class="score-val" style="color:var(--orange);">5/10</div>
+      <div class="score-lbl">Modularité</div>
+      <div class="score-sub">Couplages à corriger</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ MATRICE MODULES ═══ -->
+<section id="matrice">
+  <h2>🗂️ Matrice de complétude par module</h2>
+  <div class="matrix">
+  <table>
+    <thead>
+      <tr>
+        <th>Module</th>
+        <th>Migration SQL</th>
+        <th>API Routes</th>
+        <th>Composant TSX</th>
+        <th>Page App</th>
+        <th>Types TS</th>
+        <th>Maquette HTML</th>
+        <th>Sidebar</th>
+        <th>TAB_ACCESS</th>
+        <th>PERMISSIONS</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>🔐 Auth</td>
+        <td><span class="badge ok">✅ 002</span></td>
+        <td><span class="badge ok">✅ 2</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅ complet</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td>—</td>
+        <td>—</td>
+        <td><span class="badge ok">✅</span></td>
+      </tr>
+      <tr>
+        <td>🏨 Réservations</td>
+        <td><span class="badge ok">✅ 003</span></td>
+        <td><span class="badge ok">✅ 3</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅ complet</span></td>
+        <td>—</td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+      </tr>
+      <tr>
+        <td>💳 Paiements</td>
+        <td><span class="badge ok">✅ 004</span></td>
+        <td><span class="badge ok">✅ 4</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅ complet</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+      </tr>
+      <tr>
+        <td>🍽️ Restaurant</td>
+        <td><span class="badge ok">✅ 005</span></td>
+        <td><span class="badge ok">✅ 5</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅ partiel</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+      </tr>
+      <tr>
+        <td>👥 RH</td>
+        <td><span class="badge ok">✅ 006</span></td>
+        <td><span class="badge ok">✅ 4</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge warn">⚠️ partiel</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+      </tr>
+      <tr>
+        <td>📊 Analytics</td>
+        <td><span class="badge ok">✅ 007</span></td>
+        <td><span class="badge ok">✅ 5</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+      </tr>
+      <tr>
+        <td>💰 Finance</td>
+        <td><span class="badge warn">⚠️ 008 bugs</span></td>
+        <td><span class="badge ok">✅ 7</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge ok">✅ expenses</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge warn">⚠️ partiel</span></td>
+        <td><span class="badge warn">⚠️ partiel</span></td>
+        <td><span class="badge warn">⚠️ partiel</span></td>
+      </tr>
+      <tr>
+        <td>🔔 Notifications</td>
+        <td><span class="badge ok">✅ 009</span></td>
+        <td><span class="badge err">🔴 ABSENT</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+      </tr>
+      <tr>
+        <td>🧹 Housekeeping</td>
+        <td><span class="badge ok">✅ 010</span></td>
+        <td><span class="badge err">🔴 ABSENT</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge ok">✅</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge err">🔴 absent</span></td>
+        <td><span class="badge warn">⚠️ 1 seule</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="color:var(--text3);font-size:12px;margin-top:8px;">Légende: ✅ Présent et fonctionnel · ⚠️ Partiel ou avec bugs · 🔴 Absent/bloquant</p>
+</section>
+
+<!-- ═══ 1. ARCHITECTURE GLOBALE ═══ -->
+<section id="arch">
+  <h2>1️⃣ Cohérence de l'architecture globale</h2>
+
+  <h3>Structure générale — ce qui est correct</h3>
+  <div class="arch">
+<span class="arch-ok">veraluz-os/
+├── app/                         ✅ App Router Next.js 16
+│   ├── (auth)/                  ✅ Login, forgot-password, reset
+│   ├── (dashboard)/             ✅ Protected layout group
+│   │   ├── dashboard/           ✅ Page principale
+│   │   ├── reservations/        ✅
+│   │   ├── payments/            ✅
+│   │   ├── restaurant/          ✅
+│   │   ├── hr/                  ✅
+│   │   ├── analytics/           ✅
+│   │   ├── expenses/            ✅ (Finance partiel)
+</span><span class="arch-err">│   │   ├── housekeeping/        🔴 MANQUANT
+│   │   ├── notifications/       🔴 MANQUANT
+│   │   └── invoices/            🔴 MANQUANT (lien sidebar brisé)
+</span><span class="arch-ok">│   ├── api/
+│   │   ├── auth/                ✅ invite, update-role
+│   │   ├── reservations/        ✅ create, availability, block
+│   │   ├── payments/            ✅ create, list, validate, refund
+│   │   ├── restaurant/          ✅ orders, tables, kds, dashboard, status
+│   │   ├── hr/                  ✅ employees, attendance, leaves, payroll
+│   │   ├── analytics/           ✅ overview, revenue, occupancy, alerts, reports
+│   │   ├── finance/             ✅ expenses, accounts, journal, suppliers, transactions, reports, workflow
+</span><span class="arch-err">│   │   ├── housekeeping/        🔴 MANQUANT (0 routes)
+│   │   └── notifications/       🔴 MANQUANT (0 routes)
+</span><span class="arch-ok">├── components/
+│   ├── analytics/               ✅ AnalyticsDashboard.tsx
+│   ├── clients/                 ✅ ClientsView.tsx
+│   ├── dashboard/               ✅ DashboardView, CalendarView
+│   ├── hr/                      ✅ HRView.tsx
+│   ├── layout/                  ✅ DashboardShell, Sidebar
+│   ├── payments/                ✅ PaymentsView.tsx
+│   ├── reservations/            ✅ ReservationsView.tsx
+│   ├── restaurant/              ✅ RestaurantPOS.tsx
+│   ├── units/                   ✅ UnitsView.tsx
+</span><span class="arch-err">│   ├── finance/                 🔴 MANQUANT
+│   ├── housekeeping/            🔴 MANQUANT
+│   └── notifications/           🔴 MANQUANT
+</span><span class="arch-ok">├── lib/
+│   ├── auth/permissions.ts      ✅ requirePermission, requireTabAccess, logAuthEvent
+│   ├── supabase/client.ts       ✅ Browser client
+│   ├── supabase/server.ts       ✅ Server client (SSR)
+│   ├── hooks/useAuth.ts         ✅
+│   ├── hooks/useProperty.ts     ✅
+│   ├── utils/index.ts           ✅ FCFA, dates, cn, statusColor
+│   └── reservations/            ✅ availability.ts
+├── types/index.ts               ⚠️  Modules 007-010 non couverts
+</span><span class="arch-err">├── middleware.ts                 🔴 Nouvelles routes non protégées
+</span><span class="arch-ok">└── supabase/migrations/         ✅ 010 migrations séquentielles</span>
+  </div>
+
+  <h3>Verdict architecture</h3>
+  <p style="color:var(--text2);">La colonne vertébrale est bonne. Le problème est que les 4 derniers modules ont été conçus <em>Database-first</em> (migrations SQL ✅) et <em>UI-first</em> (maquettes HTML ✅) mais sans la couche intermédiaire — les API routes et les composants React — qui permettrait de les connecter. C'est le chantier prioritaire.</p>
+</section>
+
+<!-- ═══ 2. COHÉRENCE APIs ═══ -->
+<section id="api">
+  <h2>2️⃣ Cohérence des API routes</h2>
+
+  <h3>Pattern d'authentification — 2 patterns coexistent</h3>
+
+  <div class="card card-red">
+    <h4>🔴 Pattern A — Obsolète (reservations/create uniquement)</h4>
+    <pre><span class="c">// ❌ Import inline de createServerClient au lieu de lib/supabase/server</span>
+<span class="err">import { createServerClient } from '@supabase/ssr'</span>
+<span class="c">// + logAuthEvent importé — mais pas utilisé dans les autres routes</span></pre>
+  </div>
+
+  <div class="card card-green">
+    <h4>✅ Pattern B — Standard (14/15 routes)</h4>
+    <pre><span class="k">import</span> { createClient } <span class="k">from</span> <span class="s">'@/lib/supabase/server'</span>
+<span class="k">const</span> supabase = <span class="k">await</span> createClient()
+<span class="k">const</span> { data: { user } } = <span class="k">await</span> supabase.auth.getUser()
+<span class="k">if</span> (!user) <span class="k">return</span> NextResponse.json({ error: <span class="s">'Unauthorized'</span> }, { status: 401 })</pre>
+  </div>
+
+  <h3>Duplication critique — vérification de rôle inline (15 routes)</h3>
+  <div class="card card-yellow">
+    <p style="margin-bottom:10px;">Chaque route répète manuellement la même logique de vérification d'accès. En l'absence d'un helper centralisé, un oubli dans une seule route crée une faille de sécurité non détectable.</p>
+    <pre><span class="c">// ❌ Pattern répété dans CHAQUE route (15+ fois) :</span>
+<span class="err">const { data: up } = await supabase.from('user_properties').select('role')
+  .eq('user_id', user.id).eq('property_id', property_id).single()
+if (!up || !ALLOWED_ROLES.includes(up.role))
+  return NextResponse.json({ error: '...' }, { status: 403 })</span>
+
+<span class="c">// ✅ Ce qui devrait exister dans lib/api/withAuth.ts :</span>
+<span class="fix">export async function withAuth(req, propertyId, allowedRoles, handler) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return json({ error: 'Unauthorized' }, 401)
+  const { data: up } = await supabase.from('user_properties')
+    .select('role').eq('user_id', user.id).eq('property_id', propertyId).single()
+  if (!up || !allowedRoles.includes(up.role)) return json({ error: 'Forbidden' }, 403)
+  return handler(req, { user, role: up.role, supabase })
+}</span></pre>
+  </div>
+
+  <h3>Bug détecté — HR employees route</h3>
+  <div class="card card-red">
+    <pre><span class="c">// ❌ lib/api/hr/employees/route.ts — import incorrect ligne 51</span>
+<span class="err">const { createClient: createAdmin } = await import('@/lib/auth/permissions')</span>
+<span class="c">// Le module permissions.ts exporte getAdminClient, PAS createClient
+// Cet import dynamique échouera silencieusement en production</span>
+
+<span class="c">// ✅ Correction :</span>
+<span class="fix">import { getAdminClient } from '@/lib/auth/permissions'</span></pre>
+  </div>
+
+  <h3>Routes manquantes — Housekeeping (critique)</h3>
+  <table>
+    <thead><tr><th>Route à créer</th><th>Méthodes</th><th>Rôles autorisés</th><th>Priorité</th></tr></thead>
+    <tbody>
+      <tr><td><code>/api/housekeeping/rooms</code></td><td>GET, PATCH</td><td>owner, manager, reception, housekeeping</td><td><span class="badge err">Critique</span></td></tr>
+      <tr><td><code>/api/housekeeping/tasks</code></td><td>GET, POST, PATCH</td><td>owner, manager, housekeeping</td><td><span class="badge err">Critique</span></td></tr>
+      <tr><td><code>/api/housekeeping/tasks/[id]/validate</code></td><td>POST</td><td>owner, manager, reception</td><td><span class="badge err">Critique</span></td></tr>
+      <tr><td><code>/api/housekeeping/maintenance</code></td><td>GET, POST</td><td>tous les rôles (signalement)</td><td><span class="badge err">Critique</span></td></tr>
+      <tr><td><code>/api/housekeeping/photos</code></td><td>POST</td><td>housekeeping</td><td><span class="badge warn">Majeur</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Routes manquantes — Notifications (critique)</h3>
+  <table>
+    <thead><tr><th>Route à créer</th><th>Méthodes</th><th>Usage</th><th>Priorité</th></tr></thead>
+    <tbody>
+      <tr><td><code>/api/notifications</code></td><td>GET, PATCH</td><td>Lister + marquer lu</td><td><span class="badge err">Critique</span></td></tr>
+      <tr><td><code>/api/notifications/send</code></td><td>POST</td><td>Envoi manuel admin</td><td><span class="badge err">Critique</span></td></tr>
+      <tr><td><code>/api/notifications/preferences</code></td><td>GET, PUT</td><td>Préférences utilisateur</td><td><span class="badge warn">Majeur</span></td></tr>
+      <tr><td><code>/api/notifications/channels</code></td><td>GET, POST, PATCH</td><td>Gestion canaux (WhatsApp, etc.)</td><td><span class="badge warn">Majeur</span></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 3. STRUCTURE DOSSIERS ═══ -->
+<section id="dossiers">
+  <h2>3️⃣ Cohérence de la structure des dossiers</h2>
+
+  <h3>Naming conventions — cohérent</h3>
+  <ul class="cl cl-ok">
+    <li>Composants : <code>PascalCase.tsx</code> ✅</li>
+    <li>Pages : <code>page.tsx</code> (Next.js convention) ✅</li>
+    <li>Routes API : <code>route.ts</code> ✅</li>
+    <li>Libs : <code>camelCase.ts</code> ✅</li>
+    <li>Migrations SQL : <code>NNN_module_name.sql</code> ✅</li>
+  </ul>
+
+  <h3>Problèmes de structure</h3>
+  <table>
+    <thead><tr><th>Problème</th><th>Fichier</th><th>Gravité</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Page <code>invoices</code> manquante — lien sidebar brisé</td>
+        <td><code>app/(dashboard)/invoices/page.tsx</code></td>
+        <td><span class="badge err">Bloquant</span></td>
+      </tr>
+      <tr>
+        <td>Page <code>housekeeping</code> manquante</td>
+        <td><code>app/(dashboard)/housekeeping/page.tsx</code></td>
+        <td><span class="badge err">Bloquant</span></td>
+      </tr>
+      <tr>
+        <td>Page <code>notifications</code> manquante</td>
+        <td><code>app/(dashboard)/notifications/page.tsx</code></td>
+        <td><span class="badge err">Bloquant</span></td>
+      </tr>
+      <tr>
+        <td>Pas de dossier <code>components/finance/</code></td>
+        <td>Composant Finance à créer</td>
+        <td><span class="badge warn">Majeur</span></td>
+      </tr>
+      <tr>
+        <td>Pas de dossier <code>components/housekeeping/</code></td>
+        <td>Composant HK à créer</td>
+        <td><span class="badge warn">Majeur</span></td>
+      </tr>
+      <tr>
+        <td>Pas de dossier <code>components/notifications/</code></td>
+        <td>Composant Notifications à créer</td>
+        <td><span class="badge warn">Majeur</span></td>
+      </tr>
+      <tr>
+        <td>Pas de <code>lib/api/withAuth.ts</code> helper</td>
+        <td>Helper d'authentification à centraliser</td>
+        <td><span class="badge warn">Majeur</span></td>
+      </tr>
+      <tr>
+        <td>Pas de <code>lib/api/withProperty.ts</code></td>
+        <td>Helper résolution property_id</td>
+        <td><span class="badge info">Mineur</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══ 4. COMPOSANTS UI ═══ -->
+<section id="ui">
+  <h2>4️⃣ Cohérence des composants UI</h2>
+
+  <h3>Sidebar — entrées manquantes</h3>
+  <div class="card card-red">
+    <p style="margin-bottom:10px;">La sidebar actuelle ne contient que les modules core. Les 4 modules récents ne sont pas navigables depuis l'UI.</p>
+    <table>
+      <thead><tr><th>Entrée</th><th>href</th><th>Icône suggérée</th><th>Rôles visibles</th><th>État</th></tr></thead>
+      <tbody>
+        <tr><td>RH / Employés</td><td><code>/hr</code></td><td><code>Users2</code></td><td>owner, hotel_manager, hr</td><td><span class="badge err">🔴 absent</span></td></tr>
+        <tr><td>Analytics</td><td><code>/analytics</code></td><td><code>BarChart3</code></td><td>owner, hotel_manager, accountant</td><td><span class="badge err">🔴 absent</span></td></tr>
+        <tr><td>Housekeeping</td><td><code>/housekeeping</code></td><td><code>Sparkles</code></td><td>owner, manager, housekeeping, reception</td><td><span class="badge err">🔴 absent</span></td></tr>
+        <tr><td>Notifications</td><td><code>/notifications</code></td><td><code>Bell</code></td><td>tous (badge unread)</td><td><span class="badge err">🔴 absent</span></td></tr>
+        <tr><td>Factures</td><td><code>/invoices</code></td><td><code>FileText</code></td><td>owner, manager, reception, accountant</td><td><span class="badge warn">⚠️ lien cassé</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Middleware — routes non protégées</h3>
+  <div class="card card-red">
+    <pre><span class="c">// middleware.ts — liste actuelle des routes protégées :</span>
+<span class="err">const isDashboard = [
+  '/dashboard', '/reservations', '/units', '/clients',
+  '/payments', '/users', '/settings', '/restaurant',
+  '/accounting', '/calendar', '/expenses',
+].some(p => pathname.startsWith(p))</span>
+
+<span class="c">// ✅ Routes à ajouter :</span>
+<span class="fix">  '/hr', '/analytics', '/housekeeping', '/notifications', '/invoices',</span>
+
+<span class="c">// Sans cela : un utilisateur non authentifié peut accéder directement à
+// /housekeeping, /notifications, /hr via URL directe</span></pre>
+  </div>
+
+  <h3>Cohérence de style UI — bonne</h3>
+  <ul class="cl cl-ok">
+    <li>Composants TSX : dark theme cohérent avec Tailwind CSS v4 ✅</li>
+    <li>Maquettes HTML : dark theme cohérent avec CSS variables ✅</li>
+    <li>Palette de couleurs cohérente (accent indigo, green/yellow/red/orange) ✅</li>
+    <li>Monnaie FCFA formatée via <code>fmtFCFA()</code> dans tous les composants ✅</li>
+  </ul>
+</section>
+
+<!-- ═══ 5. PERMISSIONS ═══ -->
+<section id="permissions">
+  <h2>5️⃣ Cohérence des permissions &amp; RLS</h2>
+
+  <h3>TAB_ACCESS — entrées manquantes</h3>
+  <div class="card card-yellow">
+    <pre><span class="c">// types/index.ts — état actuel (incomplet) :</span>
+export const TAB_ACCESS: Record&lt;string, OrgRole[]&gt; = {
+  dashboard:    [...], reservations: [...], units: [...],
+  clients:      [...], payments:     [...], invoices: [...],
+  restaurant:   [...], accounting:   [...], expenses: [...],
+  users:        [...], settings:     [...],
+  <span class="err">// ❌ MANQUANTS :</span>
+  <span class="fix">hr:            ['super_admin', 'owner', 'hotel_manager', 'hr'],
+  analytics:    ['super_admin', 'owner', 'hotel_manager', 'accountant'],
+  housekeeping: ['super_admin', 'owner', 'hotel_manager', 'reception', 'housekeeping'],
+  notifications:['super_admin', 'owner', 'hotel_manager', 'reception', 'restaurant',
+                 'housekeeping', 'accountant', 'hr', 'security'],</span>
+}</pre>
+  </div>
+
+  <h3>PERMISSIONS — 9 actions manquantes</h3>
+  <table>
+    <thead><tr><th>Action manquante</th><th>Rôles suggérés</th><th>Module</th></tr></thead>
+    <tbody>
+      <tr><td><code>manage_hr</code></td><td>super_admin, owner, hotel_manager, hr</td><td>RH</td></tr>
+      <tr><td><code>view_hr_payroll</code></td><td>super_admin, owner, hr</td><td>RH</td></tr>
+      <tr><td><code>view_analytics</code></td><td>super_admin, owner, hotel_manager, accountant</td><td>Analytics</td></tr>
+      <tr><td><code>export_reports</code></td><td>super_admin, owner, hotel_manager, accountant</td><td>Analytics/Finance</td></tr>
+      <tr><td><code>approve_expense</code></td><td>super_admin, owner, hotel_manager, accountant</td><td>Finance</td></tr>
+      <tr><td><code>manage_housekeeping</code></td><td>super_admin, owner, hotel_manager, housekeeping</td><td>Housekeeping</td></tr>
+      <tr><td><code>validate_cleaning</code></td><td>super_admin, owner, hotel_manager, reception</td><td>Housekeeping</td></tr>
+      <tr><td><code>manage_notifications</code></td><td>super_admin, owner, hotel_manager</td><td>Notifications</td></tr>
+      <tr><td><code>view_audit_log</code></td><td>super_admin, owner, hotel_manager, accountant</td><td>Transversal</td></tr>
+    </tbody>
+  </table>
+
+  <h3>RLS PostgreSQL — couverture 100% ✅</h3>
+  <p style="color:var(--text2);margin-bottom:10px;">Toutes les tables ont <code>ENABLE ROW LEVEL SECURITY</code> activé. C'est une bonne pratique maintenue de façon constante. Cependant :</p>
+  <ul class="cl cl-warn">
+    <li>Certaines tables n'ont que <code>ENABLE ROW LEVEL SECURITY</code> sans policies définies explicitement dans la migration — elles seraient alors <strong>totalement restrictives</strong> (aucune ligne visible) jusqu'à l'ajout de policies dans Supabase dashboard</li>
+    <li>Les tables <code>notification_channels</code> et <code>notification_templates</code> n'ont pas de <code>property_id</code> — isolation multi-tenant impossible côté RLS</li>
+  </ul>
+</section>
+
+<!-- ═══ 6. BASE DE DONNÉES ═══ -->
+<section id="db">
+  <h2>6️⃣ Cohérence de la base de données</h2>
+
+  <h3>Problème critique — incohérence des références utilisateur</h3>
+  <div class="card card-red">
+    <pre><span class="c">-- Migrations 001-006 : référence app_users (couche applicative) ✅</span>
+<span class="n">submitted_by</span> UUID REFERENCES <span class="fix">public.app_users(id)</span>
+
+<span class="c">-- Migration 008 (Finance) : référence auth.users directement ❌</span>
+<span class="n">submitted_by</span> UUID NOT NULL REFERENCES <span class="err">auth.users(id)</span>
+<span class="n">manager_id</span>   UUID REFERENCES <span class="err">auth.users(id)</span>
+<span class="n">created_by</span>   UUID REFERENCES <span class="err">auth.users(id)</span>
+
+<span class="c">-- CONSÉQUENCES :
+-- 1. Les jointures Finance → profil utilisateur passent par auth.users (pas de name, phone, etc.)
+-- 2. Si un user est supprimé de auth.users mais pas de app_users → FK violation
+-- 3. Incohérence avec HR qui référence public.app_users → impossible de joindre
+-- ✅ Correction : remplacer tous les auth.users(id) par public.app_users(id)</span></pre>
+  </div>
+
+  <h3>Problème majeur — préfixe de schéma incohérent</h3>
+  <table>
+    <thead><tr><th>Migration</th><th>Préfixe utilisé</th><th>Exemple</th><th>Risque</th></tr></thead>
+    <tbody>
+      <tr><td>001 → 006</td><td><code>public.</code> explicite</td><td><code>public.properties(id)</code></td><td><span class="badge ok">Aucun</span></td></tr>
+      <tr><td>007 Analytics</td><td>Aucun préfixe</td><td><code>analytics_daily_snapshots</code></td><td><span class="badge warn">Moyen</span></td></tr>
+      <tr><td>008 Finance</td><td>Mixte</td><td><code>properties(id)</code> sans <code>public.</code></td><td><span class="badge warn">Moyen</span></td></tr>
+      <tr><td>009 Notifs</td><td>Aucun préfixe</td><td><code>notifications</code></td><td><span class="badge warn">Moyen</span></td></tr>
+      <tr><td>010 HK</td><td>Mixte</td><td><code>public.units</code> + <code>housekeeping_tasks</code></td><td><span class="badge warn">Moyen</span></td></tr>
+    </tbody>
+  </table>
+  <p style="color:var(--text2);font-size:13px;margin-top:8px;">Le risque se matérialise si Supabase change le <code>search_path</code> par défaut, ou lors d'une migration vers un autre PostgreSQL. La règle doit être : <strong>toujours préfixer avec <code>public.</code></strong>.</p>
+
+  <h3>Problème — Isolation multi-tenant manquante sur 2 tables Notifications</h3>
+  <div class="card card-yellow">
+    <pre><span class="c">-- 009_notifications.sql :</span>
+CREATE TABLE IF NOT EXISTS notification_channels (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  <span class="err">-- ❌ Pas de property_id → un canal WhatsApp est partagé entre tous les établissements ?</span>
+  name        TEXT NOT NULL,
+  type        channel_type NOT NULL,
+  ...
+);
+
+CREATE TABLE IF NOT EXISTS notification_templates (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  <span class="err">-- ❌ Pas de property_id → templates globaux non isolés par établissement</span>
+  ...
+);
+
+<span class="c">-- ✅ Correction à appliquer en migration 011 :</span>
+<span class="fix">ALTER TABLE notification_channels ADD COLUMN property_id UUID REFERENCES public.properties(id);
+ALTER TABLE notification_templates ADD COLUMN property_id UUID REFERENCES public.properties(id);</span></pre>
+  </div>
+
+  <h3>ENUMs — doublon conceptuel</h3>
+  <table>
+    <thead><tr><th>ENUM dans Analytics (007)</th><th>ENUM équivalent dans Notifications (009)</th><th>Problème</th></tr></thead>
+    <tbody>
+      <tr><td><code>alert_level</code> (info, warning, critical)</td><td><code>notification_priority</code> (critical, high, medium, low)</td><td>Concepts identiques, noms différents</td></tr>
+      <tr><td><code>alert_category</code> (8 valeurs)</td><td><code>notification_category</code> (10 valeurs)</td><td>Valeurs chevauchantes, non unifiées</td></tr>
+      <tr><td><code>alert_status</code></td><td><code>notification_status</code></td><td>Granularité différente</td></tr>
+    </tbody>
+  </table>
+
+  <h3>ENUM de paiement — collision de noms</h3>
+  <div class="card card-yellow">
+    <pre><span class="c">-- 004_payments: </span>
+<span class="err">payment_method</span> ENUM ('cash','card','orange_money','mtn_momo','virement','cinetpay','autre')
+
+<span class="c">-- 008_finance: même concept mais renommé pour éviter le conflit :</span>
+<span class="err">payment_method_fin</span> ENUM ('cash','orange_money','mtn_momo','bank_transfer','cheque','petty_cash')
+
+<span class="c">-- Valeurs différentes + noms différents = confusion pour les jointures Finance ↔ Paiements
+-- ✅ Solution : utiliser le même ENUM payment_method partout + étendre ses valeurs</span></pre>
+  </div>
+
+  <h3>Inventory des tables — vue d'ensemble</h3>
+  <table>
+    <thead><tr><th>Migration</th><th>Tables créées</th><th>FK vers property_id</th></tr></thead>
+    <tbody>
+      <tr><td>001</td><td>organizations, properties, app_users, user_properties, units, reservations, clients, payments, invoices, restaurant_tables, menu_items, restaurant_orders, restaurant_order_items</td><td><span class="badge ok">✅ toutes</span></td></tr>
+      <tr><td>002</td><td>auth_logs, user_invitations</td><td><span class="badge ok">✅</span></td></tr>
+      <tr><td>003</td><td>availability_blocks, ical_syncs, unit_pricing</td><td><span class="badge ok">✅</span></td></tr>
+      <tr><td>004</td><td>payment_audit_log, payment_receipts (+ALTER invoices)</td><td><span class="badge ok">✅</span></td></tr>
+      <tr><td>005</td><td>kds_tickets, stock_items, stock_movements</td><td><span class="badge ok">✅</span></td></tr>
+      <tr><td>006</td><td>contracts, attendance_records, leave_requests, payroll_records, hr_documents, disciplinary_records, work_schedules, hr_audit_log</td><td><span class="badge ok">✅</span></td></tr>
+      <tr><td>007</td><td>analytics_daily_snapshots, analytics_monthly_revenue, analytics_alerts, analytics_kpi_config, analytics_reports, analytics_guest_stats</td><td><span class="badge ok">✅</span></td></tr>
+      <tr><td>008</td><td>expense_categories, suppliers, financial_accounts, expense_requests, financial_transactions, journal_entries, finance_audit_log, budget_entries</td><td><span class="badge warn">⚠️ auth.users bug</span></td></tr>
+      <tr><td>009</td><td>notification_channels, notification_templates, notification_rules, notifications, notification_preferences, system_events</td><td><span class="badge err">⚠️ channels+templates sans property_id</span></td></tr>
+      <tr><td>010</td><td>unit_status_log, housekeeping_tasks, hk_assignments, hk_checklist_templates, hk_checklist_executions, hk_photos, maintenance_requests, maintenance_interventions, hk_audit_log</td><td><span class="badge ok">✅</span></td></tr>
+    </tbody>
+  </table>
+  <p style="color:var(--text2);font-size:12px;">Total : <strong>~55 tables</strong>, <strong>10 migrations séquentielles</strong>, <strong>100% RLS activé</strong></p>
+</section>
+
+<!-- ═══ 7. DOUBLONS ═══ -->
+<section id="doublons">
+  <h2>7️⃣ Doublons identifiés</h2>
+
+  <h3>Doublons dans le code applicatif</h3>
+  <table>
+    <thead><tr><th>Duplication</th><th>Fichiers concernés</th><th>Impact</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Pattern auth check (role lookup)</td>
+        <td>15 fichiers <code>route.ts</code></td>
+        <td>Maintenance risquée, faille possible</td>
+        <td>Créer <code>lib/api/withAuth.ts</code></td>
+      </tr>
+      <tr>
+        <td>Création du client Supabase server</td>
+        <td><code>reservations/create</code> fait sa propre version</td>
+        <td>Incohérence comportement cookies</td>
+        <td>Uniformiser sur <code>lib/supabase/server.ts</code></td>
+      </tr>
+      <tr>
+        <td>Logique audit log dupliquée</td>
+        <td>payment_audit_log, finance_audit_log, hr_audit_log, hk_audit_log (4 tables, 4 patterns)</td>
+        <td>Redondance DB et code</td>
+        <td>Table <code>audit_events</code> unifiée + colonne <code>module</code></td>
+      </tr>
+      <tr>
+        <td>Config des rôles (label, color)</td>
+        <td><code>types/index.ts</code> ROLE_CONFIG + maquettes HTML (chacune sa propre config)</td>
+        <td>Risque de désynchronisation</td>
+        <td>Source unique dans types, import dans maquettes</td>
+      </tr>
+      <tr>
+        <td>ENUM alert vs notification</td>
+        <td>007 (alert_level/category) et 009 (notification_priority/category)</td>
+        <td>Confusion sémantique, jointures incorrectes</td>
+        <td>Unifier en migration 011</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Tables audit — 4 tables séparées à unifier</h3>
+  <div class="card card-yellow">
+    <pre><span class="c">-- Actuellement : 4 tables audit séparées</span>
+<span class="err">payment_audit_log   -- 004
+finance_audit_log   -- 008
+hr_audit_log        -- 006
+hk_audit_log        -- 010</span>
+
+<span class="c">-- ✅ Recommandation : 1 table centralisée en migration 011</span>
+<span class="fix">CREATE TABLE IF NOT EXISTS public.audit_events (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id UUID NOT NULL REFERENCES public.properties(id),
+  user_id     UUID REFERENCES public.app_users(id),
+  module      TEXT NOT NULL, -- 'finance', 'hr', 'housekeeping', 'payment'
+  entity      TEXT NOT NULL, -- 'expense_request', 'employee', etc.
+  entity_id   UUID,
+  action      TEXT NOT NULL, -- 'created', 'approved', 'rejected', etc.
+  old_data    JSONB,
+  new_data    JSONB,
+  ip_address  INET,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);</span></pre>
+  </div>
+</section>
+
+<!-- ═══ 8. DÉPENDANCES DANGEREUSES ═══ -->
+<section id="deps">
+  <h2>8️⃣ Dépendances dangereuses</h2>
+
+  <div class="timeline">
+    <div class="tl-item red">
+      <div class="tl-title" style="color:var(--red);">Finance → auth.users (bypass app_users)</div>
+      <div class="tl-body">
+        <strong>Chemin :</strong> <code>expense_requests.submitted_by</code> → <code>auth.users(id)</code><br>
+        <strong>Danger :</strong> Aucun accès aux champs du profil utilisateur (name, phone, department). Jointures Finance + RH impossibles proprement. Si on supprime un utilisateur de <code>app_users</code> mais pas de <code>auth.users</code>, les données Finance pointent vers un "fantôme".<br>
+        <span class="badge err">🔴 Bloquant production</span>
+      </div>
+    </div>
+
+    <div class="tl-item red">
+      <div class="tl-title" style="color:var(--red);">Trigger HK → reservations (couplage fort)</div>
+      <div class="tl-body">
+        <strong>Chemin :</strong> <code>fn_auto_create_hk_task()</code> lit <code>reservations.unit_id</code>, <code>reservations.client_id</code>, <code>reservations.total</code><br>
+        <strong>Danger :</strong> Toute modification du schéma <code>reservations</code> (renommage colonne, suppression) casse silencieusement le trigger. Pas de test unitaire possible sans les deux tables.<br>
+        <span class="badge warn">⚠️ Risque moyen — documenter dans migration</span>
+      </div>
+    </div>
+
+    <div class="tl-item yellow">
+      <div class="tl-title" style="color:var(--yellow);">Analytics → 3 tables (snapshot fragile)</div>
+      <div class="tl-body">
+        <strong>Chemin :</strong> <code>analytics_daily_snapshots</code> agrège <code>reservations</code>, <code>payments</code>, <code>restaurant_orders</code><br>
+        <strong>Danger :</strong> Si le calcul du snapshot est un trigger/cron et que l'une des 3 tables change de schéma, les snapshots deviennent silencieusement incorrects (pas d'erreur, données fausses).<br>
+        <span class="badge warn">⚠️ Risque moyen — ajouter des assertions</span>
+      </div>
+    </div>
+
+    <div class="tl-item yellow">
+      <div class="tl-title" style="color:var(--yellow);">HR employees → import dynamique incorrect</div>
+      <div class="tl-body">
+        <strong>Chemin :</strong> <code>app/api/hr/employees/route.ts</code> ligne 51 : <code>import('@/lib/auth/permissions').createClient</code><br>
+        <strong>Danger :</strong> <code>permissions.ts</code> n'exporte pas <code>createClient</code> — cet import échoue à runtime. Le code passe en compilation TypeScript mais crash en production.<br>
+        <span class="badge err">🔴 Bug runtime</span>
+      </div>
+    </div>
+
+    <div class="tl-item blue">
+      <div class="tl-title" style="color:var(--blue);">Notifications sans lien FK vers system_events</div>
+      <div class="tl-body">
+        <strong>Chemin :</strong> Table <code>notifications</code> n'a pas de FK vers <code>system_events</code><br>
+        <strong>Danger :</strong> Une notification peut référencer un event_id inexistant. Les events peuvent être supprimés sans cascader sur les notifications liées.<br>
+        <span class="badge info">ℹ️ Risque faible — intégrité référentielle</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 9. COUPLAGES EXCESSIFS ═══ -->
+<section id="couplage">
+  <h2>9️⃣ Couplages excessifs</h2>
+
+  <h3>Modules trop couplés — carte de chaleur</h3>
+  <div class="matrix">
+  <table>
+    <thead>
+      <tr>
+        <th>Module ↓ dépend de →</th>
+        <th>Auth</th>
+        <th>Réserv.</th>
+        <th>Paiements</th>
+        <th>Restaurant</th>
+        <th>RH</th>
+        <th>Finance</th>
+        <th>HK</th>
+        <th>Notifs</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Analytics</td><td>🟡</td><td>🔴</td><td>🔴</td><td>🔴</td><td>🟡</td><td>🟡</td><td>—</td><td>—</td></tr>
+      <tr><td>Finance</td><td>🔴*</td><td>—</td><td>🟡</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      <tr><td>Housekeeping</td><td>🟡</td><td>🔴</td><td>—</td><td>—</td><td>🟡</td><td>—</td><td>—</td><td>🟢</td></tr>
+      <tr><td>Notifications</td><td>🟡</td><td>🟡</td><td>🟡</td><td>🟡</td><td>🟡</td><td>🟡</td><td>🟡</td><td>—</td></tr>
+      <tr><td>Paiements</td><td>🟡</td><td>🟡</td><td>—</td><td>🟡</td><td>—</td><td>🟡</td><td>—</td><td>—</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="color:var(--text3);font-size:12px;margin-top:6px;">🔴 Couplage fort (FK directe ou trigger) · 🟡 Couplage moyen (jointure API) · 🟢 Couplage faible (events) · * via auth.users incorrect</p>
+
+  <h3>Recommandations de découplage</h3>
+  <div class="card card-blue">
+    <h4>Pattern Event-driven pour découpler Analytics et Notifications</h4>
+    <pre><span class="c">// Actuellement — couplage direct (fragile) :</span>
+<span class="err">analytics_daily_snapshots → JOIN reservations, payments, restaurant_orders</span>
+
+<span class="c">// ✅ Recommandé — passer par system_events :</span>
+<span class="fix">-- Chaque module émet un event dans system_events
+INSERT INTO system_events (property_id, module, event_type, payload)
+VALUES ($1, 'reservation', 'checkout', { unit_id, revenue, ... });
+
+-- Analytics lit system_events → snapshot découplé
+-- Notifications écoute system_events via Realtime → alertes découplées</span></pre>
+  </div>
+</section>
+
+<!-- ═══ 10. RECOMMANDATIONS ═══ -->
+<section id="reco">
+  <h2>🔧 10. Recommandations avant intégration</h2>
+
+  <div class="priority-grid">
+    <div class="pbox" style="border-top:3px solid var(--red);">
+      <div class="pbox-title" style="color:var(--red);">🔴 Priorité 1 — BLOQUANTS</div>
+      <ol>
+        <li>Corriger <code>auth.users</code> → <code>app_users</code> dans 008_finance.sql (migration 011)</li>
+        <li>Créer routes API <code>/api/housekeeping/*</code> (5 routes minimum)</li>
+        <li>Créer routes API <code>/api/notifications/*</code> (4 routes minimum)</li>
+        <li>Protéger <code>/hr, /analytics, /housekeeping, /notifications, /invoices</code> dans middleware.ts</li>
+        <li>Corriger import HR employees (getAdminClient, pas createClient)</li>
+      </ol>
+    </div>
+
+    <div class="pbox" style="border-top:3px solid var(--orange);">
+      <div class="pbox-title" style="color:var(--orange);">🟠 Priorité 2 — MAJEURS</div>
+      <ol>
+        <li>Compléter TAB_ACCESS (+4 entrées : hr, analytics, housekeeping, notifications)</li>
+        <li>Compléter PERMISSIONS (+9 actions)</li>
+        <li>Ajouter entrées sidebar manquantes (5 liens)</li>
+        <li>Créer <code>lib/api/withAuth.ts</code> — centraliser auth check</li>
+        <li>Ajouter <code>property_id</code> sur notification_channels et notification_templates</li>
+        <li>Unifier préfixe <code>public.</code> dans migrations 007-010</li>
+        <li>Créer page <code>app/(dashboard)/invoices/page.tsx</code></li>
+        <li>Créer composants TSX Finance, Housekeeping, Notifications</li>
+      </ol>
+    </div>
+
+    <div class="pbox" style="border-top:3px solid var(--yellow);">
+      <div class="pbox-title" style="color:var(--yellow);">🟡 Priorité 3 — AMÉLIORATIONS</div>
+      <ol>
+        <li>Compléter <code>types/index.ts</code> — interfaces modules 007-010</li>
+        <li>Unifier les 4 tables audit_log en une table <code>audit_events</code></li>
+        <li>Unifier ENUMs alert/notification (doublon conceptuel)</li>
+        <li>Unifier <code>payment_method</code> et <code>payment_method_fin</code></li>
+        <li>Documenter les dépendances du trigger HK → reservations</li>
+        <li>Ajouter FK notifications → system_events</li>
+      </ol>
+    </div>
+
+    <div class="pbox" style="border-top:3px solid var(--blue);">
+      <div class="pbox-title" style="color:var(--blue);">🔵 Priorité 4 — SCALABILITÉ</div>
+      <ol>
+        <li>Adopter le pattern Event-driven via system_events pour Analytics + Notifications</li>
+        <li>Créer <code>lib/api/withProperty.ts</code> — résolution property_id centralisée</li>
+        <li>Ajouter rate limiting sur les routes API sensibles</li>
+        <li>Créer index composites sur (property_id, created_at) pour toutes les tables volumineuses</li>
+        <li>Préparer <code>011_standardization.sql</code> pour corriger les incohérences DB</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 11. PLAN D'ACTION ═══ -->
+<section id="plan">
+  <h2>📅 11. Plan d'action — 3 sprints</h2>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-weight:800;font-size:16px;">Sprint A — Corrections bloquantes</div>
+      <span class="badge err">~2 sessions</span>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Action</th><th>Fichier(s)</th><th>Effort</th></tr></thead>
+      <tbody>
+        <tr><td>A1</td><td>Migration <code>011_standardization.sql</code> — fix auth.users, property_id notifs, public. prefix</td><td>supabase/migrations/011_*.sql</td><td>1h</td></tr>
+        <tr><td>A2</td><td>Créer <code>lib/api/withAuth.ts</code> + refactoriser 3 routes pilotes</td><td>lib/api/withAuth.ts</td><td>1h</td></tr>
+        <tr><td>A3</td><td>Corriger middleware.ts — ajouter 5 routes manquantes</td><td>middleware.ts</td><td>15min</td></tr>
+        <tr><td>A4</td><td>Corriger import HR employees (getAdminClient)</td><td>app/api/hr/employees/route.ts</td><td>5min</td></tr>
+        <tr><td>A5</td><td>Créer API housekeeping (5 routes) + API notifications (4 routes)</td><td>app/api/housekeeping/*, notifications/*</td><td>3h</td></tr>
+        <tr><td>A6</td><td>Créer pages manquantes housekeeping, notifications, invoices</td><td>app/(dashboard)/*/page.tsx</td><td>1h</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-weight:800;font-size:16px;">Sprint B — Standardisation</div>
+      <span class="badge warn">~2 sessions</span>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Action</th><th>Fichier(s)</th><th>Effort</th></tr></thead>
+      <tbody>
+        <tr><td>B1</td><td>Compléter TAB_ACCESS (+4) et PERMISSIONS (+9)</td><td>types/index.ts</td><td>30min</td></tr>
+        <tr><td>B2</td><td>Ajouter entrées sidebar (hr, analytics, housekeeping, notifications)</td><td>components/layout/Sidebar.tsx</td><td>30min</td></tr>
+        <tr><td>B3</td><td>Créer composants TSX FinanceView, HousekeepingView, NotificationsView</td><td>components/*/</td><td>4h</td></tr>
+        <tr><td>B4</td><td>Compléter types/index.ts — interfaces HK, Finance, Notifications</td><td>types/index.ts</td><td>1h</td></tr>
+        <tr><td>B5</td><td>Refactoriser toutes les routes pour utiliser withAuth()</td><td>app/api/**/*.ts</td><td>2h</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-weight:800;font-size:16px;">Sprint C — Optimisation &amp; Scalabilité</div>
+      <span class="badge info">~1 session</span>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Action</th><th>Impact</th></tr></thead>
+      <tbody>
+        <tr><td>C1</td><td>Unifier 4 tables audit_log → audit_events</td><td>Requêtes cross-module, reporting</td></tr>
+        <tr><td>C2</td><td>Unifier ENUMs alert/* et notification/*</td><td>Jointures Analytics ↔ Notifs</td></tr>
+        <tr><td>C3</td><td>Unifier payment_method ENUMs</td><td>Jointures Finance ↔ Paiements</td></tr>
+        <tr><td>C4</td><td>Implémenter pattern Event-driven via system_events</td><td>Découplage Analytics, Notifs</td></tr>
+        <tr><td>C5</td><td>Ajouter index composites (property_id, created_at)</td><td>Performance requêtes volumineuses</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══ 12. STANDARD CIBLE ═══ -->
+<section id="standard">
+  <h2>📐 12. Standard cible — Architecture standardisée</h2>
+
+  <h3>Convention API — pattern unifié</h3>
+  <pre><span class="c">// ✅ lib/api/withAuth.ts — à créer</span>
+<span class="k">import</span> { createClient } <span class="k">from</span> <span class="s">'@/lib/supabase/server'</span>
+<span class="k">import</span> { NextRequest, NextResponse } <span class="k">from</span> <span class="s">'next/server'</span>
+<span class="k">import type</span> { OrgRole } <span class="k">from</span> <span class="s">'@/types'</span>
+
+<span class="k">type</span> AuthContext = { user: User; role: OrgRole; supabase: SupabaseClient; propertyId: string }
+<span class="k">type</span> Handler = (req: NextRequest, ctx: AuthContext) => Promise&lt;NextResponse&gt;
+
+<span class="k">export function</span> withAuth(allowedRoles: OrgRole[], handler: Handler) {
+  <span class="k">return async</span> (req: NextRequest) => {
+    <span class="k">const</span> supabase = <span class="k">await</span> createClient()
+    <span class="k">const</span> { data: { user } } = <span class="k">await</span> supabase.auth.getUser()
+    <span class="k">if</span> (!user) <span class="k">return</span> NextResponse.json({ error: <span class="s">'Unauthorized'</span> }, { status: 401 })
+
+    <span class="k">const</span> propertyId = req.nextUrl.searchParams.get(<span class="s">'property_id'</span>)
+      ?? (await req.clone().json().catch(() => ({}))).property_id
+    <span class="k">if</span> (!propertyId) <span class="k">return</span> NextResponse.json({ error: <span class="s">'property_id requis'</span> }, { status: 400 })
+
+    <span class="k">const</span> { data: up } = <span class="k">await</span> supabase.from(<span class="s">'user_properties'</span>)
+      .select(<span class="s">'role'</span>).eq(<span class="s">'user_id'</span>, user.id).eq(<span class="s">'property_id'</span>, propertyId).single()
+    <span class="k">if</span> (!up || !allowedRoles.includes(up.role as OrgRole))
+      <span class="k">return</span> NextResponse.json({ error: <span class="s">'Permission refusée'</span> }, { status: 403 })
+
+    <span class="k">return</span> handler(req, { user, role: up.role <span class="k">as</span> OrgRole, supabase, propertyId })
+  }
+}
+
+<span class="c">// ✅ Usage dans n'importe quelle route :</span>
+<span class="k">export const</span> GET = withAuth([<span class="s">'owner'</span>, <span class="s">'hotel_manager'</span>, <span class="s">'housekeeping'</span>], <span class="k">async</span> (req, { supabase, propertyId }) => {
+  <span class="k">const</span> { data } = <span class="k">await</span> supabase.from(<span class="s">'housekeeping_tasks'</span>).select(<span class="s">'*'</span>).eq(<span class="s">'property_id'</span>, propertyId)
+  <span class="k">return</span> NextResponse.json({ data })
+})</pre>
+
+  <h3>Convention SQL — standard à appliquer</h3>
+  <pre><span class="c">-- ✅ Règles pour toutes les migrations :</span>
+<span class="c">-- 1. Toujours préfixer public.</span>
+CREATE TABLE IF NOT EXISTS <span class="fix">public.</span>ma_table (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  property_id UUID NOT NULL REFERENCES <span class="fix">public.</span>properties(id) ON DELETE CASCADE,
+  created_by  UUID REFERENCES <span class="fix">public.app_users(id)</span>,  -- JAMAIS auth.users
+  created_at  TIMESTAMPTZ DEFAULT now() NOT NULL,
+  updated_at  TIMESTAMPTZ DEFAULT now() NOT NULL
+);
+<span class="c">-- 2. Toujours activer RLS</span>
+ALTER TABLE <span class="fix">public.</span>ma_table ENABLE ROW LEVEL SECURITY;
+<span class="c">-- 3. Index composite systématique</span>
+CREATE INDEX ON <span class="fix">public.</span>ma_table (property_id, created_at DESC);
+<span class="c">-- 4. Trigger updated_at</span>
+CREATE TRIGGER set_ma_table_updated_at BEFORE UPDATE ON <span class="fix">public.</span>ma_table
+  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();</pre>
+
+  <h3>Convention Composant TSX — template standard</h3>
+  <pre><span class="c">// components/[module]/[Module]View.tsx — structure standard</span>
+<span class="s">'use client'</span>
+<span class="k">import</span> { useProperty } <span class="k">from</span> <span class="s">'@/lib/hooks/useProperty'</span>
+<span class="k">import</span> { useAuth } <span class="k">from</span> <span class="s">'@/lib/hooks/useAuth'</span>
+<span class="k">import</span> { can, canAccessTab } <span class="k">from</span> <span class="s">'@/types'</span>
+
+<span class="k">export default function</span> ModuleView() {
+  <span class="k">const</span> { property } = useProperty()     <span class="c">// ✅ property_id central</span>
+  <span class="k">const</span> { user } = useAuth()             <span class="c">// ✅ rôle courant</span>
+  <span class="k">if</span> (!canAccessTab(user, <span class="s">'module'</span>)) <span class="k">return null</span>
+  <span class="c">// ... rendu avec vérifications can(user, 'action') au niveau granulaire</span>
+}</pre>
+
+  <div class="card card-green" style="margin-top:24px;">
+    <div style="font-weight:800;font-size:15px;color:var(--green);margin-bottom:10px;">✅ Après implémentation des corrections — État cible</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;">
+      <div>✅ 9 modules avec DB + API + composant + page + types</div>
+      <div>✅ Middleware couvrant 100% des routes dashboard</div>
+      <div>✅ 1 pattern auth centralisé dans withAuth()</div>
+      <div>✅ Toutes les FK vers public.app_users (jamais auth.users)</div>
+      <div>✅ TAB_ACCESS et PERMISSIONS couvrant tous les modules</div>
+      <div>✅ Sidebar complète avec 5 modules manquants</div>
+      <div>✅ Préfixe public. uniforme dans toutes les migrations</div>
+      <div>✅ 1 table audit_events centralisée</div>
+      <div>✅ property_id sur notification_channels et templates</div>
+      <div>✅ ENUMs alert/notification unifiés</div>
+    </div>
+  </div>
+</section>
+
+<div style="margin-top:48px;padding:20px;text-align:center;color:var(--text3);font-size:12px;border-top:1px solid var(--border);">
+  Veraluz OS — Audit Technique v1.0 · Généré le 14 Mai 2026 · Résidence Veraluz, Kribi, Cameroun<br>
+  Pilote: Smith · Architecture: Next.js 16 + Supabase PostgreSQL + TypeScript 5
+</div>
+
+</main>
+</div>
+
+<script>
+// Highlight active TOC item on scroll
+const sections = document.querySelectorAll('section[id]');
+const links = document.querySelectorAll('.toc a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 80) current = s.id;
+  });
+  links.forEach(l => {
+    l.style.color = l.getAttribute('href') === '#' + current ? 'var(--accent)' : '';
+    l.style.borderLeftColor = l.getAttribute('href') === '#' + current ? 'var(--accent)' : 'transparent';
+    l.style.background = l.getAttribute('href') === '#' + current ? 'rgba(99,102,241,.06)' : '';
+  });
+});
+// Smooth scroll
+links.forEach(l => l.addEventListener('click', e => {
+  e.preventDefault();
+  document.querySelector(l.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+}));
+</script>
+</body>
+</html>

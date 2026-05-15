@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head><script>window.__MODULE_NAME__ = 'notifications';</script>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Veraluz OS — Notifications &amp; Alertes</title>
+<style>
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#242836;--bg4:#2e3347;--border:#3a3f55;--border2:#4a5068;
+  --accent:#6c63ff;--accent2:#8b7fff;--glow:rgba(108,99,255,.15);
+  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;--cyan:#06b6d4;
+  --orange:#f97316;--purple:#8b5cf6;--pink:#ec4899;--teal:#14b8a6;
+  --text:#e8eaf6;--text2:#9ca3af;--text3:#6b7280;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
+.app{display:flex;height:100vh;overflow:hidden;}
+/* Sidebar */
+.sidebar{width:210px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.logo{padding:14px 16px;border-bottom:1px solid var(--border);}
+.logo-t{font-size:15px;font-weight:700;color:var(--accent2);}
+.logo-s{font-size:10px;color:var(--text3);}
+.nav{padding:6px;flex:1;overflow-y:auto;}
+.nv{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;color:var(--text2);font-size:12.5px;margin-bottom:1px;transition:.15s;}
+.nv:hover{background:var(--bg3);color:var(--text);}
+.nv.active{background:var(--glow);color:var(--accent2);border:1px solid var(--border);}
+.nv-icon{font-size:15px;width:18px;text-align:center;}
+.nv-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;font-weight:600;}
+.nav-user{padding:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.u-av{width:32px;height:32px;border-radius:50%;background:rgba(108,99,255,.2);color:var(--accent2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+.u-nm{font-size:12px;font-weight:600;}.u-rl{font-size:10px;color:var(--text3);}
+.ca-tag{background:rgba(108,99,255,.15);color:var(--accent2);border:1px solid rgba(108,99,255,.2);padding:1px 6px;border-radius:8px;font-size:9px;font-weight:700;}
+/* Main */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;}
+.pg-title{font-size:17px;font-weight:700;flex:1;}
+.pulse{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(16,185,129,.4);animation:pulse 2s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.4);}70%{box-shadow:0 0 0 8px rgba(16,185,129,0);}100%{box-shadow:0 0 0 0 rgba(16,185,129,0);}}
+.pulse-red{background:var(--red);box-shadow:0 0 0 0 rgba(239,68,68,.4);animation:pulseR 1.5s infinite;}
+@keyframes pulseR{0%{box-shadow:0 0 0 0 rgba(239,68,68,.4);}70%{box-shadow:0 0 0 8px rgba(239,68,68,0);}100%{box-shadow:0 0 0 0 rgba(239,68,68,0);}}
+/* Tabs */
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 14px;overflow-x:auto;flex-shrink:0;}
+.tab{padding:10px 13px;font-size:12.5px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent2);border-bottom-color:var(--accent);}
+.tab-badge{background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:3px;font-weight:700;}
+/* Content */
+.content{flex:1;overflow-y:auto;padding:16px;}
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px;margin-bottom:16px;}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:13px;transition:.15s;}
+.kpi-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.kpi-val{font-size:22px;font-weight:700;margin:2px 0;}
+.kpi-sub{font-size:11px;color:var(--text3);}
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:12px;}
+.card-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;}
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr;}.sidebar{display:none;}}
+/* Badges */
+.bdg{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;}
+.bg{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2);}
+.br{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.by{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2);}
+.bb{background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.2);}
+.bp{background:rgba(108,99,255,.1);color:var(--accent2);border:1px solid rgba(108,99,255,.2);}
+.bgr{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.bo{background:rgba(249,115,22,.1);color:var(--orange);border:1px solid rgba(249,115,22,.2);}
+.bc{background:rgba(6,182,212,.1);color:var(--cyan);border:1px solid rgba(6,182,212,.2);}
+.bpk{background:rgba(236,72,153,.1);color:var(--pink);border:1px solid rgba(236,72,153,.2);}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:.15s;}
+.bp_{background:var(--accent);color:#fff;}.bp_:hover{background:var(--accent2);}
+.bg_{background:var(--green);color:#fff;}.bg_:hover{opacity:.85;}
+.br_{background:var(--red);color:#fff;}.br_:hover{opacity:.85;}
+.by_{background:var(--yellow);color:#000;}.by_:hover{opacity:.85;}
+.bo_{background:var(--bg3);border:1px solid var(--border);color:var(--text2);}.bo_:hover{color:var(--text);background:var(--bg4);}
+.btn-sm{padding:4px 9px;font-size:11px;}
+/* Modals */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+.mh{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1;}
+.mt{font-size:15px;font-weight:600;}
+.mc{background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:15px;}
+.mb{padding:18px;}
+.mf{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+/* Form */
+.fg{margin-bottom:11px;}
+label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:500;}
+input,select,textarea{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:13px;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+/* Notification items */
+.notif-item{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;border-radius:9px;margin-bottom:6px;cursor:pointer;transition:.15s;border-left:3px solid transparent;position:relative;}
+.notif-item:hover{background:var(--bg3);}
+.notif-item.unread{background:rgba(108,99,255,.05);border-left-color:var(--accent);}
+.notif-item.critical{border-left-color:var(--red);background:rgba(239,68,68,.05);}
+.notif-item.high{border-left-color:var(--orange);}
+.notif-item.medium{border-left-color:var(--yellow);}
+.notif-item.low{border-left-color:var(--green);}
+.notif-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.notif-body{flex:1;min-width:0;}
+.notif-title{font-size:13px;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.notif-text{font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.notif-meta{font-size:10px;color:var(--text3);margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.notif-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+/* Channel indicators */
+.ch-icon{font-size:14px;opacity:.85;}
+/* Alert banner */
+.alert-banner{padding:10px 14px;border-radius:9px;font-size:12.5px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.al-crit{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5;animation:flashBorder 2s infinite;}
+@keyframes flashBorder{0%,100%{border-color:rgba(239,68,68,.3);}50%{border-color:rgba(239,68,68,.7);}}
+.al-warn{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:var(--yellow);}
+.al-info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:var(--blue);}
+.al-ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:var(--green);}
+/* Timeline */
+.tl{position:relative;padding-left:18px;}
+.tl::before{content:'';position:absolute;left:5px;top:0;bottom:0;width:2px;background:var(--border);}
+.tl-item{position:relative;margin-bottom:10px;}
+.tl-dot{position:absolute;left:-16px;top:3px;width:9px;height:9px;border-radius:50%;border:2px solid var(--bg2);}
+.tl-time{font-size:10px;color:var(--text3);}
+.tl-text{font-size:12.5px;margin-top:1px;}
+/* Toggle switch */
+.toggle-wrap{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bg4);}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:var(--border2);border-radius:20px;cursor:pointer;transition:.3s;}
+.toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
+.toggle input:checked + .toggle-slider{background:var(--accent);}
+.toggle input:checked + .toggle-slider::before{transform:translateX(16px);}
+/* Channel cards */
+.ch-card{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:8px;}
+.ch-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.ch-badge-status{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+/* Priority bars */
+.pr-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.pr-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+/* Stats mini */
+.stat-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bg4);font-size:12.5px;}
+/* Rules */
+.rule-card{background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;}
+/* Toast */
+.toast{position:fixed;bottom:16px;right:16px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-size:12.5px;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:340px;}
+.toast.show{display:flex;align-items:center;gap:8px;}
+/* Realtime indicator */
+.rt-dot{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--green);}
+/* Table */
+.tw{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:7px 10px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
+td{padding:9px 10px;border-bottom:1px solid var(--bg4);font-size:12.5px;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg3);}
+::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:8px;}
+</style>
+<style data-injected="embedded-mode">
+/* ═══════════════════════════════════════
+   EMBEDDED MODE — injecté par create_embedded.py
+   Supprime toute interface interne et force le module
+   à occuper 100% du cadre iframe du Core
+═══════════════════════════════════════ */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  background: var(--bg-main, #0f172a) !important;
+}
+
+/* Supprimer les wrappers inutiles */
+.app {
+  display: block !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+/* .main occupe tout l'espace */
+.main {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100vh !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: var(--bg-main, #0f172a) !important;
+}
+
+/* Tabs collés en haut */
+.tabs {
+  flex-shrink: 0 !important;
+}
+
+/* Content scrollable prend le reste */
+.content {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+}
+
+/* RESTAURANT: les .view occupent tout le .main */
+.main > .view {
+  display: none;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  box-sizing: border-box;
+}
+.main > .view.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Masquer sidebar, topbar, toast internes */
+.sidebar,
+aside.sidebar,
+.topbar,
+#toast,
+.toast,
+.bottom-nav,
+nav.bottom-nav {
+  display: none !important;
+}
+</style></head>
+<body><script data-injected="embedded-bridge">
+/* ═══════════════════════════════════════
+   EMBEDDED BRIDGE — Communication avec Veraluz OS Core
+   Injecté par create_embedded.py
+═══════════════════════════════════════ */
+(function() {
+  'use strict';
+
+  /* 1. Toast → déléguer au parent */
+  window.toast = function(msg, type) {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.showToast(msg, type || 'info');
+      }
+    } catch(e) {
+      console.log('[Embedded toast]', msg, type);
+    }
+  };
+
+  /* Aussi patcher showToast si défini localement */
+  window.showToast = window.toast;
+
+  /* 2. Émettre un événement vers le Core via postMessage */
+  window.emitToCore = function(type, data) {
+    try {
+      window.parent.postMessage({
+        veraluzEvent: true,
+        type: type,
+        data: data,
+        source: window.__MODULE_NAME__ || 'embedded-module'
+      }, '*');
+    } catch(e) {}
+  };
+
+  /* 3. Recevoir des événements du Core */
+  window.addEventListener('message', function(e) {
+    if (!e.data || !e.data.veraluzEvent) return;
+    var evt = new CustomEvent('veraluz:' + e.data.type, { detail: e.data.data });
+    window.dispatchEvent(evt);
+  });
+
+  /* 4. Signaler au Core que le module est chargé */
+  window.addEventListener('DOMContentLoaded', function() {
+    window.emitToCore('module:ready', { module: window.__MODULE_NAME__ });
+  });
+})();
+</script>
+<div class="app">
+<!-- SIDEBAR -->
+
+<!-- MAIN -->
+<div class="main">
+
+<div class="tabs">
+<div class="tab active" id="tab-dashboard" onclick="switchTab('dashboard')">📊 Dashboard</div>
+<div class="tab" id="tab-centre" onclick="switchTab('centre')">🔔 Centre<span class="tab-badge" id="tab-notif-badge">7</span></div>
+<div class="tab" id="tab-alertes" onclick="switchTab('alertes')">🚨 Alertes critiques<span class="tab-badge" id="tab-alert-badge" style="background:var(--red);">2</span></div>
+<div class="tab" id="tab-canaux" onclick="switchTab('canaux')">📡 Canaux</div>
+<div class="tab" id="tab-regles" onclick="switchTab('regles')">⚙️ Règles auto</div>
+<div class="tab" id="tab-preferences" onclick="switchTab('preferences')">🎛️ Préférences</div>
+<div class="tab" id="tab-historique" onclick="switchTab('historique')">📋 Historique</div>
+</div>
+<div class="content" id="content"></div>
+</div>
+</div>
+<!-- MODAL: Envoyer notification manuelle -->
+<div class="modal-overlay" id="modal-send">
+<div class="modal">
+<div class="mh"><span class="mt">📤 Envoyer une Notification</span><button class="mc" onclick="closeModal('modal-send')">✕</button></div>
+<div class="mb">
+<div class="fg"><label>Destinataires *</label>
+<select id="snd-to" multiple="" style="height:90px;">
+<option value="all_managers">👔 Tous les Managers</option>
+<option selected="" value="owner">🇨🇦 Smith (Owner)</option>
+<option value="reception">🛎️ Équipe Réception</option>
+<option value="raoul">👤 Raoul Ondoua (Manager)</option>
+<option value="andree">👤 Andrée Koung (Comptable)</option>
+<option value="judith">👤 Judith Biyong (Réceptionniste)</option>
+<option value="theodore">👤 Théodore Mba (Maintenance)</option>
+</select>
+<div style="font-size:10px;color:var(--text3);margin-top:3px;">Ctrl+clic pour sélection multiple</div>
+</div>
+<div class="fg2">
+<div class="fg"><label>Priorité</label>
+<select id="snd-priority">
+<option value="low">🟢 Faible</option>
+<option selected="" value="medium">🟡 Normale</option>
+<option value="high">🟠 Haute</option>
+<option value="critical">🔴 Critique</option>
+</select>
+</div>
+<div class="fg"><label>Catégorie</label>
+<select id="snd-cat">
+<option value="system">⚙️ Système</option>
+<option value="reservation">🛏️ Réservation</option>
+<option value="payment">💳 Paiement</option>
+<option value="expense">💰 Dépense</option>
+<option value="maintenance">🔧 Maintenance</option>
+<option value="security">🔒 Sécurité</option>
+<option value="hr">👥 RH</option>
+</select>
+</div>
+</div>
+<div class="fg"><label>Titre *</label><input id="snd-title" placeholder="ex: Alerte trésorerie — action requise"/></div>
+<div class="fg"><label>Message *</label><textarea id="snd-msg" placeholder="Corps du message..."></textarea></div>
+<div class="fg"><label>Canaux d'envoi</label>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+<label style="display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text);font-size:12px;">
+<input checked="" id="ch-inapp" style="width:auto;" type="checkbox"/> 📱 In-App
+        </label>
+<label style="display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text);font-size:12px;">
+<input checked="" id="ch-whatsapp" style="width:auto;" type="checkbox"/> 💬 WhatsApp
+        </label>
+<label style="display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text);font-size:12px;">
+<input id="ch-email" style="width:auto;" type="checkbox"/> 📧 Email
+        </label>
+<label style="display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text);font-size:12px;">
+<input id="ch-sms" style="width:auto;" type="checkbox"/> 💬 SMS
+        </label>
+<label style="display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text);font-size:12px;">
+<input id="ch-push" style="width:auto;" type="checkbox"/> 🔔 Push
+        </label>
+</div>
+</div>
+</div>
+<div class="mf">
+<button class="btn bo_" onclick="closeModal('modal-send')">Annuler</button>
+<button class="btn bp_" onclick="sendManualNotif()">📤 Envoyer maintenant</button>
+</div>
+</div>
+</div>
+<!-- MODAL: Détail notification -->
+<div class="modal-overlay" id="modal-notif-detail">
+<div class="modal" style="max-width:500px;">
+<div class="mh"><span class="mt" id="nd-title">Détail Notification</span><button class="mc" onclick="closeModal('modal-notif-detail')">✕</button></div>
+<div class="mb" id="nd-body"></div>
+<div class="mf" id="nd-footer"></div>
+</div>
+</div>
+<!-- MODAL: Nouvelle règle -->
+<div class="modal-overlay" id="modal-rule">
+<div class="modal">
+<div class="mh"><span class="mt">⚙️ Nouvelle Règle Automatique</span><button class="mc" onclick="closeModal('modal-rule')">✕</button></div>
+<div class="mb">
+<div class="fg"><label>Nom de la règle *</label><input id="rl-name" placeholder="ex: Alerte solde caisse bas"/></div>
+<div class="fg2">
+<div class="fg"><label>Déclencheur</label>
+<select id="rl-trigger">
+<option value="event">📡 Événement système</option>
+<option value="threshold">📊 Seuil dépassé</option>
+<option value="schedule">⏰ Planifié</option>
+<option value="absence">⚠️ Absence d'événement</option>
+</select>
+</div>
+<div class="fg"><label>Priorité</label>
+<select id="rl-priority">
+<option value="low">🟢 Faible</option>
+<option value="medium">🟡 Normale</option>
+<option selected="" value="high">🟠 Haute</option>
+<option value="critical">🔴 Critique</option>
+</select>
+</div>
+</div>
+<div class="fg"><label>Condition / Description</label>
+<input id="rl-condition" placeholder="ex: Solde caisse &lt; 100 000 FCFA">
+</input></div>
+<div class="fg"><label>Notifier</label>
+<select id="rl-roles" multiple="" style="height:80px;">
+<option selected="" value="owner">🇨🇦 Owner (Canada)</option>
+<option value="hotel_manager">👔 Manager</option>
+<option value="accountant">📊 Comptable</option>
+<option value="reception">🛎️ Réception</option>
+</select>
+</div>
+<div class="fg"><label>Canaux</label>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:var(--text);">
+<input checked="" id="rl-inapp" style="width:auto;" type="checkbox"/> In-App
+        </label>
+<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:var(--text);">
+<input checked="" id="rl-wa" style="width:auto;" type="checkbox"/> WhatsApp
+        </label>
+<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;color:var(--text);">
+<input id="rl-em" style="width:auto;" type="checkbox"/> Email
+        </label>
+</div>
+</div>
+</div>
+<div class="mf">
+<button class="btn bo_" onclick="closeModal('modal-rule')">Annuler</button>
+<button class="btn bp_" onclick="addRule()">✅ Créer la règle</button>
+</div>
+</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════════
+const PRIORITIES={
+  critical:{label:'Critique',cls:'br',color:'var(--red)',dot:'🔴'},
+  high:{label:'Haute',cls:'bo',color:'var(--orange)',dot:'🟠'},
+  medium:{label:'Normale',cls:'by',color:'var(--yellow)',dot:'🟡'},
+  low:{label:'Faible',cls:'bg',color:'var(--green)',dot:'🟢'},
+};
+const CATEGORIES={
+  reservation:{label:'Réservation',icon:'🛏️',color:'#6c63ff'},
+  payment:{label:'Paiement',icon:'💳',color:'#10b981'},
+  expense:{label:'Dépense',icon:'💰',color:'#f97316'},
+  room:{label:'Chambre',icon:'🏠',color:'#3b82f6'},
+  maintenance:{label:'Maintenance',icon:'🔧',color:'#06b6d4'},
+  security:{label:'Sécurité',icon:'🔒',color:'#ef4444'},
+  hr:{label:'RH',icon:'👥',color:'#8b5cf6'},
+  restaurant:{label:'Restaurant',icon:'🍽️',color:'#f59e0b'},
+  system:{label:'Système',icon:'⚙️',color:'#6b7280'},
+  custom:{label:'Personnalisé',icon:'📌',color:'#ec4899'},
+};
+const CHANNELS={
+  in_app:{label:'In-App',icon:'📱',color:'var(--accent2)'},
+  whatsapp:{label:'WhatsApp',icon:'💬',color:'var(--green)'},
+  email:{label:'Email',icon:'📧',color:'var(--blue)'},
+  sms:{label:'SMS',icon:'💬',color:'var(--yellow)'},
+  push:{label:'Push',icon:'🔔',color:'var(--orange)'},
+};
+
+let notifications=[
+  {id:1,num:'NTF-0001',title:'🚨 Alerte trésorerie — Solde caisse critique',body:'La caisse principale est tombée à 45 000 FCFA — en dessous du seuil minimum de 100 000 FCFA. Action immédiate requise : virement depuis banque UBA.',category:'expense',priority:'critical',status:'unread',channel:'whatsapp',channels:['in_app','whatsapp','push'],recipient:'Smith (Canada)',date:'2026-05-14 14:05',data:{balance:45000,threshold:100000,account:'Caisse principale'},requires_ack:true,action_url:'#finance'},
+  {id:2,num:'NTF-0002',title:'🔒 Tentative accès non autorisé — Étage 2',body:'Détection d\'une tentative d\'accès à la chambre 201 avec une clé invalide à 03h47. Aucun incident signalé. Vérification vidéosurveillance recommandée.',category:'security',priority:'critical',status:'unread',channel:'whatsapp',channels:['in_app','whatsapp','sms','push'],recipient:'Smith (Canada)',date:'2026-05-14 03:47',data:{room:'201',event_type:'invalid_key'},requires_ack:true,action_url:'#security'},
+  {id:3,num:'NTF-0003',title:'💰 Dépense EXP-0004 en attente — 215 000 FCFA',body:'La dépense EXP-0004 "Commande bières et boissons bar" a été vérifiée par la comptable Andrée Koung. Votre approbation Owner est requise pour procéder au paiement.',category:'expense',priority:'high',status:'unread',channel:'in_app',channels:['in_app','whatsapp'],recipient:'Smith (Canada)',date:'2026-05-14 09:30',data:{expense_id:'EXP-0004',amount:215000,supplier:'Brasseries du Cameroun'},requires_ack:false,action_url:'#finance'},
+  {id:4,num:'NTF-0004',title:'🛏️ Nouvelle réservation — Suite Présidentielle (3 nuits)',body:'M. Jean-Baptiste Nguele a réservé la Suite Présidentielle du 16 au 19 mai 2026. Montant total: 450 000 FCFA. Arrhes de 50% reçues via Orange Money.',category:'reservation',priority:'medium',status:'unread',channel:'in_app',channels:['in_app','email'],recipient:'Smith (Canada)',date:'2026-05-14 11:22',data:{guest:'Jean-Baptiste Nguele',room:'Suite Présidentielle',nights:3,total:450000},requires_ack:false},
+  {id:5,num:'NTF-0005',title:'🔧 Réparation clim ch.103 — Technicien arrivé',body:'TechFroid Kribi est arrivé pour la réparation du climatiseur de la chambre 103. Durée estimée: 3-4 heures. La chambre sera disponible en soirée.',category:'maintenance',priority:'medium',status:'unread',channel:'in_app',channels:['in_app'],recipient:'Smith (Canada)',date:'2026-05-14 10:15',data:{room:'103',technician:'TechFroid Kribi'},requires_ack:false},
+  {id:6,num:'NTF-0006',title:'💳 Paiement reçu — 185 000 FCFA (Bar Lounge)',body:'Encaissement confirmé: 185 000 FCFA pour la soirée live music du Bar Lounge. Référence: OM-20260514-0892. Solde Orange Money mis à jour.',category:'payment',priority:'low',status:'read',channel:'in_app',channels:['in_app'],recipient:'Smith (Canada)',date:'2026-05-14 00:05',data:{amount:185000,source:'bar',method:'orange_money'},requires_ack:false},
+  {id:7,num:'NTF-0007',title:'👤 Employé — Absence non justifiée (Théodore Mba)',body:'Théodore Mba n\'a pas pointé ce matin (14/05/2026, prévu à 07h00). Aucune notification préalable. RH avertie. Couverture temporaire assurée.',category:'hr',priority:'medium',status:'read',channel:'in_app',channels:['in_app','whatsapp'],recipient:'Smith (Canada)',date:'2026-05-14 07:35',data:{employee:'Théodore Mba',shift:'07:00-15:00'},requires_ack:false},
+  {id:8,num:'NTF-0008',title:'🍽️ Rapport restaurant — Chiffre d\'affaires 13 mai',body:'CA restaurant du 13/05/2026: 320 000 FCFA. Couverts: 47. Ticket moyen: 6 800 FCFA. Performance +18% vs semaine précédente. Spécialité poisson très demandée.',category:'restaurant',priority:'low',status:'read',channel:'email',channels:['email'],recipient:'Smith (Canada)',date:'2026-05-13 23:55',data:{revenue:320000,covers:47,avg_ticket:6800},requires_ack:false},
+  {id:9,num:'NTF-0009',title:'🛏️ Check-in — M. Mbarga Ekollo (Ch. 105)',body:'M. Mbarga Ekollo a effectué son check-in à la chambre 105 à 15h30. Durée: 2 nuits. Solde restant: 45 000 FCFA à régler au départ.',category:'reservation',priority:'low',status:'read',channel:'in_app',channels:['in_app'],recipient:'Smith (Canada)',date:'2026-05-13 15:30',data:{guest:'Mbarga Ekollo',room:'105',nights:2},requires_ack:false},
+  {id:10,num:'NTF-0010',title:'⚙️ Sauvegarde système — Réussie',body:'Sauvegarde quotidienne des données Veraluz OS effectuée avec succès. 2,4 GB sauvegardé sur Supabase + Google Drive. Prochain backup: 15/05/2026 02:00.',category:'system',priority:'low',status:'read',channel:'in_app',channels:['in_app'],recipient:'Smith (Canada)',date:'2026-05-14 02:00',data:{size:'2.4 GB'},requires_ack:false},
+];
+
+let channels=[
+  {id:1,type:'in_app',name:'In-App Realtime',status:'active',icon:'📱',color:'var(--accent2)',config:{provider:'Supabase Realtime'},sent_today:45,total_sent:1240,rate:100},
+  {id:2,type:'whatsapp',name:'WhatsApp Business',status:'active',icon:'💬',color:'var(--green)',config:{provider:'360dialog',from:'+237 699 001 001',template:'veraluz_alerts'},sent_today:12,total_sent:387,rate:50},
+  {id:3,type:'email',name:'Email SMTP',status:'active',icon:'📧',color:'var(--blue)',config:{provider:'Resend',from:'noreply@veraluz.cm',smtp:'smtp.resend.com'},sent_today:8,total_sent:215,rate:200},
+  {id:4,type:'push',name:'Push Mobile (FCM)',status:'active',icon:'🔔',color:'var(--orange)',config:{provider:'Firebase FCM'},sent_today:18,total_sent:650,rate:100},
+  {id:5,type:'sms',name:'SMS Orange CM',status:'error',icon:'💬',color:'var(--yellow)',config:{provider:'Orange CM API',sender:'VERALUZ'},sent_today:0,total_sent:42,rate:30,last_error:'Quota journalier atteint — renouvellement 00:00'},
+];
+
+let rules=[
+  {id:1,name:'Alerte solde caisse critique',trigger:'threshold',condition:'Caisse principale < 100 000 FCFA',priority:'critical',roles:['owner','hotel_manager'],channels:['in_app','whatsapp','push'],active:true,triggers:3,last:'2026-05-14 14:05'},
+  {id:2,name:'Nouvelle dépense soumise au Manager',trigger:'event',condition:'expense.created AND amount > 50 000 FCFA',priority:'high',roles:['hotel_manager'],channels:['in_app','whatsapp'],active:true,triggers:12,last:'2026-05-14 10:00'},
+  {id:3,name:'Dépense Owner awaiting approval',trigger:'event',condition:'expense.accountant_verified',priority:'high',roles:['owner'],channels:['in_app','whatsapp'],active:true,triggers:8,last:'2026-05-14 09:30'},
+  {id:4,name:'Alerte sécurité — accès invalide',trigger:'event',condition:'security.invalid_access',priority:'critical',roles:['owner','hotel_manager','security'],channels:['in_app','whatsapp','sms','push'],active:true,triggers:1,last:'2026-05-14 03:47'},
+  {id:5,name:'Rapport quotidien restaurant (8h)',trigger:'schedule',condition:'Tous les jours à 08:00 Africa/Douala',priority:'low',roles:['owner'],channels:['email'],active:true,triggers:14,last:'2026-05-14 08:00'},
+  {id:6,name:'Check-in confirmé → réception',trigger:'event',condition:'reservation.checked_in',priority:'medium',roles:['reception'],channels:['in_app'],active:true,triggers:45,last:'2026-05-13 15:30'},
+  {id:7,name:'Absence employé non justifiée',trigger:'absence',condition:'Pointage absent > 30 min après début shift',priority:'medium',roles:['hotel_manager','hr'],channels:['in_app','whatsapp'],active:true,triggers:2,last:'2026-05-14 07:35'},
+  {id:8,name:'Maintenance urgente (URGENT)',trigger:'event',condition:'maintenance.priority = urgent',priority:'high',roles:['hotel_manager','reception'],channels:['in_app','whatsapp'],active:false,triggers:0,last:null},
+];
+
+let prefs={
+  channels_enabled:['in_app','whatsapp','email','push'],
+  quiet_hours:{enabled:true,start:'22:00',end:'07:00'},
+  critical_bypass:true,
+  categories:{
+    reservation:{channels:['in_app','email'],priority_min:'low'},
+    payment:{channels:['in_app','whatsapp'],priority_min:'low'},
+    expense:{channels:['in_app','whatsapp'],priority_min:'medium'},
+    security:{channels:['in_app','whatsapp','sms','push'],priority_min:'low'},
+    maintenance:{channels:['in_app'],priority_min:'medium'},
+    hr:{channels:['in_app','whatsapp'],priority_min:'medium'},
+    restaurant:{channels:['email'],priority_min:'low'},
+    system:{channels:['in_app'],priority_min:'high'},
+  },
+  daily_digest:true,
+  weekly_report:true,
+};
+
+let currentTab='dashboard';
+let filterCat='';
+let filterPriority='';
+let simulationInterval=null;
+
+// ════════════════════════════════════════════════
+// UTILS
+// ════════════════════════════════════════════════
+/* toast() delegated to embedded bridge */;
+  t.innerHTML=`${ic[type]||'ℹ️'} ${msg}`;t.className='toast show';
+  setTimeout(()=>t.className='toast',3200);
+}
+function showModal(id){document.getElementById(id).classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+function timeAgo(dateStr){
+  const now=new Date('2026-05-14T14:30:00');
+  const d=new Date(dateStr.replace(' ','T'));
+  const diff=(now-d)/1000;
+  if(diff<60)return 'À l\'instant';if(diff<3600)return Math.floor(diff/60)+'min';
+  if(diff<86400)return Math.floor(diff/3600)+'h';return Math.floor(diff/86400)+'j';
+}
+function priorityBadge(p){const pr=PRIORITIES[p]||{label:p,cls:'bgr',dot:'⚪'};return `<span class="bdg ${pr.cls}">${pr.dot} ${pr.label}</span>`;}
+function catIcon(c){return (CATEGORIES[c]||{icon:'📌'}).icon;}
+function unreadCount(){return notifications.filter(n=>n.status==='unread').length;}
+function criticalCount(){return notifications.filter(n=>n.status==='unread'&&n.priority==='critical').length;}
+function updateBadges(){
+  const u=unreadCount();const c=criticalCount();
+  const el=document.getElementById('unread-badge');
+  if(el){el.textContent=u>0?`🔔 ${u} non lue${u>1?'s':''}`:'';}
+  const tb=document.getElementById('tab-notif-badge');if(tb)tb.textContent=u;
+  const ab=document.getElementById('tab-alert-badge');if(ab)ab.textContent=notifications.filter(n=>n.priority==='critical'&&n.status==='unread').length;
+  const sb=document.getElementById('sidebar-badge');if(sb)sb.textContent=u;
+}
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const el=document.getElementById('tab-'+tab);if(el)el.classList.add('active');
+  render();
+}
+function render(){
+  const fns={dashboard:renderDashboard,centre:renderCentre,alertes:renderAlertes,canaux:renderCanaux,regles:renderRegles,preferences:renderPreferences,historique:renderHistorique};
+  document.getElementById('content').innerHTML=(fns[currentTab]||renderDashboard)();
+  updateBadges();
+}
+</script>
+<script>
+// ════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════
+function renderDashboard(){
+  const total=notifications.length;
+  const unread=unreadCount();
+  const critical=criticalCount();
+  const today=notifications.filter(n=>n.date.startsWith('2026-05-14')).length;
+  const sentToday=channels.reduce((a,c)=>a+c.sent_today,0);
+
+  const byCat={};
+  notifications.forEach(n=>{byCat[n.category]=(byCat[n.category]||0)+1;});
+  const byPriority={critical:0,high:0,medium:0,low:0};
+  notifications.filter(n=>n.status==='unread').forEach(n=>{byPriority[n.priority]=(byPriority[n.priority]||0)+1;});
+
+  const criticals=notifications.filter(n=>n.priority==='critical'&&n.status==='unread');
+
+  return `
+  ${criticals.length>0?`
+    <div class="alert-banner al-crit">
+      <span style="font-size:18px;animation:flashBorder 1s infinite;">🚨</span>
+      <div style="flex:1;">
+        <strong>${criticals.length} alerte(s) CRITIQUE(S) non acquittée(s)</strong>
+        <div style="font-size:11px;margin-top:2px;">${criticals.map(n=>n.title).join(' · ')}</div>
+      </div>
+      <button class="btn br_ btn-sm" onclick="switchTab('alertes')">Voir alertes →</button>
+    </div>
+  `:''}
+
+  <div class="kpi-grid">
+    <div class="kpi-card" style="border-color:${critical>0?'rgba(239,68,68,.4)':'var(--border)'};">
+      <div class="kpi-lbl">🔴 Alertes critiques</div>
+      <div class="kpi-val" style="color:${critical>0?'var(--red)':'var(--text2)'};">${critical}</div>
+      <div class="kpi-sub">Acquisition immédiate requise</div>
+    </div>
+    <div class="kpi-card" style="border-color:${unread>0?'rgba(108,99,255,.3)':'var(--border)'};">
+      <div class="kpi-lbl">🔔 Non lues</div>
+      <div class="kpi-val" style="color:${unread>0?'var(--accent2)':'var(--text2)'};">${unread}</div>
+      <div class="kpi-sub">Sur ${total} total</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-lbl">📨 Envoyées aujourd'hui</div>
+      <div class="kpi-val" style="color:var(--blue);">${sentToday}</div>
+      <div class="kpi-sub">Tous canaux confondus</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-lbl">⚙️ Règles actives</div>
+      <div class="kpi-val" style="color:var(--green);">${rules.filter(r=>r.active).length}</div>
+      <div class="kpi-sub">${rules.length} règles configurées</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-lbl">📡 Canaux actifs</div>
+      <div class="kpi-val" style="color:var(--cyan);">${channels.filter(c=>c.status==='active').length}/${channels.length}</div>
+      <div class="kpi-sub">${channels.filter(c=>c.status==='error').length>0?'⚠️ '+channels.filter(c=>c.status==='error').length+' en erreur':'Tous opérationnels'}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-lbl">🕐 Dernière alerte</div>
+      <div class="kpi-val" style="color:var(--orange);font-size:16px;">14h05</div>
+      <div class="kpi-sub">Alerte trésorerie critique</div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <!-- Notifications critiques en attente -->
+    <div class="card">
+      <div class="card-title">🚨 Alertes critiques & hautes — Action requise
+        <span class="bdg br">${notifications.filter(n=>['critical','high'].includes(n.priority)&&n.status==='unread').length} urgentes</span>
+      </div>
+      ${notifications.filter(n=>['critical','high'].includes(n.priority)&&n.status==='unread').map(n=>`
+        <div class="notif-item unread ${n.priority}" onclick="viewNotif(${n.id})">
+          <div class="notif-icon" style="background:${(CATEGORIES[n.category]||{color:'#6b7280'}).color}20;">
+            ${catIcon(n.category)}
+          </div>
+          <div class="notif-body">
+            <div class="notif-title">${n.title}</div>
+            <div class="notif-text">${n.body}</div>
+            <div class="notif-meta">
+              ${priorityBadge(n.priority)}
+              <span>${timeAgo(n.date)}</span>
+              <span>${n.channels.map(ch=>CHANNELS[ch]?.icon||ch).join(' ')}</span>
+              ${n.requires_ack?'<span class="bdg br">⚡ Ack. requis</span>':''}
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+            <button class="btn bg_ btn-sm" onclick="event.stopPropagation();ackNotif(${n.id})">✅ Ack</button>
+            <button class="btn br_ btn-sm" onclick="event.stopPropagation();viewNotif(${n.id})">👁 Voir</button>
+          </div>
+        </div>
+      `).join('')}
+      ${notifications.filter(n=>['critical','high'].includes(n.priority)&&n.status==='unread').length===0?
+        '<div style="text-align:center;padding:24px;color:var(--text3);">✅ Aucune alerte critique en attente</div>':''}
+    </div>
+
+    <!-- Statut canaux + Activité récente -->
+    <div>
+      <div class="card">
+        <div class="card-title">📡 Statut des canaux
+          <button class="btn bo_ btn-sm" onclick="switchTab('canaux')">Voir →</button>
+        </div>
+        ${channels.map(ch=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bg4);">
+            <span style="font-size:18px;">${ch.icon}</span>
+            <div style="flex:1;">
+              <div style="font-size:12.5px;font-weight:500;">${ch.name}</div>
+              <div style="font-size:10px;color:var(--text2);">${ch.config.provider}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px;color:var(--text2);">${ch.sent_today} aujourd'hui</div>
+              <span class="bdg ${ch.status==='active'?'bg':ch.status==='error'?'br':'bgr'}">${ch.status==='active'?'✅ OK':ch.status==='error'?'❌ Erreur':'⏸ Inactif'}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Répartition par priorité (non lues)</div>
+        ${Object.entries(byPriority).map(([p,v])=>{
+          const pr=PRIORITIES[p];
+          return `<div class="pr-bar">
+            <div class="pr-dot" style="background:${pr.color};"></div>
+            <div style="font-size:12px;flex:1;">${pr.label}</div>
+            <div style="background:var(--bg3);border-radius:8px;height:8px;flex:1;overflow:hidden;">
+              <div style="height:100%;border-radius:8px;width:${unread>0?(v/unread*100).toFixed(0):0}%;background:${pr.color};transition:.5s;"></div>
+            </div>
+            <div style="font-size:12px;font-weight:600;width:24px;text-align:right;color:${pr.color};">${v}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>
+
+  <!-- Flux temps réel -->
+  <div class="card">
+    <div class="card-title">⚡ Flux temps réel — Dernières notifications
+      <div class="rt-dot"><span class="pulse"></span>Live</div>
+    </div>
+    ${notifications.slice(0,6).map(n=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bg4);cursor:pointer;" onclick="viewNotif(${n.id})">
+        <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;background:${(CATEGORIES[n.category]||{color:'#6b7280'}).color}15;flex-shrink:0;">
+          ${catIcon(n.category)}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12.5px;font-weight:${n.status==='unread'?'600':'400'};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${n.title}</div>
+          <div style="font-size:10px;color:var(--text3);">${timeAgo(n.date)} · ${n.recipient} · ${n.channels.map(ch=>CHANNELS[ch]?.icon||ch).join('')}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+          ${priorityBadge(n.priority)}
+          ${n.status==='unread'?'<div style="width:7px;height:7px;border-radius:50%;background:var(--accent);"></div>':''}
+        </div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════
+// CENTRE DE NOTIFICATIONS
+// ════════════════════════════════════════════════
+function renderCentre(){
+  let filtered=notifications.filter(n=>
+    (!filterCat||n.category===filterCat)&&
+    (!filterPriority||n.priority===filterPriority)
+  );
+  return `
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <select onchange="filterCat=this.value;render()" style="width:160px;">
+      <option value="">Toutes catégories</option>
+      ${Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}" ${filterCat===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+    </select>
+    <select onchange="filterPriority=this.value;render()" style="width:140px;">
+      <option value="">Toutes priorités</option>
+      ${Object.entries(PRIORITIES).map(([k,v])=>`<option value="${k}" ${filterPriority===k?'selected':''}>${v.dot} ${v.label}</option>`).join('')}
+    </select>
+    <span style="font-size:11px;color:var(--text2);">${filtered.length} notification(s)</span>
+    <div style="margin-left:auto;display:flex;gap:6px;">
+      <button class="btn bo_ btn-sm" onclick="markAllRead()">✅ Tout marquer lu</button>
+      <button class="btn bp_ btn-sm" onclick="showModal('modal-send')">📤 Envoyer</button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:10px;">
+    ${filtered.length===0?'<div style="text-align:center;padding:40px;color:var(--text3);">📭 Aucune notification</div>':
+      filtered.map(n=>`
+      <div class="notif-item ${n.status} ${n.priority}" onclick="viewNotif(${n.id})">
+        <div class="notif-dot" style="background:${n.status==='unread'?PRIORITIES[n.priority]?.color||'var(--accent)':'var(--border)'};margin-top:5px;"></div>
+        <div class="notif-icon" style="background:${(CATEGORIES[n.category]||{color:'#6b7280'}).color}15;font-size:16px;width:34px;height:34px;">
+          ${catIcon(n.category)}
+        </div>
+        <div class="notif-body">
+          <div class="notif-title" style="font-weight:${n.status==='unread'?'600':'400'};">${n.title}</div>
+          <div class="notif-text">${n.body}</div>
+          <div class="notif-meta">
+            ${priorityBadge(n.priority)}
+            <span class="bdg bgr">${(CATEGORIES[n.category]||{label:n.category}).icon} ${(CATEGORIES[n.category]||{label:n.category}).label}</span>
+            <span>${timeAgo(n.date)}</span>
+            <span title="Canaux">${n.channels.map(ch=>CHANNELS[ch]?.icon||ch).join(' ')}</span>
+            ${n.requires_ack&&n.status!=='acknowledged'?'<span class="bdg br">⚡ Ack. requis</span>':''}
+            ${n.status==='acknowledged'?'<span class="bdg bg">✅ Acquitté</span>':''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;">
+          ${n.status==='unread'?`<button class="btn bo_ btn-sm" onclick="event.stopPropagation();readNotif(${n.id})">👁 Lire</button>`:''}
+          ${n.requires_ack&&!['acknowledged','read'].includes(n.status)?`<button class="btn bg_ btn-sm" onclick="event.stopPropagation();ackNotif(${n.id})">✅ Ack</button>`:''}
+        </div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════
+// ALERTES CRITIQUES
+// ════════════════════════════════════════════════
+function renderAlertes(){
+  const crits=notifications.filter(n=>['critical','high'].includes(n.priority));
+  return `
+  <div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:15px;font-weight:600;">🚨 Alertes Critiques & Hautes</div>
+      <div style="font-size:11px;color:var(--text3);">Notifications urgentes nécessitant une action immédiate</div>
+    </div>
+    <button class="btn bp_ btn-sm" onclick="simulateAlert()">⚡ Simuler alerte</button>
+  </div>
+
+  ${crits.filter(n=>n.status==='unread'&&n.priority==='critical').map(n=>`
+    <div class="card" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.04);">
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div style="font-size:32px;animation:pulse 1.5s infinite;">🚨</div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:700;color:var(--red);margin-bottom:4px;">${n.title}</div>
+          <div style="font-size:12.5px;color:var(--text2);margin-bottom:10px;">${n.body}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            ${priorityBadge(n.priority)}
+            <span class="bdg bgr">${catIcon(n.category)} ${(CATEGORIES[n.category]||{label:n.category}).label}</span>
+            <span style="font-size:11px;color:var(--text3);">${n.date}</span>
+            <span style="font-size:11px;">${n.channels.map(ch=>CHANNELS[ch]?.icon+' '+CHANNELS[ch]?.label).join(' | ')}</span>
+          </div>
+          ${n.data&&Object.keys(n.data).length>0?`
+          <div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:12px;">
+            <div style="font-size:10px;color:var(--text3);text-transform:uppercase;margin-bottom:6px;">Données contextuelles</div>
+            ${Object.entries(n.data).map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;"><span style="color:var(--text2);">${k}</span><span style="font-weight:600;">${v}</span></div>`).join('')}
+          </div>`:''}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn bg_" onclick="ackNotif(${n.id})">✅ Acquitter l'alerte</button>
+            <button class="btn bo_" onclick="toast('Escalade envoyée à l\\'équipe locale','warn')">⬆️ Escalader</button>
+            <button class="btn br_" onclick="viewNotif(${n.id})">📋 Détail complet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('')}
+
+  ${crits.filter(n=>n.priority==='high'&&n.status==='unread').length>0?`
+    <div class="card-title" style="margin-top:16px;padding:0;">🟠 Alertes hautes — En attente</div>
+    ${crits.filter(n=>n.priority==='high'&&n.status==='unread').map(n=>`
+      <div class="notif-item unread high" onclick="viewNotif(${n.id})" style="border:1px solid rgba(249,115,22,.2);margin-bottom:8px;border-radius:10px;">
+        <div class="notif-icon" style="background:rgba(249,115,22,.15);">${catIcon(n.category)}</div>
+        <div class="notif-body">
+          <div class="notif-title">${n.title}</div>
+          <div class="notif-text">${n.body}</div>
+          <div class="notif-meta">${priorityBadge(n.priority)}<span>${timeAgo(n.date)}</span></div>
+        </div>
+        <button class="btn bg_ btn-sm" onclick="event.stopPropagation();ackNotif(${n.id})">✅ Ack</button>
+      </div>
+    `).join('')}
+  `:''}
+
+  ${crits.filter(n=>['read','acknowledged'].includes(n.status)).length>0?`
+    <div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px;">Alertes résolues / acquittées</div>
+    ${crits.filter(n=>['read','acknowledged'].includes(n.status)).map(n=>`
+      <div class="notif-item" style="opacity:.6;margin-bottom:4px;">
+        <div class="notif-icon">${catIcon(n.category)}</div>
+        <div class="notif-body">
+          <div class="notif-title" style="font-weight:400;">${n.title}</div>
+          <div class="notif-meta">${priorityBadge(n.priority)}<span>${n.date}</span><span class="bdg bg">✅ Résolu</span></div>
+        </div>
+      </div>
+    `).join('')}
+  `:''}
+
+  ${crits.filter(n=>n.status==='unread').length===0?'<div style="text-align:center;padding:40px;color:var(--text3);">✅ Aucune alerte critique active</div>':''}`;
+}
+</script>
+<script>
+// ════════════════════════════════════════════════
+// CANAUX
+// ════════════════════════════════════════════════
+function renderCanaux(){
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div><div style="font-size:15px;font-weight:600;">📡 Gestion des Canaux</div>
+    <div style="font-size:11px;color:var(--text3);">WhatsApp · Email · Push · SMS · In-App — Optimisé faible connexion</div></div>
+    <button class="btn bp_ btn-sm" onclick="toast('Configuration canal — paramètres avancés')">➕ Ajouter canal</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+    ${channels.map(ch=>`
+      <div class="ch-card">
+        <div class="ch-header">
+          <span style="font-size:24px;">${ch.icon}</span>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;">${ch.name}</div>
+            <div style="font-size:10px;color:var(--text2);">${ch.config.provider||''}${ch.config.from?' · '+ch.config.from:''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span class="bdg ${ch.status==='active'?'bg':ch.status==='error'?'br':'bgr'}">${ch.status==='active'?'✅ Actif':ch.status==='error'?'❌ Erreur':'⏸ Off'}</span>
+          </div>
+        </div>
+        ${ch.status==='error'?`<div style="font-size:11px;color:var(--red);background:rgba(239,68,68,.1);padding:6px 8px;border-radius:6px;margin-bottom:8px;">⚠️ ${ch.last_error||'Erreur inconnue'}</div>`:''}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;margin-bottom:10px;">
+          <div><div style="font-size:10px;color:var(--text3);">Envoyées aujourd'hui</div><div style="font-weight:600;">${ch.sent_today}</div></div>
+          <div><div style="font-size:10px;color:var(--text3);">Total envoyées</div><div style="font-weight:600;">${ch.total_sent}</div></div>
+          <div><div style="font-size:10px;color:var(--text3);">Limite/heure</div><div style="font-weight:600;">${ch.rate}</div></div>
+          <div><div style="font-size:10px;color:var(--text3);">Statut API</div>
+            <div style="font-weight:600;color:${ch.status==='active'?'var(--green)':'var(--red)'};">${ch.status==='active'?'Connecté':'Déconnecté'}</div>
+          </div>
+        </div>
+        <div style="background:var(--bg4);border-radius:6px;height:6px;overflow:hidden;margin-bottom:10px;">
+          <div style="height:100%;border-radius:6px;background:${ch.status==='active'?'var(--green)':'var(--red)'};width:${ch.status==='active'?100:0}%;transition:.5s;"></div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="btn bo_ btn-sm" onclick="testChannel(${ch.id})">🧪 Tester</button>
+          <button class="btn bo_ btn-sm" onclick="toast('Config canal: ${ch.name}')">⚙️ Config</button>
+          ${ch.status==='error'?`<button class="btn bg_ btn-sm" onclick="retryChannel(${ch.id})">🔄 Reconnecter</button>`:''}
+          ${ch.status==='active'?`<button class="btn bo_ btn-sm" onclick="toggleChannel(${ch.id})">⏸ Désactiver</button>`:''}
+        </div>
+      </div>
+    `).join('')}
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Statistiques d'envoi — Tous canaux</div>
+    <div class="tw"><table>
+      <tr><th>Canal</th><th>Aujourd'hui</th><th>Total</th><th>Taux succès</th><th>Limite/h</th><th>Config</th></tr>
+      ${channels.map(ch=>`<tr>
+        <td><span style="font-size:16px;">${ch.icon}</span> ${ch.name}</td>
+        <td style="font-weight:600;">${ch.sent_today}</td>
+        <td>${ch.total_sent}</td>
+        <td><span class="bdg ${ch.status==='active'?'bg':'br'}">${ch.status==='active'?'99.2%':'0%'}</span></td>
+        <td style="color:var(--text2);">${ch.rate}/h</td>
+        <td style="font-size:11px;color:var(--text3);">${ch.config.provider}</td>
+      </tr>`).join('')}
+    </table></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💡 Stratégie faible connexion — Priorités offline</div>
+    <div class="alert-banner al-info" style="margin-bottom:12px;">
+      ℹ️ En cas de faible connexion, seules les alertes critiques et hautes sont envoyées. Les notifications normales sont mises en file d'attente locale.
+    </div>
+    ${[
+      {pr:'critical',strategy:'Envoi immédiat TOUS canaux — max 3 tentatives toutes les 30s',badge:'br'},
+      {pr:'high',strategy:'Envoi In-App + WhatsApp — 3 tentatives toutes les 5min',badge:'bo'},
+      {pr:'medium',strategy:'File d\'attente — envoyé dès connexion rétablie (TTL 6h)',badge:'by'},
+      {pr:'low',strategy:'Digest groupé — envoyé au prochain cycle (6h minimum)',badge:'bg'},
+    ].map(s=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bg4);">
+      ${priorityBadge(s.pr)}
+      <div style="font-size:12.5px;flex:1;">${s.strategy}</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function testChannel(id){
+  const ch=channels.find(c=>c.id===id);
+  if(ch.status==='error'){toast(`❌ Impossible de tester ${ch.name} — canal en erreur`,'error');return;}
+  toast(`🧪 Message test envoyé via ${ch.name} → +237 699 001 001`,'success');
+  ch.sent_today++;ch.total_sent++;
+  setTimeout(()=>render(),500);
+}
+function retryChannel(id){
+  const ch=channels.find(c=>c.id===id);
+  toast(`🔄 Reconnexion ${ch.name} en cours...`,'info');
+  setTimeout(()=>{ch.status='active';ch.last_error=null;toast(`✅ ${ch.name} reconnecté`,'success');render();},1500);
+}
+function toggleChannel(id){
+  const ch=channels.find(c=>c.id===id);
+  ch.status=ch.status==='active'?'inactive':'active';
+  toast(`${ch.status==='active'?'✅':'⏸'} Canal ${ch.name} ${ch.status==='active'?'activé':'désactivé'}`,'info');
+  render();
+}
+
+// ════════════════════════════════════════════════
+// RÈGLES AUTOMATIQUES
+// ════════════════════════════════════════════════
+function renderRegles(){
+  const trigIcons={event:'📡',threshold:'📊',schedule:'⏰',absence:'⚠️',escalation:'⬆️'};
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div>
+      <div style="font-size:15px;font-weight:600;">⚙️ Règles Automatiques</div>
+      <div style="font-size:11px;color:var(--text3);">${rules.filter(r=>r.active).length} actives · Déclenchement en temps réel</div>
+    </div>
+    <button class="btn bp_ btn-sm" onclick="showModal('modal-rule')">➕ Nouvelle règle</button>
+  </div>
+
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);">
+    <div class="kpi-card"><div class="kpi-lbl">⚙️ Règles totales</div><div class="kpi-val" style="color:var(--accent2);">${rules.length}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">✅ Actives</div><div class="kpi-val" style="color:var(--green);">${rules.filter(r=>r.active).length}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">📡 Déclenchements</div><div class="kpi-val" style="color:var(--blue);">${rules.reduce((a,r)=>a+r.triggers,0)}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">⏸ Désactivées</div><div class="kpi-val" style="color:var(--text2);">${rules.filter(r=>!r.active).length}</div></div>
+  </div>
+
+  ${rules.map(r=>`
+    <div class="rule-card" style="opacity:${r.active?1:0.5};">
+      <div style="font-size:22px;">${trigIcons[r.trigger]||'⚙️'}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:600;">${r.name}</span>
+          ${priorityBadge(r.priority)}
+          <span class="bdg bgr">${r.trigger}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:5px;">📋 ${r.condition}</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);flex-wrap:wrap;">
+          <span>👥 ${r.roles.join(', ')}</span>
+          <span>${r.channels.map(ch=>CHANNELS[ch]?.icon||ch).join(' ')}</span>
+          <span>🔢 ${r.triggers} déclenchement${r.triggers>1?'s':''}</span>
+          ${r.last?`<span>🕐 Dernier: ${r.last}</span>`:'<span>Jamais déclenché</span>'}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+        <button class="btn bo_ btn-sm" onclick="toggleRule(${r.id})">${r.active?'⏸ Off':'▶️ On'}</button>
+        <button class="btn bo_ btn-sm" onclick="testRule(${r.id})">🧪 Test</button>
+      </div>
+    </div>
+  `).join('')}`;
+}
+
+function toggleRule(id){
+  const r=rules.find(x=>x.id===id);r.active=!r.active;
+  toast(`${r.active?'▶️':'⏸'} Règle "${r.name}" ${r.active?'activée':'désactivée'}`,'info');render();
+}
+function testRule(id){
+  const r=rules.find(x=>x.id===id);
+  if(!r.active){toast(`⚠️ Règle désactivée — activez-la d'abord`,'warn');return;}
+  toast(`🧪 Test règle "${r.name}" — notification simulée envoyée`,'success');
+  r.triggers++;r.last=new Date().toLocaleString('fr-FR');
+  setTimeout(()=>injectNotification(`🧪 Test: ${r.name}`,`Simulation de déclenchement de la règle automatique "${r.name}".`,'system',r.priority),800);
+}
+function addRule(){
+  const name=document.getElementById('rl-name').value.trim();
+  if(!name){toast('Nom obligatoire','warn');return;}
+  rules.push({
+    id:rules.length+1,name,
+    trigger:document.getElementById('rl-trigger').value,
+    condition:document.getElementById('rl-condition').value||'Condition non définie',
+    priority:document.getElementById('rl-priority').value,
+    roles:['owner'],channels:['in_app','whatsapp'],
+    active:true,triggers:0,last:null,
+  });
+  closeModal('modal-rule');toast(`✅ Règle "${name}" créée`,'success');render();
+}
+
+// ════════════════════════════════════════════════
+// PRÉFÉRENCES
+// ════════════════════════════════════════════════
+function renderPreferences(){
+  return `
+  <div style="font-size:15px;font-weight:600;margin-bottom:14px;">🎛️ Préférences de Notification — Smith (Owner)</div>
+
+  <div class="g2">
+    <div>
+      <div class="card">
+        <div class="card-title">📡 Canaux globaux activés</div>
+        ${Object.entries(CHANNELS).map(([key,ch])=>`
+          <div class="toggle-wrap">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:18px;">${ch.icon}</span>
+              <div>
+                <div style="font-size:13px;font-weight:500;">${ch.label}</div>
+                <div style="font-size:10px;color:var(--text2);">${key==='in_app'?'Temps réel dans l\'app':key==='whatsapp'?'+237 699 001 001':key==='email'?'afterworkquebec2025@gmail.com':key==='push'?'iPhone 14 Pro — Canada':key==='sms'?'+1 438 XXX XXXX':''}</div>
+              </div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" ${prefs.channels_enabled.includes(key)?'checked':''} onchange="togglePrefChannel('${key}',this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="card">
+        <div class="card-title">🌙 Heures calmes (Ne pas déranger)</div>
+        <div class="toggle-wrap" style="margin-bottom:10px;">
+          <span style="font-size:13px;">Activer les heures calmes</span>
+          <label class="toggle">
+            <input type="checkbox" ${prefs.quiet_hours.enabled?'checked':''} onchange="prefs.quiet_hours.enabled=this.checked;toast(this.checked?'🌙 Heures calmes activées':'☀️ Heures calmes désactivées')">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div class="fg" style="margin:0;"><label>Début</label><input type="time" value="${prefs.quiet_hours.start}" onchange="prefs.quiet_hours.start=this.value;toast('⏰ Heures calmes: '+this.value+' → '+prefs.quiet_hours.end)"></div>
+          <div class="fg" style="margin:0;"><label>Fin</label><input type="time" value="${prefs.quiet_hours.end}" onchange="prefs.quiet_hours.end=this.value;toast('⏰ Heures calmes: '+prefs.quiet_hours.start+' → '+this.value)"></div>
+        </div>
+        <div class="toggle-wrap">
+          <div>
+            <div style="font-size:13px;font-weight:500;">🚨 Critiques passent quand même</div>
+            <div style="font-size:10px;color:var(--text2);">Les alertes critiques ignorent les heures calmes</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" ${prefs.critical_bypass?'checked':''} onchange="prefs.critical_bypass=this.checked;toast(this.checked?'✅ Critiques: bypass actif':'⚠️ Critiques: bloquées en heures calmes')">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-title">📂 Préférences par catégorie</div>
+        ${Object.entries(CATEGORIES).map(([cat,info])=>{
+          const p=prefs.categories[cat]||{channels:['in_app'],priority_min:'medium'};
+          return `<div style="margin-bottom:10px;padding:10px;background:var(--bg3);border-radius:9px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <span style="font-size:16px;">${info.icon}</span>
+              <span style="font-size:12.5px;font-weight:600;">${info.label}</span>
+              <span class="bdg" style="background:${info.color}20;color:${info.color};border:1px solid ${info.color}40;margin-left:auto;">${p.channels.map(ch=>CHANNELS[ch]?.icon||ch).join('')}</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              ${Object.keys(CHANNELS).map(ch=>`
+                <label style="display:flex;align-items:center;gap:3px;cursor:pointer;font-size:10px;color:var(--text2);">
+                  <input type="checkbox" ${p.channels.includes(ch)?'checked':''} onchange="toggleCatChannel('${cat}','${ch}',this.checked)" style="width:auto;">
+                  ${CHANNELS[ch].icon}
+                </label>
+              `).join('')}
+              <select onchange="prefs.categories['${cat}'].priority_min=this.value;toast('Seuil ${info.label} mis à jour')" style="width:100px;font-size:10px;padding:2px 4px;">
+                ${Object.entries(PRIORITIES).map(([k,v])=>`<option value="${k}" ${p.priority_min===k?'selected':''}>${v.dot} ${v.label} min.</option>`).join('')}
+              </select>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📧 Rapports automatiques</div>
+    <div class="toggle-wrap">
+      <div><div style="font-size:13px;font-weight:500;">📅 Digest quotidien (8h00)</div><div style="font-size:10px;color:var(--text2);">Résumé: réservations, paiements, alertes non résolues</div></div>
+      <label class="toggle"><input type="checkbox" ${prefs.daily_digest?'checked':''} onchange="prefs.daily_digest=this.checked;toast(this.checked?'✅ Digest quotidien activé':'⏸ Digest quotidien désactivé')"><span class="toggle-slider"></span></label>
+    </div>
+    <div class="toggle-wrap">
+      <div><div style="font-size:13px;font-weight:500;">📊 Rapport hebdomadaire (Lundi 8h)</div><div style="font-size:10px;color:var(--text2);">Bilan complet: finance, taux occupation, performance</div></div>
+      <label class="toggle"><input type="checkbox" ${prefs.weekly_report?'checked':''} onchange="prefs.weekly_report=this.checked;toast(this.checked?'✅ Rapport hebdo activé':'⏸ Rapport hebdo désactivé')"><span class="toggle-slider"></span></label>
+    </div>
+  </div>`;
+}
+
+function togglePrefChannel(ch,val){
+  if(val){if(!prefs.channels_enabled.includes(ch))prefs.channels_enabled.push(ch);}
+  else prefs.channels_enabled=prefs.channels_enabled.filter(c=>c!==ch);
+  toast(`${val?'✅':'⏸'} Canal ${CHANNELS[ch].label} ${val?'activé':'désactivé'}`,'info');
+}
+function toggleCatChannel(cat,ch,val){
+  if(!prefs.categories[cat])prefs.categories[cat]={channels:['in_app'],priority_min:'medium'};
+  if(val){if(!prefs.categories[cat].channels.includes(ch))prefs.categories[cat].channels.push(ch);}
+  else prefs.categories[cat].channels=prefs.categories[cat].channels.filter(c=>c!==ch);
+  toast(`${CATEGORIES[cat].icon} ${CATEGORIES[cat].label}: ${CHANNELS[ch].label} ${val?'activé':'désactivé'}`,'info');
+}
+
+// ════════════════════════════════════════════════
+// HISTORIQUE
+// ════════════════════════════════════════════════
+function renderHistorique(){
+  const total=notifications.length;
+  const sent=channels.reduce((a,c)=>a+c.total_sent,0);
+  return `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <div style="font-size:15px;font-weight:600;">📋 Historique Complet</div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn bo_ btn-sm" onclick="toast('Export CSV historique','success')">📥 CSV</button>
+      <button class="btn bo_ btn-sm" onclick="toast('Rapport PDF audit','success')">📄 PDF</button>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-lbl">📨 Total notifications</div><div class="kpi-val" style="color:var(--accent2);">${total}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">📡 Total envois</div><div class="kpi-val" style="color:var(--blue);">${sent}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">✅ Taux de lecture</div><div class="kpi-val" style="color:var(--green);">${total>0?(notifications.filter(n=>n.status!=='unread').length/total*100).toFixed(0):0}%</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">⚡ Acquittées</div><div class="kpi-val" style="color:var(--yellow);">${notifications.filter(n=>n.status==='acknowledged').length}</div></div>
+  </div>
+
+  <div class="card" style="padding:0;">
+    <div class="tw"><table>
+      <tr><th>N°</th><th>Titre</th><th>Catégorie</th><th>Priorité</th><th>Canaux</th><th>Destinataire</th><th>Statut</th><th>Date</th><th>Actions</th></tr>
+      ${notifications.map(n=>`<tr>
+        <td style="font-family:monospace;font-size:10px;color:var(--text3);">${n.num}</td>
+        <td><div style="font-size:12px;font-weight:${n.status==='unread'?'600':'400'};max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${n.title}</div></td>
+        <td><span class="bdg bgr">${catIcon(n.category)} ${(CATEGORIES[n.category]||{label:n.category}).label}</span></td>
+        <td>${priorityBadge(n.priority)}</td>
+        <td style="font-size:14px;">${n.channels.map(ch=>CHANNELS[ch]?.icon||ch).join(' ')}</td>
+        <td style="font-size:11px;">${n.recipient}</td>
+        <td><span class="bdg ${n.status==='unread'?'bp':n.status==='acknowledged'?'bg':n.status==='read'?'bgr':'bgr'}">${n.status==='unread'?'📩 Non lue':n.status==='acknowledged'?'✅ Acquittée':n.status==='read'?'👁 Lue':'—'}</span></td>
+        <td style="font-size:10px;color:var(--text2);white-space:nowrap;">${n.date}</td>
+        <td><button class="btn bo_ btn-sm" onclick="viewNotif(${n.id})">👁</button></td>
+      </tr>`).join('')}
+    </table></div>
+  </div>`;
+}
+</script>
+<script>
+// ════════════════════════════════════════════════
+// ACTIONS & SIMULATION
+// ════════════════════════════════════════════════
+function viewNotif(id){
+  const n=notifications.find(x=>x.id===id);
+  if(n.status==='unread')n.status='read';
+  const cat=CATEGORIES[n.category]||{icon:'📌',label:n.category,color:'#6b7280'};
+  document.getElementById('nd-title').innerHTML=`${catIcon(n.category)} ${n.num}`;
+  document.getElementById('nd-body').innerHTML=`
+    <div style="padding:10px 0;border-bottom:1px solid var(--border);margin-bottom:14px;">
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px;line-height:1.4;">${n.title}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${priorityBadge(n.priority)}
+        <span class="bdg bgr">${cat.icon} ${cat.label}</span>
+        <span class="bdg bgr">${n.status==='acknowledged'?'✅ Acquittée':n.status==='read'?'👁 Lue':'📩 Non lue'}</span>
+        ${n.requires_ack?'<span class="bdg br">⚡ Ack. requis</span>':''}
+      </div>
+    </div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:14px;">${n.body}</div>
+    ${n.data&&Object.keys(n.data).length>0?`
+      <div style="background:var(--bg3);border-radius:9px;padding:12px;margin-bottom:14px;">
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Données contextuelles</div>
+        ${Object.entries(n.data).map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12.5px;border-bottom:1px solid var(--bg4);"><span style="color:var(--text2);">${k}</span><span style="font-weight:600;">${typeof v==='number'?v.toLocaleString('fr-FR'):v}</span></div>`).join('')}
+      </div>`:''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+      <div><div style="color:var(--text3);font-size:10px;">Destinataire</div><div>${n.recipient}</div></div>
+      <div><div style="color:var(--text3);font-size:10px;">Envoyée le</div><div>${n.date}</div></div>
+      <div><div style="color:var(--text3);font-size:10px;">Canaux utilisés</div><div>${n.channels.map(ch=>CHANNELS[ch]?.icon+' '+CHANNELS[ch]?.label).join(', ')}</div></div>
+      <div><div style="color:var(--text3);font-size:10px;">Référence</div><div style="font-family:monospace;">${n.num}</div></div>
+    </div>
+  `;
+  let footer=`<button class="btn bo_" onclick="closeModal('modal-notif-detail')">Fermer</button>`;
+  if(n.requires_ack&&n.status!=='acknowledged')footer+=`<button class="btn bg_" onclick="ackNotif(${n.id});closeModal('modal-notif-detail')">✅ Acquitter</button>`;
+  if(n.action_url)footer+=`<button class="btn bp_" onclick="closeModal('modal-notif-detail');toast('Navigation vers le module concerné')">🔗 Voir module</button>`;
+  document.getElementById('nd-footer').innerHTML=footer;
+  showModal('modal-notif-detail');
+  updateBadges();render();
+}
+
+function readNotif(id){
+  const n=notifications.find(x=>x.id===id);
+  n.status='read';toast('👁 Notification marquée comme lue','info');updateBadges();render();
+}
+function ackNotif(id){
+  const n=notifications.find(x=>x.id===id);
+  n.status='acknowledged';
+  toast(`✅ ${n.num} acquittée — action confirmée`,'success');
+  updateBadges();render();
+}
+function markAllRead(){
+  notifications.forEach(n=>{if(n.status==='unread')n.status='read';});
+  toast('✅ Toutes les notifications marquées comme lues','success');
+  updateBadges();render();
+}
+
+function sendManualNotif(){
+  const title=document.getElementById('snd-title').value.trim();
+  const msg=document.getElementById('snd-msg').value.trim();
+  if(!title||!msg){toast('Titre et message obligatoires','warn');return;}
+  const priority=document.getElementById('snd-priority').value;
+  const cat=document.getElementById('snd-cat').value;
+  const chs=[];
+  if(document.getElementById('ch-inapp').checked)chs.push('in_app');
+  if(document.getElementById('ch-whatsapp').checked)chs.push('whatsapp');
+  if(document.getElementById('ch-email').checked)chs.push('email');
+  if(document.getElementById('ch-sms').checked)chs.push('sms');
+  if(document.getElementById('ch-push').checked)chs.push('push');
+  if(chs.length===0){toast('Sélectionnez au moins un canal','warn');return;}
+  injectNotification(title,msg,cat,priority,chs);
+  closeModal('modal-send');
+  toast(`📤 Notification envoyée via ${chs.map(ch=>CHANNELS[ch]?.icon).join('')}`,'success');
+}
+
+function injectNotification(title,body,cat='system',priority='medium',chs=['in_app']){
+  const newId=notifications.length+1;
+  const num='NTF-'+String(newId).padStart(4,'0');
+  notifications.unshift({
+    id:newId,num,title,body,category:cat,priority,
+    status:'unread',channel:chs[0],channels:chs,
+    recipient:'Smith (Canada)',
+    date:new Date().toLocaleString('fr-FR',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).replace(',',''),
+    data:{},requires_ack:priority==='critical',
+  });
+  chs.forEach(ch=>{const c=channels.find(x=>x.type===ch);if(c){c.sent_today++;c.total_sent++;}});
+  updateBadges();render();
+}
+
+function simulateAlert(){
+  const scenarios=[
+    {title:'🔥 Incendie détecté — Cuisine restaurant',body:'Détecteur fumée déclenché cuisine 1er étage à '+new Date().toLocaleTimeString('fr-FR')+'. Vérification immédiate requise. Pompiers alertés automatiquement.',cat:'security',priority:'critical'},
+    {title:'💰 Paiement non reçu — Groupe Minepat',body:'Le virement de 620 000 FCFA attendu de la réservation groupe MINEPAT n\'est pas encore confirmé. Dépassement de 24h.',cat:'payment',priority:'high'},
+    {title:'🛏️ Chambre 202 — Plainte client urgente',body:'M. Essomba (Ch.202) signale une fuite d\'eau depuis la douche. Suite présidentielle voisine pourrait être affectée. Intervention immédiate.',cat:'maintenance',priority:'high'},
+    {title:'🔒 Accès serveur inhabituel — 03h12',body:'Tentative de connexion à l\'interface admin depuis une IP inconnue (197.234.x.x — Nigéria). Session bloquée automatiquement.',cat:'security',priority:'critical'},
+    {title:'👤 Nouveau check-in VIP',body:'M. Laurent Eto\'o Fils arrive pour 5 nuits — Suite Présidentielle. Départ prévu le 19/05. Bouquet bienvenue requis.',cat:'reservation',priority:'medium'},
+  ];
+  const s=scenarios[Math.floor(Math.random()*scenarios.length)];
+  injectNotification(s.title,s.body,s.cat,s.priority,['in_app','whatsapp','push']);
+  toast(`⚡ Alerte simulée: ${s.priority.toUpperCase()}`,'warn');
+}
+
+// Simulation temps réel: nouvelle notification toutes les 45s
+function startRealtime(){
+  if(simulationInterval)return;
+  simulationInterval=setInterval(()=>{
+    const auto=[
+      {title:'💳 Paiement reçu Orange Money',body:'Encaissement de 45 000 FCFA via Orange Money pour chambre 104.',cat:'payment',priority:'low'},
+      {title:'🛏️ Check-out effectué — Ch.106',body:'M. Bikogo a rendu la chambre 106. Ménage requis avant 15h.',cat:'room',priority:'low'},
+      {title:'🍽️ Commande VIP Table 8',body:'Commande spéciale Homard + bouteille Champagne — Table 8. Confirmation cuisine requise.',cat:'restaurant',priority:'medium'},
+    ];
+    const n=auto[Math.floor(Math.random()*auto.length)];
+    injectNotification(n.title,n.body,n.cat,n.priority);
+  },45000);
+}
+
+// INIT
+startRealtime();
+render();
+</script>
+</body>
+</html>

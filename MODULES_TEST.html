@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veraluz OS — Centre de test des modules</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0c0a09;--s1:#1c1917;--s2:#292524;--b1:#44403c;--b2:#57534e;
+  --t1:#f5f5f4;--t2:#d6d3d1;--t3:#a8a29e;--t4:#78716c;
+  --amber:#f59e0b;--amber2:#fbbf24;--adim:rgba(245,158,11,.12);
+  --green:#10b981;--gdim:rgba(16,185,129,.12);
+  --red:#f43f5e;--rdim:rgba(244,63,94,.12);
+  --blue:#3b82f6;--bdim:rgba(59,130,246,.12);
+}
+html,body{height:100%;background:var(--bg);color:var(--t1);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px}
+.shell{display:flex;height:100vh;overflow:hidden}
+
+/* ── Sidebar ─────────────────────────────── */
+.sb{width:228px;background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sb-logo{padding:14px 14px 10px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:9px;flex-shrink:0}
+.mark{width:32px;height:32px;background:var(--amber);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;color:#1c1917;flex-shrink:0}
+.brand{font-size:15px;font-weight:800;color:var(--amber)}
+.ver{font-size:10px;color:var(--t4)}
+.sb-prop{margin:8px 8px 4px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:8px 10px;flex-shrink:0}
+.sb-prop .pn{font-size:12px;font-weight:700}
+.sb-prop .pc{font-size:10px;color:var(--t4)}
+.nav{padding:4px 6px;flex:1}
+.ns{font-size:10px;color:var(--t4);text-transform:uppercase;letter-spacing:.6px;padding:10px 8px 4px;font-weight:600}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--t3);transition:.12s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left}
+.ni:hover{background:var(--s2);color:var(--t1)}
+.ni.active{background:var(--adim);color:var(--amber);font-weight:600}
+.ni .ic{font-size:14px;width:18px;text-align:center;flex-shrink:0}
+.ni .nb{margin-left:auto;background:var(--amber);color:#1c1917;font-size:10px;font-weight:800;padding:1px 5px;border-radius:99px;min-width:16px;text-align:center}
+.ni .nb.r{background:var(--red);color:#fff}
+.sb-foot{padding:10px;border-top:1px solid var(--b1);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.av{width:30px;height:30px;border-radius:50%;background:var(--adim);border:1px solid rgba(245,158,11,.4);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--amber);flex-shrink:0}
+.av-n{font-size:11px;font-weight:600}
+.av-r{font-size:10px;color:var(--t4)}
+
+/* ── Main ────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:50px;background:var(--s1);border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0}
+.pg-title{font-size:15px;font-weight:700}
+.pg-sub{font-size:11px;color:var(--t4);margin-top:1px}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.chip{background:var(--s2);border:1px solid var(--b1);border-radius:6px;padding:3px 9px;font-size:11px;color:var(--t3);cursor:pointer;transition:.12s;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.chip:hover{border-color:var(--amber);color:var(--amber)}
+.chip.green{border-color:rgba(16,185,129,.4);color:var(--green);background:var(--gdim)}
+
+/* ── Module frame ────────────────────────── */
+#module-frame{width:100%;flex:1;border:none;display:none}
+#inline-panel{flex:1;overflow-y:auto;padding:20px;display:none}
+
+/* ── Dashboard inline ────────────────────── */
+.dash-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:14px}
+.kpi-lbl{font-size:10px;color:var(--t4);text-transform:uppercase;letter-spacing:.5px}
+.kpi-val{font-size:22px;font-weight:800;margin:3px 0}
+.kpi-sub{font-size:11px;color:var(--t4)}
+.kpi-sub.up{color:var(--green)}.kpi-sub.dn{color:var(--red)}
+.mod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.mod-card{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:16px;cursor:pointer;transition:.15s;text-decoration:none}
+.mod-card:hover{border-color:var(--amber);transform:translateY(-2px)}
+.mod-icon{font-size:28px;margin-bottom:8px}
+.mod-name{font-size:13px;font-weight:700;color:var(--t1)}
+.mod-desc{font-size:11px;color:var(--t4);margin-top:3px}
+.mod-tag{display:inline-block;margin-top:6px;font-size:10px;padding:2px 7px;border-radius:99px;background:var(--adim);color:var(--amber);font-weight:600}
+.act-list{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:16px;margin-top:16px}
+.act-title{font-size:12px;font-weight:700;color:var(--t4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.act-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--s2)}
+.act-item:last-child{border-bottom:none}
+.act-txt{font-size:12px;color:var(--t2);flex:1}
+.act-time{font-size:10px;color:var(--t4);flex-shrink:0}
+
+/* ── Reservations inline ─────────────────── */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:10px;margin-bottom:14px}
+.card-head{padding:13px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:13px;font-weight:700}
+.card-body{padding:16px}
+table{width:100%;border-collapse:collapse}
+th{background:var(--s2);padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t4)}
+td{padding:9px 12px;border-bottom:1px solid var(--s2);font-size:12px;color:var(--t2)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700}
+.b-pending{background:rgba(120,113,108,.2);color:var(--t3)}
+.b-confirmed{background:var(--bdim);color:var(--blue)}
+.b-in{background:var(--adim);color:var(--amber)}
+.b-out{background:var(--gdim);color:var(--green)}
+.b-cancelled{background:var(--rdim);color:var(--red)}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:.12s}
+.btn-p{background:var(--amber);color:#1c1917}.btn-p:hover{background:var(--amber2)}
+.btn-g{background:var(--s2);color:var(--t2);border:1px solid var(--b1)}.btn-g:hover{border-color:var(--amber);color:var(--amber)}
+.btn-gr{background:var(--gdim);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.btn-bl{background:var(--bdim);color:var(--blue);border:1px solid rgba(59,130,246,.3)}
+.btn-rd{background:var(--rdim);color:var(--red);border:1px solid rgba(244,63,94,.3)}
+.state-track{display:flex;align-items:center;margin:10px 0}
+.state-step{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
+.s-dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2px solid var(--b1);color:var(--t4);background:var(--s2)}
+.s-dot.done{background:var(--green);border-color:var(--green);color:#fff}
+.s-dot.cur{background:var(--amber);border-color:var(--amber);color:#1c1917}
+.s-lbl{font-size:9px;color:var(--t4);text-align:center}
+.s-line{flex:1;height:2px;background:var(--b1);margin-top:-13px}
+.s-line.done{background:var(--green)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-inp{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--t1);outline:none}
+.form-inp:focus{border-color:var(--amber)}
+.form-sel{width:100%;background:var(--s2);border:1px solid var(--b1);border-radius:7px;padding:7px 10px;font-size:12px;color:var(--t1);outline:none}
+.form-lbl{font-size:10px;color:var(--t4);font-weight:600;margin-bottom:3px;display:block}
+.inv-box{background:#fff;color:#1c1917;border-radius:8px;padding:18px;font-size:11px;line-height:1.5}
+.toast-wrap{position:fixed;bottom:16px;right:16px;z-index:999;display:flex;flex-direction:column;gap:6px}
+.toast{background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.4);min-width:260px;animation:tIn .2s ease}
+.toast.ok{border-color:rgba(16,185,129,.5)}.toast.er{border-color:rgba(244,63,94,.5)}.toast.nf{border-color:rgba(59,130,246,.4)}
+@keyframes tIn{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:100}
+.modal-ov.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--b1);border-radius:12px;width:520px;max-height:88vh;overflow-y:auto}
+.modal-head{padding:14px 18px;border-bottom:1px solid var(--b1);display:flex;justify-content:space-between;align-items:center}
+.modal-ttl{font-size:14px;font-weight:700}
+.modal-cls{background:none;border:none;color:var(--t4);cursor:pointer;font-size:17px}
+.modal-body{padding:18px}
+.modal-foot{padding:12px 18px;border-top:1px solid var(--b1);display:flex;gap:8px;justify-content:flex-end}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ═══ SIDEBAR ══════════════════════════════════════════════════════════ -->
+<nav class="sb">
+  <div class="sb-logo">
+    <div class="mark">V</div>
+    <div><div class="brand">Veraluz OS</div><div class="ver">v3.0 — Modules Test</div></div>
+  </div>
+  <div class="sb-prop">
+    <div class="pn">Résidence Veraluz</div>
+    <div class="pc">🇨🇲 Kribi, Cameroun · Vue sur mer</div>
+  </div>
+  <div class="nav">
+    <div class="ns">Vue d'ensemble</div>
+    <button class="ni active" onclick="loadModule('dashboard')"><span class="ic">🏠</span><span>Dashboard</span></button>
+    <button class="ni" onclick="loadModule('reservations')"><span class="ic">📅</span><span>Réservations</span><span class="nb">3</span></button>
+
+    <div class="ns">Modules</div>
+    <button class="ni" onclick="loadFrame('PAIEMENTS_MOCKUP.html','Paiements','Module Paiements CinetPay')"><span class="ic">💳</span><span>Paiements</span></button>
+    <button class="ni" onclick="loadFrame('FINANCE_MOCKUP.html','Finance','Comptabilité & dépenses')"><span class="ic">💰</span><span>Finance</span></button>
+    <button class="ni" onclick="loadFrame('ANALYTICS_MOCKUP.html','Analytiques','KPIs & rapports')"><span class="ic">📊</span><span>Analytiques</span></button>
+    <button class="ni" onclick="loadFrame('RESTAURANT_MOCKUP.html','Restaurant','POS Restaurant & Bar')"><span class="ic">🍽️</span><span>Restaurant</span></button>
+    <button class="ni" onclick="loadFrame('RH_MOCKUP.html','RH & Employés','Gestion des ressources humaines')"><span class="ic">👥</span><span>RH & Employés</span></button>
+    <button class="ni" onclick="loadFrame('HOUSEKEEPING_MOCKUP.html','Housekeeping','Chambres & tâches')"><span class="ic">🧹</span><span>Housekeeping</span><span class="nb r">2</span></button>
+    <button class="ni" onclick="loadFrame('NOTIFICATIONS_MOCKUP.html','Notifications','Alertes système')"><span class="ic">🔔</span><span>Notifications</span><span class="nb r">5</span></button>
+
+    <div class="ns">Architecture</div>
+    <button class="ni" onclick="loadFrame('veraluz-os/SAAS_ARCHITECTURE.html','SaaS & Plans','Multi-tenant & abonnements')"><span class="ic">🏢</span><span>SaaS & Plans</span></button>
+    <button class="ni" onclick="loadFrame('veraluz-os/PLATFORM_MOCKUP.html','Platform Core','Event Bus & Gateway')"><span class="ic">⚡</span><span>Platform Core</span></button>
+    <button class="ni" onclick="loadFrame('AUDIT_ARCHITECTURE.html','Audit Architecture','Rapport technique')"><span class="ic">📋</span><span>Audit Architecture</span></button>
+  </div>
+  <div class="sb-foot">
+    <div class="av">SM</div>
+    <div><div class="av-n">Smith Manager</div><div class="av-r">hotel_manager</div></div>
+  </div>
+</nav>
+
+<!-- ═══ MAIN ══════════════════════════════════════════════════════════════ -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="pg-title" id="pg-title">Dashboard</div>
+      <div class="pg-sub" id="pg-sub">Vue d'ensemble — Résidence Veraluz</div>
+    </div>
+    <div class="tb-right">
+      <span class="chip green">● Prototype</span>
+      <button class="chip" onclick="reloadFrame()">↻ Actualiser</button>
+      <a class="chip" href="veraluz-os/VERALUZ_OS_DOCS.md" target="_blank">📖 Docs</a>
+    </div>
+  </div>
+
+  <!-- iframe pour les modules existants -->
+  <iframe id="module-frame" title="Module"></iframe>
+
+  <!-- Panels inline (Dashboard + Réservations) -->
+  <div id="inline-panel">
+
+    <!-- ══ DASHBOARD ══════════════════════════════════════════════════════ -->
+    <div id="panel-dashboard" style="display:none">
+      <div class="dash-grid">
+        <div class="kpi"><div class="kpi-lbl">Occupation</div><div class="kpi-val" style="color:var(--amber)">75%</div><div class="kpi-sub">6 / 8 unités</div></div>
+        <div class="kpi"><div class="kpi-lbl">Revenus Mai</div><div class="kpi-val" style="color:var(--green)">1,4M</div><div class="kpi-sub up">+12% vs Avril</div></div>
+        <div class="kpi"><div class="kpi-lbl">Réservations</div><div class="kpi-val">6</div><div class="kpi-sub">4 en cours · 1 confirmée · 1 attente</div></div>
+        <div class="kpi"><div class="kpi-lbl">Alertes</div><div class="kpi-val" style="color:var(--red)">3</div><div class="kpi-sub dn">HK · Paiement · Stock</div></div>
+      </div>
+
+      <div class="mod-grid">
+        <div class="mod-card" onclick="loadFrame('PAIEMENTS_MOCKUP.html','Paiements','Module Paiements CinetPay')">
+          <div class="mod-icon">💳</div>
+          <div class="mod-name">Paiements</div>
+          <div class="mod-desc">Orange Money · MTN MoMo · CinetPay IPN</div>
+          <div class="mod-tag">1 265 000 FCFA encaissés</div>
+        </div>
+        <div class="mod-card" onclick="loadModule('reservations')">
+          <div class="mod-icon">📅</div>
+          <div class="mod-name">Réservations</div>
+          <div class="mod-desc">Machine à états · Check-in · Check-out · Factures</div>
+          <div class="mod-tag">4 séjours en cours</div>
+        </div>
+        <div class="mod-card" onclick="loadFrame('FINANCE_MOCKUP.html','Finance','Comptabilité & dépenses')">
+          <div class="mod-icon">💰</div>
+          <div class="mod-name">Finance</div>
+          <div class="mod-desc">Comptabilité · TVA 19,25% · Dépenses · Rapports</div>
+          <div class="mod-tag">Résultat net: 930 000 FCFA</div>
+        </div>
+        <div class="mod-card" onclick="loadFrame('ANALYTICS_MOCKUP.html','Analytiques','KPIs & rapports')">
+          <div class="mod-icon">📊</div>
+          <div class="mod-name">Analytiques</div>
+          <div class="mod-desc">Taux occupation · RevPAR · Satisfaction · Sources</div>
+          <div class="mod-tag">Score: 4.7/5 · 42 avis</div>
+        </div>
+        <div class="mod-card" onclick="loadFrame('RESTAURANT_MOCKUP.html','Restaurant','POS Restaurant & Bar')">
+          <div class="mod-icon">🍽️</div>
+          <div class="mod-name">Restaurant & Bar</div>
+          <div class="mod-desc">POS · Tables · Commandes · Menu Kribi</div>
+          <div class="mod-tag">3 tables occupées</div>
+        </div>
+        <div class="mod-card" onclick="loadFrame('RH_MOCKUP.html','RH & Employés','Gestion des ressources humaines')">
+          <div class="mod-icon">👥</div>
+          <div class="mod-name">RH & Employés</div>
+          <div class="mod-desc">Pointage · Paie · Congés · Profils</div>
+          <div class="mod-tag">5 employés actifs</div>
+        </div>
+        <div class="mod-card" onclick="loadFrame('HOUSEKEEPING_MOCKUP.html','Housekeeping','Chambres & tâches')">
+          <div class="mod-icon">🧹</div>
+          <div class="mod-name">Housekeeping</div>
+          <div class="mod-desc">Statut chambres · Tâches · Maintenance</div>
+          <div class="mod-tag" style="background:var(--rdim);color:var(--red)">⚠ 2 urgences</div>
+        </div>
+        <div class="mod-card" onclick="loadFrame('NOTIFICATIONS_MOCKUP.html','Notifications','Alertes système')">
+          <div class="mod-icon">🔔</div>
+          <div class="mod-name">Notifications</div>
+          <div class="mod-desc">Alertes temps réel · Préférences · Event Bus</div>
+          <div class="mod-tag" style="background:var(--rdim);color:var(--red)">5 non lues</div>
+        </div>
+        <div class="mod-card" onclick="loadFrame('veraluz-os/SAAS_ARCHITECTURE.html','SaaS & Plans','Multi-tenant')">
+          <div class="mod-icon">🏢</div>
+          <div class="mod-name">SaaS & Plans</div>
+          <div class="mod-desc">Multi-tenant · Abonnements · Quotas · Billing</div>
+          <div class="mod-tag">Plan Starter actif</div>
+        </div>
+      </div>
+
+      <div class="act-list">
+        <div class="act-title">Activité récente</div>
+        <div class="act-item"><span style="font-size:16px">✅</span><div class="act-txt">Check-in confirmé — M. Hassan Youmara → Suite Présidentielle</div><div class="act-time">14 mai, 10h00</div></div>
+        <div class="act-item"><span style="font-size:16px">💰</span><div class="act-txt">Paiement Orange Money reçu — 450 000 FCFA · M. Youmara</div><div class="act-time">14 mai, 09h30</div></div>
+        <div class="act-item"><span style="font-size:16px">⚠️</span><div class="act-txt">Studio 202 signalé hors service — climatiseur défectueux</div><div class="act-time">13 mai, 21h00</div></div>
+        <div class="act-item"><span style="font-size:16px">🔔</span><div class="act-txt">Chambre 102 check-in — Mireille Atangana</div><div class="act-time">13 mai, 14h05</div></div>
+        <div class="act-item"><span style="font-size:16px">📅</span><div class="act-txt">Réservation confirmée — Marie-Claire Essono (Ch. 103 · 17/05)</div><div class="act-time">13 mai, 11h20</div></div>
+        <div class="act-item"><span style="font-size:16px">❌</span><div class="act-txt">Paiement MTN MoMo refusé — Pierre Ngono · Solde insuffisant</div><div class="act-time">13 mai, 17h00</div></div>
+      </div>
+    </div>
+
+    <!-- ══ RÉSERVATIONS ═══════════════════════════════════════════════════ -->
+    <div id="panel-reservations" style="display:none">
+
+      <!-- Machine à états -->
+      <div class="card">
+        <div class="card-head"><div class="card-title">🔄 Machine à états — Cycle de vie d'une réservation</div></div>
+        <div class="card-body">
+          <div class="state-track">
+            <div class="state-step"><div class="s-dot done">1</div><div class="s-lbl">Pending</div></div>
+            <div class="s-line done"></div>
+            <div class="state-step"><div class="s-dot done">2</div><div class="s-lbl">Confirmed</div></div>
+            <div class="s-line done"></div>
+            <div class="state-step"><div class="s-dot cur">3</div><div class="s-lbl">Checked In</div></div>
+            <div class="s-line"></div>
+            <div class="state-step"><div class="s-dot">4</div><div class="s-lbl">Checked Out</div></div>
+            <div class="s-line"></div>
+            <div class="state-step"><div class="s-dot" style="border-color:var(--red);color:var(--red)">✕</div><div class="s-lbl">Cancelled</div></div>
+          </div>
+          <div style="font-size:10px;color:var(--t4);text-align:center;margin-top:6px">
+            Transitions valides: pending→confirmed/cancelled · confirmed→checked_in/cancelled · checked_in→checked_out
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions rapides -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Toutes les réservations</div>
+          <button class="btn btn-p" onclick="openModal()">+ Nouvelle réservation</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Client</th><th>Unité</th><th>Arrivée</th><th>Départ</th>
+              <th>Total</th><th>Payé</th><th>Statut</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="res-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Facture générée -->
+      <div class="card" id="invoice-zone" style="display:none">
+        <div class="card-head">
+          <div class="card-title">🧾 Facture générée</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-g" onclick="document.getElementById('invoice-zone').style.display='none'">✕ Fermer</button>
+            <button class="btn btn-p" onclick="window.print()">🖨 Imprimer</button>
+          </div>
+        </div>
+        <div class="card-body"><div class="inv-box" id="invoice-content"></div></div>
+      </div>
+    </div>
+
+  </div><!-- /inline-panel -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- ══ Modal nouvelle réservation ══════════════════════════════════════════ -->
+<div class="modal-ov" id="modal-new-res">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-ttl">Nouvelle réservation</div>
+      <button class="modal-cls" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div><label class="form-lbl">Nom client *</label><input class="form-inp" id="nr-name" placeholder="Jean-Pierre Mvondo"></div>
+        <div><label class="form-lbl">Téléphone</label><input class="form-inp" id="nr-phone" placeholder="+237 6XX XXX XXX"></div>
+      </div>
+      <div class="form-row">
+        <div><label class="form-lbl">Arrivée *</label><input class="form-inp" type="date" id="nr-in"></div>
+        <div><label class="form-lbl">Départ *</label><input class="form-inp" type="date" id="nr-out"></div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label class="form-lbl">Unité *</label>
+          <select class="form-sel" id="nr-unit">
+            <option value="Ch. 101|25000">Ch. 101 — Chambre standard (25 000 FCFA/n)</option>
+            <option value="Ch. 102|25000">Ch. 102 — Chambre standard (25 000 FCFA/n)</option>
+            <option value="Ch. 103|35000">Ch. 103 — Chambre vue mer (35 000 FCFA/n)</option>
+            <option value="Ch. 104|35000">Ch. 104 — Chambre vue mer (35 000 FCFA/n)</option>
+            <option value="App. 105|60000">App. 105 — Appartement 2ch (60 000 FCFA/n)</option>
+            <option value="Studio 201|50000">Studio 201 — Grand studio (50 000 FCFA/n)</option>
+            <option value="Studio 202|50000">Studio 202 — Grand studio (50 000 FCFA/n)</option>
+            <option value="Suite Présidentielle|150000">Suite Présidentielle (150 000 FCFA/n)</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-lbl">Source</label>
+          <select class="form-sel" id="nr-src">
+            <option>direct</option><option>booking</option><option>airbnb</option><option>whatsapp</option><option>phone</option>
+          </select>
+        </div>
+      </div>
+      <div><label class="form-lbl">Notes</label><input class="form-inp" id="nr-notes" placeholder="Demandes spéciales, vue mer..."></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-g" onclick="closeModal()">Annuler</button>
+      <button class="btn btn-p" onclick="createRes()">✓ Créer la réservation</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Toasts ═══════════════════════════════════════════════════════════════ -->
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+// ── Données mock ──────────────────────────────────────────────────────────────
+const RESERVATIONS = [
+  {id:'R-001',client:'Mireille Atangana',phone:'+237 699 123 456',unit:'Ch. 102',price:25000,checkin:'2026-05-13',checkout:'2026-05-16',nights:3,total:75000,paid:75000,status:'checked_in',source:'booking',guests:1},
+  {id:'R-002',client:'Dr. Emmanuel Biya',phone:'+237 677 654 321',unit:'Ch. 104',price:35000,checkin:'2026-05-14',checkout:'2026-05-18',nights:4,total:140000,paid:70000,status:'checked_in',source:'direct',guests:2},
+  {id:'R-003',client:'Fatou Diallo',phone:'+237 654 987 654',unit:'Studio 201',price:50000,checkin:'2026-05-12',checkout:'2026-05-15',nights:3,total:150000,paid:150000,status:'checked_in',source:'airbnb',guests:2},
+  {id:'R-004',client:'M. Hassan Youmara',phone:'+237 690 111 222',unit:'Suite Présidentielle',price:150000,checkin:'2026-05-14',checkout:'2026-05-20',nights:6,total:900000,paid:450000,status:'checked_in',source:'direct',guests:4},
+  {id:'R-005',client:'Marie-Claire Essono',phone:'+237 678 333 444',unit:'Ch. 103',price:35000,checkin:'2026-05-17',checkout:'2026-05-20',nights:3,total:105000,paid:0,status:'confirmed',source:'whatsapp',guests:2},
+  {id:'R-006',client:'Pierre Ngono',phone:'+237 655 555 666',unit:'Studio 202',price:50000,checkin:'2026-05-16',checkout:'2026-05-19',nights:3,total:150000,paid:0,status:'pending',source:'phone',guests:1},
+];
+
+const xaf = n => new Intl.NumberFormat('fr-CM',{style:'currency',currency:'XAF',maximumFractionDigits:0}).format(n);
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+let currentModule = '';
+
+function setActive(label){
+  document.querySelectorAll('.ni').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.ni').forEach(b=>{
+    if(b.textContent.trim().startsWith(label)) b.classList.add('active');
+  });
+}
+
+function loadFrame(src, title, sub){
+  currentModule = src;
+  document.getElementById('pg-title').textContent = title;
+  document.getElementById('pg-sub').textContent = sub;
+  document.getElementById('module-frame').src = src;
+  document.getElementById('module-frame').style.display = 'block';
+  document.getElementById('inline-panel').style.display = 'none';
+  setActive(title);
+}
+
+function loadModule(name){
+  currentModule = name;
+  document.getElementById('module-frame').style.display = 'none';
+  document.getElementById('module-frame').src = '';
+  document.getElementById('inline-panel').style.display = 'block';
+  document.getElementById('panel-dashboard').style.display = name==='dashboard' ? 'block' : 'none';
+  document.getElementById('panel-reservations').style.display = name==='reservations' ? 'block' : 'none';
+  document.getElementById('invoice-zone').style.display = 'none';
+
+  if(name === 'dashboard'){
+    document.getElementById('pg-title').textContent = 'Dashboard';
+    document.getElementById('pg-sub').textContent = 'Vue d\'ensemble — Jeudi 14 Mai 2026';
+    setActive('Dashboard');
+  } else if(name === 'reservations'){
+    document.getElementById('pg-title').textContent = 'Réservations';
+    document.getElementById('pg-sub').textContent = 'Gestion & machine à états · ' + RESERVATIONS.length + ' réservations';
+    setActive('Réservations');
+    renderTable();
+  }
+}
+
+function reloadFrame(){
+  const f = document.getElementById('module-frame');
+  if(f.src && f.src !== window.location.href) f.src = f.src;
+}
+
+// ── Tableau réservations ───────────────────────────────────────────────────
+const STATUS_LABELS = {pending:'En attente',confirmed:'Confirmée',checked_in:'En séjour',checked_out:'Terminée',cancelled:'Annulée'};
+const STATUS_CLASS  = {pending:'b-pending',confirmed:'b-confirmed',checked_in:'b-in',checked_out:'b-out',cancelled:'b-cancelled'};
+
+const TRANSITIONS = {
+  pending:    [{label:'✓ Confirmer',   status:'confirmed',   cls:'btn-gr'},
+               {label:'✕ Annuler',     status:'cancelled',   cls:'btn-rd'}],
+  confirmed:  [{label:'⬆ Check-in',    status:'checked_in',  cls:'btn-p'},
+               {label:'✕ Annuler',     status:'cancelled',   cls:'btn-rd'}],
+  checked_in: [{label:'⬇ Check-out',   status:'checked_out', cls:'btn-bl'},
+               {label:'🧾 Facture',    status:'invoice',     cls:'btn-g'}],
+  checked_out:[{label:'🧾 Facture',    status:'invoice',     cls:'btn-g'}],
+  cancelled:  [],
+};
+
+function renderTable(){
+  const msgs = {
+    confirmed:'Réservation confirmée ✓',
+    checked_in:'Check-in effectué — chambre occupée',
+    checked_out:'Check-out enregistré — chambre marquée à nettoyer',
+    cancelled:'Réservation annulée'
+  };
+
+  document.getElementById('res-tbody').innerHTML = RESERVATIONS.map(r=>{
+    const bal = r.total - r.paid;
+    const actions = (TRANSITIONS[r.status]||[]).map(t=>`
+      <button class="btn ${t.cls}" onclick="doAction('${r.id}','${t.status}')">${t.label}</button>
+    `).join('');
+    return `
+      <tr id="row-${r.id}">
+        <td style="color:var(--amber);font-weight:700;font-size:11px">${r.id}</td>
+        <td><div style="font-weight:700">${r.client}</div><div style="font-size:10px;color:var(--t4)">${r.phone}</div></td>
+        <td>${r.unit}</td>
+        <td>${r.checkin}</td>
+        <td>${r.checkout} <span style="font-size:10px;color:var(--t4)">(${r.nights}n)</span></td>
+        <td style="font-weight:700">${xaf(r.total)}</td>
+        <td style="color:${bal===0?'var(--green)':bal===r.total?'var(--red)':'var(--amber)'}">
+          ${xaf(r.paid)} ${bal>0?'<span style="font-size:10px">(solde: '+xaf(bal)+')</span>':'✓'}
+        </td>
+        <td><span class="badge ${STATUS_CLASS[r.status]||'b-pending'}">${STATUS_LABELS[r.status]||r.status}</span></td>
+        <td><div style="display:flex;gap:4px;flex-wrap:wrap">${actions}</div></td>
+      </tr>`;
+  }).join('');
+}
+
+function doAction(id, action){
+  const r = RESERVATIONS.find(x=>x.id===id);
+  if(!r) return;
+
+  if(action === 'invoice'){
+    showInvoice(r);
+    return;
+  }
+
+  const msgs = {
+    confirmed:   `✓ Réservation ${id} confirmée`,
+    checked_in:  `✓ Check-in effectué — ${r.client}`,
+    checked_out: `✓ Check-out enregistré — ${r.client}`,
+    cancelled:   `Réservation ${id} annulée`
+  };
+
+  r.status = action;
+  if(action === 'checked_out'){
+    toast(`${msgs[action]} · Chambre ajoutée à la liste HK`,'ok');
+  } else {
+    toast(msgs[action]||action, action==='cancelled'?'er':'ok');
+  }
+  renderTable();
+  // Update sub title count
+  document.getElementById('pg-sub').textContent = 'Gestion & machine à états · '+RESERVATIONS.length+' réservations';
+}
+
+// ── Facture ────────────────────────────────────────────────────────────────
+function showInvoice(r){
+  const taxRate = 0.1925;
+  const ht  = Math.round(r.total / (1+taxRate));
+  const tax = r.total - ht;
+  const bal = r.total - r.paid;
+  const invNum = `VRZ-${r.id}`;
+
+  document.getElementById('invoice-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #f59e0b">
+      <div>
+        <div style="font-size:16px;font-weight:800">Résidence Veraluz</div>
+        <div style="font-size:10px;color:#78716c">Front de Mer — Kribi, Cameroun | +237 690 000 000</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:14px;font-weight:800;color:#f59e0b">FACTURE N° ${invNum}</div>
+        <div style="font-size:10px;color:#78716c">Émise le ${new Date().toLocaleDateString('fr-CM')}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div style="background:#fafaf9;border-radius:6px;padding:10px">
+        <div style="font-size:9px;font-weight:700;color:#a8a29e;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Client</div>
+        <div style="font-weight:700">${r.client}</div>
+        <div style="font-size:10px;color:#78716c">${r.phone}</div>
+      </div>
+      <div style="background:#fafaf9;border-radius:6px;padding:10px">
+        <div style="font-size:9px;font-weight:700;color:#a8a29e;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Séjour</div>
+        <div style="font-weight:700">${r.unit}</div>
+        <div style="font-size:10px;color:#78716c">${r.checkin} → ${r.checkout} · ${r.nights} nuits · ${r.guests} pers.</div>
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px">
+      <thead><tr style="background:#1c1917;color:#fff">
+        <th style="padding:7px 10px;text-align:left">Description</th>
+        <th style="padding:7px 10px;text-align:right">Qté</th>
+        <th style="padding:7px 10px;text-align:right">Prix/nuit</th>
+        <th style="padding:7px 10px;text-align:right">Total HT</th>
+      </tr></thead>
+      <tbody><tr>
+        <td style="padding:9px 10px;color:#44403c">Hébergement — ${r.unit}<br><span style="font-size:9px;color:#a8a29e">${r.checkin} → ${r.checkout}</span></td>
+        <td style="padding:9px 10px;text-align:right">${r.nights} nuits</td>
+        <td style="padding:9px 10px;text-align:right">${xaf(r.price)}</td>
+        <td style="padding:9px 10px;text-align:right;font-weight:700">${xaf(ht)}</td>
+      </tr></tbody>
+    </table>
+    <div style="margin-left:auto;width:200px;font-size:11px">
+      <div style="display:flex;justify-content:space-between;padding:3px 0;color:#78716c"><span>Sous-total HT</span><span>${xaf(ht)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:3px 0;color:#78716c"><span>TVA + Taxes (19,25%)</span><span>${xaf(tax)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0 4px;border-top:2px solid #1c1917;font-size:14px;font-weight:800"><span>Total TTC</span><span>${xaf(r.total)}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:3px 0;color:${bal>0?'#ef4444':'#10b981'};font-weight:700"><span>${bal>0?'⚠ Solde restant dû':'✓ Facture soldée'}</span><span>${xaf(bal)}</span></div>
+    </div>
+    <div style="margin-top:14px;padding-top:10px;border-top:1px solid #e7e5e4;font-size:9px;color:#a8a29e;text-align:center">
+      Résidence Veraluz · Kribi, Cameroun · Contribuable N° M-XXXXX · RC N° XXXXX<br>
+      Généré via Veraluz OS — Système de gestion hôtelière
+    </div>`;
+
+  document.getElementById('invoice-zone').style.display = 'block';
+  document.getElementById('invoice-zone').scrollIntoView({behavior:'smooth'});
+  toast(`Facture ${invNum} générée`,'ok');
+}
+
+// ── Nouvelle réservation ───────────────────────────────────────────────────
+function openModal(){
+  const today = new Date().toISOString().split('T')[0];
+  const out   = new Date(); out.setDate(out.getDate()+2);
+  document.getElementById('nr-in').value  = today;
+  document.getElementById('nr-out').value = out.toISOString().split('T')[0];
+  document.getElementById('modal-new-res').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modal-new-res').classList.remove('open');
+}
+function createRes(){
+  const name  = document.getElementById('nr-name').value.trim();
+  const phone = document.getElementById('nr-phone').value.trim();
+  const ci    = document.getElementById('nr-in').value;
+  const co    = document.getElementById('nr-out').value;
+  const uRaw  = document.getElementById('nr-unit').value;
+  const src   = document.getElementById('nr-src').value;
+  if(!name){toast('Le nom du client est requis','er');return;}
+  if(!ci||!co){toast('Les dates sont requises','er');return;}
+  const [unit,priceStr] = uRaw.split('|');
+  const price = parseInt(priceStr)||25000;
+  const nights = Math.max(1,Math.ceil((new Date(co)-new Date(ci))/(86400000)));
+  const newId = 'R-00'+(RESERVATIONS.length+1);
+  RESERVATIONS.push({id:newId,client:name,phone:phone||'+237 600 000 000',unit,price,checkin:ci,checkout:co,nights,total:nights*price,paid:0,status:'pending',source:src,guests:1});
+  closeModal();
+  renderTable();
+  toast(`Réservation ${newId} créée — ${name} · ${unit} · ${nights} nuits · ${xaf(nights*price)}`,'ok');
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function toast(msg, type='nf'){
+  const wrap = document.getElementById('toasts');
+  const el   = document.createElement('div');
+  const ic   = {ok:'✅',er:'❌',nf:'ℹ️'}[type]||'ℹ️';
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span style="font-size:15px">${ic}</span><span>${msg}</span>`;
+  wrap.appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transition='.4s';},3200);
+  setTimeout(()=>el.remove(),3700);
+}
+
+// ── Modal overlay click ────────────────────────────────────────────────────
+document.getElementById('modal-new-res').addEventListener('click',e=>{
+  if(e.target===e.currentTarget) closeModal();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────
+loadModule('dashboard');
+</script>
+</body>
+</html>

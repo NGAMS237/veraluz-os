@@ -1683,36 +1683,37 @@ function loadModule(moduleName) {
   var iframe = document.getElementById('module-iframe');
   iframe.classList.remove('loaded');
 
-  // ── Chargement iframe (fonctionne en https:// / GitHub Pages) ──────────────
+  // ── Chargement iframe robuste ────────────────────────────────────────────────
   iframe.onload  = null;
   iframe.onerror = null;
   if (loadTimeout) clearTimeout(loadTimeout);
 
-  loadTimeout = setTimeout(function() {
-    loading.classList.remove('show');
-    document.getElementById('module-error').classList.add('show');
-    document.getElementById('err-msg').textContent = 'Le module ' + mod.label + ' n\'a pas pu se charger (15s).';
-    EventBus.emit('module.error', { module: moduleName, reason: 'timeout' });
-  }, 15000);
-
-  iframe.onload = function() {
+  // Fonction unique de finalisation (appelée par onload OU par le fallback)
+  var _loaded = false;
+  function finishLoad() {
+    if (_loaded) return;
+    _loaded = true;
     if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
     loading.classList.remove('show');
     iframe.classList.add('loaded');
-    console.log('[Core] Module chargé ✓ —', mod.file);
+    console.log('[Core] Module prêt ✓ —', mod.file);
     EventBus.emit('module.loaded', { module: moduleName, file: mod.file });
     setTimeout(sendAuthContext, 150);
-  };
+  }
+
+  iframe.onload  = function() { finishLoad(); };
   iframe.onerror = function() {
-    if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
+    _loaded = true;
     loading.classList.remove('show');
     document.getElementById('module-error').classList.add('show');
     document.getElementById('err-msg').textContent = 'Impossible de charger ' + mod.file + '.';
     console.warn('[Core] Module ERREUR —', mod.file);
-    EventBus.emit('module.error', { module: moduleName, reason: 'load_error' });
   };
 
-  setTimeout(function() { iframe.src = mod.file; }, 30);
+  // Fallback garanti : retire le spinner après 1.5s même si onload ne tire pas
+  loadTimeout = setTimeout(function() { finishLoad(); }, 1500);
+
+  iframe.src = mod.file;
 
   EventBus.emit('module.navigate', { to: moduleName, from: currentPage });
 }

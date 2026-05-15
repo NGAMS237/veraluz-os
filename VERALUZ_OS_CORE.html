@@ -2,2814 +2,511 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d0d1a">
-<title>Veraluz OS</title>
+<title>Veraluz OS — Kribi</title>
 <style>
-/* ================================================================
-   VERALUZ OS — PLATFORM CORE v3.0
-   Mobile-first · Embedded Modules · Event Bus · RBAC
-   Architecture: Shell only — aucune logique metier
-   ================================================================ */
+:root{
+  --bg:#0d0d1a;--bg2:#12121f;--bg3:#1a1a2e;--bg4:#22223a;
+  --accent:#22d3a5;--acc2:#818cf8;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --border:rgba(255,255,255,.07);
+  --warn:#f59e0b;--err:#f43f5e;--ok:#22d3a5;
+  --sb-w:220px;--tb-h:54px;--bn-h:62px;
+  --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg);color:var(--text);display:flex;height:100vh;}
 
-/* ── RESET & BASE ─────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { height: 100%; -webkit-tap-highlight-color: transparent; }
+/* ── SIDEBAR ─────────────────────────────────────────────────── */
+#sidebar{width:var(--sb-w);min-width:var(--sb-w);background:var(--bg2);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;
+  padding-top:var(--sat);flex-shrink:0;}
+.sb-logo{padding:20px 16px 12px;display:flex;align-items:center;gap:10px;}
+.sb-logo-icon{width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,var(--accent),var(--acc2));
+  display:flex;align-items:center;justify-content:center;font-size:16px;}
+.sb-logo-name{font-size:15px;font-weight:700;}
+.sb-logo-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+.sb-divider{height:1px;background:var(--border);margin:6px 12px;}
+.sb-section{font-size:10px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.8px;padding:8px 16px 4px;font-weight:600;}
+.sb-nav{flex:1;padding:4px 8px;overflow-y:auto;}
+.sb-btn{width:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;
+  border-radius:8px;border:none;background:transparent;color:var(--text2);
+  cursor:pointer;font-size:13px;font-weight:500;text-align:left;transition:all .15s;}
+.sb-btn:hover{background:var(--bg3);color:var(--text);}
+.sb-btn.active{background:rgba(34,211,165,.12);color:var(--accent);}
+.sb-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.sb-future{width:100%;display:flex;align-items:center;gap:10px;padding:8px 10px;
+  border-radius:8px;background:transparent;color:var(--text3);
+  font-size:12px;opacity:.55;margin-bottom:2px;}
+.sb-bottom{padding:12px 8px calc(12px + var(--sab));border-top:1px solid var(--border);}
+.sb-user{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;}
+.sb-avatar{width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--acc2));
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
+.sb-uname{font-size:12px;font-weight:600;}
+.sb-urole{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;}
 
-/* ── DESIGN TOKENS ────────────────────────────────────────── */
-:root {
-  /* Couleurs dark (defaut) */
-  --bg:        #0d0d1a;
-  --bg2:       #11112a;
-  --bg3:       #181830;
-  --bg4:       #1e1e3a;
-  --bg-hover:  #252546;
-  --border:    rgba(255,255,255,0.07);
-  --border2:   rgba(255,255,255,0.13);
-  --accent:    #6c63ff;
-  --accent2:   #8b7fff;
-  --accent3:   #a89dff;
-  --success:   #22d3a5;
-  --warning:   #f59e0b;
-  --danger:    #f43f5e;
-  --info:      #38bdf8;
-  --text:      #e8e6ff;
-  --text2:     #9990cc;
-  --text3:     #5a5580;
-  /* Layout */
-  --sb-w:      240px;
-  --tb-h:      56px;
-  --bn-h:      60px;  /* bottom nav mobile */
-  --radius:    10px;
-  --anim:      .22s ease;
-  /* Safe area iOS */
-  --sat: env(safe-area-inset-top, 0px);
-  --sab: env(safe-area-inset-bottom, 0px);
-}
-/* Light mode */
-body.light {
-  --bg:       #f0f0fb;
-  --bg2:      #ffffff;
-  --bg3:      #f5f5ff;
-  --bg4:      #ebebff;
-  --bg-hover: #e0e0ff;
-  --border:   rgba(0,0,0,0.07);
-  --border2:  rgba(0,0,0,0.12);
-  --text:     #1a1840;
-  --text2:    #5a558a;
-  --text3:    #9994bb;
-}
+/* ── MAIN ────────────────────────────────────────────────────── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
 
-body {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-  overflow: hidden;
-  font-size: 14px;
-  line-height: 1.5;
-}
+/* ── Topbar ──────────────────────────────────────────────────── */
+#topbar{height:var(--tb-h);padding-top:var(--sat);background:var(--bg2);
+  border-bottom:1px solid var(--border);display:flex;align-items:center;
+  padding-left:14px;padding-right:14px;gap:10px;flex-shrink:0;z-index:50;}
+.tb-menu{display:none;width:32px;height:32px;border-radius:7px;
+  border:1px solid var(--border);background:var(--bg3);color:var(--text2);
+  cursor:pointer;font-size:16px;align-items:center;justify-content:center;}
+.tb-title{font-size:15px;font-weight:700;flex:1;}
+.tb-sub{font-size:11px;color:var(--text3);}
+.tb-actions{display:flex;gap:8px;margin-left:auto;align-items:center;}
+.tb-btn{height:30px;padding:0 12px;border-radius:6px;border:none;background:var(--bg3);
+  color:var(--text2);cursor:pointer;font-size:12px;display:flex;align-items:center;
+  gap:5px;transition:all .15s;}
+.tb-btn:hover{background:var(--bg4);color:var(--text);}
+.tb-tag{font-size:10px;background:rgba(34,211,165,.15);color:var(--accent);
+  padding:2px 8px;border-radius:10px;font-weight:600;}
 
-/* ── OVERLAY SIDEBAR MOBILE ───────────────────────────────── */
-#sb-overlay {
-  display: none;
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.6);
-  z-index: 199;
-  backdrop-filter: blur(2px);
-  opacity: 0;
-  transition: opacity var(--anim);
-}
-#sb-overlay.show { display: block; opacity: 1; }
+/* ── Content ─────────────────────────────────────────────────── */
+#content{flex:1;position:relative;overflow:hidden;}
 
-/* ── SIDEBAR ──────────────────────────────────────────────── */
-#sidebar {
-  position: fixed;
-  top: 0; left: 0;
-  width: var(--sb-w);
-  height: 100vh;
-  height: -webkit-fill-available;
-  background: var(--bg2);
-  border-right: 1px solid var(--border2);
-  display: flex;
-  flex-direction: column;
-  z-index: 200;
-  transform: translateX(calc(-1 * var(--sb-w)));
-  transition: transform .3s cubic-bezier(.4,0,.2,1), background var(--anim);
-  overscroll-behavior: contain;
-}
-#sidebar.open { transform: translateX(0); }
+/* ── Vues ────────────────────────────────────────────────────── */
+.view{position:absolute;inset:0;display:none;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;}
+.view.active{display:block;}
+#view-module{overflow:hidden;}
+#module-frame{width:100%;height:100%;border:none;background:var(--bg);display:block;}
 
-/* Sur desktop >= 768px: sidebar toujours visible */
-@media (min-width: 768px) {
-  #sidebar { transform: translateX(0); }
-  #sidebar.collapsed { transform: translateX(calc(-1 * var(--sb-w))); }
-  #sb-overlay { display: none !important; }
-}
+/* ── Loader ──────────────────────────────────────────────────── */
+#loader{position:absolute;inset:0;background:var(--bg);display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:20;}
+#loader.show{display:flex;}
+.ld-ring{width:40px;height:40px;border-radius:50%;border:3px solid var(--bg4);
+  border-top-color:var(--accent);animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ld-text{font-size:13px;color:var(--text3);}
 
-/* Logo */
-.sb-logo {
-  display: flex; align-items: center; gap: 10px;
-  padding: 16px 16px 14px;
-  border-bottom: 1px solid var(--border2);
-  flex-shrink: 0;
-}
-.sb-logo-icon {
-  width: 36px; height: 36px; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
-  border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; font-weight: 800; color: #fff;
-  box-shadow: 0 4px 12px rgba(108,99,255,0.4);
-}
-.sb-logo-name { font-size: 13px; font-weight: 800; color: var(--text); }
-.sb-logo-ver  { font-size: 10px; color: var(--text3); }
-.sb-logo-close {
-  margin-left: auto;
-  width: 28px; height: 28px;
-  background: none; border: none;
-  color: var(--text2); cursor: pointer;
-  border-radius: 6px;
-  display: none; align-items: center; justify-content: center;
-  font-size: 16px;
-  transition: background var(--anim);
-}
-.sb-logo-close:hover { background: var(--bg-hover); }
-@media (max-width: 767px) { .sb-logo-close { display: flex; } }
+/* ── Erreur ──────────────────────────────────────────────────── */
+#mod-error{position:absolute;inset:0;background:var(--bg);display:none;
+  flex-direction:column;align-items:center;justify-content:center;
+  gap:12px;z-index:20;text-align:center;padding:24px;}
+#mod-error.show{display:flex;}
+.err-ico{font-size:40px;}.err-title{font-size:16px;font-weight:700;}
+.err-msg{font-size:12px;color:var(--text3);max-width:280px;}
+.err-retry{padding:9px 22px;border-radius:8px;border:none;background:var(--accent);
+  color:#000;font-weight:700;cursor:pointer;font-size:13px;margin-top:4px;}
 
-/* Nav */
-.sb-nav { flex: 1; overflow-y: auto; padding: 8px 0 4px; }
-.sb-nav::-webkit-scrollbar { width: 3px; }
-.sb-nav::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+/* ── Dashboard ───────────────────────────────────────────────── */
+#view-dashboard{padding:16px;padding-bottom:calc(var(--bn-h) + var(--sab) + 16px);}
+@media(min-width:768px){#view-dashboard{padding:24px;padding-bottom:24px;}}
+.dash-greeting{font-size:20px;font-weight:700;margin-bottom:4px;}
+.dash-sub{font-size:13px;color:var(--text3);margin-bottom:20px;}
+.dash-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+@media(min-width:640px){.dash-stats{grid-template-columns:repeat(4,1fr);}}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;}
+.stat-val{font-size:26px;font-weight:700;margin-bottom:2px;}
+.stat-label{font-size:11px;color:var(--text3);}
+.stat-val.a{color:var(--accent);}.stat-val.w{color:var(--warn);}
+.dash-section{font-size:11px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.7px;font-weight:600;margin-bottom:12px;}
+.modules-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:24px;}
+@media(min-width:640px){.modules-grid{grid-template-columns:repeat(3,1fr);}}
+.mod-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;
+  padding:16px;cursor:pointer;transition:all .15s;text-align:left;
+  border-color:transparent;color:var(--text);width:100%;}
+.mod-card:hover{background:var(--bg3);transform:translateY(-1px);}
+.mod-card.dim{cursor:default;opacity:.4;border:1px dashed var(--border);background:transparent;}
+.mod-card.dim:hover{transform:none;background:transparent;}
+.mod-icon{font-size:24px;margin-bottom:8px;}
+.mod-name{font-size:13px;font-weight:700;margin-bottom:3px;}
+.mod-desc{font-size:11px;color:var(--text3);}
+.mod-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 6px;
+  border-radius:8px;margin-top:6px;background:rgba(34,211,165,.15);color:var(--accent);}
+.mod-badge.s{background:rgba(100,116,139,.15);color:var(--text3);}
+.recent-list{display:flex;flex-direction:column;gap:8px;}
+.rec-item{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;display:flex;align-items:center;gap:12px;}
+.rec-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.rec-dot.ok{background:var(--ok);}.rec-dot.w{background:var(--warn);}.rec-dot.i{background:var(--acc2);}
+.rec-text{flex:1;font-size:13px;}.rec-time{font-size:11px;color:var(--text3);flex-shrink:0;}
 
-.sb-section {
-  padding: 12px 16px 4px;
-  font-size: 9.5px; font-weight: 700;
-  letter-spacing: .1em; text-transform: uppercase;
-  color: var(--text3);
-}
-.sb-item {
-  display: flex; align-items: center; gap: 9px;
-  padding: 9px 12px; margin: 1px 8px;
-  border-radius: 8px; cursor: pointer;
-  font-size: 13px; color: var(--text2);
-  transition: all .15s;
-  border: none; background: none;
-  width: calc(100% - 16px); text-align: left;
-  position: relative; -webkit-appearance: none;
-}
-.sb-item:hover { background: var(--bg-hover); color: var(--text); }
-.sb-item.active {
-  background: linear-gradient(135deg, rgba(108,99,255,.2), rgba(168,157,255,.08));
-  color: var(--accent2); font-weight: 600;
-}
-.sb-item.active::before {
-  content: '';
-  position: absolute; left: -8px; top: 50%;
-  transform: translateY(-50%);
-  width: 3px; height: 18px;
-  background: var(--accent);
-  border-radius: 0 2px 2px 0;
-}
-.sb-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
-.sb-label { flex: 1; }
-.sb-badge {
-  background: var(--danger); color: #fff;
-  border-radius: 10px; font-size: 10px;
-  padding: 1px 6px; font-weight: 700;
-  min-width: 18px; text-align: center;
-  display: none;
-}
-.sb-badge.show { display: inline-block; }
-.sb-badge.accent-bg { background: var(--accent); }
+/* ── Bottom nav ──────────────────────────────────────────────── */
+#bottom-nav{display:none;background:var(--bg2);border-top:1px solid var(--border);
+  flex-shrink:0;padding-bottom:var(--sab);}
+@media(max-width:767px){#bottom-nav{display:flex;}.tb-menu{display:flex;}}
+.bn-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:10px 4px;border:none;background:transparent;color:var(--text3);
+  cursor:pointer;font-size:10px;transition:color .15s;}
+.bn-btn:hover{color:var(--text2);}.bn-btn.active{color:var(--accent);}
+.bn-icon{font-size:20px;line-height:1;}.bn-label{font-size:10px;font-weight:500;}
 
-/* User section */
-.sb-bottom {
-  padding: 10px 10px calc(10px + var(--sab));
-  border-top: 1px solid var(--border2);
-  flex-shrink: 0;
-}
-.sb-user {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 8px; border-radius: 8px; cursor: pointer;
-  transition: background var(--anim); position: relative;
-}
-.sb-user:hover { background: var(--bg-hover); }
-.sb-avatar {
-  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
-  background: linear-gradient(135deg, var(--accent), #a855f7);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; color: #fff;
-}
-.sb-user-name { font-size: 12px; font-weight: 600; color: var(--text); }
-.sb-user-role { font-size: 10px; color: var(--text3); }
-.sb-online {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--success);
-  border: 1.5px solid var(--bg2);
-  position: absolute; bottom: 8px; left: 35px;
-}
-.sb-tenant {
-  margin-top: 6px;
-  display: flex; align-items: center; gap: 6px;
-  padding: 5px 8px; border-radius: 6px;
-  background: rgba(108,99,255,.1);
-  border: 1px solid rgba(108,99,255,.18);
-}
-.sb-tenant-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
-.sb-tenant-txt { font-size: 10px; color: var(--accent2); flex: 1; }
-.sb-tenant-plan {
-  font-size: 9px; padding: 1px 5px;
-  background: var(--accent); color: #fff;
-  border-radius: 4px; font-weight: 700;
-}
-
-/* ── MAIN WRAPPER ─────────────────────────────────────────── */
-#main {
-  display: flex; flex-direction: column;
-  height: 100vh; height: -webkit-fill-available;
-  overflow: hidden;
-  /* Mobile: full width */
-  margin-left: 0;
-  transition: margin-left .3s cubic-bezier(.4,0,.2,1);
-}
-@media (min-width: 768px) {
-  #main { margin-left: var(--sb-w); }
-  #main.sidebar-collapsed { margin-left: 0; }
-}
-
-/* ── TOPBAR ───────────────────────────────────────────────── */
-#topbar {
-  height: var(--tb-h);
-  padding-top: var(--sat);
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border2);
-  display: flex; align-items: center;
-  padding-left: 14px; padding-right: 14px;
-  gap: 10px;
-  flex-shrink: 0;
-  z-index: 90;
-  transition: background var(--anim);
-}
-.tb-hamburger {
-  width: 34px; height: 34px; border-radius: 7px;
-  border: 1px solid var(--border2); background: var(--bg3);
-  color: var(--text2); cursor: pointer; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; transition: all .15s;
-}
-.tb-hamburger:hover { background: var(--bg-hover); color: var(--text); }
-/* Sur desktop sidebar ouverte: le burger reste pour collapsed toggle */
-
-.tb-breadcrumb {
-  flex: 1; min-width: 0;
-  display: flex; align-items: center; gap: 6px;
-  overflow: hidden;
-}
-.tb-home { font-size: 12px; color: var(--text3); cursor: pointer; white-space: nowrap; }
-.tb-home:hover { color: var(--accent2); }
-.tb-sep  { font-size: 12px; color: var(--text3); flex-shrink: 0; }
-.tb-page { font-size: 14px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tb-sub  { font-size: 11px; color: var(--text3); white-space: nowrap; flex-shrink: 0; }
-/* Cacher le sub sur mobile small */
-@media (max-width: 479px) { .tb-sub { display: none; } }
-
-/* Search (caché sur mobile) */
-.tb-search {
-  display: none;
-  align-items: center; gap: 6px;
-  background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: 8px; padding: 6px 10px;
-  transition: all .2s; flex-shrink: 0;
-}
-@media (min-width: 640px) { .tb-search { display: flex; width: 180px; } }
-@media (min-width: 1024px) { .tb-search { width: 220px; } }
-.tb-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,99,255,.12); }
-.tb-search input {
-  background: none; border: none; outline: none;
-  color: var(--text); font-size: 13px; width: 100%;
-}
-.tb-search input::placeholder { color: var(--text3); }
-
-/* Topbar buttons */
-.tb-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.tb-btn {
-  width: 34px; height: 34px; border-radius: 7px;
-  border: 1px solid var(--border2); background: var(--bg3);
-  color: var(--text2); cursor: pointer; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; transition: all .15s; position: relative;
-}
-.tb-btn:hover { background: var(--bg-hover); color: var(--text); }
-.tb-btn .dot {
-  position: absolute; top: 4px; right: 4px;
-  width: 8px; height: 8px;
-  background: var(--danger); border-radius: 50%;
-  border: 1.5px solid var(--bg2);
-}
-/* Bouton nouvelle réservation — caché sous 640px */
-.tb-new-btn {
-  padding: 7px 12px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: #fff; border: none; border-radius: 8px;
-  font-size: 12px; font-weight: 600; cursor: pointer;
-  display: none; align-items: center; gap: 5px;
-  transition: opacity .15s; flex-shrink: 0;
-}
-.tb-new-btn:hover { opacity: .88; }
-@media (min-width: 640px) { .tb-new-btn { display: flex; } }
-
-/* ── CONTENT AREA ─────────────────────────────────────────── */
-#content-area {
-  flex: 1; overflow: hidden; position: relative;
-  /* Sur mobile: laisser place à la bottom nav */
-  padding-bottom: 0;
-}
-@media (max-width: 767px) {
-  #content-area { padding-bottom: calc(var(--bn-h) + var(--sab)); }
-}
-
-/* Dashboard view */
-#view-dashboard {
-  position: absolute; inset: 0;
-  overflow-y: auto; overflow-x: hidden;
-  padding: 16px;
-  display: block;
-  -webkit-overflow-scrolling: touch;
-}
-@media (min-width: 640px) { #view-dashboard { padding: 20px; } }
-@media (min-width: 1024px) { #view-dashboard { padding: 24px 28px; } }
-
-/* Module iframe container */
-#view-module {
-  position: absolute; inset: 0;
-  display: none;
-}
-#module-iframe {
-  width: 100%; height: 100%;
-  border: none; background: var(--bg);
-  /* Toujours visible — le module-loading spinner couvre pendant le chargement */
-  opacity: 1;
-}
-/* .loaded gardé pour compatibilité mais n'affecte plus l'opacité */
-#module-iframe.loaded { opacity: 1; }
-
-/* Loading screen */
-#module-loading {
-  position: absolute; inset: 0;
-  display: none; flex-direction: column;
-  align-items: center; justify-content: center; gap: 16px;
-  background: var(--bg); z-index: 10;
-}
-#module-loading.show { display: flex; }
-.loader-ring {
-  width: 44px; height: 44px; border-radius: 50%;
-  border: 3px solid var(--border2);
-  border-top-color: var(--accent);
-  animation: spin .75s linear infinite;
-}
-.loader-name { font-size: 14px; font-weight: 600; color: var(--text); }
-.loader-sub  { font-size: 12px; color: var(--text3); }
-.loader-bar  {
-  width: 200px; height: 2px;
-  background: var(--border2); border-radius: 1px; overflow: hidden;
-}
-.loader-bar-fill {
-  height: 100%; background: var(--accent);
-  border-radius: 1px; width: 0%;
-  animation: loadprogress 1.8s ease infinite;
-}
-@keyframes loadprogress {
-  0%   { width: 0%; margin-left: 0%; }
-  50%  { width: 70%; margin-left: 15%; }
-  100% { width: 0%; margin-left: 100%; }
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Error screen */
-#module-error {
-  position: absolute; inset: 0;
-  display: none; flex-direction: column;
-  align-items: center; justify-content: center; gap: 14px;
-  background: var(--bg); z-index: 10; text-align: center; padding: 24px;
-}
-#module-error.show { display: flex; }
-.err-icon { font-size: 48px; }
-.err-title { font-size: 16px; font-weight: 700; color: var(--text); }
-.err-sub   { font-size: 13px; color: var(--text3); max-width: 300px; }
-.err-btn {
-  padding: 9px 20px; border-radius: 8px;
-  background: var(--accent); color: #fff;
-  border: none; cursor: pointer; font-size: 13px; font-weight: 600;
-  transition: opacity .15s;
-}
-.err-btn:hover { opacity: .88; }
-
-/* ── BOTTOM NAV (mobile only) ─────────────────────────────── */
-#bottom-nav {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: calc(var(--bn-h) + var(--sab));
-  padding-bottom: var(--sab);
-  background: var(--bg2);
-  border-top: 1px solid var(--border2);
-  display: flex; align-items: stretch;
-  z-index: 150;
-}
-@media (min-width: 768px) { #bottom-nav { display: none; } }
-.bn-item {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 3px;
-  cursor: pointer; border: none; background: none;
-  color: var(--text3); font-size: 10px;
-  transition: color .15s; padding: 4px 2px 0;
-  position: relative;
-}
-.bn-item:hover { color: var(--text2); }
-.bn-item.active { color: var(--accent2); }
-.bn-icon { font-size: 20px; line-height: 1; }
-.bn-label { font-size: 10px; font-weight: 500; }
-.bn-dot {
-  position: absolute; top: 6px;
-  width: 7px; height: 7px;
-  background: var(--danger); border-radius: 50%;
-  border: 1.5px solid var(--bg2);
-  display: none;
-}
-.bn-dot.show { display: block; }
-
-/* ── DASHBOARD COMPONENTS ─────────────────────────────────── */
-.dash-greeting {
-  margin-bottom: 20px;
-}
-.dash-greeting h2 { font-size: 20px; font-weight: 800; margin-bottom: 2px; }
-.dash-greeting p  { font-size: 13px; color: var(--text3); }
-
-/* KPI Grid — 1 col mobile → 2 col sm → 4 col lg */
-.kpi-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px; margin-bottom: 20px;
-}
-@media (min-width: 640px) { .kpi-grid { gap: 14px; } }
-@media (min-width: 1024px) {
-  .kpi-grid { grid-template-columns: repeat(4, 1fr); }
-}
-.kpi-card {
-  background: var(--bg2);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  position: relative; overflow: hidden;
-  transition: border-color .2s, transform .15s;
-  cursor: default;
-}
-.kpi-card:hover { border-color: var(--accent); transform: translateY(-1px); }
-.kpi-card::after {
-  content: ''; position: absolute; top: -20px; right: -20px;
-  width: 80px; height: 80px; border-radius: 50%; opacity: .07;
-}
-.kpi-card.c1::after { background: var(--accent); }
-.kpi-card.c2::after { background: var(--success); }
-.kpi-card.c3::after { background: var(--warning); }
-.kpi-card.c4::after { background: var(--info); }
-.kpi-lbl  { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .07em; font-weight: 600; }
-.kpi-val  { font-size: 22px; font-weight: 800; color: var(--text); margin: 6px 0 2px; }
-@media (min-width: 640px) { .kpi-val { font-size: 26px; } }
-.kpi-sub  { font-size: 11px; color: var(--text3); }
-.kpi-sub.up   { color: var(--success); }
-.kpi-sub.down { color: var(--danger); }
-.kpi-icon { position: absolute; top: 12px; right: 14px; font-size: 20px; opacity: .5; }
-
-/* Module Tiles — 2 col mobile → 3 col md → 4 col lg */
-.section-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 12px;
-}
-.section-title { font-size: 14px; font-weight: 700; color: var(--text); }
-.section-sub   { font-size: 12px; color: var(--text3); }
-.modules-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px; margin-bottom: 20px;
-}
-@media (min-width: 640px)  { .modules-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; } }
-@media (min-width: 1024px) { .modules-grid { grid-template-columns: repeat(4, 1fr); } }
-.mod-tile {
-  background: var(--bg2);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius);
-  padding: 14px 14px 12px;
-  cursor: pointer; transition: all .18s;
-  display: flex; flex-direction: column; gap: 8px;
-}
-.mod-tile:hover {
-  border-color: var(--accent);
-  background: var(--bg-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(108,99,255,0.15);
-}
-.mod-tile-icon { font-size: 26px; }
-.mod-tile-name { font-size: 13px; font-weight: 700; color: var(--text); }
-.mod-tile-desc { font-size: 11px; color: var(--text3); line-height: 1.4; }
-.mod-tile-badge {
-  align-self: flex-start;
-  font-size: 10px; padding: 2px 7px;
-  border-radius: 8px; font-weight: 700;
-  background: rgba(244,63,94,.12); color: var(--danger);
-  border: 1px solid rgba(244,63,94,.2);
-  display: none;
-}
-.mod-tile-badge.show { display: inline-block; }
-.mod-tile.locked { opacity: .45; cursor: not-allowed; }
-.mod-tile.locked:hover { transform: none; box-shadow: none; border-color: var(--border2); }
-
-/* Rooms grid — responsive */
-.rooms-section { margin-bottom: 20px; }
-.rooms-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px; margin-top: 10px;
-}
-@media (min-width: 480px) { .rooms-grid { grid-template-columns: repeat(5, 1fr); } }
-@media (min-width: 768px) { .rooms-grid { grid-template-columns: repeat(7, 1fr); } }
-@media (min-width: 1024px) { .rooms-grid { grid-template-columns: repeat(13, 1fr); } }
-.room-chip {
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: 8px; padding: 10px 6px;
-  text-align: center; cursor: pointer;
-  transition: all .15s;
-}
-.room-chip:hover { border-color: var(--accent); }
-.room-chip .r-ico { font-size: 13px; }
-.room-chip .r-num { font-size: 9px; color: var(--text3); margin-top: 3px; font-weight: 600; }
-.room-chip.available { border-color: rgba(34,211,165,.3); }
-.room-chip.available .r-ico::after { content: ''; }
-.room-chip.occupied  { background: rgba(108,99,255,.1); border-color: rgba(108,99,255,.4); }
-.room-chip.dirty     { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.35); }
-.room-chip.oos       { background: rgba(244,63,94,.08); border-color: rgba(244,63,94,.3); }
-
-/* Activity feed */
-.activity-feed {
-  display: grid;
-  gap: 8px; margin-top: 10px;
-}
-.activity-item {
-  display: flex; align-items: flex-start; gap: 10px;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 8px; padding: 10px 12px;
-  font-size: 12px;
-}
-.activity-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  flex-shrink: 0; margin-top: 4px;
-}
-.activity-text { flex: 1; color: var(--text2); }
-.activity-text strong { color: var(--text); font-weight: 600; }
-.activity-time { color: var(--text3); font-size: 11px; flex-shrink: 0; }
-
-/* System health row */
-.health-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px; margin-bottom: 20px;
-}
-@media (min-width: 640px) { .health-row { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 1024px) { .health-row { grid-template-columns: repeat(4, 1fr); } }
-.health-item {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 8px; padding: 10px 12px;
-  display: flex; align-items: center; gap: 8px; font-size: 12px;
-}
-.health-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.health-dot.ok   { background: var(--success); box-shadow: 0 0 6px var(--success); }
-.health-dot.warn { background: var(--warning); }
-.health-dot.err  { background: var(--danger); }
-.health-name { flex: 1; color: var(--text2); }
-.health-val  { color: var(--text3); font-size: 11px; }
-
-/* ── NOTIFICATION PANEL ───────────────────────────────────── */
-#notif-panel {
-  position: fixed; top: 0; right: 0;
-  width: 320px; max-width: 92vw;
-  height: 100vh;
-  background: var(--bg2);
-  border-left: 1px solid var(--border2);
-  z-index: 300;
-  display: flex; flex-direction: column;
-  transform: translateX(100%);
-  transition: transform .3s cubic-bezier(.4,0,.2,1);
-  box-shadow: -8px 0 32px rgba(0,0,0,0.4);
-}
-#notif-panel.open { transform: translateX(0); }
-.np-header {
-  display: flex; align-items: center; gap: 10px;
-  padding: 16px 16px 14px;
-  border-bottom: 1px solid var(--border2);
-  flex-shrink: 0;
-}
-.np-title { font-size: 15px; font-weight: 700; flex: 1; }
-.np-count { font-size: 11px; color: var(--text3); }
-.np-close {
-  width: 28px; height: 28px; border-radius: 6px;
-  border: none; background: var(--bg3); color: var(--text2);
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  font-size: 15px; transition: background .15s;
-}
-.np-close:hover { background: var(--bg-hover); }
-.np-list { flex: 1; overflow-y: auto; padding: 10px; }
-.np-empty {
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  height: 200px; color: var(--text3); font-size: 13px; gap: 8px;
-}
-.np-item {
-  display: flex; gap: 10px; padding: 10px 10px;
-  border-radius: 8px; transition: background .15s; cursor: pointer;
-  margin-bottom: 4px;
-}
-.np-item:hover { background: var(--bg3); }
-.np-item.unread { background: rgba(108,99,255,.08); }
-.np-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
-.np-body { flex: 1; }
-.np-ntitle { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
-.np-nmsg   { font-size: 11px; color: var(--text3); line-height: 1.4; }
-.np-ntime  { font-size: 10px; color: var(--text3); margin-top: 4px; }
-.np-footer {
-  padding: 10px 14px;
-  border-top: 1px solid var(--border2);
-  flex-shrink: 0;
-}
-.np-footer button {
-  width: 100%; padding: 8px;
-  background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: 7px; color: var(--text2);
-  font-size: 12px; cursor: pointer; transition: background .15s;
-}
-.np-footer button:hover { background: var(--bg-hover); }
-
-/* ── USER MENU DROPDOWN ───────────────────────────────────── */
-#user-menu {
-  position: fixed;
-  bottom: calc(70px + var(--sab));
-  left: 10px;
-  width: calc(var(--sb-w) - 20px);
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: 10px;
-  padding: 6px;
-  z-index: 250;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-  display: none;
-}
-#user-menu.open { display: block; }
-.um-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px; border-radius: 7px; cursor: pointer;
-  font-size: 13px; color: var(--text2);
-  transition: background .15s;
-}
-.um-item:hover { background: var(--bg-hover); color: var(--text); }
-.um-item.danger { color: var(--danger); }
-.um-sep { height: 1px; background: var(--border2); margin: 4px 0; }
-
-/* ── TOAST ────────────────────────────────────────────────── */
-#toast-container {
-  position: fixed; bottom: calc(var(--bn-h) + var(--sab) + 10px); right: 16px;
-  z-index: 999; display: flex; flex-direction: column; gap: 8px;
-  pointer-events: none;
-}
-@media (min-width: 768px) {
-  #toast-container { bottom: 20px; }
-}
-.toast-item {
-  display: flex; align-items: flex-start; gap: 10px;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: 10px;
-  padding: 12px 14px;
-  min-width: 280px; max-width: 340px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-  animation: toastIn .3s ease;
-  pointer-events: all;
-  font-size: 13px;
-}
-.toast-item.removing { animation: toastOut .25s ease forwards; }
-@keyframes toastIn  { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
-@keyframes toastOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(20px); } }
-.toast-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
-.toast-body { flex: 1; }
-.toast-title { font-weight: 600; color: var(--text); margin-bottom: 2px; }
-.toast-msg   { color: var(--text3); font-size: 12px; }
-.toast-close {
-  cursor: pointer; color: var(--text3); font-size: 14px;
-  background: none; border: none; flex-shrink: 0; padding: 0;
-  line-height: 1;
-}
-.toast-close:hover { color: var(--text); }
-
-/* ── PERM GUARD OVERLAY ───────────────────────────────────── */
-#perm-overlay {
-  position: absolute; inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: none; flex-direction: column;
-  align-items: center; justify-content: center; gap: 12px;
-  z-index: 50; backdrop-filter: blur(4px);
-  text-align: center; padding: 24px;
-}
-#perm-overlay.show { display: flex; }
-.perm-icon  { font-size: 48px; }
-.perm-title { font-size: 18px; font-weight: 800; color: var(--text); }
-.perm-sub   { font-size: 13px; color: var(--text3); max-width: 260px; }
-.perm-back  {
-  padding: 9px 20px; border-radius: 8px;
-  background: var(--bg3); border: 1px solid var(--border2);
-  color: var(--text2); cursor: pointer; font-size: 13px;
-  transition: background .15s;
-}
-.perm-back:hover { background: var(--bg-hover); }
-
-/* ── SCROLLBAR ────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
-
-/* ================================================================
-   AUTH LAYER — couche auth intégrée au Core
-   Injecté dans VERALUZ_OS_CORE.html par le patch auth
-   ================================================================ */
-
-/* Overlay auth plein écran */
-#auth-layer {
-  position: fixed; inset: 0; z-index: 1000;
-  background: #0b0b1a;
-  display: flex; align-items: center; justify-content: center;
-  transition: opacity .4s ease;
-}
-#auth-layer.hiding {
-  opacity: 0;
-  pointer-events: none;
-  transform: scale(1.02);
-  transition: opacity .4s ease, transform .4s ease;
-}
-#auth-layer.hidden { display: none; }
-
-/* Iframe auth */
-#auth-iframe {
-  width: 100%; height: 100%;
-  border: none;
-  background: transparent;
-}
-
-/* Bandeau rôle dans la topbar (visible après connexion) */
-#role-badge {
-  display: none;
-  align-items: center; gap: 6px;
-  padding: 3px 10px;
-  background: rgba(108,99,255,.15);
-  border: 1px solid rgba(108,99,255,.25);
-  border-radius: 20px;
-  font-size: 11px; font-weight: 600;
-  color: var(--accent2);
-  flex-shrink: 0;
-  cursor: pointer;
-}
-#role-badge:hover { background: rgba(108,99,255,.25); }
-#role-badge.show { display: flex; }
-#role-badge .rb-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--success);
-}
-
-/* Bouton logout dans la topbar */
-#btn-logout {
-  display: none;
-  padding: 6px 10px; border-radius: 7px;
-  border: 1px solid rgba(244,63,94,.3);
-  background: rgba(244,63,94,.08);
-  color: var(--danger);
-  font-size: 11px; font-weight: 600;
-  cursor: pointer; flex-shrink: 0;
-  transition: all .15s;
-}
-#btn-logout:hover { background: rgba(244,63,94,.18); }
-#btn-logout.show  { display: flex; align-items: center; gap: 5px; }
-
-/* Écran de chargement auth */
-#auth-loading {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 16px; background: #0b0b1a;
-}
-.auth-loader-logo {
-  width: 60px; height: 60px;
-  background: linear-gradient(135deg, var(--accent), #a855f7);
-  border-radius: 18px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 24px; font-weight: 900; color: #fff;
-  box-shadow: 0 8px 32px rgba(108,99,255,.4);
-  animation: logoFloat 2s ease-in-out infinite;
-}
-@keyframes logoFloat {
-  0%, 100% { transform: translateY(0); }
-  50%       { transform: translateY(-6px); }
-}
-.auth-loader-name { font-size: 22px; font-weight: 800; color: var(--text); }
-.auth-loader-sub  { font-size: 13px; color: var(--text3); }
-.auth-loader-bar  {
-  width: 200px; height: 2px;
-  background: rgba(255,255,255,.08); border-radius: 1px; overflow: hidden;
-}
-.auth-loader-fill {
-  height: 100%; width: 0;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  border-radius: 1px;
-  animation: authprogress 1.5s ease forwards;
-}
-@keyframes authprogress {
-  0%   { width: 0%; }
-  60%  { width: 80%; }
-  100% { width: 100%; }
-}
-
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px;}
 </style>
 </head>
 <body>
 
-<!-- ═══ AUTH LAYER — chargé en premier, cache tout le reste ═══ -->
-<div id="auth-layer">
-  <!-- Écran de chargement initial (avant que l'iframe soit prête) -->
-  <div id="auth-loading">
-    <div class="auth-loader-logo">V</div>
-    <div class="auth-loader-name">Veraluz OS</div>
-    <div class="auth-loader-sub">Chargement de la plateforme...</div>
-    <div class="auth-loader-bar"><div class="auth-loader-fill"></div></div>
-  </div>
-  <!-- Iframe du module auth -->
-  <iframe id="auth-iframe" title="Authentification Veraluz OS"
-    sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
-    style="display:none">
-  </iframe>
-</div>
-
-
-<!-- ═══ OVERLAY SIDEBAR (mobile) ═══ -->
-<div id="sb-overlay" onclick="closeSidebar()"></div>
-
-<!-- ═══ SIDEBAR ═══ -->
-<nav id="sidebar" role="navigation" aria-label="Navigation principale">
-
+<!-- SIDEBAR -->
+<nav id="sidebar">
   <div class="sb-logo">
-    <div class="sb-logo-icon">V</div>
-    <div style="flex:1">
+    <div class="sb-logo-icon">🌊</div>
+    <div>
       <div class="sb-logo-name">Veraluz OS</div>
-      <div class="sb-logo-ver">Platform Core · v3.0</div>
+      <div class="sb-logo-sub">Kribi · Cameroun</div>
     </div>
-    <button class="sb-logo-close" onclick="closeSidebar()" aria-label="Fermer la sidebar">✕</button>
   </div>
-
-  <div class="sb-nav" role="list">
-
-    <div class="sb-section">Vue d'ensemble</div>
-    <button class="sb-item active" onclick="goTo('dashboard')" id="nav-dashboard" role="listitem">
-      <span class="sb-icon">🏠</span><span class="sb-label">Dashboard</span>
+  <div class="sb-divider"></div>
+  <div class="sb-nav">
+    <div class="sb-section">Navigation</div>
+    <button class="sb-btn active" id="nav-dashboard" onclick="goTo('dashboard')">
+      <span class="sb-icon">🏠</span> Dashboard
     </button>
-
-    <div class="sb-section">Opérations</div>
-    <button class="sb-item" onclick="goTo('reservations')" id="nav-reservations" role="listitem">
-      <span class="sb-icon">📅</span><span class="sb-label">Réservations</span>
-      <span class="sb-badge" id="badge-reservations">3</span>
-    </button>
-    <button class="sb-item" onclick="goTo('housekeeping')" id="nav-housekeeping" role="listitem">
-      <span class="sb-icon">🧹</span><span class="sb-label">Housekeeping</span>
-      <span class="sb-badge" id="badge-housekeeping">5</span>
-    </button>
-    <button class="sb-item" onclick="goTo('restaurant')" id="nav-restaurant" role="listitem">
-      <span class="sb-icon">🍽️</span><span class="sb-label">Restaurant / POS</span>
-    </button>
-    <button class="sb-item" onclick="goTo('paiements')" id="nav-paiements" role="listitem">
-      <span class="sb-icon">💳</span><span class="sb-label">Paiements</span>
-      <span class="sb-badge" id="badge-paiements" style="background:var(--warning);color:#000">2</span>
-    </button>
-
-    <div class="sb-section">Gestion</div>
-    <button class="sb-item" onclick="goTo('finance')" id="nav-finance" role="listitem">
-      <span class="sb-icon">💰</span><span class="sb-label">Finance</span>
-    </button>
-    <button class="sb-item" onclick="goTo('analytics')" id="nav-analytics" role="listitem">
-      <span class="sb-icon">📊</span><span class="sb-label">Analytics</span>
-    </button>
-    <button class="sb-item" onclick="goTo('rh')" id="nav-rh" role="listitem">
-      <span class="sb-icon">👥</span><span class="sb-label">RH & Équipe</span>
-    </button>
-    <button class="sb-item" onclick="goTo('notifications')" id="nav-notifications" role="listitem">
-      <span class="sb-icon">🔔</span><span class="sb-label">Notifications</span>
-      <span class="sb-badge accent-bg" id="badge-notifications">7</span>
-    </button>
-
+    <div id="sb-modules"></div>
+    <div class="sb-divider" style="margin-top:10px"></div>
+    <div class="sb-section">À venir</div>
+    <div id="sb-coming"></div>
   </div>
-
   <div class="sb-bottom">
-    <div class="sb-tenant">
-      <span class="sb-tenant-dot"></span>
-      <span class="sb-tenant-txt">Résidence Veraluz · Kribi</span>
-      <span class="sb-tenant-plan">PRO</span>
-    </div>
-    <div class="sb-user" onclick="toggleUserMenu()" style="margin-top:6px">
-      <div class="sb-avatar" id="user-avatar">S</div>
-      <div style="flex:1;min-width:0">
-        <div class="sb-user-name" id="user-name">Smith Veraluz</div>
-        <div class="sb-user-role" id="user-role">super_admin</div>
+    <div class="sb-user">
+      <div class="sb-avatar">S</div>
+      <div>
+        <div class="sb-uname">Smith</div>
+        <div class="sb-urole">Super Admin</div>
       </div>
-      <div style="font-size:12px;color:var(--text3)">⚙</div>
-      <div class="sb-online"></div>
     </div>
   </div>
-
 </nav>
 
-<!-- ═══ USER MENU ═══ -->
-<div id="user-menu">
-  <div class="um-item">👤 Mon profil</div>
-  <div class="um-item">⚙️ Paramètres</div>
-  <div class="um-item" onclick="toggleTheme()">🌙 Thème sombre/clair</div>
-  <div class="um-sep"></div>
-  <div class="um-item danger">🚪 Déconnexion</div>
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <button class="tb-menu" onclick="toggleMobileSidebar()" aria-label="Menu">☰</button>
+    <div style="flex:1;min-width:0">
+      <div class="tb-title" id="tb-title">Dashboard</div>
+      <div class="tb-sub" id="tb-sub">Résidence Veraluz · Kribi</div>
+    </div>
+    <div class="tb-actions">
+      <span class="tb-tag">DEV</span>
+      <button class="tb-btn" onclick="refreshCurrent()">↻</button>
+    </div>
+  </div>
+
+  <div id="content">
+    <!-- Loader -->
+    <div id="loader">
+      <div class="ld-ring"></div>
+      <div class="ld-text" id="ld-text">Chargement...</div>
+    </div>
+
+    <!-- Erreur -->
+    <div id="mod-error">
+      <div class="err-ico">⚠️</div>
+      <div class="err-title">Module inaccessible</div>
+      <div class="err-msg" id="err-msg">Impossible de charger le module.</div>
+      <button class="err-retry" onclick="retryModule()">Réessayer</button>
+    </div>
+
+    <!-- Dashboard -->
+    <div id="view-dashboard" class="view active">
+      <div class="dash-greeting" id="dash-greeting">Bonjour 👋</div>
+      <div class="dash-sub" id="dash-date">Résidence Veraluz · Kribi</div>
+
+      <div class="dash-stats">
+        <div class="stat-card"><div class="stat-val a" id="st-rez">…</div><div class="stat-label">Réservations actives</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-pay">…</div><div class="stat-label">Paiements en attente</div></div>
+        <div class="stat-card"><div class="stat-val" id="st-units">…</div><div class="stat-label">Unités disponibles</div></div>
+        <div class="stat-card"><div class="stat-val w" id="st-rev">…</div><div class="stat-label">Revenus validés (FCFA)</div></div>
+      </div>
+
+      <div class="dash-section">Modules</div>
+      <div class="modules-grid" id="dash-grid"></div>
+
+      <div class="dash-section">Réservations récentes</div>
+      <div class="recent-list" id="recent-list">
+        <div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Chargement…</div></div>
+      </div>
+    </div>
+
+    <!-- Module iframe -->
+    <div id="view-module" class="view">
+      <iframe id="module-frame" title="Module Veraluz OS"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups">
+      </iframe>
+    </div>
+  </div>
+
+  <!-- Bottom nav mobile -->
+  <nav id="bottom-nav">
+    <button class="bn-btn active" id="bn-dashboard" onclick="goTo('dashboard')">
+      <span class="bn-icon">🏠</span><span class="bn-label">Dashboard</span>
+    </button>
+    <div id="bn-modules" style="display:contents"></div>
+  </nav>
 </div>
 
-<!-- ═══ MAIN ═══ -->
-<div id="main">
-
-  <!-- ── TOPBAR ── -->
-  <header id="topbar">
-    <button class="tb-hamburger" onclick="toggleSidebar()" aria-label="Menu">☰</button>
-
-    <div class="tb-breadcrumb">
-      <span class="tb-home" onclick="goTo('dashboard')">Veraluz OS</span>
-      <span class="tb-sep" id="bc-sep">›</span>
-      <span class="tb-page" id="bc-page">Dashboard</span>
-      <span class="tb-sub" id="bc-sub"></span>
-    </div>
-
-    <div class="tb-search">
-      <span style="color:var(--text3);font-size:13px">🔍</span>
-      <input type="text" placeholder="Rechercher..." oninput="onSearch(this.value)" aria-label="Recherche">
-    </div>
-
-    <div class="tb-actions">
-      <button class="tb-new-btn" onclick="openNewReservation()">
-        <span>+</span> Réservation
-      </button>
-      <button class="tb-btn" onclick="toggleNotifPanel()" aria-label="Notifications" title="Notifications">
-        🔔<span class="dot" id="notif-dot"></span>
-      </button>
-      <div id="role-badge" title="Votre rôle actuel"><div class="rb-dot"></div><span id="rb-label">super_admin</span></div>
-      <button id="btn-logout" class="show" onclick="requestLogout()" title="Déconnexion">🚪 <span>Quitter</span></button>
-      <button class="tb-btn" onclick="toggleTheme()" aria-label="Thème" title="Changer de thème">🌙</button>
-    </div>
-  </header>
-
-  <!-- ── CONTENT AREA ── -->
-  <div id="content-area">
-
-    <!-- Permission guard -->
-    <div id="perm-overlay">
-      <div class="perm-icon">🔐</div>
-      <div class="perm-title">Accès non autorisé</div>
-      <div class="perm-sub" id="perm-msg">Vous n'avez pas la permission d'accéder à ce module.</div>
-      <button class="perm-back" onclick="goTo('dashboard')">← Retour au Dashboard</button>
-    </div>
-
-    <!-- Module loading -->
-    <div id="module-loading">
-      <div class="loader-ring"></div>
-      <div class="loader-name" id="loader-name">Chargement...</div>
-      <div class="loader-sub" id="loader-sub">Initialisation du module</div>
-      <div class="loader-bar"><div class="loader-bar-fill"></div></div>
-    </div>
-
-    <!-- Module error -->
-    <div id="module-error">
-      <div class="err-icon">⚠️</div>
-      <div class="err-title">Module inaccessible</div>
-      <div class="err-sub" id="err-msg">Le fichier du module n'a pas pu être chargé.</div>
-      <button class="err-btn" onclick="retryLoadModule()">Réessayer</button>
-    </div>
-
-    <!-- Dashboard view -->
-    <div id="view-dashboard">
-
-      <div class="dash-greeting">
-        <h2 id="dash-greeting-title">Bonjour, Smith 👋</h2>
-        <p id="dash-greeting-sub">Résidence Veraluz · Kribi, Cameroun · <span id="dash-date"></span></p>
-      </div>
-
-      <!-- KPIs -->
-      <div class="kpi-grid">
-        <div class="kpi-card c1">
-          <div class="kpi-lbl">Taux d'occupation</div>
-          <div class="kpi-val">77%</div>
-          <div class="kpi-sub up">↑ +5% vs mois dernier</div>
-          <div class="kpi-icon">🏨</div>
-        </div>
-        <div class="kpi-card c2">
-          <div class="kpi-lbl">Revenus (30j)</div>
-          <div class="kpi-val">4,2M</div>
-          <div class="kpi-sub">XAF · <span class="up">↑ +12%</span></div>
-          <div class="kpi-icon">💰</div>
-        </div>
-        <div class="kpi-card c3">
-          <div class="kpi-lbl">Check-ins aujourd'hui</div>
-          <div class="kpi-val">3</div>
-          <div class="kpi-sub">2 départs · 1 arrivée</div>
-          <div class="kpi-icon">📅</div>
-        </div>
-        <div class="kpi-card c4">
-          <div class="kpi-lbl">Tâches HK en attente</div>
-          <div class="kpi-val">5</div>
-          <div class="kpi-sub down">2 urgentes</div>
-          <div class="kpi-icon">🧹</div>
-        </div>
-      </div>
-
-      <!-- Modules rapides -->
-      <div class="section-header">
-        <div class="section-title">Accès rapide</div>
-        <div class="section-sub">Cliquer pour ouvrir</div>
-      </div>
-      <div class="modules-grid" id="modules-grid"></div>
-
-      <!-- Chambres -->
-      <div class="rooms-section">
-        <div class="section-header">
-          <div class="section-title">État des unités</div>
-          <div class="section-sub" id="rooms-summary">13 unités · Kribi</div>
-        </div>
-        <div class="rooms-grid" id="rooms-grid"></div>
-      </div>
-
-      <!-- Santé système -->
-      <div class="section-header" style="margin-bottom:10px">
-        <div class="section-title">Santé système</div>
-      </div>
-      <div class="health-row" id="health-row"></div>
-
-      <!-- Activité récente -->
-      <div class="section-header">
-        <div class="section-title">Activité récente</div>
-        <div class="section-sub" id="activity-count">Event Bus</div>
-      </div>
-      <div class="activity-feed" id="activity-feed"></div>
-
-    </div><!-- /view-dashboard -->
-
-    <!-- Module iframe view -->
-    <div id="view-module">
-      <iframe id="module-iframe" title="Module Veraluz OS" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe>
-    </div>
-
-  </div><!-- /content-area -->
-
-</div><!-- /main -->
-
-<!-- ═══ BOTTOM NAV (mobile) ═══ -->
-<nav id="bottom-nav" aria-label="Navigation mobile">
-  <button class="bn-item active" onclick="goTo('dashboard')" id="bn-dashboard">
-    <span class="bn-icon">🏠</span>
-    <span class="bn-label">Accueil</span>
-  </button>
-  <button class="bn-item" onclick="goTo('reservations')" id="bn-reservations">
-    <span class="bn-icon">📅</span>
-    <span class="bn-label">Réservations</span>
-    <span class="bn-dot show" id="bn-dot-reservations"></span>
-  </button>
-  <button class="bn-item" onclick="goTo('housekeeping')" id="bn-housekeeping">
-    <span class="bn-icon">🧹</span>
-    <span class="bn-label">Housekeeping</span>
-    <span class="bn-dot show" id="bn-dot-housekeeping"></span>
-  </button>
-  <button class="bn-item" onclick="goTo('restaurant')" id="bn-restaurant">
-    <span class="bn-icon">🍽️</span>
-    <span class="bn-label">Restaurant</span>
-  </button>
-  <button class="bn-item" onclick="toggleSidebar()" id="bn-more">
-    <span class="bn-icon">☰</span>
-    <span class="bn-label">Plus</span>
-  </button>
-</nav>
-
-<!-- ═══ NOTIFICATION PANEL ═══ -->
-<aside id="notif-panel" aria-label="Notifications">
-  <div class="np-header">
-    <div class="np-title">🔔 Notifications</div>
-    <div class="np-count" id="np-count">0 non lues</div>
-    <button class="np-close" onclick="toggleNotifPanel()">✕</button>
-  </div>
-  <div class="np-list" id="np-list">
-    <div class="np-empty">
-      <span style="font-size:32px">🔕</span>
-      <span>Aucune notification</span>
-    </div>
-  </div>
-  <div class="np-footer">
-    <button onclick="goTo('notifications');toggleNotifPanel()">Voir toutes les notifications</button>
-  </div>
-</aside>
-
-<!-- ═══ TOAST CONTAINER ═══ -->
-<div id="toast-container" aria-live="polite"></div>
+<!-- Overlay mobile sidebar -->
+<div id="sb-ov" onclick="closeMobileSidebar()"
+  style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;"></div>
 
 <script>
 'use strict';
 
-/* ================================================================
-   SUPABASE — Configuration connexion base de données
-   ================================================================ */
-const SUPABASE_URL      = 'https://dfdmasejsoibxrvubegu.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+/* ── Supabase ─────────────────────────────────────────────── */
+var SB_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
-/* ================================================================
-   DEV MODE — Désactiver l'auth pour les tests frontend
-   Mettre DEV_MODE = false pour réactiver l'auth en production
-   ================================================================ */
-const DEV_MODE = true; // ← false = auth production réactivée
-
-const DEV_USER = {
-  userId:    'dev-admin-001',
-  id:        'dev-admin-001',
-  name:      'Dev Admin',
-  email:     'dev@veraluz.cm',
-  role:      'super_admin',
-  roleLabel: 'Super Admin ⚙',
-  avatar:    '⚙',
-  online:    true,
-};
-
-/* ================================================================
-   AUTH LAYER — Logique intégrée dans le Core
-   Gère : session, login/logout, protection routes, auth iframe
-   ================================================================ */
-
-var AUTH_STATE = {
-  authenticated: false,
-  session:       null,
-  authIframeReady: false,
-};
-
-// ── SESSION MOCK (DEV_MODE uniquement) ─────────────────────────────────────
-function injectDevSession() {
-  console.log('[DEV] ══ SESSION MOCK INJECTÉE ══');
-  console.log('[DEV] Utilisateur :', DEV_USER.name, '/', DEV_USER.role);
-  _authLoginPending = false;
-  AUTH_STATE.authenticated  = true;
-  AUTH_STATE.session        = DEV_USER;
-  AUTH_STATE.authIframeReady = false;
-  SESSION.user = {
-    id:     DEV_USER.id,
-    name:   DEV_USER.name,
-    email:  DEV_USER.email,
-    role:   DEV_USER.role,
-    avatar: DEV_USER.avatar,
-    online: true,
-  };
-  updateCoreSessionUI();
-  requestAnimationFrame(function() {
-    reinitDashboard();
-    console.log('[DEV] Dashboard rendu ✓');
-    requestAnimationFrame(function() {
-      var vd = document.getElementById('view-dashboard');
-      if (vd) { vd.style.removeProperty('display'); vd.style.display = 'block'; }
-      var vm = document.getElementById('view-module');
-      if (vm) vm.style.display = 'none';
-      console.log('[DEV] Repaint forcé ✓');
-    });
-  });
+function sbGet(path) {
+  return fetch(SB_URL + path, {
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Accept': 'application/json' }
+  }).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); });
 }
 
-// Charger l'iframe auth
-function initAuthLayer() {
-  if (DEV_MODE) {
-    console.log('[DEV] initAuthLayer() bypassé — DEV_MODE = true');
-    var layer = document.getElementById('auth-layer');
-    if (layer) { layer.classList.add('hidden'); }
-    setTimeout(injectDevSession, 0);
-    return;
-  }
-  var iframe = document.getElementById('auth-iframe');
-  iframe.onload = function() {
-    AUTH_STATE.authIframeReady = true;
-    // Cacher le loading, afficher l'iframe
-    var loading = document.getElementById('auth-loading');
-    if (loading) loading.style.display = 'none';
-    iframe.style.display = 'block';
-
-    // Si une session existe en mémoire, la restaurer
-    if (AUTH_STATE.session) {
-      setTimeout(function() {
-        iframe.contentWindow.postMessage({
-          veraluzEvent: true, type: 'auth.restore', data: AUTH_STATE.session
-        }, '*');
-      }, 300);
-    }
-  };
-  iframe.src = 'AUTH_EMBEDDED.html';
-}
-
-// Garde anti-doublon : enterPlatform() envoie à la fois postMessage ET appel direct
-var _authLoginPending = false;
-
-// Appelé quand auth.login reçu depuis le module
-function onAuthLogin(sessionData) {
-  // Guard : éviter le double-appel (postMessage + appel direct)
-  if (_authLoginPending) return;
-  _authLoginPending = true;
-
-  AUTH_STATE.authenticated = true;
-  AUTH_STATE.session = sessionData;
-
-  // Mettre à jour SESSION global du Core
-  SESSION.user = {
-    id:     sessionData.userId,
-    name:   sessionData.name,
-    email:  sessionData.email,
-    role:   sessionData.role,
-    avatar: sessionData.avatar,
-    online: true,
-  };
-
-  // Mettre à jour l'UI du Core avec la nouvelle session
-  updateCoreSessionUI();
-
-  // Masquer l'auth layer avec animation
-  var layer = document.getElementById('auth-layer');
-  layer.classList.add('hiding');
-  setTimeout(function() {
-    layer.classList.add('hidden');
-    // Réinitialiser le dashboard — utilise requestAnimationFrame pour garantir le repaint
-    requestAnimationFrame(function() {
-      reinitDashboard();
-      // Filet de sécurité : forcer l'affichage du dashboard après repaint
-      requestAnimationFrame(function() {
-        var vd = document.getElementById('view-dashboard');
-        var vm = document.getElementById('view-module');
-        if (vd && vm && currentPage === 'dashboard') {
-          vd.style.display = 'block';
-          vm.style.display = 'none';
-        }
-        // Réactiver pour la prochaine session (ex: logout puis reconnexion)
-        _authLoginPending = false;
-      });
-    });
-  }, 420);
-
-  EventBus.emit('auth.login', { role: sessionData.role, userId: sessionData.userId }, 'auth');
-}
-
-// Mettre à jour les éléments UI du Core après connexion
-function updateCoreSessionUI() {
-  var sess = AUTH_STATE.session;
-  if (!sess) return;
-
-  // Avatar + nom + rôle dans sidebar
-  var av = document.getElementById('user-avatar');
-  var un = document.getElementById('user-name');
-  var ur = document.getElementById('user-role');
-  if (av) av.textContent = sess.avatar || '?';
-  if (un) un.textContent = sess.name;
-  if (ur) ur.textContent = sess.role;
-
-  // Role badge dans topbar
-  var badge = document.getElementById('role-badge');
-  var rbl   = document.getElementById('rb-label');
-  if (badge) badge.classList.add('show');
-  if (rbl) rbl.textContent = sess.roleLabel || sess.role;
-
-  // Bouton logout
-  var btnLogout = document.getElementById('btn-logout');
-  if (btnLogout) btnLogout.classList.add('show');
-
-  // Greeting dashboard
-  var hour = new Date().getHours();
-  var greet = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
-  var greetEl = document.getElementById('dash-greeting-title');
-  var firstName = (sess.name || 'Utilisateur').split(' ')[0];
-  if (greetEl) greetEl.textContent = greet + ', ' + firstName + ' 👋';
-  if (ur) ur.textContent = sess.roleLabel || sess.role;
-}
-
-// Réinitialiser le dashboard avec la session courante
-// showDashboard() est TOUJOURS appelé même si un renderer plante
-function reinitDashboard() {
-  try { renderModuleTiles(); }  catch(e) { console.warn('[Core] renderModuleTiles:', e); }
-  try { renderRoomsGrid(); }    catch(e) { console.warn('[Core] renderRoomsGrid:', e); }
-  try { renderHealthRow(); }    catch(e) { console.warn('[Core] renderHealthRow:', e); }
-  try { renderActivityFeed(); } catch(e) { console.warn('[Core] renderActivityFeed:', e); }
-  try { renderDate(); }         catch(e) {}
-  showDashboard(); // Appelé inconditionnellement
-  console.log('[Core] Dashboard rendu ✓');
-}
-
-// Demander déconnexion
-function requestLogout() {
-  if (!confirm('Déconnecter ' + (AUTH_STATE.session ? AUTH_STATE.session.name : 'l\'utilisateur') + ' ?')) return;
-  doLogout();
-}
-
-// Effectuer la déconnexion
-function doLogout() {
-  AUTH_STATE.authenticated = false;
-  AUTH_STATE.session = null;
-  AUTH_STATE.authIframeReady = false;
-  _authLoginPending = false; // Réinitialiser le guard pour permettre la reconnexion
-
-  // Réinitialiser SESSION
-  SESSION.user = { id:'', name:'', email:'', role:'guest', avatar:'?', online: false };
-
-  // Vider le module courant
-  var iframe = document.getElementById('module-iframe');
-  if (iframe) { iframe.src = 'about:blank'; iframe.classList.remove('loaded'); }
-  showDashboard();
-
-  // Masquer badge + logout
-  var badge = document.getElementById('role-badge');
-  var btnLogout = document.getElementById('btn-logout');
-  if (badge) badge.classList.remove('show');
-  if (btnLogout) btnLogout.classList.remove('show');
-
-  // Réafficher la couche auth
-  var layer = document.getElementById('auth-layer');
-  layer.classList.remove('hidden', 'hiding');
-
-  // Recharger l'iframe auth
-  AUTH_STATE.authIframeReady = false;
-  var authIframe = document.getElementById('auth-iframe');
-  authIframe.style.display = 'none';
-  var loading = document.getElementById('auth-loading');
-  if (loading) loading.style.display = 'flex';
-  initAuthLayer();
-
-  EventBus.emit('auth.logout', {}, 'core');
-}
-
-// Protéger goTo — nécessite d'être authentifié
-var _origGoTo = null; // sera défini après
-
-/* ================================================================
-   VERALUZ OS — PLATFORM CORE v3.0
-   Shell uniquement. Aucune logique metier.
-   ================================================================ */
-
-// ── CONSTANTES ──────────────────────────────────────────────────
-const PLATFORM_VERSION = '3.0.0';
-
-const TENANT = {
-  id:       'tenant_veraluz_kribi',
-  name:     'Résidence Veraluz',
-  location: 'Kribi, Cameroun',
-  plan:     'pro',
-  currency: 'XAF',
-  tva:      0.1925,
-  units:    13,
-};
-
-const SESSION = {
-  user: {
-    id:     'user_smith_001',
-    name:   'Smith Veraluz',
-    email:  'afterworkquebec2025@gmail.com',
-    role:   'super_admin',
-    avatar: 'S',
-    online: true,
-  }
-};
-
-// Registre des modules — uniquement configuration, pas de logique metier
-const MODULES = {
-  reservations: {
-    file:    'RESERVATIONS_EMBEDDED.html',
-    label:   'Réservations',
-    icon:    '📅',
-    desc:    'Séjours · Check-in/out · Disponibilité',
-    color:   '#6c63ff',
-    perm:    ['super_admin','owner','hotel_manager','reception'],
-    badge:   'reservations',
-    pinned:  true,
-  },
-  housekeeping: {
-    file:    'HOUSEKEEPING_EMBEDDED.html',
-    label:   'Housekeeping',
-    icon:    '🧹',
-    desc:    'Chambres · Tâches · Maintenance',
-    color:   '#22d3a5',
-    perm:    ['super_admin','owner','hotel_manager','housekeeping','reception'],
-    badge:   'housekeeping',
-    pinned:  true,
-  },
-  restaurant: {
-    file:    'RESTAURANT_EMBEDDED.html',
-    label:   'Restaurant / POS',
-    icon:    '🍽️',
-    desc:    'Point de vente · Commandes · KDS',
-    color:   '#f59e0b',
-    perm:    ['super_admin','owner','hotel_manager','restaurant'],
-    pinned:  true,
-  },
-  paiements: {
-    file:    'PAIEMENTS_EMBEDDED.html',
-    label:   'Paiements',
-    icon:    '💳',
-    desc:    'Orange Money · MTN · CinetPay',
-    color:   '#38bdf8',
-    perm:    ['super_admin','owner','accountant','hotel_manager'],
-    badge:   'paiements',
-    pinned:  true,
-  },
-  finance: {
-    file:    'FINANCE_EMBEDDED.html',
-    label:   'Finance',
-    icon:    '💰',
-    desc:    'Dépenses · Revenus · Comptabilité',
-    color:   '#4ade80',
-    perm:    ['super_admin','owner','accountant'],
-  },
-  analytics: {
-    file:    'ANALYTICS_EMBEDDED.html',
-    label:   'Analytics',
-    icon:    '📊',
-    desc:    'KPIs · Graphiques · Rapports',
-    color:   '#a855f7',
-    perm:    ['super_admin','owner','hotel_manager','accountant'],
-  },
-  rh: {
-    file:    'RH_EMBEDDED.html',
-    label:   'RH & Équipe',
-    icon:    '👥',
-    desc:    'Employés · Paie · Congés',
-    color:   '#fb923c',
-    perm:    ['super_admin','owner','hr','hotel_manager'],
-  },
-  notifications: {
-    file:    'NOTIFICATIONS_EMBEDDED.html',
-    label:   'Notifications',
-    icon:    '🔔',
-    desc:    'Alertes · Canaux · Règles auto',
-    color:   '#f43f5e',
-    perm:    ['super_admin','owner','hotel_manager'],
-    badge:   'notifications',
-  },
-};
-
-// Unités de la résidence
-const UNITS = [
-  { id:'ch101', label:'Ch.101', type:'chambre' },
-  { id:'ch102', label:'Ch.102', type:'chambre' },
-  { id:'ch103', label:'Ch.103', type:'chambre' },
-  { id:'ch104', label:'Ch.104', type:'chambre' },
-  { id:'ch105', label:'Ch.105', type:'chambre' },
-  { id:'ch106', label:'Ch.106', type:'chambre' },
-  { id:'app105',label:'App.105',type:'appartement' },
-  { id:'st201', label:'St.201', type:'studio' },
-  { id:'st202', label:'St.202', type:'studio' },
-  { id:'st203', label:'St.203', type:'studio' },
-  { id:'st204', label:'St.204', type:'studio' },
-  { id:'suitep',label:'Suite', type:'suite' },
+/* ── Modules actifs (ajouter ici quand un module est prêt) ── */
+var MODULES = [
+  { id: 'reservations', label: 'Réservations', icon: '🛏️',
+    file: 'RESERVATIONS_EMBEDDED.html', desc: 'Planning & Check-in/out' },
+  { id: 'paiements',    label: 'Paiements',    icon: '💳',
+    file: 'PAIEMENTS_EMBEDDED.html',    desc: 'Transactions & Validations' },
 ];
 
-// ── RBAC ────────────────────────────────────────────────────────
-function hasPermission(moduleName) {
-  const mod = MODULES[moduleName];
-  if (!mod) return false;
-  if (SESSION.user.role === 'super_admin') return true;
-  return mod.perm.includes(SESSION.user.role);
-}
+/* Modules pas encore développés */
+var COMING = [
+  { label: 'Housekeeping', icon: '🧹' },
+  { label: 'Restaurant',   icon: '🍽️' },
+  { label: 'Finance',      icon: '📊' },
+  { label: 'Analytiques',  icon: '📈' },
+  { label: 'RH',           icon: '👥' },
+];
 
-// ── EVENT BUS ───────────────────────────────────────────────────
-const EventBus = (() => {
-  const handlers = {};
-  const log = [];
-  let counter = 0;
-
-  function emit(type, data, source) {
-    source = source || 'core';
-    const now = new Date();
-    const ts = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const event = { id: ++counter, type, data: data || {}, source, ts };
-    log.unshift(event);
-    if (log.length > 100) log.pop();
-
-    // Forward to active module iframe
-    const iframe = document.getElementById('module-iframe');
-    if (iframe && iframe.contentWindow) {
-      try { iframe.contentWindow.postMessage({ veraluzEvent: true, type, data, source }, '*'); } catch(e) {}
-    }
-
-    // Call registered handlers
-    const h = handlers[type] || [];
-    const all = handlers['*'] || [];
-    h.concat(all).forEach(function(fn) { try { fn(event); } catch(e) {} });
-  }
-
-  function on(type, fn) {
-    if (!handlers[type]) handlers[type] = [];
-    handlers[type].push(fn);
-  }
-
-  function getLog() { return log; }
-
-  return { emit, on, getLog };
-})();
-
-// Ecouter les evenements des modules (postMessage)
-window.addEventListener('message', function(e) {
-  if (!e.data || !e.data.veraluzEvent) return;
-  var type   = e.data.type || '';
-  var data   = e.data.data || {};
-  var source = e.data.source || 'module';
-
-  EventBus.emit(type, data, source);
-
-  // Reactions aux evenements modules
-  if (type === 'badge.update' && data.module) {
-    updateBadge(data.module, data.count);
-  }
-  if (type === 'notification.new') {
-    addNotification(data);
-    showToast(data.title || 'Notification', data.message || '', data.level || 'info');
-  }
-  if (type === 'module:ready') {
-    // Envoyer le contexte auth au module charge
-    sendAuthContext();
-  }
-  if (type === 'room.status_changed') {
-    renderRoomsGrid();
-  }
-
-  // Mettre a jour le feed d'activite
-  renderActivityFeed();
-});
-
-// Envoyer le contexte auth au module charge
-function sendAuthContext() {
-  var iframe = document.getElementById('module-iframe');
-  if (!iframe || !iframe.contentWindow) return;
-  try {
-    iframe.contentWindow.postMessage({
-      veraluzEvent: true,
-      type: 'auth.context',
-      data: {
-        role:     SESSION.user.role,
-        userId:   SESSION.user.id,
-        name:     SESSION.user.name,
-        tenantId: TENANT.id,
-        supabaseUrl: SUPABASE_URL,
-        supabaseKey: SUPABASE_ANON_KEY,
-        currency: TENANT.currency,
-        tva:      TENANT.tva,
-      }
-    }, '*');
-  } catch(e) {}
-}
-
-// ── NAVIGATION ──────────────────────────────────────────────────
+/* ── État ─────────────────────────────────────────────────── */
 var currentPage   = 'dashboard';
 var currentModule = null;
-var loadTimeout   = null;
-var sidebarOpen   = false;
+var loadTimer     = null;
 
-var PAGE_META = {
-  dashboard:     { label: 'Dashboard',       sub: 'Vue générale' },
-  reservations:  { label: 'Réservations',    sub: 'Gestion des séjours' },
-  housekeeping:  { label: 'Housekeeping',    sub: 'Chambres & Tâches' },
-  restaurant:    { label: 'Restaurant/POS',  sub: 'Point de vente' },
-  paiements:     { label: 'Paiements',       sub: 'Orange · MTN · CinetPay' },
-  finance:       { label: 'Finance',         sub: 'Comptabilité & Rapports' },
-  analytics:     { label: 'Analytics',       sub: 'Métriques & Tendances' },
-  rh:            { label: 'RH & Équipe',     sub: '' },
-  notifications: { label: 'Notifications',   sub: 'Centre de messages' },
-};
+/* ── Navigation ───────────────────────────────────────────── */
+function goTo(pageId) {
+  var mod = MODULES.find(function(m) { return m.id === pageId; });
 
-function goTo(page) {
-  // Fermer le menu utilisateur et notif si ouverts
-  closeUserMenu();
-  var np = document.getElementById('notif-panel');
-  if (np) np.classList.remove('open');
+  closeMobileSidebar();
+  setActive(pageId);
+  currentPage = pageId;
 
-  // Sur mobile: fermer la sidebar apres navigation
-  if (window.innerWidth < 768) closeSidebar();
-
-  if (page === 'dashboard') {
-    showDashboard();
-  } else {
-    loadModule(page);
+  if (pageId === 'dashboard') {
+    currentModule = null;
+    setTopbar('Dashboard', 'Résidence Veraluz · Kribi');
+    showDashView();
+    return;
   }
+
+  if (!mod) return;
+  currentModule = mod;
+  setTopbar(mod.icon + ' ' + mod.label, mod.desc || '');
+  loadModuleFrame(mod);
 }
 
-function showDashboard() {
-  console.log('[Core] showDashboard() appelé');
-  currentPage = 'dashboard';
-  currentModule = null;
+function loadModuleFrame(mod) {
+  var iframe = document.getElementById('module-frame');
+  var loader = document.getElementById('loader');
 
-  // Vues — removeProperty efface tout inline style résiduel, puis repose display:block
-  var vd = document.getElementById('view-dashboard');
-  var vm = document.getElementById('view-module');
-  vd.style.removeProperty('display');
-  vd.style.display = 'block';
-  vm.style.display = 'none';
-  document.getElementById('module-loading').classList.remove('show');
-  document.getElementById('module-error').classList.remove('show');
-  document.getElementById('perm-overlay').classList.remove('show');
-
-  // Vider iframe (libere memoire) — nettoyer les handlers AVANT de changer src
-  var iframe = document.getElementById('module-iframe');
+  // Reset
   iframe.onload  = null;
   iframe.onerror = null;
-  iframe.classList.remove('loaded');
+  if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+
+  // Masquer les vues, montrer le loader
+  document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+  document.getElementById('mod-error').classList.remove('show');
+  document.getElementById('ld-text').textContent = 'Chargement ' + mod.label + '…';
+  loader.classList.add('show');
+
+  // Vider l'iframe d'abord
   iframe.src = 'about:blank';
 
-  // Breadcrumb
-  document.getElementById('bc-sep').style.display = 'none';
-  document.getElementById('bc-page').textContent  = 'Dashboard';
-  document.getElementById('bc-sub').textContent   = '';
-
-  // Sidebar + bottom nav actif
-  setActiveNav('dashboard');
-
-  // Annuler timeout si en cours
-  if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
-
-  renderActivityFeed();
+  setTimeout(function() {
+    var done = false;
+    function onReady() {
+      if (done) return; done = true;
+      if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+      loader.classList.remove('show');
+      showView('module');
+    }
+    iframe.onload  = function() { onReady(); };
+    iframe.onerror = function() {
+      if (loadTimer) clearTimeout(loadTimer);
+      loader.classList.remove('show');
+      document.getElementById('err-msg').textContent = 'Impossible de charger ' + mod.file;
+      document.getElementById('mod-error').classList.add('show');
+    };
+    loadTimer = setTimeout(onReady, 8000);
+    iframe.src = mod.file;
+  }, 80);
 }
 
-function loadModule(moduleName) {
-  console.log('[Core] loadModule() →', moduleName);
-
-  var mod = MODULES[moduleName];
-  if (!mod) { showToast('Module inconnu', moduleName, 'error'); return; }
-
-  // Verifier permission
-  if (!hasPermission(moduleName)) {
-    document.getElementById('view-dashboard').style.display = 'none';
-    document.getElementById('view-module').style.display = 'none';
-    document.getElementById('perm-overlay').classList.add('show');
-    var msg = document.getElementById('perm-msg');
-    if (msg) msg.textContent = 'Votre rôle (' + SESSION.user.role + ') ne permet pas d\'accéder à ' + mod.label + '.';
-    setActiveNav(moduleName);
-    return;
-  }
-
-  document.getElementById('perm-overlay').classList.remove('show');
-  currentPage   = moduleName;
-  currentModule = moduleName;
-
-  // Masquer dashboard, afficher module
-  document.getElementById('view-dashboard').style.display = 'none';
-  document.getElementById('view-module').style.display = 'block';
-  document.getElementById('module-error').classList.remove('show');
-
-  // Breadcrumb
-  var meta = PAGE_META[moduleName] || { label: moduleName, sub: '' };
-  document.getElementById('bc-sep').style.display = '';
-  document.getElementById('bc-page').textContent = meta.label;
-  document.getElementById('bc-sub').textContent  = meta.sub ? '— ' + meta.sub : '';
-
-  // Active nav
-  setActiveNav(moduleName);
-
-  // Afficher le loader
-  var loading = document.getElementById('module-loading');
-  var loaderName = document.getElementById('loader-name');
-  var loaderSub  = document.getElementById('loader-sub');
-  loading.classList.add('show');
-  if (loaderName) loaderName.textContent = 'Chargement ' + mod.label + '...';
-  if (loaderSub)  loaderSub.textContent  = mod.desc || '';
-
-  // Charger l'iframe
-  var iframe = document.getElementById('module-iframe');
-  iframe.classList.remove('loaded');
-
-  // ── Chargement direct iframe.src (fiable sur HTTPS / GitHub Pages) ───────
-  iframe.onload  = null;
-  iframe.onerror = null;
-  if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
-
-  var _loaded = false;
-  function onModuleReady() {
-    if (_loaded) return;
-    _loaded = true;
-    if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
-    loading.classList.remove('show');
-    iframe.classList.add('loaded');
-    console.log('[Core] Module prêt ✓ —', mod.file);
-    EventBus.emit('module.loaded', { module: moduleName, file: mod.file });
-    setTimeout(sendAuthContext, 150);
-  }
-
-  iframe.onload = function() { onModuleReady(); };
-  iframe.onerror = function() {
-    if (loadTimeout) clearTimeout(loadTimeout);
-    loading.classList.remove('show');
-    document.getElementById('module-error').classList.add('show');
-    document.getElementById('err-msg').textContent = 'Impossible de charger ' + mod.file;
-    console.error('[Core] onerror —', mod.file);
-  };
-  loadTimeout = setTimeout(onModuleReady, 6000); // fallback 6s max
-  iframe.src = mod.file;
-
-  EventBus.emit('module.navigate', { to: moduleName, from: currentPage });
+function refreshCurrent() {
+  if (currentPage === 'dashboard') { loadDashboardData(); }
+  else if (currentModule)          { loadModuleFrame(currentModule); }
 }
 
-function retryLoadModule() {
-  document.getElementById('module-error').classList.remove('show');
-  if (currentModule) loadModule(currentModule);
+function retryModule() {
+  document.getElementById('mod-error').classList.remove('show');
+  if (currentModule) loadModuleFrame(currentModule);
 }
 
-// ── SIDEBAR ──────────────────────────────────────────────────────
-function toggleSidebar() {
-  if (window.innerWidth >= 768) {
-    // Desktop: toggle collapsed
-    var sb = document.getElementById('sidebar');
-    var main = document.getElementById('main');
-    sb.classList.toggle('collapsed');
-    main.classList.toggle('sidebar-collapsed');
-  } else {
-    // Mobile: slide in
-    if (sidebarOpen) closeSidebar();
-    else openSidebar();
-  }
+/* ── Vues ─────────────────────────────────────────────────── */
+function showView(name) {
+  document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+  document.getElementById('view-' + name).classList.add('active');
 }
-function openSidebar() {
-  sidebarOpen = true;
-  document.getElementById('sidebar').classList.add('open');
-  document.getElementById('sb-overlay').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-function closeSidebar() {
-  sidebarOpen = false;
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sb-overlay').classList.remove('show');
-  document.body.style.overflow = '';
+function showDashView() {
+  document.getElementById('loader').classList.remove('show');
+  document.getElementById('mod-error').classList.remove('show');
+  showView('dashboard');
 }
 
-// ── ACTIVE NAV ──────────────────────────────────────────────────
-function setActiveNav(page) {
-  // Sidebar items
-  document.querySelectorAll('.sb-item').forEach(function(el) { el.classList.remove('active'); });
-  var sbEl = document.getElementById('nav-' + page);
-  if (sbEl) sbEl.classList.add('active');
-
-  // Bottom nav
-  document.querySelectorAll('.bn-item').forEach(function(el) { el.classList.remove('active'); });
-  var bnEl = document.getElementById('bn-' + page);
-  if (bnEl) bnEl.classList.add('active');
+/* ── Topbar ───────────────────────────────────────────────── */
+function setTopbar(title, sub) {
+  document.getElementById('tb-title').textContent = title;
+  document.getElementById('tb-sub').textContent   = sub;
 }
 
-// ── THEME ────────────────────────────────────────────────────────
-var isDark = true;
-function toggleTheme() {
-  isDark = !isDark;
-  document.body.classList.toggle('light', !isDark);
-  var btn = document.querySelector('.tb-btn[onclick*="toggleTheme"]');
-  if (btn) btn.textContent = isDark ? '🌙' : '☀️';
+/* ── Active nav ───────────────────────────────────────────── */
+function setActive(id) {
+  document.querySelectorAll('.sb-btn, .bn-btn').forEach(function(b) { b.classList.remove('active'); });
+  var sb = document.getElementById('nav-' + id);
+  var bn = document.getElementById('bn-' + id);
+  if (sb) sb.classList.add('active');
+  if (bn) bn.classList.add('active');
 }
 
-// ── TOAST ────────────────────────────────────────────────────────
-var toastCounter = 0;
-function showToast(title, message, type) {
-  type = type || 'info';
-  var icons = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
-  var icon = icons[type] || '🔔';
-  var id = 'toast-' + (++toastCounter);
-  var el = document.createElement('div');
-  el.className = 'toast-item';
-  el.id = id;
-  el.innerHTML =
-    '<span class="toast-icon">' + icon + '</span>' +
-    '<div class="toast-body">' +
-      '<div class="toast-title">' + (title||'') + '</div>' +
-      (message ? '<div class="toast-msg">' + message + '</div>' : '') +
-    '</div>' +
-    '<button class="toast-close" onclick="dismissToast(\'' + id + '\')">✕</button>';
-  document.getElementById('toast-container').appendChild(el);
-  setTimeout(function() { dismissToast(id); }, 4000);
-}
-function dismissToast(id) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  el.classList.add('removing');
-  setTimeout(function() { if (el.parentNode) el.parentNode.removeChild(el); }, 280);
-}
-// Exposer globalement pour les modules embedded
-window.showToast = showToast;
+/* ── Build navigation ─────────────────────────────────────── */
+function buildNav() {
+  var sbMods  = document.getElementById('sb-modules');
+  var sbComing= document.getElementById('sb-coming');
+  var bnMods  = document.getElementById('bn-modules');
+  var grid    = document.getElementById('dash-grid');
+  sbMods.innerHTML = bnMods.innerHTML = sbComing.innerHTML = grid.innerHTML = '';
 
-// ── NOTIFICATIONS ────────────────────────────────────────────────
-var notifications = [];
-var notifUnread   = 0;
-var NOTIF_COLORS  = { info:'#38bdf8', success:'#22d3a5', warning:'#f59e0b', error:'#f43f5e' };
+  MODULES.forEach(function(m) {
+    // Sidebar button
+    var sb = document.createElement('button');
+    sb.className = 'sb-btn'; sb.id = 'nav-' + m.id;
+    sb.innerHTML = '<span class="sb-icon">' + m.icon + '</span> ' + m.label;
+    sb.onclick = function() { goTo(m.id); };
+    sbMods.appendChild(sb);
 
-function addNotification(data) {
-  var notif = {
-    id:      Date.now(),
-    title:   data.title || 'Notification',
-    message: data.message || data.body || '',
-    type:    data.type || data.level || 'info',
-    ts:      new Date().toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' }),
-    read:    false,
-  };
-  notifications.unshift(notif);
-  if (notifications.length > 50) notifications.pop();
-  notifUnread++;
-  renderNotifPanel();
-  // Afficher le point rouge
-  var dot = document.getElementById('notif-dot');
-  if (dot) dot.style.display = 'block';
-}
+    // Bottom nav button
+    var bn = document.createElement('button');
+    bn.className = 'bn-btn'; bn.id = 'bn-' + m.id;
+    bn.innerHTML = '<span class="bn-icon">' + m.icon + '</span><span class="bn-label">' + m.label + '</span>';
+    bn.onclick = function() { goTo(m.id); };
+    bnMods.appendChild(bn);
 
-function renderNotifPanel() {
-  var list = document.getElementById('np-list');
-  var count = document.getElementById('np-count');
-  if (!list) return;
-  if (count) count.textContent = notifUnread + ' non lue' + (notifUnread !== 1 ? 's' : '');
-  if (!notifications.length) {
-    list.innerHTML = '<div class="np-empty"><span style="font-size:32px">🔕</span><span>Aucune notification</span></div>';
-    return;
-  }
-  list.innerHTML = notifications.slice(0, 20).map(function(n) {
-    var color = NOTIF_COLORS[n.type] || '#6c63ff';
-    return '<div class="np-item' + (n.read ? '' : ' unread') + '" onclick="readNotif(' + n.id + ')">' +
-      '<div class="np-dot" style="background:' + color + '"></div>' +
-      '<div class="np-body">' +
-        '<div class="np-ntitle">' + n.title + '</div>' +
-        (n.message ? '<div class="np-nmsg">' + n.message + '</div>' : '') +
-        '<div class="np-ntime">' + n.ts + '</div>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
+    // Dashboard card
+    var card = document.createElement('button');
+    card.className = 'mod-card';
+    card.innerHTML = '<div class="mod-icon">' + m.icon + '</div>'
+      + '<div class="mod-name">' + m.label + '</div>'
+      + '<div class="mod-desc">' + m.desc + '</div>'
+      + '<span class="mod-badge">Actif</span>';
+    card.onclick = function() { goTo(m.id); };
+    grid.appendChild(card);
+  });
 
-function readNotif(id) {
-  var n = notifications.find(function(x) { return x.id === id; });
-  if (n && !n.read) { n.read = true; notifUnread = Math.max(0, notifUnread - 1); }
-  renderNotifPanel();
-  if (notifUnread === 0) {
-    var dot = document.getElementById('notif-dot');
-    if (dot) dot.style.display = 'none';
-  }
-}
+  // À venir (sidebar + dashboard)
+  COMING.forEach(function(c) {
+    var el = document.createElement('div');
+    el.className = 'sb-future';
+    el.innerHTML = '<span style="font-size:15px">' + c.icon + '</span> ' + c.label;
+    sbComing.appendChild(el);
 
-function toggleNotifPanel() {
-  var panel = document.getElementById('notif-panel');
-  panel.classList.toggle('open');
-}
-
-// ── USER MENU ────────────────────────────────────────────────────
-function toggleUserMenu() {
-  document.getElementById('user-menu').classList.toggle('open');
-}
-function closeUserMenu() {
-  document.getElementById('user-menu').classList.remove('open');
-}
-document.addEventListener('click', function(e) {
-  var menu = document.getElementById('user-menu');
-  if (menu && !menu.contains(e.target) && !e.target.closest('.sb-user')) {
-    closeUserMenu();
-  }
-});
-
-// ── BADGES ──────────────────────────────────────────────────────
-function updateBadge(moduleName, count) {
-  var sbBadge = document.getElementById('badge-' + moduleName);
-  var bnDot   = document.getElementById('bn-dot-' + moduleName);
-  if (sbBadge) {
-    if (count > 0) { sbBadge.textContent = count; sbBadge.classList.add('show'); }
-    else            { sbBadge.classList.remove('show'); }
-  }
-  if (bnDot) {
-    if (count > 0) bnDot.classList.add('show');
-    else           bnDot.classList.remove('show');
-  }
-}
-
-// ── SEARCH ──────────────────────────────────────────────────────
-function onSearch(val) {
-  // Placeholder — filtrage module tiles sur le dashboard
-  if (currentPage !== 'dashboard') return;
-  var q = val.toLowerCase();
-  document.querySelectorAll('.mod-tile').forEach(function(tile) {
-    var name = (tile.dataset.name || '').toLowerCase();
-    var desc = (tile.dataset.desc || '').toLowerCase();
-    tile.style.display = (!q || name.includes(q) || desc.includes(q)) ? '' : 'none';
+    var card = document.createElement('div');
+    card.className = 'mod-card dim';
+    card.innerHTML = '<div class="mod-icon">' + c.icon + '</div>'
+      + '<div class="mod-name">' + c.label + '</div>'
+      + '<span class="mod-badge s">Bientôt</span>';
+    grid.appendChild(card);
   });
 }
 
-// ── ACTIONS ─────────────────────────────────────────────────────
-function openNewReservation() {
-  goTo('reservations');
-  showToast('Réservations', 'Module Réservations ouvert', 'info');
-}
+/* ── Dashboard data ───────────────────────────────────────── */
+function loadDashboardData() {
+  Promise.all([
+    sbGet('/rest/v1/veraluz_reservations?select=id,status,client_name,unit_id,check_in&order=created_at.desc&limit=6'),
+    sbGet('/rest/v1/veraluz_payments?select=id,status,amount&order=created_at.desc'),
+    sbGet('/rest/v1/veraluz_units?select=id,status'),
+  ]).then(function(r) {
+    var rezs  = r[0] || [];
+    var pays  = r[1] || [];
+    var units = r[2] || [];
 
-// ── RENDER DASHBOARD ─────────────────────────────────────────────
-function renderModuleTiles() {
-  var grid = document.getElementById('modules-grid');
-  if (!grid) return;
-  grid.innerHTML = Object.keys(MODULES).map(function(key) {
-    var mod = MODULES[key];
-    var allowed = hasPermission(key);
-    var badgeCount = 0;
-    var sbBadge = document.getElementById('badge-' + key);
-    if (sbBadge) badgeCount = parseInt(sbBadge.textContent) || 0;
+    var active  = rezs.filter(function(x) { return x.status === 'checkedin' || x.status === 'confirmed'; });
+    var pending = pays.filter(function(x) { return x.status === 'pending'; });
+    var avail   = units.filter(function(x) { return x.status === 'available'; });
+    var rev     = pays.filter(function(x) { return x.status === 'validated'; })
+                     .reduce(function(s, p) { return s + (p.amount || 0); }, 0);
 
-    return '<div class="mod-tile' + (allowed ? '' : ' locked') + '" ' +
-      'onclick="' + (allowed ? 'goTo(\'' + key + '\')' : 'showToast(\'Accès refusé\',\'' + mod.label + '\',\'warning\')') + '" ' +
-      'data-name="' + mod.label + '" data-desc="' + mod.desc + '">' +
-      '<div class="mod-tile-icon">' + mod.icon + '</div>' +
-      '<div class="mod-tile-name">' + mod.label + '</div>' +
-      '<div class="mod-tile-desc">' + mod.desc + '</div>' +
-      (badgeCount > 0 ? '<div class="mod-tile-badge show">' + badgeCount + ' en attente</div>' : '') +
-      (!allowed ? '<div style="font-size:10px;color:var(--text3);margin-top:2px">🔐 Accès restreint</div>' : '') +
-    '</div>';
-  }).join('');
-}
+    document.getElementById('st-rez').textContent   = active.length;
+    document.getElementById('st-pay').textContent   = pending.length;
+    document.getElementById('st-units').textContent = avail.length;
+    document.getElementById('st-rev').textContent   = rev.toLocaleString('fr-FR');
 
-function renderRoomsGrid() {
-  var grid = document.getElementById('rooms-grid');
-  if (!grid) return;
-  var statuses = ['available','available','occupied','dirty','available','occupied','available','occupied','available','dirty','available','oos'];
-  var icons = { chambre:'🛏️', appartement:'🏠', studio:'🛋️', suite:'👑' };
-  grid.innerHTML = UNITS.map(function(u, i) {
-    var status = statuses[i] || 'available';
-    var emoji = icons[u.type] || '🛏️';
-    return '<div class="room-chip ' + status + '" title="' + u.label + ' — ' + status + '">' +
-      '<div class="r-ico">' + emoji + '</div>' +
-      '<div class="r-num">' + u.label + '</div>' +
-    '</div>';
-  }).join('');
-  // Summary
-  var occ = statuses.filter(function(s) { return s === 'occupied'; }).length;
-  var sumEl = document.getElementById('rooms-summary');
-  if (sumEl) sumEl.textContent = UNITS.length + ' unités · ' + occ + ' occupées · Kribi';
-}
-
-function renderHealthRow() {
-  var row = document.getElementById('health-row');
-  if (!row) return;
-  var items = [
-    { name: 'Base de données',  status: 'ok',   val: 'Supabase · <12ms' },
-    { name: 'Auth Service',     status: 'ok',   val: 'JWT · Actif' },
-    { name: 'Event Bus',        status: 'ok',   val: EventBus.getLog().length + ' événements' },
-    { name: 'Module Loader',    status: 'ok',   val: '7 modules' },
-  ];
-  row.innerHTML = items.map(function(it) {
-    return '<div class="health-item">' +
-      '<div class="health-dot ' + it.status + '"></div>' +
-      '<div class="health-name">' + it.name + '</div>' +
-      '<div class="health-val">' + it.val + '</div>' +
-    '</div>';
-  }).join('');
-}
-
-function renderActivityFeed() {
-  var feed = document.getElementById('activity-feed');
-  if (!feed || currentPage !== 'dashboard') return;
-  var log = EventBus.getLog();
-  var countEl = document.getElementById('activity-count');
-  if (countEl) countEl.textContent = log.length + ' événement' + (log.length !== 1 ? 's' : '');
-
-  var colors = {
-    'module.navigate': '#6c63ff',
-    'module.loaded':   '#22d3a5',
-    'module.error':    '#f43f5e',
-    'notification.new':'#f59e0b',
-    'room.status_changed': '#38bdf8',
-    'badge.update':    '#a855f7',
-  };
-
-  var items = log.slice(0, 8);
-  if (!items.length) {
-    feed.innerHTML = '<div class="activity-item"><div class="activity-text" style="color:var(--text3)">Aucune activité pour le moment. Naviguez dans les modules.</div></div>';
-    return;
-  }
-  feed.innerHTML = items.map(function(evt) {
-    var color = colors[evt.type] || '#5a5580';
-    var dataStr = '';
-    if (evt.data && typeof evt.data === 'object') {
-      var keys = Object.keys(evt.data);
-      if (keys.length) dataStr = ' — ' + keys.map(function(k) { return k + ': ' + JSON.stringify(evt.data[k]).slice(0,30); }).join(', ');
+    // Activité récente
+    var list = document.getElementById('recent-list');
+    if (!rezs.length) {
+      list.innerHTML = '<div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Aucune réservation</div></div>';
+      return;
     }
-    return '<div class="activity-item">' +
-      '<div class="activity-dot" style="background:' + color + '"></div>' +
-      '<div class="activity-text"><strong>' + evt.type + '</strong>' + dataStr.slice(0, 80) + '</div>' +
-      '<div class="activity-time">' + evt.ts + '</div>' +
-    '</div>';
-  }).join('');
-}
-
-// ── DATE ─────────────────────────────────────────────────────────
-function renderDate() {
-  var el = document.getElementById('dash-date');
-  if (!el) return;
-  var d = new Date();
-  el.textContent = d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-}
-
-// ── INIT ─────────────────────────────────────────────────────────
-function init() {
-  // Mettre a jour l'UI avec la session
-  var av = document.getElementById('user-avatar');
-  var un = document.getElementById('user-name');
-  var ur = document.getElementById('user-role');
-  if (av) av.textContent = SESSION.user.avatar;
-  if (un) un.textContent = SESSION.user.name;
-  if (ur) ur.textContent = SESSION.user.role;
-
-  // Rendre le greeting
-  var hour = new Date().getHours();
-  var greet = hour < 12 ? 'Bonjour' : hour < 18 ? 'Bon après-midi' : 'Bonsoir';
-  var greetEl = document.getElementById('dash-greeting-title');
-  if (greetEl) greetEl.textContent = greet + ', ' + SESSION.user.name.split(' ')[0] + ' 👋';
-
-  renderDate();
-  renderModuleTiles();
-  renderRoomsGrid();
-  renderHealthRow();
-  renderActivityFeed();
-
-  // Simuler quelques notifications initiales
-  addNotification({ title: 'Check-out prévu', message: 'Ch. 103 — M. Nkoulou — Départ 11h00', type: 'info' });
-  addNotification({ title: '5 tâches HK en attente', message: 'Chambres 101, 103, 201 à nettoyer', type: 'warning' });
-  addNotification({ title: 'Paiement en attente de validation', message: 'Réservation REZ-2024-089 · 180 000 XAF', type: 'warning' });
-
-  EventBus.emit('core.ready', { version: PLATFORM_VERSION, tenant: TENANT.id });
-
-  // Detecter taille ecran initiale
-  if (window.innerWidth >= 768) {
-    // Desktop: sidebar ouverte par defaut
-    document.getElementById('sidebar').classList.remove('open');
-  }
-
-  // Cacher les badges initialement (sera mis a jour par les modules)
-  document.querySelectorAll('.sb-badge').forEach(function(el) {
-    el.classList.add('show');
-  });
-}
-
-// ── BOOT ─────────────────────────────────────────────────────────
-// Écouter auth.login / auth.logout depuis le module auth (postMessage)
-window.addEventListener('message', function(e) {
-  if (!e.data || !e.data.veraluzEvent) return;
-  if (e.data.type === 'auth.login')  { onAuthLogin(e.data.data); }
-  if (e.data.type === 'auth.logout') { doLogout(); }
-  // module:ready — le module embedded confirme son chargement via postMessage
-  // (fallback fiable à iframe.onload qui ne tire pas toujours en file://)
-  if (e.data.type === 'module:ready') {
-    var loading = document.getElementById('module-loading');
-    if (loading) loading.classList.remove('show');
-    var iframe  = document.getElementById('module-iframe');
-    if (iframe)  iframe.classList.add('loaded');
-    if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
-    console.log('[Core] module:ready reçu ✓ —', e.data.source || '?');
-  }
-});
-
-// Exposer onAuthLogin globalement (appel direct depuis auth-iframe — fallback)
-window.onAuthLogin = onAuthLogin;
-
-document.addEventListener('DOMContentLoaded', function() {
-  if (DEV_MODE) {
-    console.log('[DEV] ══════════════════════════════════════════');
-    console.log('[DEV]  VERALUZ OS — MODE DÉVELOPPEMENT ACTIF');
-    console.log('[DEV]  Auth désactivée — session mock injectée');
-    console.log('[DEV]  Pour réactiver : DEV_MODE = false');
-    console.log('[DEV] ══════════════════════════════════════════');
-  }
-  // 1. Démarrer l'auth layer (DEV_MODE bypass géré en interne)
-  initAuthLayer();
-  // 2. Pré-init du dashboard (immédiat en DEV, en arrière-plan en prod)
-  renderDate();
-  renderModuleTiles();
-  renderRoomsGrid();
-  renderHealthRow();
-  console.log('[Core] DOMContentLoaded — init terminé ✓');
-});
-</script>
-
-</div>
-
-<script id="script-reservations">
-(function() {
-  // ── Toast local (remplace window.toast du bridge) ──
-  window.__RES_toast = function(msg, type) {
-    if (window.showToast) window.showToast(msg, '', type || 'info');
-  };
-window.__MODULE_NAME__ = 'reservations';
-
-'use strict';
-/* ================================================================
-   RESERVATIONS MODULE — Logique metier
-   Données simulées · Communication Core via postMessage
-   ================================================================ */
-
-var TVA = 0.1925;
-
-// ── FORMAT ───────────────────────────────────────────────────────
-function fmt(n) {
-  return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' XAF';
-}
-function fmtDate(d) {
-  return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'short', year:'numeric' });
-}
-function fmtDateShort(d) {
-  return new Date(d).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' });
-}
-
-// ── UNITÉS ──────────────────────────────────────────────────────
-var UNITS = [
-  { id:'ch101', label:'Ch. 101', type:'Chambre',      icon:'🛏️', priceHT: 25000,  capacity:2 },
-  { id:'ch102', label:'Ch. 102', type:'Chambre',      icon:'🛏️', priceHT: 25000,  capacity:2 },
-  { id:'ch103', label:'Ch. 103', type:'Chambre',      icon:'🛏️', priceHT: 25000,  capacity:2 },
-  { id:'ch104', label:'Ch. 104', type:'Chambre',      icon:'🛏️', priceHT: 28000,  capacity:2 },
-  { id:'ch105', label:'Ch. 105', type:'Chambre',      icon:'🛏️', priceHT: 28000,  capacity:2 },
-  { id:'ch106', label:'Ch. 106', type:'Chambre vue',  icon:'🛏️', priceHT: 35000,  capacity:2 },
-  { id:'app105',label:'App. 105',type:'Appartement',  icon:'🏠', priceHT: 55000,  capacity:4 },
-  { id:'st201', label:'St. 201', type:'Studio',       icon:'🛋️', priceHT: 42000,  capacity:2 },
-  { id:'st202', label:'St. 202', type:'Studio',       icon:'🛋️', priceHT: 42000,  capacity:2 },
-  { id:'st203', label:'St. 203', type:'Studio vue',   icon:'🛋️', priceHT: 48000,  capacity:2 },
-  { id:'st204', label:'St. 204', type:'Studio vue',   icon:'🛋️', priceHT: 48000,  capacity:2 },
-  { id:'suite', label:'Suite',   type:'Suite Prés.',  icon:'👑', priceHT: 120000, capacity:4 },
-];
-
-// ── DONNÉES RÉSERVATIONS (simulées) ─────────────────────────────
-var today = new Date(); today.setHours(0,0,0,0);
-function daysFromToday(n) {
-  var d = new Date(today); d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0,10);
-}
-
-var RESERVATIONS = [
-  { id:'REZ-001', client:'Nkoulou Patrick',   email:'p.nkoulou@gmail.com', tel:'+237 699 123 456', unitId:'ch101', arrival: daysFromToday(-3), departure: daysFromToday(1),  adults:2, children:0, status:'occupied',   payment:'orange_money', notes:'Vue mer demandée',       ref:'REZ-2026-001' },
-  { id:'REZ-002', client:'Manga Célestine',   email:'celestine@gmail.com', tel:'+237 677 234 567', unitId:'ch103', arrival: daysFromToday(0),  departure: daysFromToday(5),  adults:2, children:1, status:'checkin',    payment:'mtn_momo',     notes:'',                       ref:'REZ-2026-002' },
-  { id:'REZ-003', client:'Essama Bruno',      email:'bessama@gmail.com',   tel:'+237 655 345 678', unitId:'app105',arrival: daysFromToday(-1), departure: daysFromToday(0),  adults:3, children:2, status:'checkout',   payment:'cash',         notes:'Famille avec enfants',   ref:'REZ-2026-003' },
-  { id:'REZ-004', client:'Ondoa Marie-Claire',email:'mc.ondoa@yahoo.fr',   tel:'+237 690 456 789', unitId:'st201', arrival: daysFromToday(2),  departure: daysFromToday(7),  adults:2, children:0, status:'confirmed',  payment:'cinetpay',     notes:'Lune de miel',           ref:'REZ-2026-004' },
-  { id:'REZ-005', client:'Biyong Charles',    email:'cbiyong@gmail.com',   tel:'+237 677 567 890', unitId:'suite', arrival: daysFromToday(-2), departure: daysFromToday(3),  adults:2, children:0, status:'occupied',   payment:'virement',     notes:'Client VIP',             ref:'REZ-2026-005' },
-  { id:'REZ-006', client:'Abomo Jean-Pierre', email:'jp.abomo@gmail.com',  tel:'+237 655 678 901', unitId:'ch104', arrival: daysFromToday(5),  departure: daysFromToday(9),  adults:1, children:0, status:'confirmed',  payment:'orange_money', notes:'',                       ref:'REZ-2026-006' },
-  { id:'REZ-007', client:'Fouda Thérèse',    email:'therfouda@gmail.com',  tel:'+237 699 789 012', unitId:'st203', arrival: daysFromToday(-5), departure: daysFromToday(-1), adults:2, children:0, status:'completed',  payment:'cash',         notes:'',                       ref:'REZ-2026-007' },
-  { id:'REZ-008', client:'Melingui Paul',     email:'pmelingui@gmail.com', tel:'+237 677 890 123', unitId:'ch102', arrival: daysFromToday(0),  departure: daysFromToday(4),  adults:2, children:0, status:'checkin',    payment:'mtn_momo',     notes:'Arrivée après 16h',      ref:'REZ-2026-008' },
-  { id:'REZ-009', client:'Ateba Cyrille',     email:'cateba@gmail.com',    tel:'+237 655 901 234', unitId:'st202', arrival: daysFromToday(3),  departure: daysFromToday(10), adults:3, children:1, status:'confirmed',  payment:'orange_money', notes:'',                       ref:'REZ-2026-009' },
-  { id:'REZ-010', client:'Owono Sophie',      email:'sowono@gmail.com',    tel:'+237 699 012 345', unitId:'ch106', arrival: daysFromToday(1),  departure: daysFromToday(6),  adults:2, children:0, status:'confirmed',  payment:'cinetpay',     notes:'Vue mer',                ref:'REZ-2026-010' },
-  { id:'REZ-011', client:'Nana Bertrand',     email:'bnana@gmail.com',     tel:'+237 677 123 456', unitId:'st204', arrival: daysFromToday(0),  departure: daysFromToday(3),  adults:2, children:0, status:'checkin',    payment:'cash',         notes:'',                       ref:'REZ-2026-011' },
-  { id:'REZ-012', client:'Mvondo Hélène',    email:'hmvondo@yahoo.fr',     tel:'+237 655 234 567', unitId:'ch105', arrival: daysFromToday(-4), departure: daysFromToday(-2), adults:1, children:0, status:'completed',  payment:'orange_money', notes:'',                       ref:'REZ-2026-012' },
-  { id:'REZ-013', client:'Beti Rodrigue',     email:'rbeti@gmail.com',     tel:'+237 699 345 678', unitId:'app105',arrival: daysFromToday(8),  departure: daysFromToday(14), adults:4, children:2, status:'confirmed',  payment:'virement',     notes:'Séjour famille',         ref:'REZ-2026-013' },
-];
-
-// Calculer les statuts dynamiques des chambres
-function getRoomStatus(unitId) {
-  var todayStr = today.toISOString().slice(0,10);
-  var rez = RESERVATIONS.find(function(r) {
-    return r.unitId === unitId &&
-           r.arrival <= todayStr && r.departure > todayStr &&
-           r.status !== 'cancelled' && r.status !== 'completed';
-  });
-  if (!rez) {
-    // Vérifier si réservée dans le futur proche
-    var future = RESERVATIONS.find(function(r) {
-      return r.unitId === unitId && r.arrival > todayStr && r.status === 'confirmed';
-    });
-    if (future) return 'reserved';
-    // Quelques chambres dirty pour démo
-    if (['ch103','st201'].includes(unitId)) return 'dirty';
-    if (unitId === 'ch105') return 'oos';
-    return 'available';
-  }
-  if (rez.status === 'checkout') return 'dirty';
-  return 'occupied';
-}
-
-function getRoomRez(unitId) {
-  var todayStr = today.toISOString().slice(0,10);
-  return RESERVATIONS.find(function(r) {
-    return r.unitId === unitId &&
-           r.arrival <= todayStr && r.departure >= todayStr &&
-           r.status !== 'cancelled' && r.status !== 'completed';
-  }) || null;
-}
-
-// ── NAVIGATION ONGLETS ─────────────────────────────────────────
-var currentTab = 'planning';
-
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-  document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
-  var btn = document.getElementById('tab-' + tab);
-  var pane = document.getElementById('pane-' + tab);
-  if (btn)  btn.classList.add('active');
-  if (pane) pane.classList.add('active');
-  if (tab === 'planning')  renderPlanning();
-  if (tab === 'chambres')  renderChambreStats(); renderRoomsGrid();
-  if (tab === 'liste')     renderRezList();
-  if (tab === 'nouvelle')  initNewForm();
-}
-
-// ── PLANNING CALENDRIER ────────────────────────────────────────
-var planningMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-var DAYS_VISIBLE  = 21; // jours affichés
-
-function changeMonth(dir) {
-  planningMonth = new Date(planningMonth.getFullYear(), planningMonth.getMonth() + dir, 1);
-  renderPlanning();
-}
-function goToday() {
-  planningMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  renderPlanning();
-}
-
-function renderPlanning() {
-  var grid = document.getElementById('planning-grid');
-  if (!grid) return;
-  var label = document.getElementById('planning-month-label');
-
-  // Calculer les jours à afficher (à partir du 1er du mois, 21 jours)
-  var startDate = new Date(planningMonth);
-  var days = [];
-  for (var i = 0; i < DAYS_VISIBLE; i++) {
-    var d = new Date(startDate);
-    d.setDate(startDate.getDate() + i);
-    days.push(d);
-  }
-
-  if (label) {
-    label.textContent = planningMonth.toLocaleDateString('fr-FR', { month:'long', year:'numeric' });
-    label.textContent = label.textContent.charAt(0).toUpperCase() + label.textContent.slice(1);
-  }
-
-  // Largeur colonne unité + jours
-  var colTemplate = '120px repeat(' + DAYS_VISIBLE + ', minmax(28px, 1fr))';
-
-  var html = '';
-
-  // Header ligne de jours
-  html += '<div class="pg-header-row" style="grid-template-columns:' + colTemplate + '">';
-  html += '<div class="pg-day-header first-col">Unité</div>';
-  days.forEach(function(d) {
-    var isToday = d.toISOString().slice(0,10) === today.toISOString().slice(0,10);
-    var cls = isToday ? ' today' : '';
-    html += '<div class="pg-day-header' + cls + '">' +
-      '<div>' + d.toLocaleDateString('fr-FR', { weekday:'narrow' }) + '</div>' +
-      '<div style="font-size:12px;font-weight:800;' + (isToday ? 'color:var(--accent)' : '') + '">' + d.getDate() + '</div>' +
-    '</div>';
-  });
-  html += '</div>';
-
-  // Lignes par unité
-  UNITS.forEach(function(unit) {
-    html += '<div class="pg-room-row" style="grid-template-columns:' + colTemplate + '">';
-    html += '<div class="pg-room-label">' +
-      '<div>' +
-        '<div>' + unit.label + '</div>' +
-        '<div class="r-type">' + unit.type + '</div>' +
-      '</div>' +
-    '</div>';
-
-    days.forEach(function(d) {
-      var ds = d.toISOString().slice(0,10);
-      var todayCol = ds === today.toISOString().slice(0,10) ? ' today-col' : '';
-
-      // Trouver réservation sur ce jour
-      var rez = RESERVATIONS.find(function(r) {
-        return r.unitId === unit.id && r.arrival <= ds && r.departure > ds && r.status !== 'cancelled' && r.status !== 'completed';
-      });
-
-      var blockHtml = '';
-      if (rez && rez.arrival === ds) {
-        // Calculer la durée en jours visibles
-        var arrIdx = days.findIndex(function(x) { return x.toISOString().slice(0,10) === rez.arrival; });
-        var depDate = new Date(rez.departure);
-        var dur = 0;
-        for (var k = arrIdx; k < days.length; k++) {
-          if (days[k] < depDate) dur++;
-          else break;
-        }
-
-        var colors = { occupied:'#6c63ff', checkin:'#22d3a5', checkout:'#f59e0b', confirmed:'#38bdf8', reserved:'#38bdf8' };
-        var color = colors[rez.status] || '#6c63ff';
-        var guestFirst = rez.client.split(' ')[0];
-
-        // Le bloc sera positionné en absolute et s'étend sur plusieurs colonnes — on le met dans la 1ère cellule
-        blockHtml = '<div class="pg-block" style="background:' + color + ';width:calc(' + dur + '00% + ' + (dur-1) + 'px);cursor:pointer" onclick="showRezDetail(\'' + rez.id + '\')" title="' + rez.client + '">' +
-          guestFirst +
-        '</div>';
-      }
-
-      html += '<div class="pg-cell' + todayCol + '" onclick="openCreateModal(\'' + unit.id + '\',\'' + ds + '\')">' + blockHtml + '</div>';
-    });
-
-    html += '</div>';
-  });
-
-  grid.style.gridTemplateColumns = '1fr';
-  grid.innerHTML = html;
-}
-
-// ── CHAMBRES ──────────────────────────────────────────────────
-function renderChambreStats() {
-  var strip = document.getElementById('rooms-stat-strip');
-  if (!strip) return;
-  var counts = { available:0, occupied:0, reserved:0, dirty:0, oos:0 };
-  UNITS.forEach(function(u) { var s = getRoomStatus(u.id); if (counts[s] !== undefined) counts[s]++; });
-  strip.innerHTML = [
-    { val: counts.available, lbl: 'Libres',     cls: 'color:var(--success)' },
-    { val: counts.occupied,  lbl: 'Occupées',   cls: 'color:var(--accent2)' },
-    { val: counts.reserved,  lbl: 'Réservées',  cls: 'color:var(--info)' },
-    { val: counts.dirty,     lbl: 'À nettoyer', cls: 'color:var(--warning)' },
-  ].map(function(s) {
-    return '<div class="stat-item"><div class="stat-val" style="' + s.cls + '">' + s.val + '</div><div class="stat-lbl">' + s.lbl + '</div></div>';
-  }).join('');
-
-  var tbadge = document.getElementById('tbadge-dispo');
-  if (tbadge) tbadge.textContent = counts.available + ' libres';
-}
-
-var roomFilter = 'all';
-function filterRooms(val) { roomFilter = val; renderRoomsGrid(); }
-
-function renderRoomsGrid() {
-  var grid = document.getElementById('rooms-grid');
-  if (!grid) return;
-  renderChambreStats();
-
-  var filtered = UNITS.filter(function(u) {
-    if (roomFilter === 'all') return true;
-    return getRoomStatus(u.id) === roomFilter;
-  });
-
-  if (!filtered.length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><div class="empty-text">Aucune unité dans ce statut</div></div>';
-    return;
-  }
-
-  var STATUS_LABELS = { available:'Disponible', occupied:'Occupée', reserved:'Réservée', dirty:'À nettoyer', oos:'Hors service' };
-  var STATUS_BADGE  = { available:'badge-available', occupied:'badge-occupied', reserved:'badge-reserved', dirty:'badge-dirty', oos:'badge-oos' };
-
-  grid.innerHTML = filtered.map(function(u) {
-    var status = getRoomStatus(u.id);
-    var rez    = getRoomRez(u.id);
-    var nights = rez ? Math.round((new Date(rez.departure) - new Date(rez.arrival)) / 86400000) : 0;
-    var checkoutToday = rez && rez.departure === today.toISOString().slice(0,10);
-    var checkinToday  = rez && rez.arrival  === today.toISOString().slice(0,10);
-
-    var actions = '';
-    if (status === 'occupied' || checkinToday) {
-      if (checkinToday) {
-        actions += '<button class="btn btn-success btn-sm" onclick="doCheckin(\'' + u.id + '\',event)">✅ Check-in</button>';
-      }
-      if (checkoutToday || status === 'occupied') {
-        actions += '<button class="btn btn-warning btn-sm" onclick="doCheckout(\'' + u.id + '\',event)">🚪 Check-out</button>';
-      }
-    } else if (status === 'available') {
-      actions += '<button class="btn btn-primary btn-sm" onclick="openCreateModal(\'' + u.id + '\',null,event)">+ Réserver</button>';
-    } else if (status === 'dirty') {
-      actions += '<button class="btn btn-outline btn-sm" onclick="markClean(\'' + u.id + '\',event)">🧹 Marquer propre</button>';
-    } else if (status === 'reserved') {
-      actions += '<button class="btn btn-success btn-sm" onclick="doCheckinByUnit(\'' + u.id + '\',event)">✅ Check-in</button>';
-    }
-
-    return '<div class="room-card ' + status + '" onclick="showUnitDetail(\'' + u.id + '\')">' +
-      '<div class="rc-top">' +
-        '<div class="rc-icon">' + u.icon + '</div>' +
-        '<span class="badge ' + STATUS_BADGE[status] + '">' + STATUS_LABELS[status] + '</span>' +
-      '</div>' +
-      '<div><div class="rc-num">' + u.label + '</div><div class="rc-type">' + u.type + '</div></div>' +
-      '<div class="rc-guest">' + (rez ? rez.client : '') + '</div>' +
-      '<div class="rc-nights">' + (rez ? nights + ' nuits · Dép. ' + fmtDateShort(rez.departure) : fmt(u.priceHT) + '/nuit') + '</div>' +
-      '<div class="rc-actions" onclick="event.stopPropagation()">' + actions + '</div>' +
-    '</div>';
-  }).join('');
-}
-
-// ── LISTE RÉSERVATIONS ─────────────────────────────────────────
-var rezFilter = 'all';
-var rezSearch = '';
-
-function filterRezList(q) { rezSearch = q.toLowerCase(); renderRezList(); }
-function filterRezStatus(v) { rezFilter = v; renderRezList(); }
-
-function renderRezList() {
-  var list = document.getElementById('rez-list');
-  if (!list) return;
-
-  var todayStr = today.toISOString().slice(0,10);
-  var checkinCount = RESERVATIONS.filter(function(r) {
-    return r.arrival === todayStr && r.status !== 'cancelled' && r.status !== 'completed';
-  }).length;
-  var tb = document.getElementById('tbadge-checkin');
-  if (tb) tb.textContent = checkinCount + ' auj.';
-
-  var filtered = RESERVATIONS.filter(function(r) {
-    // Filtre statut
-    if (rezFilter !== 'all') {
-      if (rezFilter === 'checkin'  && r.arrival !== todayStr) return false;
-      if (rezFilter === 'checkout' && r.departure !== todayStr) return false;
-      if (rezFilter !== 'checkin' && rezFilter !== 'checkout' && r.status !== rezFilter) return false;
-    }
-    // Filtre recherche
-    if (rezSearch) {
-      var unit = UNITS.find(function(u) { return u.id === r.unitId; });
-      var hay  = (r.client + ' ' + r.ref + ' ' + (unit ? unit.label : '')).toLowerCase();
-      if (!hay.includes(rezSearch)) return false;
-    }
-    return true;
-  }).sort(function(a, b) { return a.arrival < b.arrival ? 1 : -1; });
-
-  if (!filtered.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">Aucune réservation</div><div class="empty-sub">Modifiez les filtres ou créez une nouvelle réservation</div></div>';
-    return;
-  }
-
-  var STATUS_LABELS = { confirmed:'Confirmée', checkin:'Check-in auj.', checkout:'Check-out auj.', occupied:'En cours', completed:'Terminée', cancelled:'Annulée' };
-  var STATUS_BADGE  = { confirmed:'badge-reserved', checkin:'badge-checkin', checkout:'badge-checkout', occupied:'badge-occupied', completed:'badge-available', cancelled:'badge-oos' };
-
-  list.innerHTML = filtered.map(function(r) {
-    var unit    = UNITS.find(function(u) { return u.id === r.unitId; });
-    var nights  = Math.round((new Date(r.departure) - new Date(r.arrival)) / 86400000);
-    var priceHT = (unit ? unit.priceHT : 25000) * nights;
-    var priceTTC = priceHT * (1 + TVA);
-
-    var actions = '';
-    if (r.status === 'checkin' || r.status === 'confirmed') {
-      actions += '<button class="btn btn-success btn-sm" onclick="doCheckinRez(\'' + r.id + '\',event)">✅ Check-in</button>';
-    }
-    if (r.status === 'occupied' || r.status === 'checkout') {
-      actions += '<button class="btn btn-warning btn-sm" onclick="doCheckoutRez(\'' + r.id + '\',event)">🚪 Check-out</button>';
-    }
-    if (r.status !== 'cancelled' && r.status !== 'completed') {
-      actions += '<button class="btn btn-outline btn-sm" onclick="showRezDetail(\'' + r.id + '\',event)">👁 Détails</button>';
-      actions += '<button class="btn btn-danger btn-sm" onclick="cancelRez(\'' + r.id + '\',event)">✕ Annuler</button>';
-    }
-
-    return '<div class="rez-item" onclick="showRezDetail(\'' + r.id + '\')">' +
-      '<div class="rez-item-top">' +
-        '<div style="flex:1">' +
-          '<div class="rez-ref">' + r.ref + '</div>' +
-          '<div class="rez-guest-name">' + r.client + '</div>' +
-          '<div class="rez-room">' + (unit ? unit.label + ' — ' + unit.type : r.unitId) + '</div>' +
-        '</div>' +
-        '<div style="text-align:right">' +
-          '<span class="badge ' + STATUS_BADGE[r.status] + '">' + STATUS_LABELS[r.status] + '</span>' +
-          '<div class="rez-amount" style="margin-top:6px">' + fmt(priceTTC) + '</div>' +
-          '<div style="font-size:10px;color:var(--text3)">TTC · ' + nights + ' nuits</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="rez-dates">' +
-        '<span>' + fmtDate(r.arrival) + '</span>' +
-        '<span class="sep">→</span>' +
-        '<span>' + fmtDate(r.departure) + '</span>' +
-        '<span class="rez-nights">' + nights + ' nuits</span>' +
-      '</div>' +
-      '<div class="rez-actions" onclick="event.stopPropagation()">' + actions + '</div>' +
-    '</div>';
-  }).join('');
-}
-
-// ── DÉTAIL RÉSERVATION ─────────────────────────────────────────
-function showRezDetail(rezId, evt) {
-  if (evt) evt.stopPropagation();
-  var r = RESERVATIONS.find(function(x) { return x.id === rezId; });
-  if (!r) return;
-  var unit   = UNITS.find(function(u) { return u.id === r.unitId; });
-  var nights = Math.round((new Date(r.departure) - new Date(r.arrival)) / 86400000);
-  var priceHT  = (unit ? unit.priceHT : 25000) * nights;
-  var priceTVA = priceHT * TVA;
-  var priceTTC = priceHT + priceTVA;
-  var PAYMENT_LABELS = { orange_money:'Orange Money', mtn_momo:'MTN MoMo', cash:'Espèces', virement:'Virement', cinetpay:'CinetPay' };
-  var STATUS_LABELS  = { confirmed:'Confirmée', checkin:'Check-in auj.', checkout:'Check-out auj.', occupied:'En cours', completed:'Terminée', cancelled:'Annulée' };
-
-  document.getElementById('modal-detail-title').textContent = r.ref + ' — ' + r.client;
-  document.getElementById('modal-detail-body').innerHTML =
-    '<div class="detail-row"><span class="detail-label">Client</span><span class="detail-value">' + r.client + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">' + r.email + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Téléphone</span><span class="detail-value">' + r.tel + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Unité</span><span class="detail-value">' + (unit ? unit.label + ' (' + unit.type + ')' : r.unitId) + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Arrivée</span><span class="detail-value">' + fmtDate(r.arrival) + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Départ</span><span class="detail-value">' + fmtDate(r.departure) + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Durée</span><span class="detail-value">' + nights + ' nuits</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Voyageurs</span><span class="detail-value">' + r.adults + ' adultes' + (r.children ? ', ' + r.children + ' enfants' : '') + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Paiement</span><span class="detail-value">' + (PAYMENT_LABELS[r.payment] || r.payment) + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Statut</span><span class="detail-value">' + (STATUS_LABELS[r.status] || r.status) + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Montant HT</span><span class="detail-value">' + fmt(priceHT) + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">TVA 19.25%</span><span class="detail-value">' + fmt(priceTVA) + '</span></div>' +
-    '<div class="detail-row" style="background:rgba(108,99,255,.06);border-radius:8px;padding:10px;"><span class="detail-label" style="font-weight:700;color:var(--text)">Total TTC</span><span class="detail-value" style="color:var(--accent2);font-size:16px">' + fmt(priceTTC) + '</span></div>' +
-    (r.notes ? '<div class="detail-row"><span class="detail-label">Notes</span><span class="detail-value">' + r.notes + '</span></div>' : '');
-
-  var footer = '';
-  if (r.status === 'checkin' || r.status === 'confirmed') {
-    footer += '<button class="btn btn-success" onclick="doCheckinRez(\'' + r.id + '\');closeModal(\'modal-detail\')">✅ Check-in</button>';
-  }
-  if (r.status === 'occupied' || r.status === 'checkout') {
-    footer += '<button class="btn btn-warning" onclick="doCheckoutRez(\'' + r.id + '\');closeModal(\'modal-detail\')">🚪 Check-out</button>';
-  }
-  if (r.status !== 'cancelled' && r.status !== 'completed') {
-    footer += '<button class="btn btn-danger" onclick="cancelRez(\'' + r.id + '\');closeModal(\'modal-detail\')">✕ Annuler</button>';
-  }
-  footer += '<button class="btn btn-outline" onclick="closeModal(\'modal-detail\')">Fermer</button>';
-  document.getElementById('modal-detail-footer').innerHTML = footer;
-
-  document.getElementById('modal-detail').classList.add('show');
-}
-
-function showUnitDetail(unitId) {
-  var rez = getRoomRez(unitId);
-  if (rez) { showRezDetail(rez.id); return; }
-  var unit = UNITS.find(function(u) { return u.id === unitId; });
-  if (!unit) return;
-  var status = getRoomStatus(unitId);
-  document.getElementById('modal-detail-title').textContent = unit.label + ' — ' + unit.type;
-  document.getElementById('modal-detail-body').innerHTML =
-    '<div class="detail-row"><span class="detail-label">Type</span><span class="detail-value">' + unit.type + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Capacité</span><span class="detail-value">' + unit.capacity + ' personnes</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Tarif / nuit HT</span><span class="detail-value">' + fmt(unit.priceHT) + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Tarif / nuit TTC</span><span class="detail-value">' + fmt(unit.priceHT * (1 + TVA)) + '</span></div>' +
-    '<div class="detail-row"><span class="detail-label">Statut</span><span class="detail-value">' + status + '</span></div>';
-  document.getElementById('modal-detail-footer').innerHTML =
-    '<button class="btn btn-primary" onclick="openCreateModal(\'' + unit.id + '\',null);closeModal(\'modal-detail\')">+ Réserver</button>' +
-    '<button class="btn btn-outline" onclick="closeModal(\'modal-detail\')">Fermer</button>';
-  document.getElementById('modal-detail').classList.add('show');
-}
-
-// ── ACTIONS CHECK-IN / CHECK-OUT ─────────────────────────────
-function doCheckin(unitId, evt) {
-  if (evt) evt.stopPropagation();
-  var rez = getRoomRez(unitId);
-  if (!rez) { toast('Aucune réservation active sur cette unité', 'warning'); return; }
-  doCheckinRez(rez.id);
-}
-
-function doCheckinByUnit(unitId, evt) {
-  if (evt) evt.stopPropagation();
-  var unit = UNITS.find(function(u) { return u.id === unitId; });
-  var todayStr = today.toISOString().slice(0,10);
-  var rez = RESERVATIONS.find(function(r) { return r.unitId === unitId && r.status === 'confirmed'; });
-  if (!rez) { toast('Aucune réservation confirmée sur ' + (unit ? unit.label : unitId), 'warning'); return; }
-  doCheckinRez(rez.id);
-}
-
-function doCheckinRez(rezId, evt) {
-  if (evt) evt.stopPropagation();
-  var r = RESERVATIONS.find(function(x) { return x.id === rezId; });
-  if (!r) return;
-  r.status = 'occupied';
-  toast('Check-in effectué pour ' + r.client, 'success');
-  emitToCore('room.checkin', { rezId: rezId, client: r.client, unitId: r.unitId });
-  emitToCore('badge.update', { module: 'reservations', count: getActiveCount() });
-  refreshCurrentTab();
-}
-
-function doCheckout(unitId, evt) {
-  if (evt) evt.stopPropagation();
-  var rez = getRoomRez(unitId);
-  if (!rez) { toast('Aucune réservation active', 'warning'); return; }
-  doCheckoutRez(rez.id);
-}
-
-function doCheckoutRez(rezId, evt) {
-  if (evt) evt.stopPropagation();
-  var r = RESERVATIONS.find(function(x) { return x.id === rezId; });
-  if (!r) return;
-  r.status = 'completed';
-  toast('Check-out effectué pour ' + r.client + '. Chambre à nettoyer.', 'success');
-  emitToCore('room.checkout', { rezId: rezId, client: r.client, unitId: r.unitId });
-  emitToCore('room.status_changed', { chambre: r.unitId, from: 'occupied', to: 'dirty' });
-  emitToCore('badge.update', { module: 'housekeeping', count: 1 });
-  refreshCurrentTab();
-}
-
-function cancelRez(rezId, evt) {
-  if (evt) evt.stopPropagation();
-  var r = RESERVATIONS.find(function(x) { return x.id === rezId; });
-  if (!r) return;
-  if (!confirm('Annuler la réservation de ' + r.client + ' ?')) return;
-  r.status = 'cancelled';
-  toast('Réservation annulée — ' + r.client, 'warning');
-  emitToCore('rez.cancelled', { rezId: rezId, client: r.client });
-  refreshCurrentTab();
-}
-
-function markClean(unitId, evt) {
-  if (evt) evt.stopPropagation();
-  toast('Unité marquée propre', 'success');
-  emitToCore('room.status_changed', { chambre: unitId, from: 'dirty', to: 'available' });
-  renderRoomsGrid();
-}
-
-function getActiveCount() {
-  var todayStr = today.toISOString().slice(0,10);
-  return RESERVATIONS.filter(function(r) {
-    return r.status !== 'cancelled' && r.status !== 'completed' && r.departure >= todayStr;
-  }).length;
-}
-
-// ── CRÉER RÉSERVATION (modal rapide) ──────────────────────────
-function openCreateModal(unitId, dateStr, evt) {
-  if (evt) evt.stopPropagation();
-  var select = document.getElementById('quick-unit');
-  if (select) {
-    select.innerHTML = UNITS.map(function(u) {
-      return '<option value="' + u.id + '"' + (u.id === unitId ? ' selected' : '') + '>' + u.label + ' — ' + u.type + ' (' + fmt(u.priceHT) + '/nuit HT)</option>';
+    list.innerHTML = rezs.slice(0, 5).map(function(r) {
+      var dot = r.status === 'checkedin' ? 'ok' : r.status === 'confirmed' ? 'i' : 'w';
+      var lbl = { checkedin: 'En séjour', confirmed: 'Confirmée', checkedout: 'Départ', cancelled: 'Annulée' }[r.status] || r.status;
+      return '<div class="rec-item">'
+        + '<div class="rec-dot ' + dot + '"></div>'
+        + '<div class="rec-text"><strong>' + (r.client_name || '—') + '</strong> — Unité ' + (r.unit_id || '—') + ' · ' + lbl + '</div>'
+        + '<div class="rec-time">' + (r.check_in || '') + '</div>'
+        + '</div>';
     }).join('');
-  }
-  var arr = document.getElementById('quick-arrival');
-  var dep = document.getElementById('quick-departure');
-  var todayStr = today.toISOString().slice(0,10);
-  if (arr) arr.value = dateStr || todayStr;
-  if (dep) {
-    var depDate = new Date(dateStr || todayStr);
-    depDate.setDate(depDate.getDate() + 3);
-    dep.value = depDate.toISOString().slice(0,10);
-  }
-  document.getElementById('modal-create').classList.add('show');
-}
-
-function quickCreateRez() {
-  var client   = (document.getElementById('quick-client').value || '').trim();
-  var arrival  = document.getElementById('quick-arrival').value;
-  var departure= document.getElementById('quick-departure').value;
-  var unitId   = document.getElementById('quick-unit').value;
-  if (!client || !arrival || !departure || !unitId) {
-    toast('Veuillez remplir tous les champs', 'warning'); return;
-  }
-  var newRez = {
-    id: 'REZ-' + String(RESERVATIONS.length + 1).padStart(3,'0'),
-    ref: 'REZ-2026-' + String(RESERVATIONS.length + 14).padStart(3,'0'),
-    client: client, email: '', tel: '',
-    unitId: unitId, arrival: arrival, departure: departure,
-    adults: 2, children: 0, status: 'confirmed',
-    payment: 'orange_money', notes: ''
-  };
-  RESERVATIONS.push(newRez);
-  closeModal('modal-create');
-  toast('Réservation créée — ' + client, 'success');
-  emitToCore('rez.created', { rezId: newRez.id, client: client, unitId: unitId });
-  switchTab('liste');
-}
-
-// ── NOUVELLE RÉSERVATION (formulaire complet) ────────────────
-function initNewForm() {
-  var select = document.getElementById('new-unit');
-  if (select) {
-    select.innerHTML = '<option value="">Sélectionner une unité...</option>' +
-      UNITS.map(function(u) {
-        var status = getRoomStatus(u.id);
-        var disabled = (status === 'occupied' || status === 'oos') ? ' disabled' : '';
-        var label = u.label + ' — ' + u.type + ' (' + fmt(u.priceHT) + '/nuit HT)';
-        if (status !== 'available') label += ' [' + status + ']';
-        return '<option value="' + u.id + '"' + disabled + '>' + label + '</option>';
-      }).join('');
-  }
-  // Dates par défaut
-  var arr = document.getElementById('new-arrival');
-  var dep = document.getElementById('new-departure');
-  var todayStr = today.toISOString().slice(0,10);
-  if (arr && !arr.value) arr.value = todayStr;
-  if (dep && !dep.value) {
-    var d = new Date(today); d.setDate(d.getDate() + 3);
-    dep.value = d.toISOString().slice(0,10);
-    calcAmount();
-  }
-}
-
-function calcNights() {
-  var arr = document.getElementById('new-arrival');
-  var dep = document.getElementById('new-departure');
-  if (!arr || !dep || !arr.value || !dep.value) return;
-  var n = Math.round((new Date(dep.value) - new Date(arr.value)) / 86400000);
-  var el = document.getElementById('nights-display');
-  if (n > 0) {
-    if (el) { el.textContent = n + ' nuit' + (n>1?'s':''); el.style.display = 'block'; }
-  } else {
-    if (el) el.style.display = 'none';
-  }
-  calcAmount();
-}
-
-function calcAmount() {
-  var arr    = document.getElementById('new-arrival');
-  var dep    = document.getElementById('new-departure');
-  var unitSel= document.getElementById('new-unit');
-  var prev   = document.getElementById('new-amount-preview');
-  if (!arr || !dep || !unitSel || !arr.value || !dep.value || !unitSel.value) {
-    if (prev) prev.style.display = 'none'; return;
-  }
-  var nights = Math.round((new Date(dep.value) - new Date(arr.value)) / 86400000);
-  if (nights <= 0) { if (prev) prev.style.display = 'none'; return; }
-  var unit = UNITS.find(function(u) { return u.id === unitSel.value; });
-  if (!unit) { if (prev) prev.style.display = 'none'; return; }
-  var ht  = unit.priceHT * nights;
-  var tva = ht * TVA;
-  var ttc = ht + tva;
-  document.getElementById('prev-ht').textContent  = fmt(ht);
-  document.getElementById('prev-tva').textContent = fmt(tva);
-  document.getElementById('prev-ttc').textContent = fmt(ttc);
-  if (prev) prev.style.display = 'block';
-}
-
-function submitNewRez() {
-  var prenom  = (document.getElementById('new-prenom').value || '').trim();
-  var nom     = (document.getElementById('new-nom').value || '').trim();
-  var email   = (document.getElementById('new-email').value || '').trim();
-  var tel     = (document.getElementById('new-tel').value || '').trim();
-  var arrival = document.getElementById('new-arrival').value;
-  var departure= document.getElementById('new-departure').value;
-  var unitId  = document.getElementById('new-unit').value;
-  var adults  = parseInt(document.getElementById('new-adults').value) || 2;
-  var children= parseInt(document.getElementById('new-children').value) || 0;
-  var payment = document.getElementById('new-payment').value;
-  var notes   = (document.getElementById('new-notes').value || '').trim();
-
-  if (!prenom || !nom || !tel || !arrival || !departure || !unitId) {
-    toast('Veuillez remplir les champs obligatoires (*)', 'warning'); return;
-  }
-  var nights = Math.round((new Date(departure) - new Date(arrival)) / 86400000);
-  if (nights <= 0) { toast('La date de départ doit être après l\'arrivée', 'warning'); return; }
-
-  var newRez = {
-    id: 'REZ-' + String(RESERVATIONS.length + 1).padStart(3,'0'),
-    ref: 'REZ-2026-' + String(RESERVATIONS.length + 14).padStart(3,'0'),
-    client: prenom + ' ' + nom, email: email, tel: tel,
-    unitId: unitId, arrival: arrival, departure: departure,
-    adults: adults, children: children,
-    status: 'confirmed', payment: payment, notes: notes
-  };
-  RESERVATIONS.push(newRez);
-
-  toast('Réservation créée — ' + newRez.client + ' (' + newRez.ref + ')', 'success');
-  emitToCore('rez.created', { rezId: newRez.id, client: newRez.client, unitId: unitId });
-  emitToCore('badge.update', { module: 'reservations', count: getActiveCount() });
-
-  // Reset form
-  ['new-prenom','new-nom','new-email','new-tel','new-notes'].forEach(function(id) {
-    var el = document.getElementById(id); if (el) el.value = '';
+  }).catch(function(e) {
+    console.warn('[Core] Supabase error:', e);
+    ['st-rez','st-pay','st-units','st-rev'].forEach(function(id) {
+      document.getElementById(id).textContent = '—';
+    });
   });
-  document.getElementById('new-amount-preview').style.display = 'none';
-  document.getElementById('nights-display').style.display = 'none';
-
-  switchTab('liste');
 }
 
-// ── MODAL ─────────────────────────────────────────────────────
-function closeModal(id) {
-  var el = document.getElementById(id);
-  if (el) el.classList.remove('show');
+/* ── Greeting ─────────────────────────────────────────────── */
+function initGreeting() {
+  var h = new Date().getHours();
+  var s = h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir';
+  document.getElementById('dash-greeting').textContent = s + ', Smith 👋';
+  document.getElementById('dash-date').textContent = 'Résidence Veraluz · '
+    + new Date().toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 }
-// Fermer en cliquant le backdrop
-document.querySelectorAll('.modal-backdrop').forEach(function(el) {
-  el.addEventListener('click', function(e) { if (e.target === el) el.classList.remove('show'); });
+
+/* ── Sidebar mobile ───────────────────────────────────────── */
+function toggleMobileSidebar() {
+  var sb = document.getElementById('sidebar');
+  var ov = document.getElementById('sb-ov');
+  if (ov.style.display === 'block') { closeMobileSidebar(); return; }
+  sb.style.cssText = 'display:flex!important;position:fixed;top:0;left:0;bottom:0;z-index:210;width:260px;box-shadow:4px 0 20px rgba(0,0,0,.5);';
+  ov.style.display = 'block';
+}
+function closeMobileSidebar() {
+  document.getElementById('sidebar').style.cssText = '';
+  document.getElementById('sb-ov').style.display   = 'none';
+}
+
+/* ── Init ─────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function() {
+  buildNav();
+  initGreeting();
+  loadDashboardData();
 });
-
-// ── TOAST LOCAL ────────────────────────────────────────────────
-function showLocalToast(msg, type) {
-  var icons = { success:'✅', error:'❌', warning:'⚠️', info:'ℹ️' };
-  var div = document.createElement('div');
-  div.style.cssText = 'background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--text);box-shadow:0 4px 16px rgba(0,0,0,.5);animation:none;pointer-events:all;display:flex;align-items:center;gap:8px';
-  div.innerHTML = (icons[type] || 'ℹ️') + ' ' + msg;
-  document.getElementById('local-toast').appendChild(div);
-  setTimeout(function() { if (div.parentNode) div.parentNode.removeChild(div); }, 3500);
-}
-
-// ── REFRESH ────────────────────────────────────────────────────
-function refreshCurrentTab() {
-  if (currentTab === 'planning') renderPlanning();
-  if (currentTab === 'chambres') { renderChambreStats(); renderRoomsGrid(); }
-  if (currentTab === 'liste') renderRezList();
-}
-
-// ── INIT ──────────────────────────────────────────────────────
-(function init() {
-  renderPlanning();
-  renderChambreStats();
-  // Compter les check-ins du jour
-  var todayStr = today.toISOString().slice(0,10);
-  var count = RESERVATIONS.filter(function(r) {
-    return r.arrival === todayStr && r.status !== 'cancelled';
-  }).length;
-  emitToCore('badge.update', { module: 'reservations', count: count });
-
-  // Touch: fermer modals avec swipe-down (mobile)
-  document.querySelectorAll('.modal').forEach(function(modal) {
-    var startY = 0;
-    modal.addEventListener('touchstart', function(e) { startY = e.touches[0].clientY; }, { passive: true });
-    modal.addEventListener('touchend', function(e) {
-      if (e.changedTouches[0].clientY - startY > 60) {
-        var backdrop = modal.closest('.modal-backdrop');
-        if (backdrop) backdrop.classList.remove('show');
-      }
-    }, { passive: true });
-  });
-})();
-
-})();
 </script>
-
 </body>
 </html>

@@ -1127,6 +1127,12 @@ body {
 'use strict';
 
 /* ================================================================
+   SUPABASE — Configuration connexion base de données
+   ================================================================ */
+const SUPABASE_URL      = 'https://dfdmasejsoibxrvubegu.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+
+/* ================================================================
    DEV MODE — Désactiver l'auth pour les tests frontend
    Mettre DEV_MODE = false pour réactiver l'auth en production
    ================================================================ */
@@ -1559,6 +1565,8 @@ function sendAuthContext() {
         userId:   SESSION.user.id,
         name:     SESSION.user.name,
         tenantId: TENANT.id,
+        supabaseUrl: SUPABASE_URL,
+        supabaseKey: SUPABASE_ANON_KEY,
         currency: TENANT.currency,
         tva:      TENANT.tva,
       }
@@ -1683,37 +1691,43 @@ function loadModule(moduleName) {
   var iframe = document.getElementById('module-iframe');
   iframe.classList.remove('loaded');
 
-  // ── Chargement iframe robuste ────────────────────────────────────────────────
+  // ── Chargement via fetch + srcdoc (fiable sur https://) ────────────────────
   iframe.onload  = null;
   iframe.onerror = null;
-  if (loadTimeout) clearTimeout(loadTimeout);
+  iframe.removeAttribute('src');
+  if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
 
-  // Fonction unique de finalisation (appelée par onload OU par le fallback)
-  var _loaded = false;
-  function finishLoad() {
-    if (_loaded) return;
-    _loaded = true;
-    if (loadTimeout) { clearTimeout(loadTimeout); loadTimeout = null; }
+  function onModuleReady() {
     loading.classList.remove('show');
     iframe.classList.add('loaded');
     console.log('[Core] Module prêt ✓ —', mod.file);
     EventBus.emit('module.loaded', { module: moduleName, file: mod.file });
-    setTimeout(sendAuthContext, 150);
+    setTimeout(sendAuthContext, 200);
   }
 
-  iframe.onload  = function() { finishLoad(); };
-  iframe.onerror = function() {
-    _loaded = true;
-    loading.classList.remove('show');
-    document.getElementById('module-error').classList.add('show');
-    document.getElementById('err-msg').textContent = 'Impossible de charger ' + mod.file + '.';
-    console.warn('[Core] Module ERREUR —', mod.file);
-  };
-
-  // Fallback garanti : retire le spinner après 1.5s même si onload ne tire pas
-  loadTimeout = setTimeout(function() { finishLoad(); }, 1500);
-
-  iframe.src = mod.file;
+  fetch(mod.file)
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
+    .then(function(html) {
+      // Injecter la config Supabase dans le HTML du module
+      var sbScript = '<script>window.__SUPABASE_URL__="' + SUPABASE_URL +
+                     '";window.__SUPABASE_KEY__="' + SUPABASE_ANON_KEY + '";<\/script>';
+      html = html.replace('</head>', sbScript + '</head>');
+      iframe.srcdoc = html;
+      // srcdoc déclenche onload de façon fiable
+      iframe.onload = function() { onModuleReady(); };
+      // Sécurité : si onload tarde quand même
+      loadTimeout = setTimeout(onModuleReady, 3000);
+    })
+    .catch(function(err) {
+      loading.classList.remove('show');
+      document.getElementById('module-error').classList.add('show');
+      document.getElementById('err-msg').textContent =
+        'Impossible de charger ' + mod.file + ' (' + err.message + ')';
+      console.error('[Core] fetch erreur —', mod.file, err);
+    });
 
   EventBus.emit('module.navigate', { to: moduleName, from: currentPage });
 }

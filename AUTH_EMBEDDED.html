@@ -2,626 +2,771 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0b0b1a">
-<title>Veraluz OS — Authentification</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Auth — Veraluz</title>
 <style>
-/* ================================================================
-   AUTH_EMBEDDED.html — Module Authentification Veraluz OS
-   Mobile-first · Standalone · Communique via postMessage
-   ================================================================ */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --acc:#22d3a5;--acc2:#1ba87f;
+  --bg:#0f1117;--bg2:#161b24;--bg3:#1e2535;--bg4:#252d3d;
+  --text:#e8eaf0;--text2:#8b95a8;--text3:#5a6478;
+  --red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;
+  --purple:#8b5cf6;--green:#10b981;--orange:#f97316;
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;}
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
 
-:root {
-  --bg:       #0b0b1a;
-  --bg2:      #10102a;
-  --bg3:      #17173a;
-  --bg4:      #1e1e48;
-  --border:   rgba(255,255,255,0.08);
-  --border2:  rgba(255,255,255,0.15);
-  --accent:   #6c63ff;
-  --accent2:  #8b7fff;
-  --success:  #22d3a5;
-  --danger:   #f43f5e;
-  --warning:  #f59e0b;
-  --text:     #e8e6ff;
-  --text2:    #9990cc;
-  --text3:    #5a5580;
-  --radius:   12px;
-  --sat:      env(safe-area-inset-top, 0px);
-  --sab:      env(safe-area-inset-bottom, 0px);
-}
+/* ── Tabs ────────────────────────────────────────────────── */
+#tabbar{display:flex;overflow-x:auto;gap:4px;padding:10px 12px 0;
+  background:var(--bg2);border-bottom:1px solid var(--bg4);scrollbar-width:none;flex-shrink:0;}
+#tabbar::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0;padding:7px 14px;border-radius:8px 8px 0 0;border:none;
+  background:transparent;color:var(--text2);font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .15s;white-space:nowrap;}
+.tab.active{background:var(--bg);color:var(--acc);border-bottom:2px solid var(--acc);}
+.tab:hover:not(.active){background:var(--bg3);color:var(--text);}
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── Content ─────────────────────────────────────────────── */
+#content{flex:1;overflow-y:auto;padding:14px;padding-bottom:calc(14px + var(--safe-bot));}
 
-html, body {
-  height: 100%;
-  min-height: -webkit-fill-available;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 14px;
-  -webkit-tap-highlight-color: transparent;
-  overflow: hidden;
-}
+/* ── Cards ───────────────────────────────────────────────── */
+.card{background:var(--bg2);border:1px solid var(--bg4);border-radius:12px;padding:16px;margin-bottom:12px;}
+.card-title{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.card-title span{color:var(--text);}
 
-/* ── BACKGROUND ────────────────────────────────────────── */
-.bg-glow {
-  position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
-}
-.bg-glow::before {
-  content: '';
-  position: absolute;
-  top: -30%; left: 50%;
-  width: 700px; height: 700px;
-  background: radial-gradient(ellipse, rgba(108,99,255,.18) 0%, transparent 65%);
-  transform: translateX(-50%);
-  animation: pulse 6s ease-in-out infinite;
-}
-.bg-glow::after {
-  content: '';
-  position: absolute;
-  bottom: -20%; right: -10%;
-  width: 500px; height: 500px;
-  background: radial-gradient(ellipse, rgba(34,211,165,.1) 0%, transparent 65%);
-  animation: pulse 8s ease-in-out infinite reverse;
-}
-@keyframes pulse {
-  0%, 100% { opacity: .6; transform: translateX(-50%) scale(1); }
-  50%       { opacity: 1;  transform: translateX(-50%) scale(1.08); }
-}
+/* ── Profile card ────────────────────────────────────────── */
+.profile-hero{text-align:center;padding:20px 0 10px;}
+.avatar{width:72px;height:72px;border-radius:50%;border:3px solid var(--acc);
+  display:flex;align-items:center;justify-content:center;font-size:28px;
+  background:var(--bg3);margin:0 auto 12px;}
+.profile-name{font-size:18px;font-weight:700;}
+.profile-role{font-size:12px;color:var(--acc);margin-top:4px;font-weight:600;}
+.profile-email{font-size:11px;color:var(--text2);margin-top:3px;}
+.profile-meta{display:flex;gap:20px;justify-content:center;margin-top:14px;}
+.pmeta-item{text-align:center;}
+.pmeta-val{font-size:16px;font-weight:700;}
+.pmeta-lbl{font-size:10px;color:var(--text2);}
 
-/* ── LAYOUT ─────────────────────────────────────────────── */
-.auth-shell {
-  position: relative; z-index: 1;
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: calc(24px + var(--sat)) 16px calc(24px + var(--sab));
-}
+/* ── KPI row ─────────────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+@media(min-width:480px){.kpi-row{grid-template-columns:repeat(4,1fr);}}
+.kpi{background:var(--bg2);border:1px solid var(--bg4);border-radius:10px;padding:12px;
+  position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--c,var(--acc));}
+.kpi-val{font-size:20px;font-weight:700;}
+.kpi-lbl{font-size:10px;color:var(--text2);margin-top:3px;}
 
-/* ── CARD ────────────────────────────────────────────────── */
-.auth-card {
-  width: 100%; max-width: 400px;
-  background: var(--bg2);
-  border: 1px solid var(--border2);
-  border-radius: 20px;
-  padding: 32px 28px;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(108,99,255,0.1);
-  animation: cardIn .5s cubic-bezier(.2,.8,.3,1) both;
-}
-@keyframes cardIn {
-  from { opacity:0; transform: translateY(24px) scale(.97); }
-  to   { opacity:1; transform: translateY(0)    scale(1);   }
-}
+/* ── User list ───────────────────────────────────────────── */
+.user-card{background:var(--bg3);border:1px solid var(--bg4);border-radius:10px;
+  padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:all .15s;}
+.user-card:hover{border-color:var(--bg4);background:var(--bg4);}
+.user-av{width:40px;height:40px;border-radius:50%;background:var(--bg2);
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;
+  border:2px solid var(--c,var(--bg4));}
+.user-info{flex:1;min-width:0;}
+.user-name{font-size:13px;font-weight:600;}
+.user-role{font-size:11px;color:var(--text2);margin-top:2px;}
+.user-meta{font-size:10px;color:var(--text3);}
+.user-actions{display:flex;gap:6px;flex-shrink:0;}
 
-/* ── LOGO ────────────────────────────────────────────────── */
-.logo-block {
-  display: flex; flex-direction: column; align-items: center;
-  margin-bottom: 28px; gap: 12px;
-}
-.logo-icon {
-  width: 60px; height: 60px;
-  background: linear-gradient(135deg, var(--accent) 0%, #a855f7 100%);
-  border-radius: 18px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 26px; font-weight: 900; color: #fff;
-  box-shadow: 0 8px 32px rgba(108,99,255,0.45);
-}
-.logo-name { font-size: 22px; font-weight: 800; color: var(--text); letter-spacing: -.3px; }
-.logo-sub  { font-size: 12px; color: var(--text3); }
+/* ── Badge ───────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;
+  font-size:10px;font-weight:600;}
+.b-acc{background:rgba(34,211,165,.15);color:var(--acc);}
+.b-blue{background:rgba(59,130,246,.15);color:var(--blue);}
+.b-green{background:rgba(16,185,129,.15);color:var(--green);}
+.b-amber{background:rgba(245,158,11,.15);color:var(--amber);}
+.b-red{background:rgba(239,68,68,.15);color:var(--red);}
+.b-purple{background:rgba(139,92,246,.15);color:var(--purple);}
+.b-orange{background:rgba(249,115,22,.15);color:var(--orange);}
+.b-gray{background:rgba(107,114,128,.15);color:var(--text2);}
 
-/* ── TABS (Login / Démo) ──────────────────────────────────── */
-.auth-tabs {
-  display: flex; background: var(--bg3);
-  border-radius: 10px; padding: 3px;
-  margin-bottom: 24px; gap: 2px;
-}
-.auth-tab {
-  flex: 1; padding: 8px;
-  background: none; border: none;
-  border-radius: 8px; cursor: pointer;
-  font-size: 13px; font-weight: 600;
-  color: var(--text3); transition: all .2s;
-}
-.auth-tab.active { background: var(--bg4); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+/* ── Permissions matrix ──────────────────────────────────── */
+.perm-wrap{overflow-x:auto;}
+.perm-tbl{width:100%;border-collapse:collapse;font-size:11px;min-width:600px;}
+.perm-tbl th{padding:8px 6px;text-align:center;color:var(--text2);
+  border-bottom:1px solid var(--bg4);font-weight:500;font-size:10px;white-space:nowrap;}
+.perm-tbl th:first-child{text-align:left;width:130px;}
+.perm-tbl td{padding:8px 6px;border-bottom:1px solid var(--bg3);text-align:center;}
+.perm-tbl td:first-child{text-align:left;font-weight:600;font-size:12px;}
+.perm-tbl tr:last-child td{border-bottom:none;}
+.perm-tbl tr:hover td{background:var(--bg3);}
+.perm-icon{font-size:14px;}
+.perm-yes{color:var(--green);}
+.perm-no{color:var(--bg4);}
 
-/* ── FORM ────────────────────────────────────────────────── */
-.form-title  { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.form-sub    { font-size: 12px; color: var(--text3); margin-bottom: 20px; }
+/* ── Session item ────────────────────────────────────────── */
+.session-row{display:flex;align-items:center;gap:12px;padding:10px 0;
+  border-bottom:1px solid var(--bg3);}
+.session-row:last-child{border-bottom:none;}
+.sess-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sess-active{background:var(--green);}
+.sess-expired{background:var(--text3);}
+.sess-info{flex:1;}
+.sess-user{font-size:12px;font-weight:600;}
+.sess-meta{font-size:10px;color:var(--text2);margin-top:2px;}
+.sess-time{font-size:10px;color:var(--text3);white-space:nowrap;}
 
-.field { margin-bottom: 14px; }
-.field label {
-  display: block; font-size: 11px; font-weight: 600;
-  color: var(--text2); text-transform: uppercase; letter-spacing: .06em;
-  margin-bottom: 6px;
-}
-.field input, .field select {
-  width: 100%; padding: 11px 14px;
-  background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: 10px; color: var(--text);
-  font-size: 14px; outline: none;
-  transition: border-color .2s, box-shadow .2s;
-  -webkit-appearance: none; appearance: none;
-}
-.field select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239990cc' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
-.field input:focus, .field select:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(108,99,255,.15);
-}
-.field input::placeholder { color: var(--text3); }
-.field input[type="password"] { font-family: monospace; letter-spacing: 2px; }
-.field input[type="password"]::placeholder { font-family: 'Segoe UI', system-ui; letter-spacing: normal; }
+/* ── Log row ─────────────────────────────────────────────── */
+.log-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;
+  border-bottom:1px solid var(--bg3);font-size:12px;}
+.log-row:last-child{border-bottom:none;}
+.log-icon-s{font-size:13px;flex-shrink:0;margin-top:1px;}
+.log-body{flex:1;}
+.log-time-s{font-size:10px;color:var(--text3);white-space:nowrap;}
 
-.pw-wrap { position: relative; }
-.pw-wrap input { padding-right: 42px; }
-.pw-eye {
-  position: absolute; right: 12px; top: 50%;
-  transform: translateY(-50%);
-  background: none; border: none; cursor: pointer;
-  color: var(--text3); font-size: 16px;
-  padding: 4px; transition: color .15s;
-}
-.pw-eye:hover { color: var(--text2); }
+/* ── Form ────────────────────────────────────────────────── */
+.form-row{margin-bottom:12px;}
+.form-label{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px;display:block;}
+.form-input,.form-select{width:100%;padding:9px 12px;border-radius:8px;
+  border:1px solid var(--bg4);background:var(--bg3);color:var(--text);font-size:13px;
+  transition:border-color .15s;font-family:inherit;}
+.form-input:focus,.form-select:focus{outline:none;border-color:var(--acc);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:480px){.form-grid{grid-template-columns:1fr;}}
 
-.field-row { display: flex; gap: 10px; }
-.field-row .field { flex: 1; margin-bottom: 0; }
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn{padding:9px 18px;border-radius:8px;border:none;font-size:13px;
+  font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-primary{background:var(--acc);color:#000;}
+.btn-primary:hover{background:var(--acc2);}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--bg4);}
+.btn-secondary:hover{background:var(--bg4);}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.btn-danger:hover{background:rgba(239,68,68,.25);}
+.btn-sm{padding:5px 11px;font-size:11px;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
 
-/* Remember me + Forgot */
-.form-opts {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 20px;
-}
-.remember {
-  display: flex; align-items: center; gap: 8px;
-  cursor: pointer; font-size: 12px; color: var(--text2);
-}
-.remember input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
-.forgot { font-size: 12px; color: var(--accent2); cursor: pointer; text-decoration: none; background: none; border: none; }
-.forgot:hover { text-decoration: underline; }
+/* ── Security info ───────────────────────────────────────── */
+.sec-item{display:flex;align-items:center;gap:10px;padding:10px 0;
+  border-bottom:1px solid var(--bg3);}
+.sec-item:last-child{border-bottom:none;}
+.sec-icon{font-size:20px;flex-shrink:0;}
+.sec-info{flex:1;}
+.sec-label{font-size:13px;font-weight:500;}
+.sec-desc{font-size:11px;color:var(--text2);margin-top:2px;}
+.sec-status{font-size:12px;font-weight:600;white-space:nowrap;}
 
-/* Error message */
-.auth-error {
-  display: none;
-  background: rgba(244,63,94,.1); border: 1px solid rgba(244,63,94,.25);
-  border-radius: 8px; padding: 10px 14px;
-  font-size: 12px; color: var(--danger);
-  margin-bottom: 14px; text-align: center;
-}
-.auth-error.show { display: block; animation: shake .3s ease; }
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25%       { transform: translateX(-6px); }
-  75%       { transform: translateX(6px); }
-}
+/* ── Modal ───────────────────────────────────────────────── */
+#modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:900;
+  align-items:center;justify-content:center;padding:20px;}
+#modal-ov.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--bg4);border-radius:14px;
+  padding:22px;max-width:400px;width:100%;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:8px;}
+.modal-body{font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.5;}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;}
 
-/* Submit button */
-.btn-submit {
-  width: 100%; padding: 13px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-  border: none; border-radius: 10px;
-  color: #fff; font-size: 14px; font-weight: 700;
-  cursor: pointer; transition: all .2s;
-  position: relative; overflow: hidden;
-  box-shadow: 0 4px 16px rgba(108,99,255,0.35);
-}
-.btn-submit:hover { opacity: .9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(108,99,255,0.45); }
-.btn-submit:active { transform: translateY(0); }
-.btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-.btn-submit .loader {
-  display: none; width: 18px; height: 18px;
-  border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
-  border-radius: 50%; animation: spin .7s linear infinite;
-  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
-}
-.btn-submit.loading .loader { display: block; }
-@keyframes spin { to { transform: translateY(-50%) rotate(360deg); } }
+/* ── Progress ────────────────────────────────────────────── */
+.prog-wrap{margin-bottom:10px;}
+.prog-head{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;}
+.prog-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:3px;}
 
-/* ── DEMO PANEL ──────────────────────────────────────────── */
-.demo-panel { display: none; }
-.demo-panel.active { display: block; }
-.demo-title { font-size: 13px; color: var(--text3); margin-bottom: 14px; }
-.demo-roles { display: flex; flex-direction: column; gap: 8px; }
-.demo-role {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 14px; border-radius: 10px;
-  background: var(--bg3); border: 1px solid var(--border);
-  cursor: pointer; transition: all .18s;
-}
-.demo-role:hover { border-color: var(--accent); background: var(--bg4); transform: translateX(3px); }
-.demo-role-icon { font-size: 20px; flex-shrink: 0; }
-.demo-role-info { flex: 1; }
-.demo-role-name { font-size: 13px; font-weight: 700; color: var(--text); }
-.demo-role-desc { font-size: 11px; color: var(--text3); }
-.demo-role-tag  {
-  font-size: 10px; padding: 2px 7px; border-radius: 6px;
-  font-weight: 700; flex-shrink: 0;
-  background: rgba(108,99,255,.15); color: var(--accent2);
-}
-.demo-role-tag.full { background: rgba(34,211,165,.15); color: var(--success); }
+/* ── Toast ───────────────────────────────────────────────── */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--bg3);border:1px solid var(--acc);color:var(--acc);
+  padding:9px 18px;border-radius:10px;font-size:12px;font-weight:500;
+  opacity:0;pointer-events:none;transition:opacity .3s;z-index:999;}
+#toast.show{opacity:1;}
 
-/* ── SESSION SWITCHER (après connexion) ──────────────────── */
-.session-view { display: none; }
-.session-view.active { display: block; animation: cardIn .4s ease both; }
-.session-user {
-  display: flex; align-items: center; gap: 14px;
-  background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: 12px; padding: 16px; margin-bottom: 20px;
-}
-.session-avatar {
-  width: 48px; height: 48px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), #a855f7);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px; font-weight: 800; color: #fff; flex-shrink: 0;
-}
-.session-name { font-size: 16px; font-weight: 700; }
-.session-role { font-size: 12px; color: var(--text3); margin-top: 2px; }
-.session-actions { display: flex; flex-direction: column; gap: 8px; }
-.btn-outline {
-  width: 100%; padding: 11px;
-  background: none; border: 1px solid var(--border2);
-  border-radius: 10px; color: var(--text2);
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: all .18s;
-}
-.btn-outline:hover { background: var(--bg3); color: var(--text); }
-.btn-danger {
-  width: 100%; padding: 11px;
-  background: rgba(244,63,94,.1); border: 1px solid rgba(244,63,94,.25);
-  border-radius: 10px; color: var(--danger);
-  font-size: 13px; font-weight: 600; cursor: pointer;
-  transition: all .18s;
-}
-.btn-danger:hover { background: rgba(244,63,94,.2); }
-
-/* ── FOOTER ──────────────────────────────────────────────── */
-.auth-footer {
-  margin-top: 20px; text-align: center;
-  font-size: 11px; color: var(--text3);
-}
-.auth-footer a { color: var(--accent2); text-decoration: none; }
-.auth-footer a:hover { text-decoration: underline; }
-
-/* ── TENANT BADGE ────────────────────────────────────────── */
-.tenant-bar {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  margin-bottom: 20px; font-size: 12px; color: var(--text3);
-}
-.tenant-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+/* ── Two-col ─────────────────────────────────────────────── */
+@media(min-width:700px){.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}}
 </style>
 </head>
 <body>
-
-<div class="bg-glow"></div>
-
-<div class="auth-shell">
-  <div class="auth-card">
-
-    <!-- Logo -->
-    <div class="logo-block">
-      <div class="logo-icon">V</div>
-      <div class="logo-name">Veraluz OS</div>
-      <div class="logo-sub">Platform de gestion hôtelière · Kribi, Cameroun</div>
-    </div>
-
-    <!-- Tenant -->
-    <div class="tenant-bar">
-      <div class="tenant-dot"></div>
-      <span>Résidence Veraluz · Plan PRO</span>
-    </div>
-
-    <!-- === VUE LOGIN === -->
-    <div id="view-login">
-      <!-- Tabs -->
-      <div class="auth-tabs">
-        <button class="auth-tab active" onclick="switchTab('login')">🔐 Connexion</button>
-        <button class="auth-tab" onclick="switchTab('demo')">🎭 Accès démo</button>
-      </div>
-
-      <!-- Formulaire login -->
-      <div id="panel-login">
-        <div class="form-title">Connexion</div>
-        <div class="form-sub">Connectez-vous à votre espace Veraluz OS</div>
-
-        <div class="auth-error" id="auth-error">Identifiants incorrects. Vérifiez votre email et mot de passe.</div>
-
-        <div class="field">
-          <label>Adresse email</label>
-          <input type="email" id="inp-email" placeholder="prenom@veraluz.cm"
-            autocomplete="email" autocapitalize="none" inputmode="email"
-            onkeydown="if(event.key==='Enter')focusPwd()">
-        </div>
-
-        <div class="field">
-          <label>Mot de passe</label>
-          <div class="pw-wrap">
-            <input type="password" id="inp-pwd" placeholder="••••••••"
-              autocomplete="current-password"
-              onkeydown="if(event.key==='Enter')submitLogin()">
-            <button class="pw-eye" onclick="togglePwd()" type="button" id="pw-eye-btn">👁</button>
-          </div>
-        </div>
-
-        <div class="form-opts">
-          <label class="remember">
-            <input type="checkbox" id="remember-me"> Se souvenir de moi
-          </label>
-          <button class="forgot" onclick="showForgot()">Mot de passe oublié ?</button>
-        </div>
-
-        <button class="btn-submit" id="btn-login" onclick="submitLogin()">
-          Connexion
-          <div class="loader"></div>
-        </button>
-
-        <div class="auth-footer" style="margin-top:16px">
-          Compte de démonstration disponible dans l'onglet <a onclick="switchTab('demo')" href="#">Accès démo</a>
-        </div>
-      </div>
-
-      <!-- Panel démo -->
-      <div id="panel-demo" class="demo-panel">
-        <div class="demo-title">Sélectionnez un profil pour tester la plateforme :</div>
-        <div class="demo-roles" id="demo-roles-list"></div>
-      </div>
-    </div>
-
-    <!-- === VUE SESSION ACTIVE === -->
-    <div id="view-session" class="session-view">
-      <div class="form-title" style="margin-bottom:4px">Session active</div>
-      <div class="form-sub" style="margin-bottom:20px">Vous êtes connecté à Veraluz OS</div>
-      <div class="session-user">
-        <div class="session-avatar" id="sess-avatar">S</div>
-        <div>
-          <div class="session-name" id="sess-name">Smith Veraluz</div>
-          <div class="session-role" id="sess-role">super_admin · Résidence Veraluz</div>
-        </div>
-      </div>
-      <div class="session-actions">
-        <button class="btn-submit" onclick="enterPlatform()">
-          ▶ Accéder à la plateforme
-          <div class="loader"></div>
-        </button>
-        <button class="btn-outline" onclick="switchSession()">🔄 Changer de compte</button>
-        <button class="btn-danger" onclick="logout()">🚪 Déconnexion</button>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="auth-footer">
-      <a href="#">Politique de confidentialité</a> · <a href="#">Support</a> · v3.0
-    </div>
-
+<div id="app">
+  <div id="tabbar">
+    <button class="tab active" onclick="goTab('profil')"     id="tab-profil">👤 Profil</button>
+    <button class="tab"        onclick="goTab('users')"      id="tab-users">👥 Utilisateurs</button>
+    <button class="tab"        onclick="goTab('roles')"      id="tab-roles">🔐 Rôles</button>
+    <button class="tab"        onclick="goTab('sessions')"   id="tab-sessions">🔑 Sessions</button>
+    <button class="tab"        onclick="goTab('logs')"       id="tab-logs">📋 Logs</button>
+    <button class="tab"        onclick="goTab('securite')"   id="tab-securite">🛡️ Sécurité</button>
+  </div>
+  <div id="content"></div>
+</div>
+<div id="modal-ov">
+  <div class="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body"  id="modal-body"></div>
+    <div class="modal-btns"  id="modal-btns"></div>
   </div>
 </div>
+<div id="toast"></div>
 
 <script>
-'use strict';
-/* ================================================================
-   AUTH MODULE — Communication avec VERALUZ_OS_CORE via postMessage
-   ================================================================ */
+/* ═══════════════════════════════════════════════════════════
+   VERALUZ — AUTH MODULE v1.0
+   Profil · Gestion utilisateurs · Rôles · Sessions · Logs
+   ═════════════════════════════════════════════════════════ */
 
-// Utilisateurs de démonstration (prototype — remplacer par API Supabase)
-var DEMO_USERS = [
-  {
-    id: 'usr_001', name: 'Smith Veraluz',   email: 'smith@veraluz.cm',
-    pwd: 'admin123', role: 'super_admin', roleLabel: 'Super Admin',
-    avatar: 'S', icon: '🧑‍💼', access: 'Accès complet à tous les modules'
+var MODULE_ID = 'veraluz-auth';
+var LS_AUTH   = 'veraluz_auth_v1';
+var LS_SESS   = 'veraluz_sessions';
+var LS_ALOG   = 'veraluz_auth_log';
+var currentTab = 'profil';
+
+/* ── Role definitions ────────────────────────────────────── */
+var ROLES = {
+  superadmin: {
+    label:'Super Admin', icon:'👑', color:'var(--purple)',
+    badge:'b-purple', desc:'Accès complet à tous les modules et paramètres',
+    modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
+             'notifications','analytics','audit','settings','eventbus','auth']
   },
-  {
-    id: 'usr_002', name: 'Marie Manga',      email: 'manager@veraluz.cm',
-    pwd: 'mgr123', role: 'hotel_manager', roleLabel: 'Manager Hôtel',
-    avatar: 'M', icon: '🏨', access: 'Réservations · HK · Restaurant · Analytics · RH'
+  manager: {
+    label:'Manager', icon:'🏢', color:'var(--blue)',
+    badge:'b-blue', desc:'Gestion opérationnelle complète sauf configuration système',
+    modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
+             'notifications','analytics','auth']
   },
-  {
-    id: 'usr_003', name: 'Paul Abomo',       email: 'reception@veraluz.cm',
-    pwd: 'rec123', role: 'reception', roleLabel: 'Réception',
-    avatar: 'P', icon: '🛎️', access: 'Réservations · Housekeeping'
+  reception: {
+    label:'Réception', icon:'🛎️', color:'var(--acc)',
+    badge:'b-acc', desc:'Réservations, paiements, notifications',
+    modules:['reservations','paiements','notifications']
   },
-  {
-    id: 'usr_004', name: 'Judith Biyong',    email: 'rh@veraluz.cm',
-    pwd: 'rh123', role: 'hr', roleLabel: 'Responsable RH',
-    avatar: 'J', icon: '👥', access: 'RH & Équipe · Analytics'
+  rh: {
+    label:'RH', icon:'👥', color:'var(--orange)',
+    badge:'b-orange', desc:'Gestion des employés et des plannings',
+    modules:['rh','notifications','analytics']
   },
-  {
-    id: 'usr_005', name: 'Charles Nkoulou',  email: 'compta@veraluz.cm',
-    pwd: 'cpt123', role: 'accountant', roleLabel: 'Comptable',
-    avatar: 'C', icon: '💰', access: 'Finance · Paiements · Analytics'
+  comptable: {
+    label:'Comptable', icon:'📊', color:'var(--green)',
+    badge:'b-green', desc:'Finance, paiements, rapports, audit',
+    modules:['finance','paiements','analytics','audit','notifications']
   },
-  {
-    id: 'usr_006', name: 'Alice Ondoa',      email: 'resto@veraluz.cm',
-    pwd: 'rst123', role: 'restaurant', roleLabel: 'Staff Restaurant',
-    avatar: 'A', icon: '🍽️', access: 'Restaurant / POS uniquement'
+  restaurant: {
+    label:'Restaurant Staff', icon:'🍽️', color:'var(--orange)',
+    badge:'b-orange', desc:'Module restaurant uniquement',
+    modules:['restaurant','notifications']
   },
-  {
-    id: 'usr_007', name: 'Bruno Essama',     email: 'hk@veraluz.cm',
-    pwd: 'hk123', role: 'housekeeping', roleLabel: 'Housekeeping',
-    avatar: 'B', icon: '🧹', access: 'Housekeeping · Maintenance'
-  },
-];
-
-// Session courante (en mémoire)
-var currentSession = null;
-
-// ── UI HELPERS ────────────────────────────────────────────────
-function switchTab(tab) {
-  document.querySelectorAll('.auth-tab').forEach(function(t, i) {
-    t.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'demo'));
-  });
-  document.getElementById('panel-login').style.display = tab === 'login' ? 'block' : 'none';
-  var dp = document.getElementById('panel-demo');
-  dp.classList.toggle('active', tab === 'demo');
-  if (tab === 'demo') dp.style.display = 'block';
-  else dp.style.display = 'none';
-}
-
-function focusPwd() {
-  document.getElementById('inp-pwd').focus();
-}
-
-function togglePwd() {
-  var inp = document.getElementById('inp-pwd');
-  var btn = document.getElementById('pw-eye-btn');
-  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
-  else { inp.type = 'password'; btn.textContent = '👁'; }
-}
-
-function showError(msg) {
-  var el = document.getElementById('auth-error');
-  el.textContent = msg || 'Identifiants incorrects.';
-  el.classList.add('show');
-  setTimeout(function() { el.classList.remove('show'); }, 4000);
-}
-
-function setLoading(id, loading) {
-  var btn = document.getElementById(id);
-  if (!btn) return;
-  btn.disabled = loading;
-  btn.classList.toggle('loading', loading);
-}
-
-// ── RENDER DEMO ROLES ─────────────────────────────────────────
-function renderDemoRoles() {
-  var list = document.getElementById('demo-roles-list');
-  if (!list) return;
-  list.innerHTML = DEMO_USERS.map(function(u, i) {
-    var isAdmin = u.role === 'super_admin';
-    return '<div class="demo-role" onclick="loginAsDemo(' + i + ')">' +
-      '<div class="demo-role-icon">' + u.icon + '</div>' +
-      '<div class="demo-role-info">' +
-        '<div class="demo-role-name">' + u.name + '</div>' +
-        '<div class="demo-role-desc">' + u.access + '</div>' +
-      '</div>' +
-      '<div class="demo-role-tag' + (isAdmin ? ' full' : '') + '">' + u.roleLabel + '</div>' +
-    '</div>';
-  }).join('');
-}
-
-// ── AUTHENTIFICATION ──────────────────────────────────────────
-function submitLogin() {
-  var email = (document.getElementById('inp-email').value || '').trim().toLowerCase();
-  var pwd   = (document.getElementById('inp-pwd').value || '').trim();
-  document.getElementById('auth-error').classList.remove('show');
-
-  if (!email || !pwd) { showError('Veuillez remplir tous les champs.'); return; }
-
-  setLoading('btn-login', true);
-
-  // Simulation délai API (remplacer par vrai appel Supabase)
-  setTimeout(function() {
-    var user = DEMO_USERS.find(function(u) {
-      return u.email === email && u.pwd === pwd;
-    });
-
-    if (user) {
-      doLogin(user);
-    } else {
-      setLoading('btn-login', false);
-      showError('Email ou mot de passe incorrect. Essayez l\'accès démo.');
-    }
-  }, 800);
-}
-
-function loginAsDemo(index) {
-  var user = DEMO_USERS[index];
-  if (!user) return;
-  setLoading('btn-login', true);
-  setTimeout(function() { doLogin(user); }, 500);
-}
-
-function doLogin(user) {
-  currentSession = {
-    userId:    user.id,
-    name:      user.name,
-    email:     user.email,
-    role:      user.role,
-    roleLabel: user.roleLabel,
-    avatar:    user.avatar,
-    icon:      user.icon,
-    tenantId:  'tenant_veraluz_kribi',
-    loginAt:   new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
-  };
-
-  // Passer en vue session active
-  setLoading('btn-login', false);
-  showSessionView();
-}
-
-function showSessionView() {
-  if (!currentSession) return;
-  document.getElementById('view-login').style.display    = 'none';
-  document.getElementById('view-session').style.display = 'block';
-  document.getElementById('view-session').classList.add('active');
-  document.getElementById('sess-avatar').textContent = currentSession.avatar;
-  document.getElementById('sess-name').textContent   = currentSession.name;
-  document.getElementById('sess-role').textContent   = currentSession.roleLabel + ' · Résidence Veraluz';
-
-  // Entrer automatiquement dans la plateforme après 1s
-  setTimeout(function() { enterPlatform(); }, 900);
-}
-
-function enterPlatform() {
-  if (!currentSession) return;
-  setLoading('btn-login', true);
-
-  // Envoyer l'événement auth.login au Core
-  window.parent.postMessage({
-    veraluzEvent: true,
-    type:         'auth.login',
-    source:       'auth_module',
-    data:         currentSession
-  }, '*');
-
-  // Aussi via window.parent direct (fallback)
-  try {
-    if (window.parent && window.parent !== window && window.parent.onAuthLogin) {
-      window.parent.onAuthLogin(currentSession);
-    }
-  } catch(e) {}
-}
-
-function switchSession() {
-  currentSession = null;
-  document.getElementById('view-session').style.display = 'none';
-  document.getElementById('view-session').classList.remove('active');
-  document.getElementById('view-login').style.display = 'block';
-  document.getElementById('inp-pwd').value  = '';
-  document.getElementById('auth-error').classList.remove('show');
-}
-
-function logout() {
-  currentSession = null;
-  switchSession();
-  window.parent.postMessage({
-    veraluzEvent: true,
-    type:         'auth.logout',
-    source:       'auth_module',
-    data:         {}
-  }, '*');
-}
-
-function showForgot() {
-  alert('Contactez votre administrateur Veraluz OS pour réinitialiser votre mot de passe.');
-}
-
-// ── ÉCOUTER LES EVENTS DU CORE ────────────────────────────────
-window.addEventListener('message', function(e) {
-  if (!e.data || !e.data.veraluzEvent) return;
-  if (e.data.type === 'auth.logout_request') {
-    logout();
+  housekeeping: {
+    label:'Housekeeping', icon:'🧹', color:'var(--acc)',
+    badge:'b-acc', desc:'Nettoyage et maintenance des chambres',
+    modules:['housekeeping','notifications']
   }
-  // Le Core peut pré-remplir la session si une session existe en storage
-  if (e.data.type === 'auth.restore' && e.data.data) {
-    currentSession = e.data.data;
-    showSessionView();
-  }
+};
+
+/* ── Demo users ──────────────────────────────────────────── */
+var USERS_KEY = 'veraluz_users_v1';
+function getUsers() {
+  var saved = localStorage.getItem(USERS_KEY);
+  if (saved) return JSON.parse(saved);
+  var defaults = [
+    { id:'u1', username:'admin',      password:'admin123',    name:'Smith Admin',       role:'superadmin',  email:'admin@veraluz.cm',    active:true,  created:'2026-01-15', last_login:'2026-05-16T01:00:00Z' },
+    { id:'u2', username:'manager',    password:'manager123',  name:'Marie Dupont',       role:'manager',     email:'marie@veraluz.cm',    active:true,  created:'2026-02-01', last_login:'2026-05-15T14:30:00Z' },
+    { id:'u3', username:'reception',  password:'recep123',    name:'Jean-Paul Tamba',    role:'reception',   email:'jp@veraluz.cm',       active:true,  created:'2026-02-10', last_login:'2026-05-16T00:45:00Z' },
+    { id:'u4', username:'rh',         password:'rh123',       name:'Awa Samba',          role:'rh',          email:'awa@veraluz.cm',      active:true,  created:'2026-03-01', last_login:'2026-05-14T09:00:00Z' },
+    { id:'u5', username:'comptable',  password:'compt123',    name:'Eric Mendouga',      role:'comptable',   email:'eric@veraluz.cm',     active:true,  created:'2026-03-15', last_login:'2026-05-15T16:00:00Z' },
+    { id:'u6', username:'resto',      password:'resto123',    name:'Beatrice Ngoum',     role:'restaurant',  email:'beatrice@veraluz.cm', active:true,  created:'2026-04-01', last_login:'2026-05-16T00:10:00Z' },
+    { id:'u7', username:'hk',         password:'hk123',       name:'Sonia Biyong',       role:'housekeeping',email:'sonia@veraluz.cm',   active:false, created:'2026-04-15', last_login:'2026-05-10T08:00:00Z' },
+  ];
+  localStorage.setItem(USERS_KEY, JSON.stringify(defaults));
+  return defaults;
+}
+function saveUsers(users) { localStorage.setItem(USERS_KEY, JSON.stringify(users)); }
+
+/* ── Auth log ────────────────────────────────────────────── */
+function addAuthLog(entry) {
+  var log = [];
+  try { log = JSON.parse(localStorage.getItem(LS_ALOG) || '[]'); } catch(e){}
+  log.unshift(Object.assign({ id:'al_'+Date.now(), ts:new Date().toISOString() }, entry));
+  if (log.length > 100) log.length = 100;
+  localStorage.setItem(LS_ALOG, JSON.stringify(log));
+}
+function getAuthLog() {
+  try { return JSON.parse(localStorage.getItem(LS_ALOG) || '[]'); } catch(e){ return []; }
+}
+
+/* ── Current session ─────────────────────────────────────── */
+function getCurrentUser() {
+  try { return JSON.parse(localStorage.getItem(LS_AUTH)); } catch(e){ return null; }
+}
+function getAllSessions() {
+  try { return JSON.parse(localStorage.getItem(LS_SESS) || '[]'); } catch(e){ return []; }
+}
+
+/* ── Event Bus ───────────────────────────────────────────── */
+function emit(type, data) {
+  try { window.parent.postMessage({ source:MODULE_ID, type:type, data:data||{} }, '*'); }
+  catch(e){}
+}
+window.addEventListener('message', function(ev) {
+  if (!ev.data || ev.data.source !== 'veraluz-core') return;
+  var msg = ev.data;
+  if (msg.type === 'auth-context') { /* already have session */ }
+  if (msg.type === 'refresh') renderTab(currentTab);
+  if (msg.type === 'navigate-tab' && msg.data && msg.data.tab) goTab(msg.data.tab);
+});
+window.addEventListener('load', function() {
+  emit('module-ready', { module:'auth', version:'1.0' });
+  goTab('profil');
 });
 
-// ── INIT ─────────────────────────────────────────────────────
-renderDemoRoles();
-// Pré-remplir avec smith@veraluz.cm pour faciliter les tests
-document.getElementById('inp-email').value = 'smith@veraluz.cm';
+/* ── Helpers ─────────────────────────────────────────────── */
+function toast(msg, ok) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = ok===false ? 'var(--red)' : 'var(--acc)';
+  el.style.color       = ok===false ? 'var(--red)' : 'var(--acc)';
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 2500);
+}
+function fmtTs(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso);
+  return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+function fmtAgo(iso) {
+  if (!iso) return '—';
+  var diff = Math.floor((new Date() - new Date(iso)) / 1000);
+  if (diff < 60)    return diff + 's';
+  if (diff < 3600)  return Math.floor(diff/60) + 'min';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h';
+  return Math.floor(diff/86400) + 'j';
+}
+function showModal(title, body, btns) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML    = body;
+  document.getElementById('modal-btns').innerHTML    = btns;
+  document.getElementById('modal-ov').classList.add('show');
+}
+function closeModal() { document.getElementById('modal-ov').classList.remove('show'); }
+function goTab(id) {
+  currentTab = id;
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  var b = document.getElementById('tab-'+id); if(b) b.classList.add('active');
+  renderTab(id);
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDERS
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Profil ──────────────────────────────────────────────── */
+function renderProfil() {
+  var user = getCurrentUser();
+  if (!user) {
+    return '<div style="text-align:center;padding:40px 20px;color:var(--text2)">'
+      + '<div style="font-size:40px;margin-bottom:12px">🔐</div>'
+      + '<div style="font-size:14px">Aucune session active</div>'
+      + '<div style="font-size:11px;margin-top:6px;color:var(--text3)">Connectez-vous depuis l\'écran de démarrage</div>'
+      + '</div>';
+  }
+  var role = ROLES[user.role] || { label:user.role, icon:'👤', badge:'b-gray', modules:[] };
+  var users = getUsers();
+  var u = users.find(function(x){ return x.id===user.id; }) || user;
+
+  return '<div class="card"><div class="profile-hero">'
+    + '<div class="avatar">' + role.icon + '</div>'
+    + '<div class="profile-name">' + u.name + '</div>'
+    + '<div class="profile-role">' + role.label + '</div>'
+    + '<div class="profile-email">' + u.email + '</div>'
+    + '<div class="profile-meta">'
+    + '<div class="pmeta-item"><div class="pmeta-val">' + role.modules.length + '</div><div class="pmeta-lbl">Modules</div></div>'
+    + '<div class="pmeta-item"><div class="pmeta-val">' + fmtAgo(u.last_login) + '</div><div class="pmeta-lbl">Dernière connexion</div></div>'
+    + '<div class="pmeta-item"><div class="pmeta-val"><span class="badge ' + (u.active?'b-green':'b-red') + '">' + (u.active?'Actif':'Inactif') + '</span></div><div class="pmeta-lbl">Statut</div></div>'
+    + '</div></div></div>'
+    + '<div class="card"><div class="card-title">🔓 <span>Modules accessibles</span></div>'
+    + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    + role.modules.map(function(m){
+        var icons = {reservations:'🛏️',paiements:'💳',housekeeping:'🧹',restaurant:'🍽️',
+          finance:'📊',rh:'👥',notifications:'🔔',analytics:'📈',audit:'🔍',
+          settings:'⚙️',eventbus:'⚡',auth:'🔐'};
+        return '<span class="badge b-acc">' + (icons[m]||'📦') + ' ' + m + '</span>';
+      }).join('')
+    + '</div></div>'
+    + '<div class="card"><div class="card-title">👤 <span>Modifier mon profil</span></div>'
+    + '<div class="form-grid">'
+    + '<div class="form-row"><label class="form-label">Nom complet</label>'
+    + '<input class="form-input" id="edit-name" value="' + u.name + '"></div>'
+    + '<div class="form-row"><label class="form-label">Email</label>'
+    + '<input class="form-input" id="edit-email" type="email" value="' + u.email + '"></div>'
+    + '</div>'
+    + '<div class="form-row"><label class="form-label">Nouveau mot de passe</label>'
+    + '<input class="form-input" id="edit-pw" type="password" placeholder="Laisser vide pour ne pas changer"></div>'
+    + '<div class="btn-row"><button class="btn btn-primary" onclick="saveProfile(\'' + u.id + '\')">💾 Enregistrer</button>'
+    + '<button class="btn btn-danger" onclick="confirmLogout()">🚪 Se déconnecter</button></div>'
+    + '</div>';
+}
+
+function saveProfile(uid) {
+  var users = getUsers();
+  var u = users.find(function(x){ return x.id===uid; });
+  if (!u) return;
+  u.name  = document.getElementById('edit-name').value.trim() || u.name;
+  u.email = document.getElementById('edit-email').value.trim() || u.email;
+  var pw = document.getElementById('edit-pw').value;
+  if (pw && pw.length >= 4) u.password = pw;
+  saveUsers(users);
+  /* update session */
+  var sess = getCurrentUser();
+  if (sess) { Object.assign(sess, { name:u.name, email:u.email }); localStorage.setItem(LS_AUTH, JSON.stringify(sess)); }
+  toast('✅ Profil mis à jour');
+  emit('user-profile-updated', { id:uid });
+}
+
+function confirmLogout() {
+  showModal('🚪 Se déconnecter',
+    'Êtes-vous sûr de vouloir terminer votre session?',
+    '<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>'
+    + '<button class="btn btn-danger" onclick="doLogout()">Déconnecter</button>'
+  );
+}
+function doLogout() {
+  addAuthLog({ type:'logout', user: (getCurrentUser()||{}).username, ip:'local', status:'success' });
+  localStorage.removeItem(LS_AUTH);
+  closeModal();
+  emit('auth-logout', {});
+  toast('👋 Déconnecté');
+  setTimeout(function(){ window.location.reload(); }, 1200);
+}
+
+/* ── Users ───────────────────────────────────────────────── */
+function renderUsers() {
+  var users  = getUsers();
+  var current = getCurrentUser();
+  var isSA = current && current.role === 'superadmin';
+
+  var html = '<div class="kpi-row">'
+    + kpi('👥', users.length,                                          'Total',          'var(--acc)')
+    + kpi('✅', users.filter(function(u){return u.active;}).length,    'Actifs',         'var(--green)')
+    + kpi('⏸️',  users.filter(function(u){return !u.active;}).length,  'Inactifs',       'var(--amber)')
+    + kpi('👑', users.filter(function(u){return u.role==='superadmin';}).length, 'Admins', 'var(--purple)')
+    + '</div>';
+
+  html += '<div class="card"><div class="card-title">👥 <span>Gestion des utilisateurs</span>'
+    + (isSA ? '<button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="showAddUser()">+ Ajouter</button>' : '')
+    + '</div>';
+
+  users.forEach(function(u) {
+    var role = ROLES[u.role] || { label:u.role, icon:'👤', badge:'b-gray', color:'var(--text2)' };
+    var isMe = current && current.id === u.id;
+    html += '<div class="user-card" style="--c:' + role.color + '">'
+      + '<div class="user-av" style="--c:' + role.color + '">' + role.icon + '</div>'
+      + '<div class="user-info">'
+      + '<div class="user-name">' + u.name + (isMe ? ' <span class="badge b-acc">Vous</span>' : '') + '</div>'
+      + '<div class="user-role"><span class="badge ' + role.badge + '">' + role.label + '</span></div>'
+      + '<div class="user-meta">@' + u.username + ' · ' + u.email + ' · Dernière connexion: ' + fmtAgo(u.last_login) + '</div>'
+      + '</div>'
+      + '<div class="user-actions">'
+      + '<span class="badge ' + (u.active?'b-green':'b-red') + '">' + (u.active?'Actif':'Inactif') + '</span>'
+      + (isSA && !isMe ? '<button class="btn btn-sm btn-secondary" onclick="editUser(\'' + u.id + '\')">✏️</button>' : '')
+      + (isSA && !isMe ? '<button class="btn btn-sm btn-' + (u.active?'danger':'secondary') + '" onclick="toggleUser(\'' + u.id + '\')">' + (u.active?'🚫':'✅') + '</button>' : '')
+      + '</div></div>';
+  });
+  html += '</div>';
+
+  if (!isSA) {
+    html += '<div style="text-align:center;padding:12px;color:var(--text3);font-size:11px">🔐 Gestion utilisateurs réservée aux Super Admins</div>';
+  }
+  return html;
+}
+
+function showAddUser() {
+  showModal('➕ Nouvel utilisateur',
+    '<div class="form-row"><label class="form-label">Nom complet</label><input class="form-input" id="nu-name" placeholder="Prénom Nom"></div>'
+    + '<div class="form-grid"><div class="form-row"><label class="form-label">Username</label><input class="form-input" id="nu-user" placeholder="login"></div>'
+    + '<div class="form-row"><label class="form-label">Mot de passe</label><input class="form-input" id="nu-pw" type="password" placeholder="••••••"></div></div>'
+    + '<div class="form-row"><label class="form-label">Email</label><input class="form-input" id="nu-email" type="email" placeholder="email@veraluz.cm"></div>'
+    + '<div class="form-row"><label class="form-label">Rôle</label><select class="form-select" id="nu-role">'
+    + Object.keys(ROLES).map(function(r){ return '<option value="'+r+'">'+ROLES[r].icon+' '+ROLES[r].label+'</option>'; }).join('')
+    + '</select></div>',
+    '<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>'
+    + '<button class="btn btn-primary" onclick="addUser()">Créer</button>'
+  );
+}
+function addUser() {
+  var users = getUsers();
+  var u = {
+    id:         'u' + Date.now(),
+    username:   document.getElementById('nu-user').value.trim(),
+    password:   document.getElementById('nu-pw').value,
+    name:       document.getElementById('nu-name').value.trim(),
+    role:       document.getElementById('nu-role').value,
+    email:      document.getElementById('nu-email').value.trim(),
+    active:     true,
+    created:    new Date().toISOString().slice(0,10),
+    last_login: null
+  };
+  if (!u.username || !u.password || !u.name) { toast('⚠️ Champs obligatoires manquants', false); return; }
+  users.push(u); saveUsers(users);
+  closeModal();
+  addAuthLog({ type:'user-created', target:u.username, by:(getCurrentUser()||{}).username });
+  emit('employee-added', { name:u.name, role:u.role });
+  toast('✅ Utilisateur créé');
+  renderTab('users');
+}
+function editUser(id) {
+  var users = getUsers();
+  var u = users.find(function(x){ return x.id===id; });
+  if (!u) return;
+  showModal('✏️ Modifier ' + u.name,
+    '<div class="form-row"><label class="form-label">Rôle</label><select class="form-select" id="eu-role">'
+    + Object.keys(ROLES).map(function(r){ return '<option value="'+r+'"'+(r===u.role?' selected':'')+'>'+ROLES[r].icon+' '+ROLES[r].label+'</option>'; }).join('')
+    + '</select></div>'
+    + '<div class="form-row"><label class="form-label">Nouveau mot de passe</label><input class="form-input" id="eu-pw" type="password" placeholder="Laisser vide pour ne pas changer"></div>',
+    '<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>'
+    + '<button class="btn btn-primary" onclick="saveUserEdit(\'' + id + '\')">Enregistrer</button>'
+  );
+}
+function saveUserEdit(id) {
+  var users = getUsers();
+  var u = users.find(function(x){ return x.id===id; });
+  if (!u) return;
+  u.role = document.getElementById('eu-role').value;
+  var pw = document.getElementById('eu-pw').value;
+  if (pw && pw.length >= 4) u.password = pw;
+  saveUsers(users);
+  closeModal();
+  addAuthLog({ type:'user-updated', target:u.username, by:(getCurrentUser()||{}).username });
+  toast('✅ Utilisateur mis à jour');
+  renderTab('users');
+}
+function toggleUser(id) {
+  var users = getUsers();
+  var u = users.find(function(x){ return x.id===id; });
+  if (!u) return;
+  u.active = !u.active;
+  saveUsers(users);
+  addAuthLog({ type: u.active?'user-enabled':'user-disabled', target:u.username, by:(getCurrentUser()||{}).username });
+  toast(u.active ? '✅ Utilisateur activé' : '🚫 Utilisateur désactivé');
+  renderTab('users');
+}
+
+/* ── Rôles ───────────────────────────────────────────────── */
+function renderRoles() {
+  var ALL_MODS = ['reservations','paiements','housekeeping','restaurant','finance','rh',
+                  'notifications','analytics','audit','settings','eventbus','auth'];
+  var modIcons = {reservations:'🛏️',paiements:'💳',housekeeping:'🧹',restaurant:'🍽️',
+                  finance:'📊',rh:'👥',notifications:'🔔',analytics:'📈',
+                  audit:'🔍',settings:'⚙️',eventbus:'⚡',auth:'🔐'};
+
+  var html = '<div class="card"><div class="card-title">🔐 <span>Définition des rôles</span></div>';
+  Object.keys(ROLES).forEach(function(rid) {
+    var r = ROLES[rid];
+    var users = getUsers();
+    var cnt = users.filter(function(u){ return u.role===rid; }).length;
+    html += '<div class="sec-item">'
+      + '<div class="sec-icon">' + r.icon + '</div>'
+      + '<div class="sec-info"><div class="sec-label">' + r.label + '</div>'
+      + '<div class="sec-desc">' + r.desc + '</div>'
+      + '<div style="margin-top:5px;display:flex;gap:4px;flex-wrap:wrap">'
+      + r.modules.map(function(m){ return '<span class="badge b-acc" style="font-size:9px">' + (modIcons[m]||'') + ' ' + m + '</span>'; }).join('')
+      + '</div></div>'
+      + '<div><span class="badge ' + r.badge + '">' + cnt + ' user(s)</span></div>'
+      + '</div>';
+  });
+  html += '</div>';
+
+  /* Permission matrix */
+  html += '<div class="card"><div class="card-title">📋 <span>Matrice permissions</span></div>'
+    + '<div class="perm-wrap"><table class="perm-tbl"><thead><tr><th>Rôle</th>'
+    + ALL_MODS.map(function(m){ return '<th>' + (modIcons[m]||m) + '</th>'; }).join('')
+    + '</tr></thead><tbody>'
+    + Object.keys(ROLES).map(function(rid){
+        var r = ROLES[rid];
+        return '<tr><td><span class="badge ' + r.badge + '">' + r.icon + ' ' + r.label + '</span></td>'
+          + ALL_MODS.map(function(m){
+              var has = r.modules.indexOf(m) !== -1;
+              return '<td class="perm-icon ' + (has?'perm-yes':'perm-no') + '">' + (has?'✅':'·') + '</td>';
+            }).join('')
+          + '</tr>';
+      }).join('')
+    + '</tbody></table></div></div>';
+
+  return html;
+}
+
+/* ── Sessions ────────────────────────────────────────────── */
+function renderSessions() {
+  var current = getCurrentUser();
+  var allSess = getAllSessions();
+
+  var html = '<div class="kpi-row">'
+    + kpi('🔑', allSess.length, 'Sessions totales', 'var(--acc)')
+    + kpi('✅', allSess.filter(function(s){ return s.active; }).length, 'Actives', 'var(--green)')
+    + kpi('⏰', allSess.filter(function(s){ return !s.active; }).length, 'Expirées', 'var(--amber)')
+    + '</div>';
+
+  html += '<div class="card"><div class="card-title">🔑 <span>Session courante</span></div>';
+  if (current) {
+    html += '<div class="sec-item"><div class="sec-icon">✅</div>'
+      + '<div class="sec-info">'
+      + '<div class="sec-label">' + current.name + '</div>'
+      + '<div class="sec-desc">Rôle: ' + (ROLES[current.role]||{label:current.role}).label + ' · Connecté: ' + fmtAgo(current.login_at) + '</div>'
+      + '<div class="sec-desc" style="font-family:monospace;font-size:10px;color:var(--acc)">' + (current.token||'sess_local') + '</div>'
+      + '</div>'
+      + '<button class="btn btn-danger btn-sm" onclick="confirmLogout()">Terminer</button>'
+      + '</div>';
+  } else {
+    html += '<div style="text-align:center;padding:20px;color:var(--text3)">Aucune session active</div>';
+  }
+  html += '</div>';
+
+  html += '<div class="card"><div class="card-title">📋 <span>Historique sessions</span></div>';
+  if (allSess.length === 0) {
+    html += '<div style="text-align:center;padding:20px;color:var(--text3)">Aucune session enregistrée</div>';
+  } else {
+    allSess.slice(0,20).forEach(function(s) {
+      html += '<div class="session-row">'
+        + '<div class="sess-dot ' + (s.active?'sess-active':'sess-expired') + '"></div>'
+        + '<div class="sess-info">'
+        + '<div class="sess-user">' + s.name + ' <span class="badge ' + ((ROLES[s.role]||{badge:'b-gray'}).badge) + '">' + ((ROLES[s.role]||{label:s.role}).label) + '</span></div>'
+        + '<div class="sess-meta">@' + (s.username||'?') + ' · ' + (s.ip||'local') + '</div>'
+        + '</div>'
+        + '<div class="sess-time">' + fmtTs(s.login_at) + '</div>'
+        + '</div>';
+    });
+  }
+  html += '</div>';
+
+  html += '<div class="btn-row"><button class="btn btn-danger" onclick="clearSessions()">🗑️ Purger sessions expirées</button></div>';
+  return html;
+}
+function clearSessions() {
+  var allSess = getAllSessions().filter(function(s){ return s.active; });
+  localStorage.setItem(LS_SESS, JSON.stringify(allSess));
+  toast('✅ Sessions expirées supprimées');
+  renderTab('sessions');
+}
+
+/* ── Logs ────────────────────────────────────────────────── */
+function renderLogs() {
+  var log = getAuthLog();
+  var logIcons = {
+    login:'✅',logout:'👋','login-failed':'❌','user-created':'➕',
+    'user-updated':'✏️','user-disabled':'🚫','user-enabled':'✅','user-deleted':'🗑️',
+    'password-changed':'🔑','role-changed':'🔐'
+  };
+  var logColors = {
+    login:'var(--green)',logout:'var(--text2)','login-failed':'var(--red)',
+    'user-created':'var(--acc)','user-updated':'var(--blue)','user-disabled':'var(--amber)'
+  };
+
+  var html = '<div class="kpi-row">'
+    + kpi('📋', log.length, 'Total logs', 'var(--acc)')
+    + kpi('✅', log.filter(function(l){ return l.type==='login'; }).length, 'Connexions', 'var(--green)')
+    + kpi('❌', log.filter(function(l){ return l.type==='login-failed'; }).length, 'Échecs', 'var(--red)')
+    + kpi('✏️', log.filter(function(l){ return l.type && l.type.includes('user-'); }).length, 'Modifs users', 'var(--blue)')
+    + '</div>';
+
+  html += '<div class="card"><div class="card-title">📋 <span>Journal d\'authentification</span>'
+    + '<button class="btn btn-secondary btn-sm" style="margin-left:auto" onclick="clearAuthLog()">🗑️</button>'
+    + '</div>'
+    + (log.length
+      ? log.slice(0,50).map(function(l){
+          var icon = logIcons[l.type] || '📋';
+          var c    = logColors[l.type] || 'var(--text2)';
+          return '<div class="log-row">'
+            + '<div class="log-icon-s">' + icon + '</div>'
+            + '<div class="log-body">'
+            + '<strong>' + (l.user||l.target||'?') + '</strong>'
+            + ' — ' + (l.type||'event')
+            + (l.by ? ' <span style="color:var(--text3)">par ' + l.by + '</span>' : '')
+            + (l.status ? ' <span class="badge ' + (l.status==='success'?'b-green':'b-red') + '">' + l.status + '</span>' : '')
+            + '</div>'
+            + '<div class="log-time-s">' + fmtAgo(l.ts) + '</div>'
+            + '</div>';
+        }).join('')
+      : '<div style="text-align:center;padding:20px;color:var(--text3)">Aucun log</div>')
+    + '</div>';
+  return html;
+}
+function clearAuthLog() {
+  localStorage.removeItem(LS_ALOG);
+  toast('🗑️ Logs effacés');
+  renderTab('logs');
+}
+
+/* ── Sécurité ────────────────────────────────────────────── */
+function renderSecurite() {
+  var log = getAuthLog();
+  var fails = log.filter(function(l){ return l.type==='login-failed'; }).length;
+  var current = getCurrentUser();
+  var users = getUsers();
+  var activeCount = users.filter(function(u){ return u.active; }).length;
+
+  return '<div class="kpi-row">'
+    + kpi('🛡️', activeCount, 'Comptes actifs', 'var(--green)')
+    + kpi('❌', fails, 'Tentatives échouées', fails>3?'var(--red)':'var(--amber)')
+    + kpi('🔑', getAllSessions().filter(function(s){return s.active;}).length, 'Sessions actives', 'var(--acc)')
+    + '</div>'
+    + '<div class="card"><div class="card-title">🛡️ <span>État sécurité</span></div>'
+    + secItem('✅', 'Authentification locale', 'Sessions stockées en localStorage avec token unique', 'Actif', 'var(--green)')
+    + secItem('✅', 'Contrôle d\'accès par rôle', 'RBAC — modules filtrés selon le rôle utilisateur', 'Actif', 'var(--green)')
+    + secItem('✅', 'Session timeout', 'Expiration automatique après 8 heures d\'inactivité', '8h', 'var(--blue)')
+    + secItem('⚠️', '2FA / MFA', 'Authentification à deux facteurs (prochaine version)', 'Bientôt', 'var(--amber)')
+    + secItem('⚠️', 'Supabase Auth', 'JWT côté serveur avec Row Level Security', 'Bientôt', 'var(--amber)')
+    + secItem('⚠️', 'Audit trail chiffré', 'Logs d\'audit non altérables en base', 'Bientôt', 'var(--amber)')
+    + '</div>'
+    + '<div class="card"><div class="card-title">🔑 <span>Comptes par défaut</span></div>'
+    + '<div style="background:var(--bg);border-radius:8px;padding:10px;font-family:monospace;font-size:11px;color:var(--acc)">'
+    + users.filter(function(u){return u.active;}).map(function(u){
+        return u.username + ' / ' + u.password + '  →  <span style="color:var(--text2)">' + (ROLES[u.role]||{label:u.role}).label + '</span>';
+      }).join('\n')
+    + '</div>'
+    + '<div style="font-size:10px;color:var(--text3);margin-top:8px">⚠️ Changez ces mots de passe en production</div>'
+    + '</div>'
+    + '<div class="card"><div class="card-title">🔄 <span>Actions sécurité</span></div>'
+    + '<div class="btn-row">'
+    + '<button class="btn btn-danger" onclick="forceLogoutAll()">🚪 Déconnecter tous les utilisateurs</button>'
+    + '<button class="btn btn-secondary" onclick="resetPasswords()">🔑 Réinitialiser mots de passe</button>'
+    + '</div></div>';
+}
+
+function secItem(icon, label, desc, status, c) {
+  return '<div class="sec-item"><div class="sec-icon">' + icon + '</div>'
+    + '<div class="sec-info"><div class="sec-label">' + label + '</div>'
+    + '<div class="sec-desc">' + desc + '</div></div>'
+    + '<div class="sec-status" style="color:' + c + '">' + status + '</div></div>';
+}
+function forceLogoutAll() {
+  localStorage.removeItem('veraluz_auth_v1');
+  localStorage.setItem('veraluz_sessions', '[]');
+  addAuthLog({ type:'force-logout-all', by:(getCurrentUser()||{}).username });
+  toast('🚪 Toutes les sessions terminées');
+  emit('auth-logout', { forced:true });
+  setTimeout(function(){ window.location.reload(); }, 1500);
+}
+function resetPasswords() {
+  showModal('⚠️ Réinitialiser les mots de passe',
+    'Cette action va réinitialiser TOUS les mots de passe aux valeurs par défaut (nom123). Cette opération est réversible en modifiant individuellement chaque compte.',
+    '<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>'
+    + '<button class="btn btn-danger" onclick="doResetPw()">Réinitialiser</button>'
+  );
+}
+function doResetPw() {
+  var users = getUsers();
+  users.forEach(function(u){ u.password = u.username + '123'; });
+  saveUsers(users);
+  closeModal();
+  toast('🔑 Mots de passe réinitialisés');
+}
+
+/* ── Helpers ─────────────────────────────────────────────── */
+function kpi(icon, val, label, color) {
+  return '<div class="kpi" style="--c:' + color + '">'
+    + '<div style="font-size:16px;margin-bottom:3px">' + icon + '</div>'
+    + '<div class="kpi-val">' + val + '</div><div class="kpi-lbl">' + label + '</div></div>';
+}
+
+function renderTab(id) {
+  var c = document.getElementById('content');
+  var html = '';
+  if      (id==='profil')   html = renderProfil();
+  else if (id==='users')    html = renderUsers();
+  else if (id==='roles')    html = renderRoles();
+  else if (id==='sessions') html = renderSessions();
+  else if (id==='logs')     html = renderLogs();
+  else if (id==='securite') html = renderSecurite();
+  c.innerHTML = html;
+  c.scrollTop = 0;
+}
 </script>
 </body>
 </html>

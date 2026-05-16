@@ -148,6 +148,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px;}
+
+.notif-badge-btn{position:relative;height:30px;padding:0 12px;border-radius:6px;border:none;
+  background:var(--bg3);color:var(--text2);cursor:pointer;font-size:16px;
+  display:flex;align-items:center;transition:all .15s;}
+.notif-badge-btn:hover{background:var(--bg4);color:var(--text);}
+.notif-badge{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;
+  background:#ef4444;color:#fff;border-radius:8px;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;padding:0 3px;
+  opacity:0;transition:opacity .2s;}
+.notif-badge.visible{opacity:1;}
 </style>
 </head>
 <body>
@@ -193,6 +203,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     </div>
     <div class="tb-actions">
       <span class="tb-tag">LIVE</span>
+      <button class="notif-badge-btn" id="notif-bell-btn" onclick="openNotifications()" title="Notifications">
+        🔔
+        <span class="notif-badge" id="notif-badge"></span>
+      </button>
       <button class="tb-btn" onclick="refreshCurrent()">&#8635;</button>
     </div>
   </div>
@@ -280,6 +294,8 @@ var MODULES = [
     file:'FINANCE_EMBEDDED.html',      desc:'Revenus · Dépenses · Caisse' },
   { id:'rh',           label:'RH',           icon:'👥',
     file:'RH_EMBEDDED.html',           desc:'Employés · Paie · Horaires' },
+  { id:'notifications', label:'Notifications', icon:'🔔',
+    file:'NOTIFICATIONS_EMBEDDED.html', desc:'Alertes & Centre de notifications' },
 ];
 
 var COMING = [
@@ -529,6 +545,49 @@ document.addEventListener('DOMContentLoaded', function(){
    [GUARD-LINE-029] ............................................
    [GUARD-LINE-030] ............................................
    ================================================================ */
+
+/* ── Notifications Badge ─────────────────────────────────── */
+var _notifCount = 0;
+
+function updateNotifBadge(count) {
+  _notifCount = count || 0;
+  var badge = document.getElementById('notif-badge');
+  if (!badge) return;
+  if (_notifCount > 0) {
+    badge.textContent = _notifCount > 99 ? '99+' : String(_notifCount);
+    badge.classList.add('visible');
+  } else {
+    badge.classList.remove('visible');
+  }
+}
+
+function openNotifications() {
+  loadModule('notifications');
+}
+
+/* ── Global Event Bus Listener ───────────────────────────── */
+window.addEventListener('message', function(ev) {
+  if (!ev.data || !ev.data.source) return;
+  var msg = ev.data;
+  // Receive notification count from Notifications module
+  if (msg.source === 'veraluz-notifications' && msg.type === 'notification-count') {
+    updateNotifBadge(msg.data && msg.data.unread ? msg.data.unread : 0);
+  }
+  // Broadcast module events to Notifications module (if loaded)
+  if (msg.source && msg.source !== 'veraluz-core' && msg.type !== 'notification-count') {
+    var iframe = document.getElementById('module-frame');
+    if (iframe && iframe.contentWindow) {
+      try {
+        iframe.contentWindow.postMessage({
+          source: 'veraluz-core',
+          type: 'module-event',
+          data: { originalSource: msg.source, originalType: msg.type, payload: msg.data }
+        }, '*');
+      } catch(e) {}
+    }
+  }
+});
+
 </script>
 </body>
 </html>

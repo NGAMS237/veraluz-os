@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Settings — Veraluz</title>
+<style>
+/* ── Reset & Tokens ──────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --acc:#22d3a5;--acc2:#1ba87f;
+  --bg:#0f1117;--bg2:#161b24;--bg3:#1e2535;--bg4:#252d3d;
+  --text:#e8eaf0;--text2:#8b95a8;--text3:#5a6478;
+  --red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;
+  --purple:#8b5cf6;--green:#10b981;--orange:#f97316;
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;}
+
+/* ── Layout ──────────────────────────────────────────────── */
+#app{display:flex;height:100vh;height:100dvh;}
+
+/* ── Sidebar nav (desktop) ───────────────────────────────── */
+#sidenav{
+  width:200px;flex-shrink:0;background:var(--bg2);
+  border-right:1px solid var(--bg4);overflow-y:auto;
+  display:flex;flex-direction:column;padding:12px 8px;gap:2px;
+}
+.nav-section{font-size:10px;color:var(--text3);padding:10px 10px 4px;
+  text-transform:uppercase;letter-spacing:.6px;font-weight:600;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;
+  border-radius:8px;cursor:pointer;font-size:13px;color:var(--text2);
+  transition:all .15s;border:none;background:none;width:100%;text-align:left;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:var(--bg4);color:var(--acc);}
+.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.save-all-btn{margin-top:auto;padding-top:12px;
+  border-top:1px solid var(--bg4);}
+.save-all-btn button{width:100%;padding:10px;border-radius:8px;border:none;
+  background:var(--acc);color:#000;font-size:13px;font-weight:700;
+  cursor:pointer;transition:all .15s;}
+.save-all-btn button:hover{background:var(--acc2);}
+
+/* ── Mobile bottom tabs ──────────────────────────────────── */
+#mobile-tabs{
+  display:none;overflow-x:auto;gap:0;
+  background:var(--bg2);border-bottom:1px solid var(--bg4);
+  scrollbar-width:none;flex-shrink:0;
+}
+#mobile-tabs::-webkit-scrollbar{display:none;}
+.m-tab{flex-shrink:0;padding:10px 14px;border:none;background:transparent;
+  color:var(--text2);font-size:11px;cursor:pointer;white-space:nowrap;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  border-bottom:2px solid transparent;transition:all .15s;}
+.m-tab.active{color:var(--acc);border-bottom-color:var(--acc);}
+.m-tab-icon{font-size:16px;}
+
+/* ── Responsive breakpoint ───────────────────────────────── */
+@media(max-width:680px){
+  #sidenav{display:none;}
+  #mobile-tabs{display:flex;}
+  #app{flex-direction:column;}
+  #main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+}
+
+/* ── Main content ────────────────────────────────────────── */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#content{flex:1;overflow-y:auto;padding:20px;
+  padding-bottom:calc(20px + var(--safe-bot));}
+@media(max-width:680px){#content{padding:14px;}}
+
+/* ── Page header ─────────────────────────────────────────── */
+.page-header{margin-bottom:20px;}
+.page-title{font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px;}
+.page-sub{font-size:12px;color:var(--text2);margin-top:4px;}
+
+/* ── Settings Card ───────────────────────────────────────── */
+.card{background:var(--bg2);border:1px solid var(--bg4);border-radius:12px;
+  padding:18px;margin-bottom:14px;}
+.card-title{font-size:13px;font-weight:600;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;}
+.card-title span{color:var(--text);}
+
+/* ── Form elements ───────────────────────────────────────── */
+.form-row{margin-bottom:14px;}
+.form-row:last-child{margin-bottom:0;}
+.form-label{font-size:12px;font-weight:500;color:var(--text2);
+  margin-bottom:6px;display:block;}
+.form-label span{color:var(--red);margin-left:2px;}
+.form-input,.form-select,.form-textarea{
+  width:100%;padding:9px 12px;border-radius:8px;
+  border:1px solid var(--bg4);background:var(--bg3);
+  color:var(--text);font-size:13px;transition:border-color .15s;
+  font-family:inherit;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{
+  outline:none;border-color:var(--acc);}
+.form-textarea{resize:vertical;min-height:80px;line-height:1.5;}
+.form-hint{font-size:11px;color:var(--text3);margin-top:4px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:480px){.form-grid{grid-template-columns:1fr;}}
+.form-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+@media(max-width:480px){.form-grid-3{grid-template-columns:1fr 1fr;}}
+
+/* ── Toggle switch ───────────────────────────────────────── */
+.toggle-row{display:flex;justify-content:space-between;align-items:center;
+  padding:10px 0;border-bottom:1px solid var(--bg3);}
+.toggle-row:last-child{border-bottom:none;padding-bottom:0;}
+.toggle-info{flex:1;}
+.toggle-label{font-size:13px;font-weight:500;}
+.toggle-desc{font-size:11px;color:var(--text2);margin-top:2px;}
+.toggle{position:relative;width:42px;height:24px;flex-shrink:0;cursor:pointer;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:var(--bg4);
+  border-radius:24px;transition:.3s;}
+.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;
+  left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
+.toggle input:checked + .toggle-slider{background:var(--acc);}
+.toggle input:checked + .toggle-slider:before{transform:translateX(18px);}
+
+/* ── Color picker row ────────────────────────────────────── */
+.color-row{display:flex;align-items:center;gap:10px;}
+.color-swatch{width:36px;height:36px;border-radius:8px;border:none;
+  cursor:pointer;padding:0;flex-shrink:0;}
+.color-val{font-family:monospace;font-size:12px;color:var(--acc);}
+
+/* ── Room type card ──────────────────────────────────────── */
+.room-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+@media(min-width:600px){.room-grid{grid-template-columns:repeat(3,1fr);}}
+.room-card{background:var(--bg3);border:1px solid var(--bg4);border-radius:10px;
+  padding:12px;position:relative;}
+.room-card.active-room{border-color:var(--acc);}
+.room-name{font-size:13px;font-weight:600;margin-bottom:4px;}
+.room-count{font-size:11px;color:var(--text2);}
+.room-price{font-size:12px;color:var(--acc);margin-top:6px;font-weight:600;}
+.room-edit{position:absolute;top:8px;right:8px;background:var(--bg4);
+  border:none;border-radius:6px;padding:3px 8px;color:var(--text2);
+  font-size:11px;cursor:pointer;}
+.room-edit:hover{color:var(--acc);}
+
+/* ── Tax row ─────────────────────────────────────────────── */
+.tax-row{display:flex;align-items:center;gap:10px;padding:8px 0;
+  border-bottom:1px solid var(--bg3);}
+.tax-row:last-child{border-bottom:none;}
+.tax-name{flex:1;font-size:13px;}
+.tax-rate{width:80px;text-align:right;}
+.tax-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;}
+.tax-on{background:rgba(16,185,129,.15);color:var(--green);}
+.tax-off{background:rgba(91,99,120,.15);color:var(--text3);}
+
+/* ── Intégration card ────────────────────────────────────── */
+.int-card{background:var(--bg3);border:1px solid var(--bg4);border-radius:10px;
+  padding:14px;display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;}
+.int-icon{font-size:28px;flex-shrink:0;}
+.int-info{flex:1;}
+.int-name{font-size:13px;font-weight:600;margin-bottom:3px;}
+.int-desc{font-size:11px;color:var(--text2);margin-bottom:8px;}
+.int-status{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;display:inline-block;}
+.int-connected{background:rgba(16,185,129,.15);color:var(--green);}
+.int-pending{background:rgba(245,158,11,.15);color:var(--amber);}
+.int-soon{background:rgba(91,99,120,.15);color:var(--text3);}
+.int-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+
+/* ── Permission table ────────────────────────────────────── */
+.perm-table{width:100%;border-collapse:collapse;font-size:12px;}
+.perm-table th{padding:8px 6px;text-align:center;color:var(--text2);
+  border-bottom:1px solid var(--bg4);font-weight:500;font-size:10px;}
+.perm-table th:first-child{text-align:left;}
+.perm-table td{padding:8px 6px;border-bottom:1px solid var(--bg3);text-align:center;}
+.perm-table td:first-child{text-align:left;color:var(--text);font-weight:500;}
+.perm-table tr:last-child td{border-bottom:none;}
+.perm-check{width:16px;height:16px;accent-color:var(--acc);cursor:pointer;}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn{padding:9px 18px;border-radius:8px;border:none;font-size:13px;
+  font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-primary{background:var(--acc);color:#000;}
+.btn-primary:hover{background:var(--acc2);}
+.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--bg4);}
+.btn-secondary:hover{background:var(--bg4);}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.btn-danger:hover{background:rgba(239,68,68,.25);}
+.btn-sm{padding:5px 12px;font-size:11px;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+
+/* ── Badge ───────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;
+  border-radius:20px;font-size:10px;font-weight:600;}
+.badge-acc{background:rgba(34,211,165,.15);color:var(--acc);}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue);}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red);}
+
+/* ── Unsaved indicator ───────────────────────────────────── */
+.unsaved-bar{
+  background:rgba(245,158,11,.1);border-bottom:1px solid rgba(245,158,11,.3);
+  padding:8px 20px;display:none;align-items:center;justify-content:space-between;
+  flex-shrink:0;font-size:12px;color:var(--amber);}
+.unsaved-bar.show{display:flex;}
+
+/* ── Toast ───────────────────────────────────────────────── */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--bg3);border:1px solid var(--acc);color:var(--acc);
+  padding:10px 20px;border-radius:10px;font-size:13px;font-weight:500;
+  opacity:0;pointer-events:none;transition:opacity .3s;z-index:999;white-space:nowrap;}
+#toast.show{opacity:1;}
+
+/* ── Confirm modal ───────────────────────────────────────── */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
+  z-index:900;align-items:center;justify-content:center;padding:20px;}
+#modal-overlay.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--bg4);border-radius:14px;
+  padding:24px;max-width:380px;width:100%;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:8px;}
+.modal-body{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.5;}
+.modal-btns{display:flex;gap:10px;justify-content:flex-end;}
+
+/* ── System info ─────────────────────────────────────────── */
+.sys-row{display:flex;justify-content:space-between;padding:8px 0;
+  border-bottom:1px solid var(--bg3);font-size:12px;}
+.sys-row:last-child{border-bottom:none;}
+.sys-key{color:var(--text2);}
+.sys-val{font-weight:600;font-family:monospace;font-size:11px;color:var(--acc);}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Desktop Side Nav -->
+  <nav id="sidenav">
+    <div class="nav-section">Propriété</div>
+    <button class="nav-item active" onclick="goSection('hotel')"       id="nav-hotel">      <span class="nav-icon">🏨</span>Hôtel</button>
+    <button class="nav-item"        onclick="goSection('branding')"    id="nav-branding">   <span class="nav-icon">🎨</span>Branding</button>
+    <button class="nav-item"        onclick="goSection('chambres')"    id="nav-chambres">   <span class="nav-icon">🛏️</span>Chambres</button>
+
+    <div class="nav-section">Finance</div>
+    <button class="nav-item"        onclick="goSection('tarifs')"      id="nav-tarifs">     <span class="nav-icon">💰</span>Tarifs & Taxes</button>
+    <button class="nav-item"        onclick="goSection('devises')"     id="nav-devises">    <span class="nav-icon">🌐</span>Langue & Région</button>
+
+    <div class="nav-section">Opérations</div>
+    <button class="nav-item"        onclick="goSection('restaurant')"  id="nav-restaurant"> <span class="nav-icon">🍽️</span>Restaurant & Bar</button>
+    <button class="nav-item"        onclick="goSection('notifs')"      id="nav-notifs">     <span class="nav-icon">🔔</span>Notifications</button>
+
+    <div class="nav-section">Système</div>
+    <button class="nav-item"        onclick="goSection('permissions')" id="nav-permissions"><span class="nav-icon">🔐</span>Permissions</button>
+    <button class="nav-item"        onclick="goSection('integrations')"id="nav-integrations"><span class="nav-icon">🔌</span>Intégrations</button>
+    <button class="nav-item"        onclick="goSection('systeme')"     id="nav-systeme">    <span class="nav-icon">⚙️</span>Système</button>
+
+    <div class="save-all-btn">
+      <button onclick="saveAll()">💾 Enregistrer tout</button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div id="main">
+    <!-- Mobile tab bar -->
+    <div id="mobile-tabs">
+      <button class="m-tab active" onclick="goSection('hotel')"        id="mtab-hotel">      <span class="m-tab-icon">🏨</span>Hôtel</button>
+      <button class="m-tab"        onclick="goSection('branding')"     id="mtab-branding">   <span class="m-tab-icon">🎨</span>Branding</button>
+      <button class="m-tab"        onclick="goSection('chambres')"     id="mtab-chambres">   <span class="m-tab-icon">🛏️</span>Chambres</button>
+      <button class="m-tab"        onclick="goSection('tarifs')"       id="mtab-tarifs">     <span class="m-tab-icon">💰</span>Tarifs</button>
+      <button class="m-tab"        onclick="goSection('devises')"      id="mtab-devises">    <span class="m-tab-icon">🌐</span>Région</button>
+      <button class="m-tab"        onclick="goSection('restaurant')"   id="mtab-restaurant"> <span class="m-tab-icon">🍽️</span>Restaurant</button>
+      <button class="m-tab"        onclick="goSection('notifs')"       id="mtab-notifs">     <span class="m-tab-icon">🔔</span>Notifs</button>
+      <button class="m-tab"        onclick="goSection('permissions')"  id="mtab-permissions"><span class="m-tab-icon">🔐</span>Accès</button>
+      <button class="m-tab"        onclick="goSection('integrations')" id="mtab-integrations"><span class="m-tab-icon">🔌</span>APIs</button>
+      <button class="m-tab"        onclick="goSection('systeme')"      id="mtab-systeme">    <span class="m-tab-icon">⚙️</span>Système</button>
+    </div>
+
+    <!-- Unsaved bar -->
+    <div id="unsaved-bar" class="unsaved-bar">
+      <span>⚠️ Modifications non enregistrées</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-sm btn-secondary" onclick="discardChanges()">Annuler</button>
+        <button class="btn btn-sm btn-primary" onclick="saveAll()">Enregistrer</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div id="content"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-btns" id="modal-btns"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   VERALUZ — SETTINGS MODULE v1.0
+   Mobile-First | Event Bus | localStorage persistence
+   ═════════════════════════════════════════════════════════ */
+
+var MODULE_ID = 'veraluz-settings';
+var LS_KEY    = 'veraluz_settings_v1';
+var currentSection = 'hotel';
+var _dirty = false;
+
+/* ── Default Settings ────────────────────────────────────── */
+var DEFAULTS = {
+  hotel: {
+    name:        'Résidence Veraluz',
+    tagline:     'Vue sur mer · Kribi · Cameroun',
+    address:     'Boulevard de l\'Océan, Kribi, Sud Cameroun',
+    phone:       '+237 6XX XXX XXX',
+    email:       'contact@veraluz.cm',
+    website:     'https://veraluz.cm',
+    checkin:     '14:00',
+    checkout:    '11:00',
+    timezone:    'Africa/Douala',
+    total_rooms: 12
+  },
+  branding: {
+    primary_color:   '#22d3a5',
+    secondary_color: '#1ba87f',
+    bg_color:        '#0f1117',
+    logo_url:        '',
+    font:            'Inter',
+    dark_mode:       true,
+    show_logo:       true
+  },
+  chambres: [
+    { id:'std',   name:'Standard',    count:4,  capacity:2, price:35000, amenities:'WiFi, Climatisation, TV, Vue jardin' },
+    { id:'sup',   name:'Supérieure',  count:4,  capacity:2, price:55000, amenities:'WiFi, Climatisation, TV, Minibar, Vue mer' },
+    { id:'suite', name:'Suite',       count:2,  capacity:4, price:95000, amenities:'WiFi, Clim, TV, Minibar, Jacuzzi, Vue mer panoramique' },
+    { id:'famil', name:'Familiale',   count:2,  capacity:5, price:75000, amenities:'WiFi, Clim, 2 TV, Cuisine, Vue jardin' },
+  ],
+  tarifs: {
+    currency: 'XAF',
+    tax_tva:          { rate:19.25, active:true,  name:'TVA' },
+    tax_tourist:      { rate:2000,  active:true,  name:'Taxe touristique (XAF/nuit)' },
+    tax_service:      { rate:10,    active:true,  name:'Charge de service' },
+    tax_municipal:    { rate:5000,  active:false, name:'Taxe communale (XAF)' },
+    early_checkin:    15000,
+    late_checkout:    12000,
+    extra_bed:        10000,
+    pet_fee:          8000,
+    cancellation_pct: 30
+  },
+  devises: {
+    primary:    'XAF',
+    secondary:  'EUR',
+    language:   'fr',
+    date_format:'DD/MM/YYYY',
+    time_format:'24h',
+    timezone:   'Africa/Douala'
+  },
+  restaurant: {
+    name:           'Le Mako Lounge',
+    capacity:       40,
+    open_time:      '07:00',
+    close_time:     '23:00',
+    breakfast_start:'07:00',
+    breakfast_end:  '10:30',
+    lunch_start:    '12:00',
+    lunch_end:      '14:30',
+    dinner_start:   '19:00',
+    dinner_end:     '22:30',
+    room_service:   true,
+    bar_active:     true,
+    bar_open:       '10:00',
+    bar_close:      '00:00',
+    tva_restaurant: 19.25,
+    service_charge: 10,
+    min_order:      3000
+  },
+  notifs: {
+    email_reservations: true,
+    email_payments:     true,
+    email_checkin:      true,
+    email_checkout:     false,
+    sms_reservations:   false,
+    sms_payments:       true,
+    push_enabled:       false,
+    whatsapp_enabled:   false,
+    daily_report:       true,
+    daily_report_time:  '08:00',
+    alert_occupancy:    90,
+    alert_revenue_drop: true
+  },
+  permissions: {
+    admin:        { reservations:true,  paiements:true,  housekeeping:true,  restaurant:true,  finance:true,  rh:true,   settings:true,  audit:true },
+    gerant:       { reservations:true,  paiements:true,  housekeeping:true,  restaurant:true,  finance:true,  rh:true,   settings:false, audit:true },
+    receptionist: { reservations:true,  paiements:true,  housekeeping:false, restaurant:false, finance:false, rh:false,  settings:false, audit:false },
+    housekeeping: { reservations:false, paiements:false, housekeeping:true,  restaurant:false, finance:false, rh:false,  settings:false, audit:false },
+    waiter:       { reservations:false, paiements:true,  housekeeping:false, restaurant:true,  finance:false, rh:false,  settings:false, audit:false },
+    comptable:    { reservations:false, paiements:true,  housekeeping:false, restaurant:false, finance:true,  rh:false,  settings:false, audit:true },
+  },
+  integrations: {
+    supabase:   { status:'connected', key_hint:'eyJhbG…' },
+    cinetpay:   { status:'pending',   key_hint:'' },
+    whatsapp:   { status:'soon',      key_hint:'' },
+    smtp_email: { status:'soon',      key_hint:'' },
+    booking:    { status:'soon',      key_hint:'' },
+    airbnb:     { status:'soon',      key_hint:'' },
+  }
+};
+
+/* ── Settings store ──────────────────────────────────────── */
+var S = {};
+function loadSettings() {
+  try {
+    var saved = localStorage.getItem(LS_KEY);
+    S = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULTS));
+  } catch(e) { S = JSON.parse(JSON.stringify(DEFAULTS)); }
+  /* fill missing keys */
+  Object.keys(DEFAULTS).forEach(function(k){
+    if (!S[k]) S[k] = JSON.parse(JSON.stringify(DEFAULTS[k]));
+  });
+}
+
+/* ── Event Bus ───────────────────────────────────────────── */
+function emit(type, data) {
+  try { window.parent.postMessage({ source: MODULE_ID, type: type, data: data || {} }, '*'); }
+  catch(e) {}
+}
+window.addEventListener('message', function(ev) {
+  if (!ev.data || ev.data.source !== 'veraluz-core') return;
+  var msg = ev.data;
+  if (msg.type === 'auth-context') { /* could restrict sections */ }
+  if (msg.type === 'refresh') { loadSettings(); renderSection(currentSection); }
+  if (msg.type === 'navigate-tab' && msg.data && msg.data.tab) goSection(msg.data.tab);
+});
+window.addEventListener('load', function() {
+  loadSettings();
+  goSection('hotel');
+  emit('module-ready', { module:'settings', version:'1.0' });
+});
+
+/* ── Helpers ─────────────────────────────────────────────── */
+function toast(msg, ok) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = ok === false ? 'var(--red)' : 'var(--acc)';
+  el.style.color       = ok === false ? 'var(--red)' : 'var(--acc)';
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 2800);
+}
+function markDirty() {
+  _dirty = true;
+  document.getElementById('unsaved-bar').classList.add('show');
+}
+function markClean() {
+  _dirty = false;
+  document.getElementById('unsaved-bar').classList.remove('show');
+}
+function showModal(title, body, btns) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML    = body;
+  document.getElementById('modal-btns').innerHTML    = btns;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+/* ── Navigation ──────────────────────────────────────────── */
+function goSection(id) {
+  currentSection = id;
+  /* desktop nav */
+  document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.remove('active'); });
+  var n = document.getElementById('nav-' + id);
+  if (n) n.classList.add('active');
+  /* mobile tabs */
+  document.querySelectorAll('.m-tab').forEach(function(b){ b.classList.remove('active'); });
+  var mt = document.getElementById('mtab-' + id);
+  if (mt) {
+    mt.classList.add('active');
+    mt.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
+  }
+  renderSection(id);
+  document.getElementById('content').scrollTop = 0;
+}
+
+/* ── Save / Discard ──────────────────────────────────────── */
+function saveAll() {
+  collectCurrentForm();
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(S));
+    markClean();
+    toast('✅ Paramètres enregistrés');
+    emit('settings-updated', { section: currentSection, ts: new Date().toISOString() });
+  } catch(e) {
+    toast('❌ Erreur sauvegarde', false);
+  }
+}
+function discardChanges() {
+  loadSettings();
+  renderSection(currentSection);
+  markClean();
+  toast('↩️ Modifications annulées');
+}
+
+/* Collect values from current visible form */
+function collectCurrentForm() {
+  var inputs = document.querySelectorAll('[data-key]');
+  inputs.forEach(function(el) {
+    var key  = el.dataset.key;
+    var sect = el.dataset.sect;
+    if (!key || !sect || !S[sect]) return;
+    var val = el.type === 'checkbox' ? el.checked : el.value;
+    /* nested key support: "tax_tva.rate" */
+    if (key.includes('.')) {
+      var parts = key.split('.');
+      if (S[sect][parts[0]]) S[sect][parts[0]][parts[1]] = el.type === 'checkbox' ? el.checked : (isNaN(val) ? val : parseFloat(val));
+    } else {
+      S[sect][key] = el.type === 'checkbox' ? val : (el.type === 'number' ? parseFloat(val) : val);
+    }
+  });
+}
+
+/* ── Toggle helper ───────────────────────────────────────── */
+function toggleRow(label, desc, sect, key, val) {
+  var id = 'tog_' + sect + '_' + key.replace('.','_');
+  return '<div class="toggle-row">'
+    + '<div class="toggle-info">'
+    + '<div class="toggle-label">' + label + '</div>'
+    + (desc ? '<div class="toggle-desc">' + desc + '</div>' : '')
+    + '</div>'
+    + '<label class="toggle"><input type="checkbox" id="' + id + '" data-sect="' + sect + '" data-key="' + key + '" '
+    + (val ? 'checked' : '') + ' onchange="markDirty()">'
+    + '<span class="toggle-slider"></span></label>'
+    + '</div>';
+}
+function inputRow(label, hint, type, sect, key, val, placeholder) {
+  var id = 'inp_' + sect + '_' + key.replace('.','_');
+  return '<div class="form-row">'
+    + '<label class="form-label" for="' + id + '">' + label + '</label>'
+    + '<input class="form-input" id="' + id + '" type="' + (type||'text') + '"'
+    + ' data-sect="' + sect + '" data-key="' + key + '" value="' + (val||'') + '"'
+    + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' oninput="markDirty()">'
+    + (hint ? '<div class="form-hint">' + hint + '</div>' : '')
+    + '</div>';
+}
+function selectRow(label, sect, key, val, options) {
+  var id = 'sel_' + sect + '_' + key;
+  return '<div class="form-row">'
+    + '<label class="form-label" for="' + id + '">' + label + '</label>'
+    + '<select class="form-select" id="' + id + '" data-sect="' + sect + '" data-key="' + key + '" onchange="markDirty()">'
+    + options.map(function(o){
+        return '<option value="' + o.v + '"' + (o.v === val ? ' selected' : '') + '>' + o.l + '</option>';
+      }).join('')
+    + '</select></div>';
+}
+
+/* ══════════════════════════════════════════════════════════
+   SECTIONS
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Hôtel ───────────────────────────────────────────────── */
+function sHotel() {
+  var h = S.hotel;
+  return page('🏨','Paramètres Hôtel','Informations générales de l\'établissement',
+    '<div class="card"><div class="card-title">🏢 <span>Identité</span></div>'
+    + '<div class="form-grid">'
+    + inputRow('Nom de l\'hôtel<span>*</span>','','text','hotel','name',h.name)
+    + inputRow('Tagline / Slogan','S\'affiche sous le nom','text','hotel','tagline',h.tagline)
+    + '</div>'
+    + inputRow('Adresse complète','','text','hotel','address',h.address)
+    + '<div class="form-grid">'
+    + inputRow('Téléphone','','tel','hotel','phone',h.phone,'+237 6XX XXX XXX')
+    + inputRow('Email','','email','hotel','email',h.email)
+    + '</div>'
+    + inputRow('Site web','','url','hotel','website',h.website)
+    + '</div>'
+    + '<div class="card"><div class="card-title">🕐 <span>Horaires</span></div>'
+    + '<div class="form-grid">'
+    + inputRow('Check-in à partir de','','time','hotel','checkin',h.checkin)
+    + inputRow('Check-out avant','','time','hotel','checkout',h.checkout)
+    + '</div>'
+    + '<div class="form-grid">'
+    + inputRow('Nombre total de chambres','','number','hotel','total_rooms',h.total_rooms)
+    + selectRow('Fuseau horaire','hotel','timezone',h.timezone,[
+        {v:'Africa/Douala',l:'Africa/Douala (UTC+1)'},{v:'Europe/Paris',l:'Europe/Paris (UTC+2)'},
+        {v:'America/Montreal',l:'America/Montréal (UTC-5)'},{v:'UTC',l:'UTC'}])
+    + '</div></div>'
+    + saveBtnRow()
+  );
+}
+
+/* ── Branding ────────────────────────────────────────────── */
+function sBranding() {
+  var b = S.branding;
+  return page('🎨','Branding & Apparence','Couleurs, logo et thème visuel',
+    '<div class="card"><div class="card-title">🎨 <span>Couleurs</span></div>'
+    + colorRow('Couleur principale','branding','primary_color',b.primary_color)
+    + colorRow('Couleur secondaire','branding','secondary_color',b.secondary_color)
+    + colorRow('Couleur fond','branding','bg_color',b.bg_color)
+    + '</div>'
+    + '<div class="card"><div class="card-title">🖋️ <span>Typographie</span></div>'
+    + selectRow('Police principale','branding','font',b.font,[
+        {v:'Inter',l:'Inter (défaut)'},{v:'Roboto',l:'Roboto'},{v:'Poppins',l:'Poppins'},
+        {v:'Lato',l:'Lato'},{v:'Montserrat',l:'Montserrat'}])
+    + '</div>'
+    + '<div class="card"><div class="card-title">⚙️ <span>Options</span></div>'
+    + toggleRow('Mode sombre','Interface en thème dark',       'branding','dark_mode',   b.dark_mode)
+    + toggleRow('Afficher le logo','Logo visible dans la navbar','branding','show_logo',b.show_logo)
+    + '</div>'
+    + '<div class="card"><div class="card-title">🖼️ <span>Logo</span></div>'
+    + '<div class="form-row"><label class="form-label">URL du logo</label>'
+    + '<input class="form-input" type="url" data-sect="branding" data-key="logo_url" value="'
+    + (b.logo_url||'') + '" placeholder="https://veraluz.cm/logo.png" oninput="markDirty()">'
+    + '<div class="form-hint">Formats acceptés: PNG, SVG, WebP (fond transparent recommandé)</div></div>'
+    + (b.logo_url ? '<img src="' + b.logo_url + '" style="height:50px;margin-top:8px;border-radius:6px" onerror="this.style.display=\'none\'">' : '')
+    + '</div>'
+    + saveBtnRow()
+  );
+}
+function colorRow(label, sect, key, val) {
+  var id = 'clr_' + sect + '_' + key;
+  return '<div class="form-row"><label class="form-label">' + label + '</label>'
+    + '<div class="color-row">'
+    + '<input type="color" class="color-swatch" id="' + id + '" data-sect="' + sect + '" data-key="' + key + '" value="' + val + '" oninput="markDirty();this.nextElementSibling.textContent=this.value">'
+    + '<span class="color-val">' + val + '</span>'
+    + '</div></div>';
+}
+
+/* ── Chambres ────────────────────────────────────────────── */
+function sChambres() {
+  var rooms = S.chambres;
+  var cards = rooms.map(function(r) {
+    return '<div class="room-card">'
+      + '<div class="room-name">🛏️ ' + r.name + '</div>'
+      + '<div class="room-count">' + r.count + ' chambre(s) · ' + r.capacity + ' pers. max</div>'
+      + '<div class="room-price">' + r.price.toLocaleString('fr-FR') + ' XAF/nuit</div>'
+      + '<div style="font-size:10px;color:var(--text3);margin-top:4px">' + r.amenities + '</div>'
+      + '<button class="room-edit btn btn-sm btn-secondary" style="margin-top:8px;width:100%" onclick="editRoom(\'' + r.id + '\')">✏️ Modifier</button>'
+      + '</div>';
+  }).join('');
+
+  return page('🛏️','Gestion des chambres','Types, capacités, équipements et tarifs',
+    '<div class="card"><div class="card-title">🏗️ <span>Types de chambres</span></div>'
+    + '<div class="room-grid">' + cards + '</div>'
+    + '<button class="btn btn-secondary" style="margin-top:14px;width:100%" onclick="addRoom()">+ Ajouter un type</button>'
+    + '</div>'
+    + '<div class="card"><div class="card-title">📊 <span>Résumé capacité</span></div>'
+    + rooms.map(function(r){
+        return '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bg3);font-size:12px">'
+          + '<span>' + r.name + '</span>'
+          + '<span style="color:var(--text2)">' + r.count + ' × ' + r.price.toLocaleString('fr-FR') + ' XAF = <strong style="color:var(--acc)">' + (r.count*r.price).toLocaleString('fr-FR') + ' XAF/nuit (plein)</strong></span>'
+          + '</div>';
+      }).join('')
+    + '<div style="display:flex;justify-content:space-between;padding:10px 0;font-size:13px;font-weight:700">'
+    + '<span>Total ' + rooms.reduce(function(a,r){return a+r.count;},0) + ' chambres</span>'
+    + '<span style="color:var(--acc)">' + rooms.reduce(function(a,r){return a+r.count*r.price;},0).toLocaleString('fr-FR') + ' XAF max/nuit</span>'
+    + '</div></div>'
+  );
+}
+function editRoom(id) {
+  var r = S.chambres.find(function(x){ return x.id===id; });
+  if (!r) return;
+  showModal('✏️ Modifier ' + r.name,
+    '<div class="form-row"><label class="form-label">Nom</label><input class="form-input" id="er-name" value="' + r.name + '"></div>'
+    + '<div class="form-grid"><div><label class="form-label">Nb chambres</label><input class="form-input" id="er-count" type="number" value="' + r.count + '"></div>'
+    + '<div><label class="form-label">Capacité max</label><input class="form-input" id="er-cap" type="number" value="' + r.capacity + '"></div></div>'
+    + '<div class="form-row"><label class="form-label">Prix/nuit (XAF)</label><input class="form-input" id="er-price" type="number" value="' + r.price + '"></div>'
+    + '<div class="form-row"><label class="form-label">Équipements</label><input class="form-input" id="er-amen" value="' + r.amenities + '"></div>',
+    '<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>'
+    + '<button class="btn btn-primary" onclick="saveRoom(\'' + id + '\')">Enregistrer</button>'
+  );
+}
+function saveRoom(id) {
+  var r = S.chambres.find(function(x){ return x.id===id; });
+  if (!r) return;
+  r.name      = document.getElementById('er-name').value;
+  r.count     = parseInt(document.getElementById('er-count').value)||0;
+  r.capacity  = parseInt(document.getElementById('er-cap').value)||1;
+  r.price     = parseInt(document.getElementById('er-price').value)||0;
+  r.amenities = document.getElementById('er-amen').value;
+  closeModal();
+  saveAll();
+  renderSection('chambres');
+}
+function addRoom() {
+  toast('ℹ️ Contactez le support pour ajouter un type de chambre');
+}
+
+/* ── Tarifs & Taxes ──────────────────────────────────────── */
+function sTarifs() {
+  var t = S.tarifs;
+  var taxes = [
+    { key:'tax_tva',       label:'TVA',                   type:'pct',  field:'rate' },
+    { key:'tax_tourist',   label:'Taxe touristique',       type:'xaf',  field:'rate' },
+    { key:'tax_service',   label:'Charge de service',      type:'pct',  field:'rate' },
+    { key:'tax_municipal', label:'Taxe communale',         type:'xaf',  field:'rate' },
+  ];
+
+  return page('💰','Tarifs & Taxes','Prix additionnels, taxes applicables et frais',
+    '<div class="card"><div class="card-title">🏦 <span>Devise principale</span></div>'
+    + selectRow('Devise de facturation','tarifs','currency',t.currency,[
+        {v:'XAF',l:'XAF — Franc CFA'},{v:'EUR',l:'EUR — Euro'},{v:'USD',l:'USD — Dollar'}])
+    + '</div>'
+    + '<div class="card"><div class="card-title">📋 <span>Taxes applicables</span></div>'
+    + taxes.map(function(tx){
+        var obj = t[tx.key];
+        return '<div class="tax-row">'
+          + '<div class="tax-name"><div style="font-size:13px;font-weight:500">' + obj.name + '</div>'
+          + '<div style="font-size:11px;color:var(--text3)">' + tx.type + '</div></div>'
+          + '<div class="tax-rate">'
+          + '<input class="form-input" type="number" data-sect="tarifs" data-key="' + tx.key + '.rate" value="' + obj.rate + '" style="width:80px;text-align:right;padding:5px 8px" oninput="markDirty()">'
+          + '</div>'
+          + '<label class="toggle" style="margin-left:8px"><input type="checkbox" data-sect="tarifs" data-key="' + tx.key + '.active" ' + (obj.active?'checked':'') + ' onchange="markDirty()">'
+          + '<span class="toggle-slider"></span></label>'
+          + '</div>';
+      }).join('')
+    + '</div>'
+    + '<div class="card"><div class="card-title">➕ <span>Frais additionnels (XAF)</span></div>'
+    + '<div class="form-grid">'
+    + inputRow('Early check-in','Avant 14h','number','tarifs','early_checkin',t.early_checkin)
+    + inputRow('Late check-out','Après 11h','number','tarifs','late_checkout',t.late_checkout)
+    + inputRow('Lit supplémentaire','Par nuit','number','tarifs','extra_bed',t.extra_bed)
+    + inputRow('Animal de compagnie','Par nuit','number','tarifs','pet_fee',t.pet_fee)
+    + '</div>'
+    + inputRow('Pénalité annulation (%)','Pourcentage du montant total','number','tarifs','cancellation_pct',t.cancellation_pct)
+    + '</div>'
+    + saveBtnRow()
+  );
+}
+
+/* ── Langue & Région ─────────────────────────────────────── */
+function sDevises() {
+  var d = S.devises;
+  return page('🌐','Langue & Région','Localisation, formats et fuseaux horaires',
+    '<div class="card"><div class="card-title">🗣️ <span>Langue</span></div>'
+    + selectRow('Langue interface','devises','language',d.language,[
+        {v:'fr',l:'Français'},{v:'en',l:'English'},{v:'es',l:'Español'}])
+    + '</div>'
+    + '<div class="card"><div class="card-title">💱 <span>Devises</span></div>'
+    + selectRow('Devise principale','devises','primary',d.primary,[
+        {v:'XAF',l:'XAF — Franc CFA BEAC'},{v:'EUR',l:'EUR — Euro'},{v:'USD',l:'USD — Dollar US'}])
+    + selectRow('Devise secondaire (conversion)','devises','secondary',d.secondary,[
+        {v:'EUR',l:'EUR — Euro'},{v:'USD',l:'USD — Dollar US'},{v:'XAF',l:'XAF — Franc CFA'}])
+    + '</div>'
+    + '<div class="card"><div class="card-title">📅 <span>Formats</span></div>'
+    + selectRow('Format de date','devises','date_format',d.date_format,[
+        {v:'DD/MM/YYYY',l:'DD/MM/YYYY (31/12/2025)'},{v:'MM/DD/YYYY',l:'MM/DD/YYYY (12/31/2025)'},
+        {v:'YYYY-MM-DD',l:'YYYY-MM-DD (2025-12-31)'}])
+    + selectRow('Format heure','devises','time_format',d.time_format,[
+        {v:'24h',l:'24h (14:30)'},{v:'12h',l:'12h (2:30 PM)'}])
+    + selectRow('Fuseau horaire','devises','timezone',d.timezone,[
+        {v:'Africa/Douala',l:'Africa/Douala (UTC+1)'},{v:'Europe/Paris',l:'Europe/Paris (UTC+2)'},
+        {v:'America/Montreal',l:'America/Montréal (UTC-5)'},{v:'UTC',l:'UTC'}])
+    + '</div>'
+    + saveBtnRow()
+  );
+}
+
+/* ── Restaurant & Bar ────────────────────────────────────── */
+function sRestaurant() {
+  var r = S.restaurant;
+  return page('🍽️','Restaurant & Bar','Configuration de la restauration et du bar',
+    '<div class="card"><div class="card-title">🍽️ <span>Restaurant</span></div>'
+    + '<div class="form-grid">'
+    + inputRow('Nom du restaurant','','text','restaurant','name',r.name)
+    + inputRow('Capacité (couverts)','','number','restaurant','capacity',r.capacity)
+    + '</div>'
+    + '<div class="form-grid">'
+    + inputRow('Ouverture','','time','restaurant','open_time',r.open_time)
+    + inputRow('Fermeture','','time','restaurant','close_time',r.close_time)
+    + '</div>'
+    + '</div>'
+    + '<div class="card"><div class="card-title">☀️ <span>Services repas</span></div>'
+    + '<div class="form-grid-3">'
+    + inputRow('Petit-déj début','','time','restaurant','breakfast_start',r.breakfast_start)
+    + inputRow('Petit-déj fin','','time','restaurant','breakfast_end',r.breakfast_end)
+    + inputRow('Déjeuner début','','time','restaurant','lunch_start',r.lunch_start)
+    + inputRow('Déjeuner fin','','time','restaurant','lunch_end',r.lunch_end)
+    + inputRow('Dîner début','','time','restaurant','dinner_start',r.dinner_start)
+    + inputRow('Dîner fin','','time','restaurant','dinner_end',r.dinner_end)
+    + '</div></div>'
+    + '<div class="card"><div class="card-title">⚙️ <span>Options restaurant</span></div>'
+    + toggleRow('Room Service','Livraison en chambre disponible',  'restaurant','room_service',r.room_service)
+    + inputRow('Commande minimum (XAF)','Room Service uniquement','number','restaurant','min_order',r.min_order)
+    + '<div class="form-grid">'
+    + inputRow('TVA restaurant (%)','','number','restaurant','tva_restaurant',r.tva_restaurant)
+    + inputRow('Charge de service (%)','','number','restaurant','service_charge',r.service_charge)
+    + '</div></div>'
+    + '<div class="card"><div class="card-title">🍸 <span>Bar Lounge</span></div>'
+    + toggleRow('Bar actif','Le bar est opérationnel','restaurant','bar_active',r.bar_active)
+    + '<div class="form-grid">'
+    + inputRow('Ouverture bar','','time','restaurant','bar_open',r.bar_open)
+    + inputRow('Fermeture bar','','time','restaurant','bar_close',r.bar_close)
+    + '</div></div>'
+    + saveBtnRow()
+  );
+}
+
+/* ── Notifications ───────────────────────────────────────── */
+function sNotifs() {
+  var n = S.notifs;
+  return page('🔔','Paramètres Notifications','Canaux, alertes et rapports automatiques',
+    '<div class="card"><div class="card-title">📧 <span>Email</span></div>'
+    + toggleRow('Réservations',    'Notif. à chaque nouvelle résa',     'notifs','email_reservations',n.email_reservations)
+    + toggleRow('Paiements',       'Notif. à chaque transaction',        'notifs','email_payments',    n.email_payments)
+    + toggleRow('Check-in',        'Notif. à chaque arrivée',            'notifs','email_checkin',     n.email_checkin)
+    + toggleRow('Check-out',       'Notif. à chaque départ',             'notifs','email_checkout',    n.email_checkout)
+    + '</div>'
+    + '<div class="card"><div class="card-title">📱 <span>SMS</span></div>'
+    + toggleRow('SMS Réservations','Confirmation par SMS',                'notifs','sms_reservations', n.sms_reservations)
+    + toggleRow('SMS Paiements',   'Alerte paiement par SMS',             'notifs','sms_payments',     n.sms_payments)
+    + '</div>'
+    + '<div class="card"><div class="card-title">🔔 <span>Push & WhatsApp</span></div>'
+    + toggleRow('Notifications push','App mobile (bientôt)',             'notifs','push_enabled',     n.push_enabled)
+    + toggleRow('WhatsApp Business', 'Intégration WhatsApp (bientôt)',   'notifs','whatsapp_enabled', n.whatsapp_enabled)
+    + '</div>'
+    + '<div class="card"><div class="card-title">📊 <span>Rapports automatiques</span></div>'
+    + toggleRow('Rapport journalier','Envoyé chaque matin par email',    'notifs','daily_report',     n.daily_report)
+    + inputRow('Heure d\'envoi','','time','notifs','daily_report_time',n.daily_report_time)
+    + toggleRow('Alerte chute revenus','Si revenus < seuil',             'notifs','alert_revenue_drop',n.alert_revenue_drop)
+    + inputRow('Seuil occupation alerte (%)','Alerte si taux > seuil','number','notifs','alert_occupancy',n.alert_occupancy)
+    + '</div>'
+    + saveBtnRow()
+  );
+}
+
+/* ── Permissions ─────────────────────────────────────────── */
+function sPermissions() {
+  var p = S.permissions;
+  var roles   = Object.keys(p);
+  var modules = ['reservations','paiements','housekeeping','restaurant','finance','rh','settings','audit'];
+  var mIcons  = {reservations:'🛏️',paiements:'💳',housekeeping:'🧹',restaurant:'🍽️',finance:'📊',rh:'👥',settings:'⚙️',audit:'🔍'};
+
+  var table = '<div style="overflow-x:auto"><table class="perm-table"><thead><tr>'
+    + '<th>Rôle</th>'
+    + modules.map(function(m){ return '<th>' + mIcons[m] + '</th>'; }).join('')
+    + '</tr></thead><tbody>'
+    + roles.map(function(role){
+        return '<tr><td>' + role.charAt(0).toUpperCase() + role.slice(1) + '</td>'
+          + modules.map(function(mod){
+              var checked = p[role][mod];
+              return '<td><input type="checkbox" class="perm-check"'
+                + ' data-role="' + role + '" data-mod="' + mod + '"'
+                + (checked ? ' checked' : '')
+                + ' onchange="onPermChange(this)">'
+                + '</td>';
+            }).join('')
+          + '</tr>';
+      }).join('')
+    + '</tbody></table></div>';
+
+  return page('🔐','Permissions & Accès','Contrôle d\'accès par rôle et module',
+    '<div class="card"><div class="card-title">📋 <span>Matrice des permissions</span></div>'
+    + '<div class="form-hint" style="margin-bottom:12px">Les changements sont appliqués immédiatement après enregistrement.</div>'
+    + table + '</div>'
+    + '<div class="card"><div class="card-title">👥 <span>Rôles disponibles</span></div>'
+    + roles.map(function(r){
+        var cnt = Object.values(p[r]).filter(Boolean).length;
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bg3);font-size:12px">'
+          + '<span style="font-weight:600">' + r.charAt(0).toUpperCase() + r.slice(1) + '</span>'
+          + '<span class="badge badge-acc">' + cnt + ' module(s)</span>'
+          + '</div>';
+      }).join('')
+    + '</div>'
+    + saveBtnRow()
+  );
+}
+function onPermChange(el) {
+  var role = el.dataset.role;
+  var mod  = el.dataset.mod;
+  if (S.permissions[role]) {
+    S.permissions[role][mod] = el.checked;
+    markDirty();
+  }
+}
+
+/* ── Intégrations ────────────────────────────────────────── */
+function sIntegrations() {
+  var ints = [
+    { id:'supabase',  icon:'🗄️',  name:'Supabase',          desc:'Base de données cloud — tables, auth, realtime',           status:'connected' },
+    { id:'cinetpay',  icon:'📱',  name:'CinetPay',           desc:'Paiements mobiles — Orange Money, MTN MoMo',               status:'pending'   },
+    { id:'whatsapp',  icon:'💬',  name:'WhatsApp Business',  desc:'Notifications et confirmations via WhatsApp',               status:'soon'      },
+    { id:'smtp_email',icon:'📧',  name:'Email SMTP',         desc:'Envoi d\'emails transactionnels',                           status:'soon'      },
+    { id:'booking',   icon:'🌐',  name:'Booking.com',        desc:'Synchronisation disponibilités et réservations',           status:'soon'      },
+    { id:'airbnb',    icon:'🏠',  name:'Airbnb',             desc:'Synchronisation calendrier et tarifs',                     status:'soon'      },
+  ];
+  var statusLabel = { connected:'Connecté', pending:'En cours', soon:'Bientôt' };
+  var statusClass = { connected:'int-connected', pending:'int-pending', soon:'int-soon' };
+
+  return page('🔌','Intégrations API','Connexions aux services tiers et passerelles',
+    ints.map(function(it){
+      var st = S.integrations[it.id] ? S.integrations[it.id].status : 'soon';
+      return '<div class="int-card">'
+        + '<div class="int-icon">' + it.icon + '</div>'
+        + '<div class="int-info">'
+        + '<div class="int-name">' + it.name + '</div>'
+        + '<div class="int-desc">' + it.desc + '</div>'
+        + '<span class="int-status ' + statusClass[st] + '">' + statusLabel[st] + '</span>'
+        + '<div class="int-actions">'
+        + (st === 'connected'
+          ? '<button class="btn btn-sm btn-secondary">⚙️ Configurer</button>'
+          + '<button class="btn btn-sm btn-danger">🔌 Déconnecter</button>'
+          : st === 'pending'
+          ? '<button class="btn btn-sm btn-primary" onclick="toast(\'ℹ️ Vérifiez votre tableau de bord CinetPay\')">🔄 Finaliser</button>'
+          : '<button class="btn btn-sm btn-secondary" onclick="toast(\'ℹ️ Disponible prochainement\')">🔔 M\'avertir</button>')
+        + '</div></div></div>';
+    }).join('')
+  );
+}
+
+/* ── Système ─────────────────────────────────────────────── */
+function sSysteme() {
+  return page('⚙️','Paramètres Système','Maintenance, sauvegardes et informations techniques',
+    '<div class="card"><div class="card-title">ℹ️ <span>Informations système</span></div>'
+    + '<div class="sys-row"><span class="sys-key">Version Veraluz OS</span><span class="sys-val">v2.0.0-beta</span></div>'
+    + '<div class="sys-row"><span class="sys-key">Modules actifs</span><span class="sys-val">9 / 9</span></div>'
+    + '<div class="sys-row"><span class="sys-key">Supabase Project</span><span class="sys-val">dfdmasejso…</span></div>'
+    + '<div class="sys-row"><span class="sys-key">GitHub repo</span><span class="sys-val">ngams237/veraluz-os</span></div>'
+    + '<div class="sys-row"><span class="sys-key">Dernière mise à jour</span><span class="sys-val">' + new Date().toLocaleDateString('fr-FR') + '</span></div>'
+    + '<div class="sys-row"><span class="sys-key">Storage utilisé</span><span class="sys-val" id="storage-size">—</span></div>'
+    + '</div>'
+    + '<div class="card"><div class="card-title">💾 <span>Sauvegarde</span></div>'
+    + '<div class="form-hint" style="margin-bottom:12px">Les paramètres sont sauvegardés localement. Exportez une copie pour les conserver en cas de réinitialisation.</div>'
+    + '<div class="btn-row">'
+    + '<button class="btn btn-primary" onclick="exportSettings()">📤 Exporter paramètres</button>'
+    + '<button class="btn btn-secondary" onclick="importSettings()">📥 Importer</button>'
+    + '</div></div>'
+    + '<div class="card" style="border-color:rgba(239,68,68,.3)">'
+    + '<div class="card-title" style="color:var(--red)">⚠️ <span>Zone dangereuse</span></div>'
+    + '<div class="form-hint" style="margin-bottom:12px">Ces actions sont irréversibles. Procédez avec prudence.</div>'
+    + '<div class="btn-row">'
+    + '<button class="btn btn-danger" onclick="confirmReset()">🔄 Réinitialiser les paramètres</button>'
+    + '<button class="btn btn-danger" onclick="confirmClearLogs()">🗑️ Vider les logs locaux</button>'
+    + '</div></div>'
+  );
+}
+
+/* ── Helpers ─────────────────────────────────────────────── */
+function page(icon, title, sub, body) {
+  return '<div class="page-header"><div class="page-title">' + icon + ' ' + title + '</div>'
+    + '<div class="page-sub">' + sub + '</div></div>' + body;
+}
+function saveBtnRow() {
+  return '<div class="btn-row"><button class="btn btn-primary" onclick="saveAll()">💾 Enregistrer</button>'
+    + '<button class="btn btn-secondary" onclick="discardChanges()">↩️ Annuler</button></div>';
+}
+
+/* ── System actions ──────────────────────────────────────── */
+function exportSettings() {
+  var json = JSON.stringify(S, null, 2);
+  var blob = new Blob([json],{type:'application/json'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url; a.download = 'veraluz_settings_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click(); URL.revokeObjectURL(url);
+  toast('✅ Paramètres exportés');
+}
+function importSettings() {
+  toast('ℹ️ Glissez votre fichier JSON ici (bientôt)');
+}
+function confirmReset() {
+  showModal('⚠️ Réinitialiser les paramètres',
+    'Cette action va effacer TOUS les paramètres personnalisés et revenir aux valeurs par défaut. Cette action est irréversible.',
+    '<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>'
+    + '<button class="btn btn-danger" onclick="doReset()">Réinitialiser</button>'
+  );
+}
+function doReset() {
+  S = JSON.parse(JSON.stringify(DEFAULTS));
+  localStorage.removeItem(LS_KEY);
+  closeModal();
+  renderSection(currentSection);
+  markClean();
+  toast('🔄 Paramètres réinitialisés');
+  emit('settings-reset', {});
+}
+function confirmClearLogs() {
+  showModal('🗑️ Vider les logs locaux',
+    'Les logs stockés localement seront supprimés. Les données Supabase ne sont pas affectées.',
+    '<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>'
+    + '<button class="btn btn-danger" onclick="doClearLogs()">Vider</button>'
+  );
+}
+function doClearLogs() {
+  var keys = Object.keys(localStorage).filter(function(k){ return k.startsWith('veraluz_'); });
+  keys.forEach(function(k){ if (k !== LS_KEY) localStorage.removeItem(k); });
+  closeModal();
+  toast('🗑️ Logs locaux vidés (' + keys.length + ' entrées)');
+  emit('logs-cleared', { count: keys.length });
+}
+
+/* ── Storage size display ────────────────────────────────── */
+function updateStorageInfo() {
+  try {
+    var total = 0;
+    Object.keys(localStorage).forEach(function(k){
+      if (k.startsWith('veraluz_')) total += localStorage.getItem(k).length;
+    });
+    var el = document.getElementById('storage-size');
+    if (el) el.textContent = (total / 1024).toFixed(1) + ' KB';
+  } catch(e) {}
+}
+
+/* ── Main render ─────────────────────────────────────────── */
+function renderSection(id) {
+  var c = document.getElementById('content');
+  var html = '';
+  if      (id==='hotel')        html = sHotel();
+  else if (id==='branding')     html = sBranding();
+  else if (id==='chambres')     html = sChambres();
+  else if (id==='tarifs')       html = sTarifs();
+  else if (id==='devises')      html = sDevises();
+  else if (id==='restaurant')   html = sRestaurant();
+  else if (id==='notifs')       html = sNotifs();
+  else if (id==='permissions')  html = sPermissions();
+  else if (id==='integrations') html = sIntegrations();
+  else if (id==='systeme')      html = sSysteme();
+  c.innerHTML = html;
+  if (id==='systeme') setTimeout(updateStorageInfo, 50);
+}
+</script>
+</body>
+</html>

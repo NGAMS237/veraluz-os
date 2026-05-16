@@ -514,6 +514,37 @@ function sbFetch(path, opts) {
   return fetch(url, Object.assign({headers:headers}, opts||{}));
 }
 
+/* ── UNIT IMAGE PRELOADING ── */
+var UNIT_IMG_BASE = 'https://ngams237.github.io/veraluz-os/assets/unites/';
+var UNIT_IMG_MAP = [
+  {kw:'studio',      imgs:['studio_salon.jpg','studio_alt.jpg']},
+  {kw:'villa',       imgs:['villa_piscine.jpg','villa_loft.jpg']},
+  {kw:'suite',       imgs:['suite_salon.jpg','suite_art.jpg','suite_royal.jpg','suite_luxe.jpg']},
+  {kw:'appartement', imgs:['apt_salon.jpg','apt_mezzanine.jpg']},
+  {kw:'vue mer',     imgs:['mer_salon.jpg','mer_entree.jpg']},
+  {kw:'standard',    imgs:['std_salon.jpg','std_duplex.jpg']},
+  {kw:'décor',       imgs:['decor_sofa.jpg','decor_buffet.jpg']}
+];
+function preloadRoomImages() {
+  _rooms.forEach(function(r) {
+    // Derive ikey if missing
+    if(!r.ikey) {
+      var n = (r.name||'').toLowerCase();
+      r.ikey = n.indexOf('studio')>=0?'studio':n.indexOf('villa')>=0?'villa':n.indexOf('suite')>=0?'suite':n.indexOf('appartement')>=0?'apt':n.indexOf('mer')>=0?'sea':'std';
+    }
+    // Only seed if room has no images yet
+    if(r._images && r._images.length) return;
+    var n2 = (r.name||'').toLowerCase();
+    for(var i=0;i<UNIT_IMG_MAP.length;i++){
+      if(n2.indexOf(UNIT_IMG_MAP[i].kw)>=0){
+        r._images = UNIT_IMG_MAP[i].imgs.map(function(f){return UNIT_IMG_BASE+f;});
+        localStorage.setItem('vlz_room_images_'+r.id, JSON.stringify(r._images));
+        break;
+      }
+    }
+  });
+}
+
 /* ── DATA LOADING ── */
 function loadAll(cb) {
   var pending = 2;
@@ -530,6 +561,7 @@ function loadAll(cb) {
         // Use existing image if available
         if(!r._images.length && r.image_url) r._images = [r.image_url];
       });
+      preloadRoomImages(); // seed default unit photos if room has no images yet
       done();
     })
     .catch(function(){_rooms=[];done();});
@@ -1448,48 +1480,4 @@ function importSyncRez(idx) {
     sync.splice(idx,1);
     localStorage.setItem('vlz_booking_sync', JSON.stringify(sync));
     if(!sync.length) {
-      var badge = document.getElementById('syncBadge');
-      if(badge) badge.style.display='none';
-    } else {
-      var cnt = document.getElementById('syncCount');
-      if(cnt) cnt.textContent = sync.length;
-    }
-    showToast('Réservation importée depuis le site', 'success');
-    addActivity('Import depuis Booking Engine', newRes.guest_name, newRes.id, 'pending');
-    publishEvent('reservation-created', {reservation_id:newRes.id, guest:newRes.guest_name, source:'direct_website'});
-    refresh();
-    closeModal('syncModal');
-  } catch(e) { showToast('Erreur import', 'error'); }
-}
-
-function dismissSync(idx) {
-  try {
-    var sync = JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
-    sync.splice(idx,1);
-    localStorage.setItem('vlz_booking_sync', JSON.stringify(sync));
-    if(!sync.length) { var b = document.getElementById('syncBadge'); if(b) b.style.display='none'; }
-    openSyncModal();
-  } catch(e) {}
-}
-
-/* ── UTILS ── */
-function escHtml(s) {
-  if(!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
-/* ── INIT ── */
-document.addEventListener('DOMContentLoaded', function() {
-  listenEvents();
-  loadAll(function() {
-    enrichRoomStatuses();
-    updateBadges();
-    renderDashboard();
-    checkBookingEngineSync();
-  });
-  // Poll for new booking engine sync every 30s
-  setInterval(checkBookingEngineSync, 30000);
-});
-
-</script>
-</html>
+      var badge =

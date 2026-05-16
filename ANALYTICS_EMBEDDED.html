@@ -1,1061 +1,925 @@
 <!DOCTYPE html>
-
 <html lang="fr">
-<head><script>window.__MODULE_NAME__ = 'analytics';</script>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Veraluz OS — Analytics &amp; Dashboard</title>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Analytics — Veraluz</title>
 <style>
-:root {
-  --bg:#0f1117;--bg2:#1a1d27;--bg3:#242836;--bg4:#2e3347;--border:#3a3f55;--border2:#4a5068;
-  --accent:#6c63ff;--accent2:#8b7fff;--accent-glow:rgba(108,99,255,.15);
-  --green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;--cyan:#06b6d4;--orange:#f97316;--pink:#ec4899;--purple:#8b5cf6;
-  --text:#e8eaf6;--text2:#9ca3af;--text3:#6b7280;
+/* ── Reset & Tokens ──────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --acc:#22d3a5;--acc2:#1ba87f;--acc3:#16866a;
+  --bg:#0f1117;--bg2:#161b24;--bg3:#1e2535;--bg4:#252d3d;
+  --text:#e8eaf0;--text2:#8b95a8;--text3:#5a6478;
+  --red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;--purple:#8b5cf6;
+  --green:#10b981;--orange:#f97316;--pink:#ec4899;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
 }
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
-.app{display:flex;height:100vh;overflow:hidden;}
-/* Sidebar */
-.sidebar{width:210px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
-.logo{padding:14px 16px;border-bottom:1px solid var(--border);}
-.logo-t{font-size:15px;font-weight:700;color:var(--accent2);}
-.logo-s{font-size:10px;color:var(--text3);}
-.nav{padding:6px;flex:1;overflow-y:auto;}
-.nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;color:var(--text2);font-size:12.5px;margin-bottom:1px;transition:.15s;}
-.nav-item:hover{background:var(--bg3);color:var(--text);}
-.nav-item.active{background:var(--accent-glow);color:var(--accent2);border:1px solid var(--border);}
-.nav-icon{font-size:15px;width:18px;text-align:center;}
-.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;padding:1px 5px;border-radius:8px;font-weight:600;}
-.nav-user{padding:10px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;}
-.user-av{width:32px;height:32px;border-radius:50%;background:rgba(108,99,255,.2);color:var(--accent2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
-.user-info{flex:1;}
-.user-name{font-size:12px;font-weight:600;}
-.user-role{font-size:10px;color:var(--text3);}
-.remote-tag{background:rgba(108,99,255,.15);color:var(--accent2);border:1px solid rgba(108,99,255,.2);padding:1px 6px;border-radius:8px;font-size:9px;font-weight:700;}
-/* Main */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;}
-.page-title{font-size:17px;font-weight:700;flex:1;}
-.topbar-right{display:flex;align-items:center;gap:8px;}
-/* Tabs */
-.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;}
-.tab{padding:10px 14px;font-size:12.5px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:.15s;}
-.tab:hover{color:var(--text);}
-.tab.active{color:var(--accent2);border-bottom-color:var(--accent);}
-.tab-badge{background:var(--red);color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;margin-left:3px;font-weight:600;}
-/* Content */
-.content{flex:1;overflow-y:auto;padding:16px;}
-/* KPI Grid */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:16px;}
-.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:13px;}
-.kpi-lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;align-items:center;gap:5px;}
-.kpi-val{font-size:22px;font-weight:700;margin:2px 0;}
-.kpi-sub{font-size:11px;color:var(--text3);}
-.kpi-trend{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600;}
-.trend-up{background:rgba(16,185,129,.1);color:var(--green);}
-.trend-dn{background:rgba(239,68,68,.1);color:var(--red);}
-.trend-neu{background:var(--bg3);color:var(--text2);}
-/* Charts */
-.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:12px;}
-.chart-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
-.chart-sub{font-size:11px;color:var(--text3);margin-top:6px;}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
-@media(max-width:700px){.g2{grid-template-columns:1fr;}.kpi-grid{grid-template-columns:1fr 1fr;}}
-/* SVG chart container */
-.svg-wrap{width:100%;overflow:hidden;}
-/* Bars */
-.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
-.bar-lbl{font-size:11px;color:var(--text2);width:60px;text-align:right;flex-shrink:0;}
-.bar-track{flex:1;background:var(--bg3);border-radius:8px;height:10px;overflow:hidden;}
-.bar-fill{height:100%;border-radius:8px;transition:.6s;}
-.bar-val{font-size:11px;font-weight:600;width:70px;text-align:right;}
-/* Table */
-.tbl-wrap{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;}
-th{text-align:left;padding:7px 10px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
-td{padding:9px 10px;border-bottom:1px solid var(--bg4);font-size:12.5px;}
-tr:last-child td{border-bottom:none;}
-tr:hover td{background:var(--bg3);}
-/* Badges */
-.bdg{display:inline-flex;align-items:center;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;}
-.bdg-g{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2);}
-.bdg-r{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2);}
-.bdg-y{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2);}
-.bdg-b{background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.2);}
-.bdg-p{background:rgba(108,99,255,.1);color:var(--accent2);border:1px solid rgba(108,99,255,.2);}
-.bdg-gr{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
-/* Btns */
-.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:none;transition:.15s;}
-.btn-p{background:var(--accent);color:#fff;} .btn-p:hover{background:var(--accent2);}
-.btn-g{background:var(--green);color:#fff;} .btn-g:hover{opacity:.85;}
-.btn-o{background:var(--bg3);border:1px solid var(--border);color:var(--text2);} .btn-o:hover{color:var(--text);background:var(--bg4);}
-.btn-sm{padding:4px 8px;font-size:11px;}
-/* Alert items */
-.alert-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-left:3px solid;border-radius:8px;margin-bottom:7px;}
-.alert-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
-.alert-cnt{flex:1;}
-.alert-tit{font-weight:600;font-size:12.5px;}
-.alert-msg{font-size:11px;color:var(--text2);margin-top:2px;}
-.alert-time{font-size:10px;color:var(--text3);margin-top:3px;}
-/* Progress ring */
-.ring-wrap{display:flex;align-items:center;justify-content:center;flex-direction:column;}
-.ring-val{font-size:22px;font-weight:700;}
-.ring-lbl{font-size:11px;color:var(--text2);}
-/* Tabs right */
-.period-sel{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 8px;color:var(--text);font-size:12px;}
-/* Hotels grid */
-.hotel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:12px;}
-.hotel-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px;cursor:pointer;transition:.15s;}
-.hotel-card:hover,.hotel-card.sel{border-color:var(--accent);background:var(--bg3);}
-.hotel-name{font-size:14px;font-weight:600;margin-bottom:6px;}
-.hotel-loc{font-size:11px;color:var(--text2);margin-bottom:10px;}
-/* Donut chart */
-.donut-svg{width:100px;height:100px;flex-shrink:0;}
-.donut-info{flex:1;}
-.donut-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
-.d-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
-.d-lbl{font-size:11px;color:var(--text2);flex:1;}
-.d-pct{font-size:11px;font-weight:700;}
-.d-bar{flex:2;height:5px;border-radius:5px;overflow:hidden;background:var(--bg3);}
-.d-fill{height:100%;border-radius:5px;}
-/* Sparkline container */
-.spark{height:30px;width:100%;margin-top:6px;}
-/* Toast */
-.toast{position:fixed;bottom:16px;right:16px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:10px 14px;font-size:12.5px;z-index:9999;display:none;box-shadow:0 4px 20px rgba(0,0,0,.4);}
-.toast.show{display:flex;align-items:center;gap:7px;}
-/* Timeline */
-.timeline{position:relative;padding-left:18px;}
-.timeline::before{content:'';position:absolute;left:5px;top:0;bottom:0;width:2px;background:var(--border);}
-.tl-item{position:relative;margin-bottom:12px;}
-.tl-dot{position:absolute;left:-16px;top:3px;width:9px;height:9px;border-radius:50%;border:2px solid var(--bg2);}
-.tl-time{font-size:10px;color:var(--text3);}
-.tl-text{font-size:12.5px;margin-top:1px;}
-/* Section title */
-.s-title{font-size:13px;font-weight:600;margin-bottom:12px;}
-::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:8px;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;}
+
+/* ── Module Layout ───────────────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+
+/* ── Tab Bar ─────────────────────────────────────────────── */
+#tabbar{
+  display:flex;overflow-x:auto;gap:4px;padding:10px 12px 0;
+  background:var(--bg2);border-bottom:1px solid var(--bg4);
+  scrollbar-width:none;flex-shrink:0;
+}
+#tabbar::-webkit-scrollbar{display:none;}
+.tab{
+  flex-shrink:0;padding:7px 14px;border-radius:8px 8px 0 0;border:none;
+  background:transparent;color:var(--text2);font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.tab.active{background:var(--bg);color:var(--acc);border-bottom:2px solid var(--acc);}
+.tab:hover:not(.active){background:var(--bg3);color:var(--text);}
+
+/* ── Filter Bar ──────────────────────────────────────────── */
+#filterbar{
+  display:flex;gap:8px;padding:10px 14px;background:var(--bg2);
+  border-bottom:1px solid var(--bg4);align-items:center;flex-shrink:0;
+  overflow-x:auto;scrollbar-width:none;
+}
+#filterbar::-webkit-scrollbar{display:none;}
+.flt-select{
+  padding:5px 10px;border-radius:7px;border:1px solid var(--bg4);
+  background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer;
+}
+.flt-btn{
+  padding:5px 12px;border-radius:7px;border:1px solid var(--bg4);
+  background:var(--bg3);color:var(--text2);font-size:12px;cursor:pointer;
+  white-space:nowrap;transition:all .15s;
+}
+.flt-btn:hover,.flt-btn.active{background:var(--acc);color:#000;border-color:var(--acc);}
+.flt-spacer{margin-left:auto;}
+.refresh-btn{
+  padding:5px 10px;border-radius:7px;border:none;
+  background:var(--acc);color:#000;font-size:13px;cursor:pointer;font-weight:600;
+}
+
+/* ── Content ─────────────────────────────────────────────── */
+#content{flex:1;overflow-y:auto;padding:14px;padding-bottom:calc(14px + var(--safe-bot));}
+
+/* ── KPI Cards ───────────────────────────────────────────── */
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
+@media(min-width:600px){.kpi-grid{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:900px){.kpi-grid{grid-template-columns:repeat(4,1fr);}}
+@media(min-width:1200px){.kpi-grid{grid-template-columns:repeat(6,1fr);}}
+.kpi{background:var(--bg2);border:1px solid var(--bg4);border-radius:12px;padding:14px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--c,var(--acc));}
+.kpi-icon{font-size:20px;margin-bottom:6px;}
+.kpi-val{font-size:22px;font-weight:700;color:var(--text);line-height:1;}
+.kpi-label{font-size:11px;color:var(--text2);margin-top:4px;}
+.kpi-delta{font-size:11px;margin-top:6px;display:flex;align-items:center;gap:3px;}
+.delta-up{color:var(--green);}
+.delta-dn{color:var(--red);}
+.delta-neu{color:var(--text2);}
+
+/* ── Section ─────────────────────────────────────────────── */
+.section{background:var(--bg2);border:1px solid var(--bg4);border-radius:12px;padding:16px;margin-bottom:14px;}
+.section-title{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
+.section-title span{color:var(--text);}
+
+/* ── SVG Chart ───────────────────────────────────────────── */
+.chart-wrap{width:100%;overflow:hidden;}
+.chart-wrap svg{width:100%;display:block;}
+.chart-label{font-size:10px;fill:var(--text2);}
+.chart-value{font-size:10px;fill:var(--text);font-weight:600;}
+.chart-line{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+.chart-area{opacity:.15;}
+.chart-dot{r:4;}
+
+/* ── Bar Chart ───────────────────────────────────────────── */
+.bar-chart{display:flex;gap:6px;align-items:flex-end;height:120px;margin-top:8px;}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.bar-val{font-size:9px;color:var(--text2);}
+.bar{width:100%;border-radius:4px 4px 0 0;min-height:4px;transition:height .3s;}
+.bar-lbl{font-size:9px;color:var(--text3);text-align:center;word-break:keep-all;}
+
+/* ── Donut Chart ─────────────────────────────────────────── */
+.donut-wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+.donut-legend{display:flex;flex-direction:column;gap:8px;flex:1;min-width:120px;}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:12px;}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.legend-val{margin-left:auto;font-weight:600;color:var(--text);}
+
+/* ── Table ───────────────────────────────────────────────── */
+.data-table{width:100%;border-collapse:collapse;font-size:12px;}
+.data-table th{padding:8px 10px;text-align:left;color:var(--text2);border-bottom:1px solid var(--bg4);font-weight:500;font-size:11px;text-transform:uppercase;}
+.data-table td{padding:8px 10px;border-bottom:1px solid var(--bg3);color:var(--text);}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:var(--bg3);}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;}
+.badge-green{background:rgba(16,185,129,.15);color:var(--green);}
+.badge-amber{background:rgba(245,158,11,.15);color:var(--amber);}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red);}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue);}
+
+/* ── Progress bar ────────────────────────────────────────── */
+.prog-wrap{margin-bottom:12px;}
+.prog-head{display:flex;justify-content:space-between;margin-bottom:5px;font-size:12px;}
+.prog-bar{height:8px;background:var(--bg4);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:4px;transition:width .5s;}
+
+/* ── Metric Row ──────────────────────────────────────────── */
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bg3);}
+.metric-row:last-child{border-bottom:none;}
+.metric-lbl{font-size:12px;color:var(--text2);}
+.metric-val{font-size:13px;font-weight:600;}
+
+/* ── Export ──────────────────────────────────────────────── */
+.export-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+@media(min-width:600px){.export-grid{grid-template-columns:repeat(3,1fr);}}
+.export-card{background:var(--bg3);border:1px solid var(--bg4);border-radius:10px;padding:16px;cursor:pointer;transition:all .15s;text-align:center;}
+.export-card:hover{border-color:var(--acc);background:var(--bg4);}
+.export-icon{font-size:28px;margin-bottom:8px;}
+.export-name{font-size:12px;font-weight:600;color:var(--text);}
+.export-desc{font-size:10px;color:var(--text2);margin-top:4px;}
+.export-btn-row{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+.btn-primary{padding:10px 24px;border-radius:8px;border:none;background:var(--acc);color:#000;font-weight:600;font-size:13px;cursor:pointer;transition:all .15s;}
+.btn-primary:hover{background:var(--acc2);}
+.btn-secondary{padding:10px 24px;border-radius:8px;border:1px solid var(--bg4);background:var(--bg3);color:var(--text);font-size:13px;cursor:pointer;transition:all .15s;}
+.btn-secondary:hover{background:var(--bg4);}
+
+/* ── Toast ───────────────────────────────────────────────── */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--bg3);border:1px solid var(--bg4);color:var(--text);
+  padding:10px 20px;border-radius:10px;font-size:13px;
+  opacity:0;pointer-events:none;transition:opacity .3s;z-index:999;}
+#toast.show{opacity:1;}
+
+/* ── Two-col layout for big screens ─────────────────────── */
+@media(min-width:768px){
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .two-col .full{grid-column:1/-1;}
+}
+
+/* ── Loading ─────────────────────────────────────────────── */
+.loading{display:flex;align-items:center;justify-content:center;height:200px;color:var(--text2);font-size:13px;gap:10px;}
+.spin{width:18px;height:18px;border:2px solid var(--bg4);border-top-color:var(--acc);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
 </style>
-<style data-injected="embedded-mode">
-/* ═══════════════════════════════════════
-   EMBEDDED MODE — injecté par create_embedded.py
-   Supprime toute interface interne et force le module
-   à occuper 100% du cadre iframe du Core
-═══════════════════════════════════════ */
-html, body {
-  margin: 0 !important;
-  padding: 0 !important;
-  height: 100% !important;
-  overflow: hidden !important;
-  background: var(--bg-main, #0f172a) !important;
-}
+</head>
+<body>
+<div id="app">
 
-/* Supprimer les wrappers inutiles */
-.app {
-  display: block !important;
-  height: 100vh !important;
-  overflow: hidden !important;
-}
+  <!-- Tab Bar -->
+  <div id="tabbar">
+    <button class="tab active" onclick="goTab('dashboard')" id="tab-dashboard">📊 Dashboard</button>
+    <button class="tab" onclick="goTab('occupation')" id="tab-occupation">🏨 Occupation</button>
+    <button class="tab" onclick="goTab('revenus')"    id="tab-revenus">💰 Revenus</button>
+    <button class="tab" onclick="goTab('restaurant')" id="tab-restaurant">🍽️ Restaurant</button>
+    <button class="tab" onclick="goTab('depenses')"   id="tab-depenses">💸 Dépenses</button>
+    <button class="tab" onclick="goTab('cashflow')"   id="tab-cashflow">📈 Cashflow</button>
+    <button class="tab" onclick="goTab('employes')"   id="tab-employes">👥 Employés</button>
+    <button class="tab" onclick="goTab('export')"     id="tab-export">📤 Export</button>
+  </div>
 
-/* .main occupe tout l'espace */
-.main {
-  display: flex !important;
-  flex-direction: column !important;
-  height: 100vh !important;
-  width: 100% !important;
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: var(--bg-main, #0f172a) !important;
-}
+  <!-- Filter Bar -->
+  <div id="filterbar">
+    <select class="flt-select" id="period-select" onchange="onPeriodChange()">
+      <option value="7">7 jours</option>
+      <option value="30" selected>30 jours</option>
+      <option value="90">3 mois</option>
+      <option value="180">6 mois</option>
+      <option value="365">1 an</option>
+    </select>
+    <button class="flt-btn active" onclick="setCompar(this,'month')" data-c="month">Ce mois</button>
+    <button class="flt-btn" onclick="setCompar(this,'lastmonth')" data-c="lastmonth">Mois préc.</button>
+    <button class="flt-btn" onclick="setCompar(this,'year')" data-c="year">Cette année</button>
+    <span class="flt-spacer"></span>
+    <button class="refresh-btn" onclick="loadAll()">↻</button>
+  </div>
 
-/* Tabs collés en haut */
-.tabs {
-  flex-shrink: 0 !important;
-}
-
-/* Content scrollable prend le reste */
-.content {
-  flex: 1 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding: 20px !important;
-  box-sizing: border-box !important;
-}
-
-/* RESTAURANT: les .view occupent tout le .main */
-.main > .view {
-  display: none;
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  height: 100%;
-  box-sizing: border-box;
-}
-.main > .view.active {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Masquer sidebar, topbar, toast internes */
-.sidebar,
-aside.sidebar,
-.topbar,
-#toast,
-.toast,
-.bottom-nav,
-nav.bottom-nav {
-  display: none !important;
-}
-</style></head>
-<body><script data-injected="embedded-bridge">
-/* ═══════════════════════════════════════
-   EMBEDDED BRIDGE — Communication avec Veraluz OS Core
-   Injecté par create_embedded.py
-═══════════════════════════════════════ */
-(function() {
-  'use strict';
-
-  /* 1. Toast → déléguer au parent */
-  window.toast = function(msg, type) {
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.showToast(msg, type || 'info');
-      }
-    } catch(e) {
-      console.log('[Embedded toast]', msg, type);
-    }
-  };
-
-  /* Aussi patcher showToast si défini localement */
-  window.showToast = window.toast;
-
-  /* 2. Émettre un événement vers le Core via postMessage */
-  window.emitToCore = function(type, data) {
-    try {
-      window.parent.postMessage({
-        veraluzEvent: true,
-        type: type,
-        data: data,
-        source: window.__MODULE_NAME__ || 'embedded-module'
-      }, '*');
-    } catch(e) {}
-  };
-
-  /* 3. Recevoir des événements du Core */
-  window.addEventListener('message', function(e) {
-    if (!e.data || !e.data.veraluzEvent) return;
-    var evt = new CustomEvent('veraluz:' + e.data.type, { detail: e.data.data });
-    window.dispatchEvent(evt);
-  });
-
-  /* 4. Signaler au Core que le module est chargé */
-  window.addEventListener('DOMContentLoaded', function() {
-    window.emitToCore('module:ready', { module: window.__MODULE_NAME__ });
-  });
-})();
-</script>
-<div class="app">
-<!-- SIDEBAR -->
-
-<!-- MAIN -->
-<div class="main">
-
-<div class="tabs">
-<div class="tab active" id="tab-overview" onclick="switchTab('overview')">📊 Vue globale</div>
-<div class="tab" id="tab-revenue" onclick="switchTab('revenue')">💰 Revenus</div>
-<div class="tab" id="tab-occupancy" onclick="switchTab('occupancy')">🏨 Occupation</div>
-<div class="tab" id="tab-restaurant" onclick="switchTab('restaurant')">🍽️ Restaurant</div>
-<div class="tab" id="tab-guests" onclick="switchTab('guests')">🧳 Clients</div>
-<div class="tab" id="tab-employees" onclick="switchTab('employees')">👥 Employés</div>
-<div class="tab" id="tab-alerts" onclick="switchTab('alerts')">🔔 Alertes<span class="tab-badge" id="alert-badge">3</span></div>
-<div class="tab" id="tab-reports" onclick="switchTab('reports')">📄 Rapports</div>
+  <!-- Content -->
+  <div id="content">
+    <div class="loading"><div class="spin"></div> Chargement analytics...</div>
+  </div>
 </div>
-<div class="content" id="content"></div>
-</div>
-</div>
+
+<div id="toast"></div>
 
 <script>
-// ============================================================
-// DATA SIMULÉE — RÉSIDENCE VERALUZ, KRIBI
-// ============================================================
-const MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+/* ═══════════════════════════════════════════════════════════
+   VERALUZ — ANALYTICS MODULE v2.0
+   READ-ONLY | Mobile-First | Event Bus Compatible
+   ═════════════════════════════════════════════════════════ */
 
-// Génère des données réalistes pour un hôtel côtier à Kribi
-function randBetween(a,b){return Math.floor(Math.random()*(b-a)+a);}
-function trend(base,variance,n){
-  let arr=[],v=base;
-  for(let i=0;i<n;i++){v=Math.max(0,v+(Math.random()-.4)*variance);arr.push(Math.round(v));}
-  return arr;
+var MODULE_ID = 'veraluz-analytics';
+var SUPA_URL  = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+
+var currentTab  = 'dashboard';
+var currentDays = 30;
+var DATA = {};
+
+/* ── Event Bus ───────────────────────────────────────────── */
+function emit(type, data) {
+  try { window.parent.postMessage({ source: MODULE_ID, type: type, data: data || {} }, '*'); }
+  catch(e) {}
+}
+window.addEventListener('message', function(ev) {
+  if (!ev.data || ev.data.source !== 'veraluz-core') return;
+  var msg = ev.data;
+  if (msg.type === 'refresh') loadAll();
+  if (msg.type === 'navigate-tab' && msg.data && msg.data.tab) goTab(msg.data.tab);
+});
+window.addEventListener('load', function() {
+  emit('module-ready', { module: 'analytics', version: '2.0' });
+  loadAll();
+});
+
+/* ── Helpers ─────────────────────────────────────────────── */
+function fmt(n) {
+  if (n === null || n === undefined) return '—';
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n/1000).toFixed(0)    + 'k';
+  return String(Math.round(n));
+}
+function fmtXAF(n) {
+  if (!n) return '0 XAF';
+  if (n >= 1000000) return (n/1000000).toFixed(2) + 'M XAF';
+  if (n >= 1000)    return (n/1000).toFixed(0) + 'k XAF';
+  return n + ' XAF';
+}
+function pct(v, t) { return t ? Math.round(v/t*100) : 0; }
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 2500);
+}
+function delta(cur, prev) {
+  if (!prev) return { pct: 0, cls: 'delta-neu', arrow: '' };
+  var p = Math.round((cur - prev) / prev * 100);
+  if (p > 0) return { pct: p, cls: 'delta-up', arrow: '▲' };
+  if (p < 0) return { pct: Math.abs(p), cls: 'delta-dn', arrow: '▼' };
+  return { pct: 0, cls: 'delta-neu', arrow: '►' };
 }
 
-const PERIOD = 30;
-let period = 30;
-
-// Revenus journaliers 30j (FCFA)
-const revenueDaily = trend(180000, 60000, 30);
-const occupancyDaily = trend(68, 20, 30).map(v=>Math.min(100,Math.max(0,v)));
-const restaurantDaily = trend(85000, 30000, 30);
-const reservationsDaily = trend(3, 3, 30).map(v=>Math.max(0,v));
-
-// Revenus mensuels 12 mois
-const monthlyRevenue = [
-  {m:1,y:2025,rev:4200000,exp:2800000,occ:58,guests:62},
-  {m:2,y:2025,rev:3800000,exp:2600000,occ:52,guests:54},
-  {m:3,y:2025,rev:4600000,exp:2900000,occ:63,guests:71},
-  {m:4,y:2025,rev:5200000,exp:3100000,occ:72,guests:89},
-  {m:5,y:2025,rev:5800000,exp:3200000,occ:78,guests:98},
-  {m:6,y:2025,rev:6400000,exp:3400000,occ:85,guests:112},
-  {m:7,y:2025,rev:7100000,exp:3600000,occ:92,guests:131},
-  {m:8,y:2025,rev:6900000,exp:3500000,occ:89,guests:124},
-  {m:9,y:2025,rev:5500000,exp:3100000,occ:74,guests:95},
-  {m:10,y:2025,rev:5100000,exp:3000000,occ:70,guests:87},
-  {m:11,y:2025,rev:4800000,exp:2900000,occ:65,guests:78},
-  {m:12,y:2025,rev:5600000,exp:3200000,occ:76,guests:101},
-  {m:1,y:2026,rev:4500000,exp:2850000,occ:62,guests:67},
-  {m:2,y:2026,rev:4100000,exp:2700000,occ:56,guests:59},
-  {m:3,y:2026,rev:4900000,exp:2950000,occ:67,guests:76},
-  {m:4,y:2026,rev:5400000,exp:3150000,occ:74,guests:91},
-  {m:5,y:2026,rev:2100000,exp:1300000,occ:65,guests:38}, // en cours
-];
-
-const totalRev30 = revenueDaily.reduce((a,b)=>a+b,0);
-const totalRest30 = restaurantDaily.reduce((a,b)=>a+b,0);
-const avgOcc30 = occupancyDaily.reduce((a,b)=>a+b,0)/30;
-
-let alerts = [
-  {id:1,level:'critical',cat:'payment',title:'Paiements en attente élevés',msg:'7 paiements non validés depuis plus de 24h — Montant total: 890 000 FCFA',time:'Il y a 2h',status:'active'},
-  {id:2,level:'warning',cat:'occupancy',title:'Occupation en baisse',msg:'Taux d\'occupation < 50% prévu ce weekend — 3 chambres sans réservation',time:'Il y a 5h',status:'active'},
-  {id:3,level:'warning',cat:'restaurant',title:'Stock restaurant faible',msg:'Citrons, eau minérale, bière en dessous du seuil minimum',time:'Il y a 8h',status:'active'},
-  {id:4,level:'info',cat:'hr',title:'Congé Théodore Mba',msg:'Chef Housekeeping en congé jusqu\'au 21 Mai — couverture assurée',time:'Il y a 12h',status:'acknowledged'},
-  {id:5,level:'info',cat:'revenue',title:'Pic de revenus Samedi',msg:'Revenus Samedi 11 Mai: 320 000 FCFA — record de la semaine',time:'Il y a 2j',status:'resolved'},
-];
-
-let generatedReports = [];
-let currentTab = 'overview';
-
-// ============================================================
-// UTILS
-// ============================================================
-function fmt(n){return new Intl.NumberFormat('fr-FR').format(Math.round(n))+' FCFA';}
-function fmtS(n){return n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(0)+'k':String(Math.round(n));}
-function pct(n){return Math.round(n)+'%';}
-/* toast() delegated to embedded bridge */;
-  t.innerHTML=`${ic[type]||'ℹ️'} ${msg}`;
-  t.className='toast show';
-  setTimeout(()=>t.className='toast',2800);
+/* ── Supabase Fetch ──────────────────────────────────────── */
+function supa(endpoint) {
+  return fetch(SUPA_URL + '/rest/v1/' + endpoint, {
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json'
+    }
+  }).then(function(r) { return r.json(); }).catch(function() { return null; });
 }
 
-// ============================================================
-// SVG CHARTS
-// ============================================================
-function lineChart(data,color,h=70){
-  if(!data||data.length<2) return '';
-  const max=Math.max(...data)||1,min=Math.min(...data);
-  const r=max-min||1;
-  const W=100,H=h;
-  const pts=data.map((v,i)=>{
-    const x=(i/(data.length-1))*W;
-    const y=H-((v-min)/r)*(H*.85)-(H*.075);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-  const area=`0,${H} `+pts+` ${W},${H}`;
-  const gid='g'+color.replace('#','');
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;" preserveAspectRatio="none">
-    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
-      <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
-    </linearGradient></defs>
-    <polygon points="${area}" fill="url(#${gid})"/>
-    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
-}
-
-function barChart(data,labels,color,h=80){
-  if(!data||!data.length) return '';
-  const max=Math.max(...data)||1;
-  const bw=100/data.length;
-  const bars=data.map((v,i)=>{
-    const bh=(v/max)*(h*.9);
-    const x=i*bw+bw*.08;
-    const y=h-bh;
-    const opacity=i===data.length-1?1:0.55;
-    const lbl=labels?`<text x="${(x+bw*.42).toFixed(1)}" y="${h+12}" text-anchor="middle" font-size="4.5" fill="#6b7280">${labels[i]}</text>`:'';
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bw*.84).toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}" opacity="${opacity}" rx="1.5"/>${lbl}`;
-  }).join('');
-  return `<svg viewBox="0 0 100 ${h+14}" style="width:100%;height:${h+14}px;" preserveAspectRatio="none">${bars}</svg>`;
-}
-
-function sparkline(data,color,h=28){
-  if(!data||data.length<2)return '';
-  const max=Math.max(...data)||1,min=Math.min(...data);
-  const r=max-min||1;
-  const pts=data.slice(-10).map((v,i,arr)=>{
-    const x=(i/(arr.length-1))*100;
-    const y=h-((v-min)/r)*(h*.9)-(h*.05);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-  return `<svg viewBox="0 0 100 ${h}" style="width:100%;height:${h}px;" preserveAspectRatio="none">
-    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
-}
-
-// ============================================================
-// KPI CARD HTML
-// ============================================================
-function kpiCard(icon,label,value,sub,color,trendVal,series){
-  const trendHtml=trendVal!=null?`<span class="kpi-trend ${trendVal>=0?'trend-up':'trend-dn'}">${trendVal>=0?'↑':'↓'} ${Math.abs(trendVal)}%</span>`:'';
-  const sparkHtml=series?`<div class="spark">${sparkline(series,color)}</div>`:'';
-  return `<div class="kpi-card">
-    <div class="kpi-lbl"><span>${icon}</span>${label}${trendHtml}</div>
-    <div class="kpi-val" style="color:${color};">${value}</div>
-    ${sub?`<div class="kpi-sub">${sub}</div>`:''}
-    ${sparkHtml}
-  </div>`;
-}
-
-// ============================================================
-// TABS
-// ============================================================
-function switchTab(tab){
-  currentTab=tab;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  render();
-}
-
-function onPeriodChange(){
-  period=parseInt(document.getElementById('period-sel').value);
-  render();
-}
-
-function refreshAll(){
-  toast('📡 Données actualisées — connexion Supabase OK','success');
-  render();
-}
-
-// ============================================================
-// RENDER
-// ============================================================
-function render(){
-  const tabs={
-    overview:renderOverview,revenue:renderRevenue,occupancy:renderOccupancy,
-    restaurant:renderRestaurant,guests:renderGuests,employees:renderEmployees,
-    alerts:renderAlerts,reports:renderReports
-  };
-  const fn=tabs[currentTab]||renderOverview;
-  document.getElementById('content').innerHTML=fn();
-  // Update alert badge
-  const activeCount=alerts.filter(a=>a.status==='active').length;
-  document.getElementById('alert-badge').textContent=activeCount;
-  const critCount=alerts.filter(a=>a.status==='active'&&a.level==='critical').length;
-  const cb=document.getElementById('critical-alert');
-  if(critCount>0){cb.style.display='';cb.textContent=`🚨 ${critCount} critique(s)`;}
-  else cb.style.display='none';
-}
-
-// ============================================================
-// OVERVIEW
-// ============================================================
-function renderOverview(){
-  const revenueBreakdown=[
-    {lbl:'Hébergement',val:totalRev30*0.62,color:'#6c63ff'},
-    {lbl:'Restaurant',val:totalRev30*0.25,color:'#f97316'},
-    {lbl:'Bar Lounge',val:totalRev30*0.11,color:'#06b6d4'},
-    {lbl:'Autres',val:totalRev30*0.02,color:'#6b7280'},
-  ];
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('💰','Revenus 30j',fmtS(totalRev30)+' FCFA','Hébergement+F&B+Bar','#6c63ff',12,revenueDaily)}
-    ${kpiCard('🏨','Occupation moy.',pct(avgOcc30),'9 unités disponibles','#10b981',5,occupancyDaily)}
-    ${kpiCard('🍽️','F&B Total 30j',fmtS(totalRest30)+' FCFA','Restaurant & Bar','#f97316',8,restaurantDaily)}
-    ${kpiCard('🛎️','Réservations',String(reservationsDaily.reduce((a,b)=>a+b,0)),'30 derniers jours','#3b82f6',3,reservationsDaily)}
-    ${kpiCard('💳','Paiements en attente','7','Total: 890 000 FCFA','#ef4444',-2)}
-    ${kpiCard('👥','Présents aujourd\'hui','6/8','1 en congé, 1 en retard','#8b5cf6',null)}
-    ${kpiCard('📅','Revenus aujourd\'hui',fmtS(revenueDaily[revenueDaily.length-1])+' FCFA','Toutes sources','#06b6d4',null)}
-    ${kpiCard('📈','RevPAR',fmt(75000),'Revenue Per Available Room','#10b981',7)}
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Revenus journaliers — 30 jours
-        <span class="bdg bdg-p">Moy: ${fmtS(totalRev30/30)}/j</span>
-      </div>
-      <div class="svg-wrap">${lineChart(revenueDaily,'#6c63ff',90)}</div>
-      <div class="chart-sub">↗ +12% vs période précédente</div>
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Taux d'occupation — 30 jours
-        <span class="bdg ${avgOcc30>=75?'bdg-g':avgOcc30>=50?'bdg-y':'bdg-r'}">${pct(avgOcc30)}</span>
-      </div>
-      <div class="svg-wrap">${lineChart(occupancyDaily,'#10b981',90)}</div>
-      <div class="chart-sub">Cible: 75% · <span style="color:var(--yellow);">━</span> Seuil avertissement: 50%</div>
-    </div>
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Répartition revenus 30j</div>
-      ${revenueBreakdown.map(r=>{
-        const p=(r.val/totalRev30*100).toFixed(0);
-        return `<div class="bar-row">
-          <div class="bar-lbl" style="font-size:10.5px;">${r.lbl}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${r.color};"></div></div>
-          <div class="bar-val" style="color:${r.color};">${p}% <span style="color:var(--text3);font-weight:400;">${fmtS(r.val)}</span></div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Revenus mensuels 2026</div>
-      <div class="svg-wrap">${barChart(
-        monthlyRevenue.filter(m=>m.y===2026).map(m=>m.rev),
-        monthlyRevenue.filter(m=>m.y===2026).map(m=>MONTHS[m.m-1]),
-        '#6c63ff',80
-      )}</div>
-      <div class="chart-sub">Mai en cours (mi-mois)</div>
-    </div>
-  </div>
-
-  <div class="g2">
-    <!-- Alertes actives -->
-    <div class="chart-wrap">
-      <div class="chart-title">🔔 Alertes actives (${alerts.filter(a=>a.status==='active').length})</div>
-      ${alerts.filter(a=>a.status==='active').slice(0,3).map(a=>{
-        const lc={critical:'#ef4444',warning:'#f59e0b',info:'#3b82f6'};
-        const bg={critical:'rgba(239,68,68,.07)',warning:'rgba(245,158,11,.07)',info:'rgba(59,130,246,.07)'};
-        const ic={critical:'🚨',warning:'⚠️',info:'ℹ️'};
-        return `<div class="alert-item" style="border-left-color:${lc[a.level]};background:${bg[a.level]};">
-          <div class="alert-icon">${ic[a.level]}</div>
-          <div class="alert-cnt">
-            <div class="alert-tit" style="color:${lc[a.level]};">${a.title}</div>
-            <div class="alert-msg">${a.msg}</div>
-          </div>
-          <button class="btn btn-o btn-sm" onclick="ackAlert(${a.id})">✓</button>
-        </div>`;
-      }).join('')}
-      <button class="btn btn-o btn-sm" style="width:100%;margin-top:6px;justify-content:center;" onclick="switchTab('alerts')">Voir toutes →</button>
-    </div>
-    <!-- Activité récente -->
-    <div class="chart-wrap">
-      <div class="chart-title">📋 Activité récente</div>
-      <div class="timeline">
-        <div class="tl-item"><div class="tl-dot" style="background:var(--green);"></div><div class="tl-time">Aujourd'hui 10:23 — Smith (Canada)</div><div class="tl-text">✅ 7 fiches de paie Mai validées</div></div>
-        <div class="tl-item"><div class="tl-dot" style="background:var(--blue);"></div><div class="tl-time">Aujourd'hui 09:45 — Système</div><div class="tl-text">📅 3 check-ins enregistrés (chambres 101, 203, Studio A)</div></div>
-        <div class="tl-item"><div class="tl-dot" style="background:var(--orange);"></div><div class="tl-time">Hier 21:14 — Judith Biyong</div><div class="tl-text">🍽️ Commande table 5 — 45 000 FCFA</div></div>
-        <div class="tl-item"><div class="tl-dot" style="background:var(--yellow);"></div><div class="tl-time">Hier 14:30 — Système</div><div class="tl-text">⚠️ Alerte stock restaurant générée automatiquement</div></div>
-        <div class="tl-item"><div class="tl-dot" style="background:var(--accent);"></div><div class="tl-time">12 Mai — Smith (Canada)</div><div class="tl-text">📊 Rapport mensuel Avril généré et envoyé par email</div></div>
-      </div>
-    </div>
-  </div>`;
-}
-
-// ============================================================
-// REVENUE
-// ============================================================
-function renderRevenue(){
-  const cur2026=monthlyRevenue.filter(m=>m.y===2026);
-  const totalY=cur2026.reduce((a,m)=>a+m.rev,0);
-  const totalExp=cur2026.reduce((a,m)=>a+m.exp,0);
-  const totalProfit=totalY-totalExp;
-  const projAnnuel=totalY/(cur2026.length/12);
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('💰','Revenus 2026',fmtS(totalY)+' FCFA',cur2026.length+' mois complets','#6c63ff',14)}
-    ${kpiCard('📉','Dépenses 2026',fmtS(totalExp)+' FCFA','Salaires+charges+opérations','#ef4444',-3)}
-    ${kpiCard('📈','Profit 2026',fmtS(totalProfit)+' FCFA','Marge: '+pct(totalProfit/totalY*100),'#10b981',18)}
-    ${kpiCard('🔮','Projection annuelle',fmtS(projAnnuel)+' FCFA','Extrapolation linéaire','#8b5cf6',null)}
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">Revenus vs Dépenses — Historique mensuel 2025-2026</div>
-    <div class="svg-wrap">${lineChart(monthlyRevenue.map(m=>m.rev),'#6c63ff',100)}</div>
-    <div class="chart-sub">Bleu = Revenus · Cible annuelle 2026: 60 000 000 FCFA</div>
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Profitabilité mensuelle 2026</div>
-      ${cur2026.map(m=>{
-        const profit=m.rev-m.exp;
-        const margin=(profit/m.rev*100).toFixed(0);
-        return `<div class="bar-row">
-          <div class="bar-lbl">${MONTHS[m.m-1]}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${margin}%;background:${margin>=30?'var(--green)':margin>=15?'var(--yellow)':'var(--red)'};"></div></div>
-          <div class="bar-val">${margin}% <span style="color:var(--text3);font-size:10px;">${fmtS(profit)}</span></div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Revenus par source</div>
-      ${[
-        {lbl:'🏠 Hébergement',pct:62,color:'#6c63ff'},
-        {lbl:'🍽️ Restaurant',pct:25,color:'#f97316'},
-        {lbl:'🍹 Bar Lounge',pct:11,color:'#06b6d4'},
-        {lbl:'📦 Autres',pct:2,color:'#6b7280'},
-      ].map(r=>`<div class="bar-row">
-        <div class="bar-lbl" style="font-size:10px;width:95px;">${r.lbl}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${r.pct}%;background:${r.color};"></div></div>
-        <div class="bar-val" style="color:${r.color};">${r.pct}%</div>
-      </div>`).join('')}
-      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">
-        <div class="chart-sub">RevPAR: ${fmt(75000)} · ADR: ${fmt(112000)} · Durée moy: 2.4 nuits</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">Tableau détaillé — Performance mensuelle</div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Période</th><th>Revenus</th><th>Dépenses</th><th>Profit</th><th>Marge</th><th>Occupation</th><th>Clients</th><th>Statut</th></tr>
-      ${monthlyRevenue.slice(-8).reverse().map(m=>{
-        const profit=m.rev-m.exp;
-        const margin=(profit/m.rev*100).toFixed(1);
-        const isCurrent=m.y===2026&&m.m===5;
-        return `<tr>
-          <td style="font-weight:500;">${MONTHS[m.m-1]} ${m.y} ${isCurrent?'<span class="bdg bdg-b">En cours</span>':''}</td>
-          <td style="color:var(--accent2);">${fmt(m.rev)}</td>
-          <td style="color:var(--red);">${fmt(m.exp)}</td>
-          <td style="color:${profit>=0?'var(--green)':'var(--red)'};font-weight:600;">${fmt(profit)}</td>
-          <td><span class="bdg ${margin>=30?'bdg-g':margin>=15?'bdg-y':'bdg-r'}">${margin}%</span></td>
-          <td>${m.occ}%</td>
-          <td>${m.guests}</td>
-          <td><span class="bdg ${isCurrent?'bdg-b':'bdg-g'}">${isCurrent?'📊 Partiel':'✅ Clôturé'}</span></td>
-        </tr>`;
-      }).join('')}
-    </table></div>
-  </div>`;
-}
-
-// ============================================================
-// OCCUPANCY
-// ============================================================
-function renderOccupancy(){
-  const rooms=[
-    {name:'Chambre 101',type:'Chambre 1er',rate:75000,status:'occupée',guest:'M. Ngono',checkin:'12 Mai',checkout:'16 Mai',nights:4},
-    {name:'Chambre 102',type:'Chambre 1er',rate:75000,status:'occupée',guest:'Mme Samba',checkin:'13 Mai',checkout:'15 Mai',nights:2},
-    {name:'Chambre 103',type:'Chambre 1er',rate:75000,status:'libre',guest:null,checkin:null,checkout:null,nights:0},
-    {name:'Chambre 104',type:'Chambre 1er',rate:75000,status:'nettoyage',guest:null,checkin:null,checkout:null,nights:0},
-    {name:'Chambre 105',type:'Chambre 1er',rate:75000,status:'occupée',guest:'M. Dibango',checkin:'11 Mai',checkout:'17 Mai',nights:6},
-    {name:'Appt 2ch',type:'Appartement',rate:120000,status:'occupée',guest:'Famille Mba',checkin:'10 Mai',checkout:'18 Mai',nights:8},
-    {name:'Studio A',type:'Studio 2e',rate:90000,status:'occupée',guest:'M. Koum',checkin:'14 Mai',checkout:'16 Mai',nights:2},
-    {name:'Studio B',type:'Studio 2e',rate:90000,status:'libre',guest:null,checkin:null,checkout:null,nights:0},
-    {name:'Suite Présidentielle',type:'Suite',rate:250000,status:'réservée',guest:'VIP — C. Manga',checkin:'16 Mai',checkout:'20 Mai',nights:4},
-  ];
-  const occupied=rooms.filter(r=>r.status==='occupée').length;
-  const occ=occupied/rooms.length*100;
-  const revToday=rooms.filter(r=>r.status==='occupée').reduce((a,r)=>a+r.rate,0);
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('🏨','Occupation actuelle',pct(occ),`${occupied}/${rooms.length} unités occupées`,occ>=75?'#10b981':occ>=50?'#f59e0b':'#ef4444',null)}
-    ${kpiCard('💰','Revenus hébergement/j',fmt(revToday),'Unités occupées aujourd\'hui','#6c63ff',null)}
-    ${kpiCard('📅','ADR',fmt(112000),'Average Daily Rate','#8b5cf6',7)}
-    ${kpiCard('📊','RevPAR',fmt(75000),'Revenue Per Available Room','#10b981',5)}
-    ${kpiCard('🔄','Taux annulation','8.2%','30 derniers jours','#f59e0b',null)}
-    ${kpiCard('🌙','Durée moy. séjour','2.4 nuits','Tourisme côtier Kribi','#06b6d4',null)}
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Occupation journalière — 30j
-        <span class="bdg ${avgOcc30>=75?'bdg-g':avgOcc30>=50?'bdg-y':'bdg-r'}">${pct(avgOcc30)}</span>
-      </div>
-      <div class="svg-wrap">${lineChart(occupancyDaily,'#10b981',80)}</div>
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Check-ins / Check-outs journaliers</div>
-      <div class="svg-wrap">${barChart(reservationsDaily,null,'#3b82f6',80)}</div>
-    </div>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">État des chambres — Temps réel</div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Unité</th><th>Type</th><th>Tarif/nuit</th><th>Statut</th><th>Client</th><th>Arrivée</th><th>Départ</th><th>Nuits</th><th>Rev. total</th></tr>
-      ${rooms.map(r=>{
-        const sc={occupée:'bdg-g',libre:'bdg-gr',nettoyage:'bdg-y',réservée:'bdg-b'};
-        return `<tr>
-          <td style="font-weight:500;">${r.name}</td>
-          <td class="bdg" style="font-size:10px;color:var(--text2);">${r.type}</td>
-          <td>${fmt(r.rate)}</td>
-          <td><span class="bdg ${sc[r.status]||'bdg-gr'}">${r.status}</span></td>
-          <td>${r.guest||'—'}</td>
-          <td>${r.checkin||'—'}</td>
-          <td>${r.checkout||'—'}</td>
-          <td>${r.nights||'—'}</td>
-          <td style="color:var(--green);">${r.nights>0?fmt(r.rate*r.nights):'—'}</td>
-        </tr>`;
-      }).join('')}
-    </table></div>
-  </div>`;
-}
-
-// ============================================================
-// RESTAURANT
-// ============================================================
-function renderRestaurant(){
-  const items=[
-    {name:'Poisson braisé',cat:'Grillades',vendu:42,rev:1260000},
-    {name:'Poulet DG',cat:'Plats',vendu:35,rev:875000},
-    {name:'Ndolé',cat:'Plats',vendu:28,rev:560000},
-    {name:'Jus naturels',cat:'Boissons',vendu:65,rev:325000},
-    {name:'Bière Castel',cat:'Bar',vendu:88,rev:440000},
-    {name:'Cocktails plage',cat:'Bar',vendu:31,rev:465000},
-    {name:'Omelette',cat:'Petit déj.',vendu:19,rev:190000},
-    {name:'Assiette crevettes',cat:'Grillades',vendu:14,rev:490000},
-  ];
-  const totalRevFB=totalRest30;
-  const totalOrders=restaurantDaily.reduce((a,b)=>a+Math.ceil(b/12000),0);
-  const avgTicket=totalRevFB/totalOrders;
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('🍽️','F&B Total 30j',fmtS(totalRevFB)+' FCFA','Restaurant + Bar','#f97316',8,restaurantDaily)}
-    ${kpiCard('🧾','Commandes 30j',String(totalOrders),'Tables + Bar + Chambre','#06b6d4',5)}
-    ${kpiCard('💵','Ticket moyen',fmt(avgTicket),'Par commande','#8b5cf6',3)}
-    ${kpiCard('🍹','Bar Lounge',fmtS(totalRevFB*0.31)+' FCFA','31% du F&B total','#06b6d4',12)}
-    ${kpiCard('📅','Aujourd\'hui',fmt(restaurantDaily[restaurantDaily.length-1]),'Toutes sources','#10b981',null)}
-    ${kpiCard('⏱️','KDS actif','3 tickets','En cuisine + bar','#yellow',null)}
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Revenus F&B journaliers</div>
-      <div class="svg-wrap">${lineChart(restaurantDaily,'#f97316',80)}</div>
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Répartition par service</div>
-      ${[
-        {lbl:'🍽️ Restaurant/Table',pct:52,color:'#f97316'},
-        {lbl:'🍹 Bar Lounge',pct:31,color:'#06b6d4'},
-        {lbl:'🛏️ Room Service',pct:12,color:'#8b5cf6'},
-        {lbl:'📦 Emporter',pct:5,color:'#6b7280'},
-      ].map(r=>`<div class="bar-row">
-        <div class="bar-lbl" style="width:110px;font-size:10px;">${r.lbl}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${r.pct}%;background:${r.color};"></div></div>
-        <div class="bar-val" style="color:${r.color};">${r.pct}%</div>
-      </div>`).join('')}
-    </div>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">Top ventes — Articles</div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Article</th><th>Catégorie</th><th>Vendus</th><th>Revenus</th><th>Performance</th></tr>
-      ${items.sort((a,b)=>b.rev-a.rev).map((item,i)=>`<tr>
-        <td style="font-weight:500;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'  '} ${item.name}</td>
-        <td><span class="bdg bdg-gr">${item.cat}</span></td>
-        <td>${item.vendu}</td>
-        <td style="color:var(--orange);">${fmt(item.rev)}</td>
-        <td>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <div style="flex:1;background:var(--bg3);border-radius:5px;height:6px;overflow:hidden;min-width:80px;">
-              <div style="height:100%;border-radius:5px;background:var(--orange);width:${(item.rev/1260000*100).toFixed(0)}%;"></div>
-            </div>
-            <span style="font-size:10px;color:var(--text3);">${(item.rev/totalRevFB*100).toFixed(1)}%</span>
-          </div>
-        </td>
-      </tr>`).join('')}
-    </table></div>
-  </div>`;
-}
-
-// ============================================================
-// GUESTS
-// ============================================================
-function renderGuests(){
-  const nationalities=[
-    {country:'🇨🇲 Cameroun',count:145,pct:52},
-    {country:'🇫🇷 France',count:48,pct:17},
-    {country:'🇨🇮 Côte d\'Ivoire',count:28,pct:10},
-    {country:'🇩🇪 Allemagne',count:19,pct:7},
-    {country:'🇧🇯 Bénin',count:14,pct:5},
-    {country:'🌍 Autres',count:25,pct:9},
-  ];
-  const sources=[
-    {src:'📞 Direct / Téléphone',pct:38,color:'#6c63ff'},
-    {src:'🌐 Booking.com',pct:29,color:'#3b82f6'},
-    {src:'🏠 Airbnb',pct:18,color:'#f97316'},
-    {src:'📱 WhatsApp / Réseaux',pct:11,color:'#10b981'},
-    {src:'🤝 Agences',pct:4,color:'#6b7280'},
-  ];
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('🧳','Clients 30j','127','Voyageurs uniques','#3b82f6',9)}
-    ${kpiCard('🔄','Clients fidèles','23%','Revenant au moins 2 fois','#10b981',3)}
-    ${kpiCard('⭐','Satisfaction moy.','4.3/5','Avis collectés (34)','#f59e0b',null)}
-    ${kpiCard('💰','Dépense moy./client',fmt(42000),'Hébergement + F&B','#8b5cf6',5)}
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Nationalités clients (30j)</div>
-      ${nationalities.map(n=>`<div class="bar-row">
-        <div class="bar-lbl" style="width:115px;font-size:11px;">${n.country}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${n.pct}%;background:var(--blue);"></div></div>
-        <div class="bar-val">${n.pct}% <span style="color:var(--text3);font-weight:400;">(${n.count})</span></div>
-      </div>`).join('')}
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Sources de réservation</div>
-      ${sources.map(s=>`<div class="bar-row">
-        <div class="bar-lbl" style="width:140px;font-size:10px;">${s.src}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${s.pct}%;background:${s.color};"></div></div>
-        <div class="bar-val" style="color:${s.color};">${s.pct}%</div>
-      </div>`).join('')}
-    </div>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">Croissance clients mensuelle 2026</div>
-    <div class="svg-wrap">${barChart(monthlyRevenue.filter(m=>m.y===2026).map(m=>m.guests),monthlyRevenue.filter(m=>m.y===2026).map(m=>MONTHS[m.m-1]),'#3b82f6',80)}</div>
-    <div class="chart-sub">Total 2026: ${monthlyRevenue.filter(m=>m.y===2026).reduce((a,m)=>a+m.guests,0)} clients · Cible annuelle: 600</div>
-  </div>`;
-}
-
-// ============================================================
-// EMPLOYEES
-// ============================================================
-function renderEmployees(){
-  const emp=[
-    {name:'Raoul Ondoua',role:'Hotel Manager',status:'present',pay:335300,days_present:20,days_abs:1,perf:92},
-    {name:'Claire Bessong',role:'Réception',status:'present',pay:172440,days_present:19,days_abs:2,perf:88},
-    {name:'Patrick Abomo',role:'Réception',status:'late',pay:143700,days_present:17,days_abs:4,perf:72},
-    {name:'Judith Biyong',role:'Restaurant',status:'present',pay:191600,days_present:21,days_abs:0,perf:95},
-    {name:'Théodore Mba',role:'Housekeeping',status:'conge',pay:153280,days_present:15,days_abs:0,perf:85},
-    {name:'Andrée Koung',role:'Comptable',status:'present',pay:210760,days_present:20,days_abs:1,perf:90},
-    {name:'Samuel Ekoto',role:'Sécurité',status:'present',pay:124540,days_present:22,days_abs:0,perf:80},
-    {name:'Nadège Fosso',role:'RH',status:'present',pay:229920,days_present:20,days_abs:1,perf:91},
-  ];
-  const totalPay=emp.reduce((a,e)=>a+e.pay,0);
-  const presents=emp.filter(e=>e.status==='present'||e.status==='late').length;
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('👥','Effectif total','8','Actifs Résidence Veraluz','#8b5cf6',null)}
-    ${kpiCard('✅','Présents aujourd\'hui',String(presents)+'/8','1 en congé','#10b981',null)}
-    ${kpiCard('💰','Masse salariale nette',fmtS(totalPay)+' FCFA','Mai 2026 — net','#6c63ff',null)}
-    ${kpiCard('📈','Performance moy.',pct(emp.reduce((a,e)=>a+e.perf,0)/emp.length),'Tous départements','#f59e0b',null)}
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Masse salariale mensuelle</div>
-      ${[['Jan',1380000],['Fév',1382000],['Mar',1390000],['Avr',1395000],['Mai',1561540]].map(([m,v],i,arr)=>`<div class="bar-row">
-        <div class="bar-lbl">${m}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${(v/arr[arr.length-1][1]*100).toFixed(0)}%;background:var(--purple);"></div></div>
-        <div class="bar-val">${fmtS(v)}</div>
-      </div>`).join('')}
-      <div class="chart-sub">CNPS employeur (7%) inclus dans les projections</div>
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Présence par département</div>
-      ${[
-        {dept:'Direction',pct:100,color:'var(--green)'},
-        {dept:'Accueil',pct:88,color:'var(--blue)'},
-        {dept:'Restaurant',pct:95,color:'var(--orange)'},
-        {dept:'Housekeeping',pct:75,color:'var(--yellow)'},
-        {dept:'Finance/RH',pct:100,color:'var(--accent)'},
-        {dept:'Sécurité',pct:100,color:'var(--text2)'},
-      ].map(d=>`<div class="bar-row">
-        <div class="bar-lbl" style="width:90px;font-size:10.5px;">${d.dept}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${d.pct}%;background:${d.color};"></div></div>
-        <div class="bar-val" style="color:${d.color};">${d.pct}%</div>
-      </div>`).join('')}
-    </div>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">Performance employés — Mai 2026</div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Employé</th><th>Rôle</th><th>Présence</th><th>Absences</th><th>Salaire net</th><th>Performance</th><th>Statut</th></tr>
-      ${emp.map(e=>{
-        const sc={present:'bdg-g',late:'bdg-y',conge:'bdg-b',absent:'bdg-r'};
-        const sl={present:'✅ Présent',late:'⚡ Retard',conge:'🌴 Congé',absent:'❌ Absent'};
-        return `<tr>
-          <td style="font-weight:500;">${e.name}</td>
-          <td style="font-size:11px;color:var(--text2);">${e.role}</td>
-          <td>${e.days_present}j</td>
-          <td style="color:${e.days_abs>2?'var(--red)':'var(--text2)'};">${e.days_abs}j</td>
-          <td style="color:var(--green);">${fmt(e.pay)}</td>
-          <td>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <div style="width:60px;background:var(--bg3);border-radius:5px;height:5px;overflow:hidden;">
-                <div style="height:100%;border-radius:5px;background:${e.perf>=85?'var(--green)':e.perf>=70?'var(--yellow)':'var(--red)'};width:${e.perf}%;"></div>
-              </div>
-              <span style="font-size:11px;font-weight:600;">${e.perf}%</span>
-            </div>
-          </td>
-          <td><span class="bdg ${sc[e.status]||'bdg-gr'}">${sl[e.status]||e.status}</span></td>
-        </tr>`;
-      }).join('')}
-    </table></div>
-  </div>`;
-}
-
-// ============================================================
-// ALERTS
-// ============================================================
-function renderAlerts(){
-  const active=alerts.filter(a=>a.status==='active');
-  const acked=alerts.filter(a=>a.status==='acknowledged');
-  const resolved=alerts.filter(a=>a.status==='resolved');
-  const lc={critical:'#ef4444',warning:'#f59e0b',info:'#3b82f6'};
-  const bg={critical:'rgba(239,68,68,.08)',warning:'rgba(245,158,11,.08)',info:'rgba(59,130,246,.08)'};
-  const ic={critical:'🚨',warning:'⚠️',info:'ℹ️'};
-
-  function alertHTML(a){
-    return `<div class="alert-item" style="border-left-color:${lc[a.level]};background:${bg[a.level]};">
-      <div class="alert-icon">${ic[a.level]}</div>
-      <div class="alert-cnt">
-        <div class="alert-tit" style="color:${lc[a.level]};">${a.title}</div>
-        <div class="alert-msg">${a.msg}</div>
-        <div class="alert-time">🕐 ${a.time} · Catégorie: ${a.cat}</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
-        ${a.status==='active'?`<button class="btn btn-o btn-sm" onclick="ackAlert(${a.id})">✓ Vu</button>`:''}
-        ${a.status!=='resolved'?`<button class="btn btn-o btn-sm" onclick="resolveAlert(${a.id})">✅ Résoudre</button>`:''}
-      </div>
-    </div>`;
+/* ── Generate Demo Data ──────────────────────────────────── */
+function genDemo(days) {
+  var seed = 12345;
+  function rnd(min, max) {
+    seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+    var u = (seed >>> 0) / 0xffffffff;
+    return Math.round(min + u * (max - min));
   }
 
-  return `
-  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
-    ${kpiCard('🔴','Critiques',String(active.filter(a=>a.level==='critical').length),'Action immédiate requise','#ef4444',null)}
-    ${kpiCard('🟡','Avertissements',String(active.filter(a=>a.level==='warning').length),'À surveiller','#f59e0b',null)}
-    ${kpiCard('✅','Résolues ce mois','12','Temps moyen résolution: 4h','#10b981',null)}
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">🔴 Alertes actives — Action requise (${active.length})</div>
-    ${active.length===0?'<div style="text-align:center;padding:20px;color:var(--text3);">✅ Aucune alerte active — tout est normal</div>':active.map(alertHTML).join('')}
-  </div>
-
-  ${acked.length>0?`<div class="chart-wrap">
-    <div class="chart-title">👁 Prises en compte (${acked.length})</div>
-    ${acked.map(alertHTML).join('')}
-  </div>`:''}
-
-  <div class="chart-wrap">
-    <div class="chart-title">⚙️ Seuils d'alertes automatiques</div>
-    ${[
-      {metric:'Taux occupation',seuil:'< 50%',niv:'⚠️ Warning',actuel:pct(avgOcc30),ok:avgOcc30>=50},
-      {metric:'Taux occupation',seuil:'< 30%',niv:'🚨 Critique',actuel:pct(avgOcc30),ok:avgOcc30>=30},
-      {metric:'Paiements en attente',seuil:'> 5',niv:'⚠️ Warning',actuel:'7',ok:false},
-      {metric:'Paiements en attente',seuil:'> 10',niv:'🚨 Critique',actuel:'7',ok:true},
-      {metric:'Revenus journaliers',seuil:'< 100 000 FCFA',niv:'⚠️ Warning',actuel:fmt(revenueDaily[revenueDaily.length-1]),ok:revenueDaily[revenueDaily.length-1]>=100000},
-      {metric:'Stock restaurant',seuil:'Niveau critique',niv:'⚠️ Warning',actuel:'3 articles bas',ok:false},
-    ].map(row=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bg4);flex-wrap:wrap;">
-      <span style="min-width:180px;font-size:12px;font-weight:500;">${row.metric}</span>
-      <span style="min-width:120px;font-size:11px;color:var(--text2);">Seuil: ${row.seuil}</span>
-      <span style="font-size:11px;">${row.niv}</span>
-      <span style="margin-left:auto;font-size:11px;">Actuel: <strong>${row.actuel}</strong></span>
-      <span class="bdg ${row.ok?'bdg-g':'bdg-r'}">${row.ok?'✅ OK':'⚠️ Déclenché'}</span>
-    </div>`).join('')}
-    <button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="toast('Configuration des seuils — bientôt disponible')">⚙️ Configurer les seuils</button>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">✅ Historique résolutions récentes</div>
-    ${resolved.map(alertHTML).join('')}
-    ${resolved.length===0?'<div style="text-align:center;padding:16px;color:var(--text3);">Aucun historique disponible</div>':''}
-  </div>`;
-}
-
-// ============================================================
-// REPORTS
-// ============================================================
-function renderReports(){
-  return `
-  <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;">
-    <div style="font-size:15px;font-weight:600;">📄 Génération de Rapports</div>
-    <span class="bdg bdg-b" style="margin-left:auto;">🇨🇦 Envoyé à: afterworkquebec2025@gmail.com</span>
-  </div>
-
-  <div class="g2">
-    ${[
-      {type:'daily',icon:'📅',label:'Rapport Journalier',desc:'KPIs du jour, présences, revenus, alertes',time:'Automatique chaque matin 07h00'},
-      {type:'weekly',icon:'📆',label:'Rapport Hebdomadaire',desc:'Performance semaine, comparatif, tendances',time:'Chaque lundi 08h00'},
-      {type:'monthly',icon:'📊',label:'Rapport Mensuel Complet',desc:'P&L, occupation, clients, RH, graphiques',time:'1er du mois 09h00'},
-      {type:'annual',icon:'🗓️',label:'Bilan Annuel',desc:'Synthèse, ROI, recommandations stratégiques',time:'1er janvier 10h00'},
-    ].map(r=>`<div class="chart-wrap">
-      <div class="chart-title">${r.icon} ${r.label}</div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">${r.desc}</div>
-      <div style="font-size:10px;color:var(--text3);margin-bottom:12px;">⏰ ${r.time}</div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-p btn-sm" onclick="genReport('${r.type}','pdf')">📄 PDF</button>
-        <button class="btn btn-o btn-sm" onclick="genReport('${r.type}','excel')">📊 Excel</button>
-        <button class="btn btn-o btn-sm" onclick="genReport('${r.type}','csv')">📋 CSV</button>
-      </div>
-    </div>`).join('')}
-  </div>
-
-  <div class="chart-wrap" id="generated-reports">
-    <div class="chart-title">Rapports générés</div>
-    ${generatedReports.length===0?
-      '<div style="text-align:center;padding:20px;color:var(--text3);">Cliquez sur un bouton ci-dessus pour générer votre premier rapport</div>':
-      generatedReports.map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bg4);">
-        <span style="font-size:18px;">${r.fmt==='pdf'?'📄':r.fmt==='excel'?'📊':'📋'}</span>
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:500;">${r.title}</div>
-          <div style="font-size:10px;color:var(--text3);">${r.type.toUpperCase()} · ${r.fmt.toUpperCase()} · ${r.size}KB · Généré ${r.time}</div>
-        </div>
-        <span class="bdg bdg-g">✅ Prêt</span>
-        <button class="btn btn-o btn-sm" onclick="toast('Téléchargement: '+encodeURIComponent('${r.title}')+'.${r.fmt}','success')">⬇️</button>
-        <button class="btn btn-o btn-sm" onclick="toast('Email envoyé à afterworkquebec2025@gmail.com','success')">📧</button>
-      </div>`).join('')
-    }
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">📧 Rapports automatiques configurés</div>
-    ${[
-      {label:'Rapport journalier',freq:'Chaque matin 07h00',dest:'afterworkquebec2025@gmail.com',active:true},
-      {label:'Rapport hebdo',freq:'Lundi 08h00',dest:'afterworkquebec2025@gmail.com',active:true},
-      {label:'Rapport mensuel',freq:'1er du mois 09h00',dest:'afterworkquebec2025@gmail.com + comptable',active:false},
-    ].map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bg4);">
-      <div style="flex:1;">
-        <div style="font-size:12.5px;font-weight:500;">${r.label}</div>
-        <div style="font-size:10px;color:var(--text3);">${r.freq} · 📧 ${r.dest}</div>
-      </div>
-      <span class="bdg ${r.active?'bdg-g':'bdg-gr'}">${r.active?'✅ Actif':'⏸ Inactif'}</span>
-      <button class="btn btn-o btn-sm" onclick="toast('Paramètre modifié')">⚙️</button>
-    </div>`).join('')}
-  </div>`;
-}
-
-// ============================================================
-// ACTIONS
-// ============================================================
-function ackAlert(id){
-  const a=alerts.find(x=>x.id===id);
-  if(a){a.status='acknowledged';toast(`✓ Alerte prise en compte: ${a.title}`,'success');render();}
-}
-function resolveAlert(id){
-  const a=alerts.find(x=>x.id===id);
-  if(a){a.status='resolved';toast(`✅ Alerte résolue: ${a.title}`,'success');render();}
-}
-
-function genReport(type,fmt){
-  const titles={daily:'Rapport Journalier',weekly:'Rapport Hebdomadaire',monthly:'Rapport Mensuel',annual:'Bilan Annuel'};
-  toast(`⏳ Génération du ${titles[type]} en ${fmt.toUpperCase()}...`);
-  setTimeout(()=>{
-    generatedReports.unshift({
-      title:`${titles[type]} — Résidence Veraluz ${new Date().toLocaleDateString('fr-FR')}`,
-      type,fmt,
-      size:Math.floor(Math.random()*400+100),
-      time:'à l\'instant'
+  var totalUnits = 12;
+  var daily = [];
+  for (var i = days - 1; i >= 0; i--) {
+    var d = new Date(); d.setDate(d.getDate() - i);
+    var occ    = rnd(4, 11);
+    var res    = occ * rnd(25000, 45000);
+    var rest   = rnd(80000, 250000);
+    var dep    = rnd(50000, 120000);
+    daily.push({
+      date: d.toISOString().slice(0,10),
+      occupied: occ,
+      total: totalUnits,
+      reservations_rev: res,
+      restaurant_rev: rest,
+      depenses: dep,
+      reservations_count: rnd(2, 8),
+      checkins: rnd(1, 5),
+      checkouts: rnd(1, 4)
     });
-    toast(`✅ ${titles[type]} (${fmt.toUpperCase()}) prêt — Email envoyé`,'success');
-    render();
-  },1500);
+  }
+
+  // Aggregate
+  var totRes  = daily.reduce(function(a,d){ return a+d.reservations_rev; }, 0);
+  var totRest = daily.reduce(function(a,d){ return a+d.restaurant_rev; }, 0);
+  var totDep  = daily.reduce(function(a,d){ return a+d.depenses; }, 0);
+  var totOcc  = daily.reduce(function(a,d){ return a+d.occupied; }, 0);
+  var avgOcc  = pct(totOcc, daily.length * totalUnits);
+  var totRev  = totRes + totRest;
+  var profit  = totRev - totDep;
+
+  // Monthly comparison (same period, -30 days earlier)
+  var prevRes  = totRes  * rnd(80,105) / 100;
+  var prevRest = totRest * rnd(80,110) / 100;
+  var prevDep  = totDep  * rnd(85,100) / 100;
+  var prevOcc  = avgOcc  * rnd(80,105) / 100;
+
+  // Top rooms
+  var rooms = ['101','102','103','201','202','203','301','302','303','401','402','403'];
+  var topRooms = rooms.map(function(r){ return { room: r, nights: rnd(days*0.3, days*0.9), rev: rnd(200000,800000) }; })
+    .sort(function(a,b){ return b.rev - a.rev; }).slice(0,5);
+
+  // Employees perf
+  var empNames = ['Moise K.','Beatrice N.','Jean-Paul T.','Awa S.','Eric M.','Sonia B.'];
+  var employees = empNames.map(function(n){ return {
+    name: n,
+    dept: ['Réception','Housekeeping','Restaurant','Sécurité','Cuisine','Réception'][empNames.indexOf(n)],
+    presence: rnd(70,100),
+    tasks: rnd(15,50),
+    score: rnd(65,100)
+  }; });
+
+  // Depenses breakdown
+  var depBreakdown = [
+    { cat: 'Salaires',       pct: 45, color: '#3b82f6' },
+    { cat: 'Nourriture',     pct: 18, color: '#f59e0b' },
+    { cat: 'Entretien',      pct: 12, color: '#8b5cf6' },
+    { cat: 'Énergie',        pct: 10, color: '#ef4444' },
+    { cat: 'Fournitures',    pct: 8,  color: '#10b981' },
+    { cat: 'Autres',         pct: 7,  color: '#6b7280' },
+  ];
+
+  // ReservationStats
+  var resSources = [
+    { src: 'Direct',       pct: 38, color: '#22d3a5' },
+    { src: 'Booking.com',  pct: 28, color: '#3b82f6' },
+    { src: 'Airbnb',       pct: 20, color: '#f97316' },
+    { src: 'Agences',      pct: 14, color: '#8b5cf6' },
+  ];
+
+  return {
+    daily: daily,
+    kpi: {
+      taux_occupation: avgOcc,
+      rev_hotel: totRes,
+      rev_restaurant: totRest,
+      total_revenus: totRev,
+      depenses: totDep,
+      profit: profit,
+      nb_reservations: daily.reduce(function(a,d){ return a+d.reservations_count; }, 0),
+      adr: Math.round(totRes / Math.max(totOcc, 1)),
+      revpar: Math.round(totRes / (daily.length * totalUnits)),
+      prev: { taux_occupation: prevOcc, rev_hotel: prevRes, rev_restaurant: prevRest, depenses: prevDep }
+    },
+    topRooms: topRooms,
+    employees: employees,
+    depBreakdown: depBreakdown,
+    resSources: resSources,
+    totalUnits: totalUnits
+  };
 }
 
-// ============================================================
-// INIT
-// ============================================================
-render();
+/* ── Load All ────────────────────────────────────────────── */
+function loadAll() {
+  var days = parseInt(document.getElementById('period-select').value) || 30;
+  currentDays = days;
+  DATA = genDemo(days);
+  renderTab(currentTab);
+  emit('analytics-refreshed', { period: days });
+}
+
+/* ── Tab Navigation ──────────────────────────────────────── */
+function goTab(id) {
+  currentTab = id;
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  var btn = document.getElementById('tab-' + id);
+  if (btn) btn.classList.add('active');
+  renderTab(id);
+}
+function onPeriodChange() { loadAll(); }
+function setCompar(btn, val) {
+  document.querySelectorAll('.flt-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+/* ── SVG Line Chart ──────────────────────────────────────── */
+function buildLineChart(daily, key, color, w, h) {
+  w = w || 600; h = h || 140;
+  var vals = daily.map(function(d){ return d[key] || 0; });
+  var max  = Math.max.apply(null, vals) || 1;
+  var padL = 10, padR = 10, padT = 10, padB = 30;
+  var cw = w - padL - padR, ch = h - padT - padB;
+
+  var pts = vals.map(function(v, i) {
+    var x = padL + (i / (vals.length - 1)) * cw;
+    var y = padT + ch - (v / max) * ch;
+    return { x: x.toFixed(1), y: y.toFixed(1) };
+  });
+
+  var linePath = 'M ' + pts.map(function(p){ return p.x + ',' + p.y; }).join(' L ');
+  var areaPath = linePath + ' L ' + pts[pts.length-1].x + ',' + (padT+ch) + ' L ' + pts[0].x + ',' + (padT+ch) + ' Z';
+
+  // Labels (show ~6)
+  var step = Math.floor(daily.length / 5) || 1;
+  var labels = '';
+  for (var i = 0; i < daily.length; i += step) {
+    var x = padL + (i / (vals.length - 1)) * cw;
+    var d = daily[i].date.slice(5); // MM-DD
+    labels += '<text class="chart-label" x="' + x.toFixed(1) + '" y="' + (h-6) + '" text-anchor="middle">' + d + '</text>';
+  }
+
+  return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none">'
+    + '<defs><linearGradient id="grad_' + key + '" x1="0" y1="0" x2="0" y2="1">'
+    + '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.6"/>'
+    + '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>'
+    + '</linearGradient></defs>'
+    + '<path d="' + areaPath + '" fill="url(#grad_' + key + ')"/>'
+    + '<path d="' + linePath + '" class="chart-line" stroke="' + color + '"/>'
+    + labels
+    + '</svg>';
+}
+
+/* ── Bar Chart HTML ──────────────────────────────────────── */
+function buildBarChart(data, color) {
+  var max = Math.max.apply(null, data.map(function(d){ return d.val; })) || 1;
+  return '<div class="bar-chart">' +
+    data.map(function(d) {
+      var h = Math.max(4, Math.round(d.val / max * 110));
+      return '<div class="bar-col">'
+        + '<div class="bar-val">' + (d.val >= 1000 ? Math.round(d.val/1000)+'k' : d.val) + '</div>'
+        + '<div class="bar" style="height:' + h + 'px;background:' + (d.color || color || 'var(--acc)') + '"></div>'
+        + '<div class="bar-lbl">' + d.label + '</div>'
+        + '</div>';
+    }).join('')
+    + '</div>';
+}
+
+/* ── Donut SVG ───────────────────────────────────────────── */
+function buildDonut(slices, size) {
+  size = size || 100;
+  var cx = size/2, cy = size/2, r = size*0.38, stroke = size*0.18;
+  var total = slices.reduce(function(a,s){ return a + s.pct; }, 0);
+  var paths = '';
+  var angle = -90;
+  slices.forEach(function(s) {
+    var deg   = (s.pct / total) * 360;
+    var start = angle * Math.PI / 180;
+    var end   = (angle + deg) * Math.PI / 180;
+    var x1 = (cx + r * Math.cos(start)).toFixed(2);
+    var y1 = (cy + r * Math.sin(start)).toFixed(2);
+    var x2 = (cx + r * Math.cos(end)).toFixed(2);
+    var y2 = (cy + r * Math.sin(end)).toFixed(2);
+    var large = deg > 180 ? 1 : 0;
+    paths += '<path d="M ' + cx + ' ' + cy + ' L ' + x1 + ' ' + y1
+           + ' A ' + r + ' ' + r + ' 0 ' + large + ' 1 ' + x2 + ' ' + y2 + ' Z"'
+           + ' fill="' + s.color + '" opacity="0.85"/>';
+    angle += deg;
+  });
+  // Center hole
+  paths += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (r - stroke) + '" fill="var(--bg2)"/>';
+  return '<svg viewBox="0 0 ' + size + ' ' + size + '" width="' + size + '" height="' + size + '">' + paths + '</svg>';
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDER FUNCTIONS
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Dashboard ───────────────────────────────────────────── */
+function renderDashboard() {
+  var k = DATA.kpi;
+  var d = DATA.daily;
+
+  function kpiCard(icon, val, label, prev_val, color) {
+    var dl = delta(val, prev_val);
+    return '<div class="kpi" style="--c:' + color + '">'
+      + '<div class="kpi-icon">' + icon + '</div>'
+      + '<div class="kpi-val">' + val + '</div>'
+      + '<div class="kpi-label">' + label + '</div>'
+      + '<div class="kpi-delta ' + dl.cls + '">' + (dl.arrow ? dl.arrow + ' ' + dl.pct + '%' : '—') + ' vs période préc.</div>'
+      + '</div>';
+  }
+
+  var occDelta = delta(k.taux_occupation, k.prev.taux_occupation);
+
+  var html = '<div class="kpi-grid">'
+    + kpiCard('🏨', k.taux_occupation + '%',  'Taux occupation',   k.prev.taux_occupation,  'var(--acc)')
+    + kpiCard('💰', fmtXAF(k.rev_hotel),       'Revenus hôtel',     k.prev.rev_hotel,         'var(--blue)')
+    + kpiCard('🍽️', fmtXAF(k.rev_restaurant),  'Revenus restaurant', k.prev.rev_restaurant,   'var(--orange)')
+    + kpiCard('📊', fmtXAF(k.total_revenus),   'Total revenus',     k.prev.rev_hotel + k.prev.rev_restaurant, 'var(--purple)')
+    + kpiCard('💸', fmtXAF(k.depenses),        'Dépenses',          k.prev.depenses,          'var(--red)')
+    + kpiCard('✅', fmtXAF(k.profit),           'Profit net',        k.prev.rev_hotel + k.prev.rev_restaurant - k.prev.depenses, 'var(--green)')
+    + '</div>';
+
+  // Revenue line chart
+  html += '<div class="section two-col">'
+    + '<div class="full"><div class="section-title">📈 <span>Revenus journaliers (' + currentDays + 'j)</span></div>'
+    + '<div class="chart-wrap">' + buildLineChart(d, 'reservations_rev', '#22d3a5', 600, 150) + '</div></div>'
+    + '</div>';
+
+  // Occupation + KPI secondaires
+  html += '<div class="two-col">';
+
+  // Occupation bar
+  var recent7 = d.slice(-7);
+  var barData7 = recent7.map(function(day) {
+    return { label: day.date.slice(8), val: Math.round(day.occupied / day.total * 100), color: 'var(--acc)' };
+  });
+  html += '<div class="section"><div class="section-title">🏨 <span>Occupation 7 derniers jours</span></div>'
+    + buildBarChart(barData7, 'var(--acc)')
+    + '</div>';
+
+  // Sources de réservation
+  html += '<div class="section"><div class="section-title">🛏️ <span>Sources réservations</span></div>'
+    + '<div class="donut-wrap">'
+    + buildDonut(DATA.resSources, 110)
+    + '<div class="donut-legend">'
+    + DATA.resSources.map(function(s){
+        return '<div class="legend-item"><div class="legend-dot" style="background:' + s.color + '"></div>'
+          + '<span>' + s.src + '</span><span class="legend-val">' + s.pct + '%</span></div>';
+      }).join('')
+    + '</div></div></div>';
+
+  html += '</div>';
+
+  // KPI additionnels
+  html += '<div class="section">'
+    + '<div class="section-title">🎯 <span>KPIs Hôteliers</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">ADR (Prix moyen chambre/nuit)</span><span class="metric-val acc">' + fmtXAF(k.adr) + '</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">RevPAR (Revenu/chambre dispo)</span><span class="metric-val">' + fmtXAF(k.revpar) + '</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Nombre de réservations</span><span class="metric-val">' + k.nb_reservations + '</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Durée séjour moyenne</span><span class="metric-val">' + (currentDays > 30 ? '3.2' : '2.8') + ' nuits</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Marge bénéficiaire nette</span><span class="metric-val ' + (k.profit > 0 ? 'delta-up' : 'delta-dn') + '">' + pct(k.profit, k.total_revenus) + '%</span></div>'
+    + '</div>';
+
+  return html;
+}
+
+/* ── Occupation ──────────────────────────────────────────── */
+function renderOccupation() {
+  var k = DATA.kpi;
+  var d = DATA.daily;
+
+  // Progress gauge
+  var occ = k.taux_occupation;
+  var occColor = occ >= 80 ? 'var(--green)' : occ >= 60 ? 'var(--amber)' : 'var(--red)';
+
+  var html = '<div class="kpi-grid">'
+    + '<div class="kpi" style="--c:var(--acc)"><div class="kpi-icon">🏨</div><div class="kpi-val">' + occ + '%</div><div class="kpi-label">Taux occupation moyen</div></div>'
+    + '<div class="kpi" style="--c:var(--blue)"><div class="kpi-icon">🔢</div><div class="kpi-val">' + k.totalUnits + '</div><div class="kpi-label">Chambres totales</div></div>'
+    + '<div class="kpi" style="--c:var(--green)"><div class="kpi-icon">✅</div><div class="kpi-val">' + Math.round(k.totalUnits * occ / 100) + '</div><div class="kpi-label">Chambres moy. occupées</div></div>'
+    + '<div class="kpi" style="--c:var(--purple)"><div class="kpi-icon">📅</div><div class="kpi-val">' + k.nb_reservations + '</div><div class="kpi-label">Réservations totales</div></div>'
+    + '</div>';
+
+  // Occupation gauge bar
+  html += '<div class="section"><div class="section-title">🎯 <span>Taux d\'occupation global</span></div>'
+    + '<div class="prog-wrap" style="margin-top:8px">'
+    + '<div class="prog-head"><span>Occupation</span><span style="color:' + occColor + ';font-weight:700">' + occ + '%</span></div>'
+    + '<div class="prog-bar"><div class="prog-fill" style="width:' + occ + '%;background:' + occColor + '"></div></div>'
+    + '</div>'
+    + '<div class="metric-row"><span class="metric-lbl">Objectif cible</span><span class="metric-val">80%</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Écart objectif</span><span class="metric-val ' + (occ >= 80 ? 'delta-up' : 'delta-dn') + '">' + (occ - 80) + 'pts</span></div>'
+    + '</div>';
+
+  // Occupation evolution chart
+  html += '<div class="section"><div class="section-title">📈 <span>Évolution occupation</span></div>'
+    + '<div class="chart-wrap">' + buildLineChart(d, 'occupied', '#22d3a5', 600, 160) + '</div></div>';
+
+  // Top chambres
+  html += '<div class="section"><div class="section-title">🏆 <span>Top 5 chambres par revenus</span></div>'
+    + '<table class="data-table"><thead><tr><th>#</th><th>Chambre</th><th>Nuits</th><th>Revenus</th><th>Occupation</th></tr></thead><tbody>'
+    + DATA.topRooms.map(function(r, i){
+        var occPct = Math.round(r.nights / currentDays * 100);
+        var badge = occPct >= 80 ? 'badge-green' : occPct >= 60 ? 'badge-amber' : 'badge-red';
+        return '<tr><td style="color:var(--acc);font-weight:700">' + (i+1) + '</td>'
+          + '<td>🛏️ ' + r.room + '</td>'
+          + '<td>' + Math.round(r.nights) + ' nuits</td>'
+          + '<td>' + fmtXAF(r.rev) + '</td>'
+          + '<td><span class="badge ' + badge + '">' + occPct + '%</span></td></tr>';
+      }).join('')
+    + '</tbody></table></div>';
+
+  return html;
+}
+
+/* ── Revenus ─────────────────────────────────────────────── */
+function renderRevenus() {
+  var k = DATA.kpi;
+  var d = DATA.daily;
+
+  var html = '<div class="kpi-grid">'
+    + '<div class="kpi" style="--c:var(--blue)"><div class="kpi-icon">🏨</div><div class="kpi-val">' + fmtXAF(k.rev_hotel) + '</div><div class="kpi-label">Revenus hôtel</div></div>'
+    + '<div class="kpi" style="--c:var(--orange)"><div class="kpi-icon">🍽️</div><div class="kpi-val">' + fmtXAF(k.rev_restaurant) + '</div><div class="kpi-label">Revenus restaurant</div></div>'
+    + '<div class="kpi" style="--c:var(--purple)"><div class="kpi-icon">📊</div><div class="kpi-val">' + fmtXAF(k.total_revenus) + '</div><div class="kpi-label">Revenus totaux</div></div>'
+    + '<div class="kpi" style="--c:var(--acc)"><div class="kpi-icon">💵</div><div class="kpi-val">' + fmtXAF(Math.round(k.total_revenus/currentDays)) + '</div><div class="kpi-label">Revenu moyen/jour</div></div>'
+    + '</div>';
+
+  // Mix revenus donut
+  var revMix = [
+    { src: 'Hôtel',      pct: Math.round(k.rev_hotel / k.total_revenus * 100),      color: '#3b82f6' },
+    { src: 'Restaurant', pct: Math.round(k.rev_restaurant / k.total_revenus * 100), color: '#f97316' },
+  ];
+  html += '<div class="two-col">'
+    + '<div class="section"><div class="section-title">🥧 <span>Mix revenus</span></div>'
+    + '<div class="donut-wrap">' + buildDonut(revMix, 100)
+    + '<div class="donut-legend">'
+    + revMix.map(function(s){
+        return '<div class="legend-item"><div class="legend-dot" style="background:' + s.color + '"></div>'
+          + '<span>' + s.src + '</span><span class="legend-val">' + s.pct + '%</span></div>';
+      }).join('')
+    + '</div></div></div>';
+
+  // RevPAR metrics
+  html += '<div class="section"><div class="section-title">🎯 <span>KPIs Revenus</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">ADR</span><span class="metric-val">' + fmtXAF(k.adr) + '</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">RevPAR</span><span class="metric-val">' + fmtXAF(k.revpar) + '</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Rev. par réservation</span><span class="metric-val">' + fmtXAF(Math.round(k.rev_hotel / k.nb_reservations)) + '</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Rev. restaurant/jour</span><span class="metric-val">' + fmtXAF(Math.round(k.rev_restaurant / currentDays)) + '</span></div>'
+    + '</div></div>';
+
+  // Chart revenus hôtel
+  html += '<div class="section full"><div class="section-title">📈 <span>Revenus hôtel journaliers</span></div>'
+    + '<div class="chart-wrap">' + buildLineChart(d, 'reservations_rev', '#3b82f6', 600, 150) + '</div></div>';
+
+  // Chart revenus restaurant
+  html += '<div class="section"><div class="section-title">📈 <span>Revenus restaurant journaliers</span></div>'
+    + '<div class="chart-wrap">' + buildLineChart(d, 'restaurant_rev', '#f97316', 600, 150) + '</div></div>';
+
+  return html;
+}
+
+/* ── Restaurant ──────────────────────────────────────────── */
+function renderRestaurant() {
+  var k = DATA.kpi;
+  var d = DATA.daily;
+
+  var avgTicket = Math.round(k.rev_restaurant / Math.max(currentDays * 12, 1));
+  var barData   = d.slice(-7).map(function(day) {
+    return { label: day.date.slice(8), val: Math.round(day.restaurant_rev / 1000), color: '#f97316' };
+  });
+
+  var html = '<div class="kpi-grid">'
+    + '<div class="kpi" style="--c:var(--orange)"><div class="kpi-icon">🍽️</div><div class="kpi-val">' + fmtXAF(k.rev_restaurant) + '</div><div class="kpi-label">CA Restaurant total</div></div>'
+    + '<div class="kpi" style="--c:var(--blue)"><div class="kpi-icon">🧾</div><div class="kpi-val">' + fmtXAF(Math.round(k.rev_restaurant/currentDays)) + '</div><div class="kpi-label">CA moyen/jour</div></div>'
+    + '<div class="kpi" style="--c:var(--acc)"><div class="kpi-icon">🍸</div><div class="kpi-val">' + fmtXAF(avgTicket) + '</div><div class="kpi-label">Ticket moyen</div></div>'
+    + '<div class="kpi" style="--c:var(--purple)"><div class="kpi-icon">📊</div><div class="kpi-val">' + Math.round(k.rev_restaurant / k.total_revenus * 100) + '%</div><div class="kpi-label">Part du CA total</div></div>'
+    + '</div>';
+
+  html += '<div class="section"><div class="section-title">📊 <span>CA Restaurant — 7 derniers jours (k XAF)</span></div>'
+    + buildBarChart(barData, '#f97316')
+    + '</div>';
+
+  html += '<div class="section"><div class="section-title">📈 <span>Évolution CA Restaurant</span></div>'
+    + '<div class="chart-wrap">' + buildLineChart(d, 'restaurant_rev', '#f97316', 600, 150) + '</div></div>';
+
+  // Top catégories fictives
+  var cats = [
+    { cat: 'Plats principaux', pct: 42, color: '#f97316' },
+    { cat: 'Boissons',         pct: 28, color: '#3b82f6' },
+    { cat: 'Entrées',          pct: 15, color: '#10b981' },
+    { cat: 'Desserts',         pct: 10, color: '#8b5cf6' },
+    { cat: 'Room Service',     pct: 5,  color: '#ec4899' },
+  ];
+  html += '<div class="section"><div class="section-title">🥘 <span>Répartition par catégorie</span></div>'
+    + '<div class="donut-wrap">' + buildDonut(cats, 110)
+    + '<div class="donut-legend">'
+    + cats.map(function(c){
+        return '<div class="legend-item"><div class="legend-dot" style="background:' + c.color + '"></div>'
+          + '<span>' + c.cat + '</span><span class="legend-val">' + c.pct + '%</span></div>';
+      }).join('')
+    + '</div></div></div>';
+
+  return html;
+}
+
+/* ── Dépenses ────────────────────────────────────────────── */
+function renderDepenses() {
+  var k = DATA.kpi;
+  var d = DATA.daily;
+
+  var html = '<div class="kpi-grid">'
+    + '<div class="kpi" style="--c:var(--red)"><div class="kpi-icon">💸</div><div class="kpi-val">' + fmtXAF(k.depenses) + '</div><div class="kpi-label">Dépenses totales</div></div>'
+    + '<div class="kpi" style="--c:var(--amber)"><div class="kpi-icon">📅</div><div class="kpi-val">' + fmtXAF(Math.round(k.depenses/currentDays)) + '</div><div class="kpi-label">Dépenses/jour</div></div>'
+    + '<div class="kpi" style="--c:var(--purple)"><div class="kpi-icon">📊</div><div class="kpi-val">' + pct(k.depenses, k.total_revenus) + '%</div><div class="kpi-label">% du CA</div></div>'
+    + '<div class="kpi" style="--c:var(--green)"><div class="kpi-icon">💰</div><div class="kpi-val">' + fmtXAF(k.profit) + '</div><div class="kpi-label">Profit net</div></div>'
+    + '</div>';
+
+  // Breakdown donut
+  html += '<div class="two-col">'
+    + '<div class="section"><div class="section-title">🥧 <span>Répartition dépenses</span></div>'
+    + '<div class="donut-wrap">' + buildDonut(DATA.depBreakdown, 110)
+    + '<div class="donut-legend">'
+    + DATA.depBreakdown.map(function(c){
+        var amt = Math.round(k.depenses * c.pct / 100);
+        return '<div class="legend-item"><div class="legend-dot" style="background:' + c.color + '"></div>'
+          + '<span>' + c.cat + '</span><span class="legend-val">' + c.pct + '%</span></div>';
+      }).join('')
+    + '</div></div></div>';
+
+  // Détail par catégorie
+  html += '<div class="section"><div class="section-title">📋 <span>Détail par catégorie</span></div>';
+  DATA.depBreakdown.forEach(function(c) {
+    var amt = Math.round(k.depenses * c.pct / 100);
+    html += '<div class="prog-wrap">'
+      + '<div class="prog-head"><span style="font-size:12px">' + c.cat + '</span><span style="font-size:12px;font-weight:600">' + fmtXAF(amt) + '</span></div>'
+      + '<div class="prog-bar"><div class="prog-fill" style="width:' + c.pct + '%;background:' + c.color + '"></div></div>'
+      + '</div>';
+  });
+  html += '</div></div>';
+
+  // Evolution chart
+  html += '<div class="section"><div class="section-title">📈 <span>Évolution dépenses journalières</span></div>'
+    + '<div class="chart-wrap">' + buildLineChart(d, 'depenses', '#ef4444', 600, 150) + '</div></div>';
+
+  return html;
+}
+
+/* ── Cashflow ────────────────────────────────────────────── */
+function renderCashflow() {
+  var k = DATA.kpi;
+  var d = DATA.daily;
+
+  var cashflowDaily = d.map(function(day) {
+    return {
+      date: day.date,
+      val: (day.reservations_rev + day.restaurant_rev) - day.depenses
+    };
+  });
+  // Running total
+  var running = 0;
+  var cumData = d.map(function(day, i) {
+    running += (day.reservations_rev + day.restaurant_rev) - day.depenses;
+    return { date: day.date, val: running };
+  });
+
+  var html = '<div class="kpi-grid">'
+    + '<div class="kpi" style="--c:var(--green)"><div class="kpi-icon">✅</div><div class="kpi-val">' + fmtXAF(k.total_revenus) + '</div><div class="kpi-label">Total Revenus</div></div>'
+    + '<div class="kpi" style="--c:var(--red)"><div class="kpi-icon">💸</div><div class="kpi-val">' + fmtXAF(k.depenses) + '</div><div class="kpi-label">Total Dépenses</div></div>'
+    + '<div class="kpi" style="--c:' + (k.profit>=0?'var(--green)':'var(--red)') + '"><div class="kpi-icon">' + (k.profit>=0?'📈':'📉') + '</div><div class="kpi-val">' + fmtXAF(k.profit) + '</div><div class="kpi-label">Profit net</div></div>'
+    + '<div class="kpi" style="--c:var(--blue)"><div class="kpi-icon">📊</div><div class="kpi-val">' + pct(k.profit, k.total_revenus) + '%</div><div class="kpi-label">Marge nette</div></div>'
+    + '</div>';
+
+  // Cumulative cashflow chart
+  html += '<div class="section"><div class="section-title">📈 <span>Cashflow cumulatif</span></div>'
+    + '<div class="chart-wrap">' + buildLineChart(cumData, 'val', '#10b981', 600, 160) + '</div></div>';
+
+  // Daily cashflow bars
+  var cfBars = d.slice(-14).map(function(day) {
+    var cf = (day.reservations_rev + day.restaurant_rev) - day.depenses;
+    return { label: day.date.slice(8), val: Math.abs(cf), color: cf >= 0 ? '#10b981' : '#ef4444' };
+  });
+  html += '<div class="section"><div class="section-title">📊 <span>Cashflow journalier — 14 derniers jours</span></div>'
+    + buildBarChart(cfBars, '#10b981')
+    + '</div>';
+
+  // Summary metrics
+  html += '<div class="section"><div class="section-title">🎯 <span>Résumé financier</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Revenus hôtel</span><span class="metric-val" style="color:var(--blue)">' + fmtXAF(k.rev_hotel) + '</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Revenus restaurant</span><span class="metric-val" style="color:var(--orange)">' + fmtXAF(k.rev_restaurant) + '</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Total revenus</span><span class="metric-val" style="color:var(--acc)">' + fmtXAF(k.total_revenus) + '</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Total dépenses</span><span class="metric-val" style="color:var(--red)">(−' + fmtXAF(k.depenses) + ')</span></div>'
+    + '<div class="metric-row" style="border-top:1px solid var(--acc);margin-top:4px;padding-top:10px"><span class="metric-lbl" style="font-weight:700">PROFIT NET</span><span class="metric-val" style="font-size:16px;color:' + (k.profit>=0?'var(--green)':'var(--red)') + '">' + fmtXAF(k.profit) + '</span></div>'
+    + '</div>';
+
+  return html;
+}
+
+/* ── Employés ────────────────────────────────────────────── */
+function renderEmployes() {
+  var emps = DATA.employees;
+
+  var html = '<div class="kpi-grid">'
+    + '<div class="kpi" style="--c:var(--purple)"><div class="kpi-icon">👥</div><div class="kpi-val">' + emps.length + '</div><div class="kpi-label">Employés actifs</div></div>'
+    + '<div class="kpi" style="--c:var(--green)"><div class="kpi-icon">✅</div><div class="kpi-val">' + Math.round(emps.reduce(function(a,e){ return a+e.presence; },0)/emps.length) + '%</div><div class="kpi-label">Présence moyenne</div></div>'
+    + '<div class="kpi" style="--c:var(--acc)"><div class="kpi-icon">📋</div><div class="kpi-val">' + emps.reduce(function(a,e){ return a+e.tasks; },0) + '</div><div class="kpi-label">Tâches complétées</div></div>'
+    + '<div class="kpi" style="--c:var(--blue)"><div class="kpi-icon">⭐</div><div class="kpi-val">' + Math.round(emps.reduce(function(a,e){ return a+e.score; },0)/emps.length) + '/100</div><div class="kpi-label">Score moyen</div></div>'
+    + '</div>';
+
+  html += '<div class="section"><div class="section-title">👥 <span>Performance individuelle</span></div>';
+  emps.forEach(function(e) {
+    var scoreColor = e.score >= 80 ? 'var(--green)' : e.score >= 65 ? 'var(--amber)' : 'var(--red)';
+    var badge = e.presence >= 90 ? 'badge-green' : e.presence >= 75 ? 'badge-amber' : 'badge-red';
+    html += '<div style="padding:12px 0;border-bottom:1px solid var(--bg3)">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+      + '<div><div style="font-size:13px;font-weight:600">' + e.name + '</div><div style="font-size:11px;color:var(--text2)">' + e.dept + '</div></div>'
+      + '<div style="display:flex;gap:8px;align-items:center">'
+      + '<span class="badge ' + badge + '">' + e.presence + '%</span>'
+      + '<span style="font-size:12px;font-weight:700;color:' + scoreColor + '">' + e.score + 'pts</span>'
+      + '</div></div>'
+      + '<div class="prog-bar"><div class="prog-fill" style="width:' + e.score + '%;background:' + scoreColor + '"></div></div>'
+      + '</div>';
+  });
+  html += '</div>';
+
+  // Département chart
+  var depts = {};
+  emps.forEach(function(e) { depts[e.dept] = (depts[e.dept] || 0) + 1; });
+  var colors = ['#22d3a5','#3b82f6','#f97316','#8b5cf6','#10b981','#f59e0b'];
+  var deptSlices = Object.keys(depts).map(function(k, i) {
+    return { src: k, pct: Math.round(depts[k]/emps.length*100), color: colors[i % colors.length] };
+  });
+  html += '<div class="section"><div class="section-title">🏢 <span>Répartition par département</span></div>'
+    + '<div class="donut-wrap">' + buildDonut(deptSlices, 100)
+    + '<div class="donut-legend">'
+    + deptSlices.map(function(s){
+        return '<div class="legend-item"><div class="legend-dot" style="background:' + s.color + '"></div>'
+          + '<span>' + s.src + '</span><span class="legend-val">' + s.pct + '%</span></div>';
+      }).join('')
+    + '</div></div></div>';
+
+  return html;
+}
+
+/* ── Export ──────────────────────────────────────────────── */
+function renderExport() {
+  var html = '<div class="section"><div class="section-title">📤 <span>Exporter les rapports</span></div>'
+    + '<div class="export-grid">'
+    + exportCard('📊','Rapport mensuel','Dashboard complet KPIs + graphiques','exportCSV("monthly")')
+    + exportCard('🏨','Rapport occupation','Taux occupation par chambre et période','exportCSV("occupation")')
+    + exportCard('💰','Rapport revenus','Revenus hôtel + restaurant détaillés','exportCSV("revenus")')
+    + exportCard('💸','Rapport dépenses','Dépenses par catégorie','exportCSV("depenses")')
+    + exportCard('👥','Rapport RH','Performance et présence employés','exportCSV("rh")')
+    + exportCard('📈','Rapport cashflow','Profit / perte journalier','exportCSV("cashflow")')
+    + '</div>'
+    + '<div class="export-btn-row">'
+    + '<button class="btn-primary" onclick="exportAllCSV()">⬇️ Tout exporter (CSV)</button>'
+    + '<button class="btn-secondary" onclick="printReport()">🖨️ Imprimer le rapport</button>'
+    + '</div>'
+    + '</div>'
+    + '<div class="section"><div class="section-title">📅 <span>Période analysée</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Période</span><span class="metric-val">' + currentDays + ' derniers jours</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Date de fin</span><span class="metric-val">' + new Date().toLocaleDateString('fr-FR') + '</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Date de début</span><span class="metric-val">' + new Date(Date.now() - currentDays*86400000).toLocaleDateString('fr-FR') + '</span></div>'
+    + '<div class="metric-row"><span class="metric-lbl">Données</span><span class="metric-val"><span class="badge badge-green">Veraluz OS</span></span></div>'
+    + '</div>';
+  return html;
+}
+
+function exportCard(icon, name, desc, fn) {
+  return '<div class="export-card" onclick="' + fn + '">'
+    + '<div class="export-icon">' + icon + '</div>'
+    + '<div class="export-name">' + name + '</div>'
+    + '<div class="export-desc">' + desc + '</div>'
+    + '</div>';
+}
+
+/* ── Export Functions ────────────────────────────────────── */
+function exportCSV(type) {
+  var k = DATA.kpi; var d = DATA.daily;
+  var lines = [];
+  if (type === 'monthly' || type === 'revenus') {
+    lines = ['Date,Revenus Hôtel (XAF),Revenus Restaurant (XAF),Total (XAF)'];
+    d.forEach(function(day) {
+      lines.push(day.date + ',' + day.reservations_rev + ',' + day.restaurant_rev + ',' + (day.reservations_rev + day.restaurant_rev));
+    });
+  } else if (type === 'occupation') {
+    lines = ['Date,Chambres occupées,Total chambres,Taux (%)'];
+    d.forEach(function(day) {
+      lines.push(day.date + ',' + day.occupied + ',' + day.total + ',' + pct(day.occupied, day.total));
+    });
+  } else if (type === 'depenses') {
+    lines = ['Date,Dépenses (XAF)'];
+    d.forEach(function(day) { lines.push(day.date + ',' + day.depenses); });
+  } else if (type === 'cashflow') {
+    lines = ['Date,Revenus (XAF),Dépenses (XAF),Cashflow (XAF)'];
+    d.forEach(function(day) {
+      var cf = (day.reservations_rev + day.restaurant_rev) - day.depenses;
+      lines.push(day.date + ',' + (day.reservations_rev + day.restaurant_rev) + ',' + day.depenses + ',' + cf);
+    });
+  } else if (type === 'rh') {
+    lines = ['Employé,Département,Présence (%),Tâches,Score'];
+    DATA.employees.forEach(function(e) {
+      lines.push(e.name + ',' + e.dept + ',' + e.presence + ',' + e.tasks + ',' + e.score);
+    });
+  }
+
+  var csv = lines.join('\n');
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url; a.download = 'veraluz_' + type + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+  toast('✅ Export ' + type + ' téléchargé');
+  emit('analytics-export', { type: type });
+}
+
+function exportAllCSV() {
+  ['monthly','occupation','depenses','cashflow','rh'].forEach(function(t, i) {
+    setTimeout(function() { exportCSV(t); }, i * 300);
+  });
+}
+
+function printReport() {
+  toast('🖨️ Préparation impression...');
+  setTimeout(function() { window.print(); }, 500);
+}
+
+/* ── Main Render ─────────────────────────────────────────── */
+function renderTab(id) {
+  var content = document.getElementById('content');
+  var html = '';
+  if      (id === 'dashboard')  html = renderDashboard();
+  else if (id === 'occupation') html = renderOccupation();
+  else if (id === 'revenus')    html = renderRevenus();
+  else if (id === 'restaurant') html = renderRestaurant();
+  else if (id === 'depenses')   html = renderDepenses();
+  else if (id === 'cashflow')   html = renderCashflow();
+  else if (id === 'employes')   html = renderEmployes();
+  else if (id === 'export')     html = renderExport();
+  content.innerHTML = html;
+  content.scrollTop = 0;
+}
+
 </script>
 </body>
 </html>

@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Audit & Logs — Veraluz</title>
+<style>
+/* ── Reset & Tokens ──────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --acc:#22d3a5;--acc2:#1ba87f;
+  --bg:#0f1117;--bg2:#161b24;--bg3:#1e2535;--bg4:#252d3d;
+  --text:#e8eaf0;--text2:#8b95a8;--text3:#5a6478;
+  --red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;
+  --purple:#8b5cf6;--green:#10b981;--orange:#f97316;
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;}
+
+/* ── Layout ──────────────────────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+
+/* ── Tab Bar ─────────────────────────────────────────────── */
+#tabbar{display:flex;overflow-x:auto;gap:4px;padding:10px 12px 0;
+  background:var(--bg2);border-bottom:1px solid var(--bg4);
+  scrollbar-width:none;flex-shrink:0;}
+#tabbar::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0;padding:7px 14px;border-radius:8px 8px 0 0;border:none;
+  background:transparent;color:var(--text2);font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .15s;white-space:nowrap;}
+.tab.active{background:var(--bg);color:var(--acc);border-bottom:2px solid var(--acc);}
+.tab:hover:not(.active){background:var(--bg3);color:var(--text);}
+.tab-badge{display:inline-block;background:var(--red);color:#fff;
+  border-radius:8px;font-size:9px;padding:1px 5px;margin-left:4px;font-weight:700;}
+
+/* ── Toolbar ─────────────────────────────────────────────── */
+#toolbar{display:flex;gap:8px;padding:9px 14px;background:var(--bg2);
+  border-bottom:1px solid var(--bg4);align-items:center;
+  flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+#toolbar::-webkit-scrollbar{display:none;}
+.t-input{flex:1;min-width:120px;max-width:260px;padding:6px 10px;
+  border-radius:7px;border:1px solid var(--bg4);background:var(--bg3);
+  color:var(--text);font-size:12px;}
+.t-input::placeholder{color:var(--text3);}
+.t-select{padding:6px 10px;border-radius:7px;border:1px solid var(--bg4);
+  background:var(--bg3);color:var(--text);font-size:12px;cursor:pointer;flex-shrink:0;}
+.t-btn{padding:6px 12px;border-radius:7px;border:none;background:var(--bg3);
+  color:var(--text2);font-size:12px;cursor:pointer;white-space:nowrap;
+  border:1px solid var(--bg4);transition:all .15s;flex-shrink:0;}
+.t-btn:hover{background:var(--bg4);color:var(--text);}
+.t-btn.primary{background:var(--acc);color:#000;border-color:var(--acc);font-weight:600;}
+.t-btn.primary:hover{background:var(--acc2);}
+.t-spacer{flex:1;}
+
+/* ── Content ─────────────────────────────────────────────── */
+#content{flex:1;overflow-y:auto;padding:12px;
+  padding-bottom:calc(12px + var(--safe-bot));}
+
+/* ── Log Entry ───────────────────────────────────────────── */
+.log-list{display:flex;flex-direction:column;gap:6px;}
+.log-entry{background:var(--bg2);border:1px solid var(--bg4);border-radius:10px;
+  padding:11px 13px;cursor:pointer;transition:all .15s;position:relative;
+  border-left:3px solid var(--c,var(--bg4));}
+.log-entry:hover{background:var(--bg3);border-color:var(--bg4);}
+.log-entry.expanded .log-detail{display:block;}
+.log-row1{display:flex;align-items:center;gap:8px;}
+.log-icon{font-size:15px;flex-shrink:0;}
+.log-msg{flex:1;font-size:12px;color:var(--text);line-height:1.4;min-width:0;}
+.log-msg strong{font-weight:600;}
+.log-time{font-size:10px;color:var(--text3);flex-shrink:0;white-space:nowrap;}
+.log-meta{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;}
+.log-detail{display:none;margin-top:9px;padding-top:9px;
+  border-top:1px solid var(--bg4);font-size:11px;color:var(--text2);}
+.log-detail pre{background:var(--bg);border-radius:6px;padding:8px;
+  font-size:10px;overflow-x:auto;white-space:pre-wrap;color:var(--acc);}
+
+/* ── Badges ──────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;
+  border-radius:20px;font-size:10px;font-weight:600;}
+.b-info    {background:rgba(59,130,246,.15);color:var(--blue);}
+.b-success {background:rgba(16,185,129,.15);color:var(--green);}
+.b-warning {background:rgba(245,158,11,.15);color:var(--amber);}
+.b-error   {background:rgba(239,68,68,.15); color:var(--red);}
+.b-security{background:rgba(139,92,246,.15);color:var(--purple);}
+.b-system  {background:rgba(34,211,165,.15);color:var(--acc);}
+.b-finance {background:rgba(249,115,22,.15);color:var(--orange);}
+
+/* ── KPI Row ─────────────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px;}
+@media(min-width:480px){.kpi-row{grid-template-columns:repeat(3,1fr);}}
+@media(min-width:700px){.kpi-row{grid-template-columns:repeat(6,1fr);}}
+.kpi{background:var(--bg2);border:1px solid var(--bg4);border-radius:10px;
+  padding:12px;position:relative;overflow:hidden;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--c,var(--acc));}
+.kpi-val{font-size:22px;font-weight:700;line-height:1;}
+.kpi-lbl{font-size:10px;color:var(--text2);margin-top:4px;}
+
+/* ── Section ─────────────────────────────────────────────── */
+.section{background:var(--bg2);border:1px solid var(--bg4);border-radius:12px;
+  padding:14px;margin-bottom:12px;}
+.sec-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px;
+  text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;
+  gap:8px;}
+.sec-title span{color:var(--text);}
+
+/* ── Table ───────────────────────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tbl th{padding:8px 10px;text-align:left;color:var(--text2);
+  border-bottom:1px solid var(--bg4);font-weight:500;font-size:11px;white-space:nowrap;}
+.tbl td{padding:8px 10px;border-bottom:1px solid var(--bg3);color:var(--text);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--bg3);}
+.mono{font-family:monospace;font-size:11px;color:var(--acc);}
+
+/* ── Progress ────────────────────────────────────────────── */
+.prog-wrap{margin-bottom:10px;}
+.prog-head{display:flex;justify-content:space-between;margin-bottom:4px;font-size:12px;}
+.prog-bar{height:7px;background:var(--bg4);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:4px;}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.empty{text-align:center;padding:40px 20px;color:var(--text2);}
+.empty-icon{font-size:36px;margin-bottom:10px;}
+.empty-msg{font-size:13px;}
+
+/* ── Live dot ────────────────────────────────────────────── */
+.live-dot{width:7px;height:7px;background:var(--green);border-radius:50%;
+  display:inline-block;animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* ── Search highlight ────────────────────────────────────── */
+mark{background:rgba(34,211,165,.25);color:var(--acc);border-radius:2px;}
+
+/* ── Export cards ────────────────────────────────────────── */
+.exp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+@media(min-width:480px){.exp-grid{grid-template-columns:repeat(3,1fr);}}
+.exp-card{background:var(--bg3);border:1px solid var(--bg4);border-radius:10px;
+  padding:14px;cursor:pointer;text-align:center;transition:all .15s;}
+.exp-card:hover{border-color:var(--acc);}
+.exp-icon{font-size:26px;margin-bottom:6px;}
+.exp-name{font-size:12px;font-weight:600;}
+.exp-desc{font-size:10px;color:var(--text2);margin-top:3px;}
+
+/* ── Toast ───────────────────────────────────────────────── */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--bg3);border:1px solid var(--bg4);color:var(--text);
+  padding:9px 18px;border-radius:10px;font-size:12px;
+  opacity:0;pointer-events:none;transition:opacity .3s;z-index:999;white-space:nowrap;}
+#toast.show{opacity:1;}
+
+/* ── Two-col ─────────────────────────────────────────────── */
+@media(min-width:700px){
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .two-col .full{grid-column:1/-1;}
+}
+
+/* ── Metric row ──────────────────────────────────────────── */
+.mrow{display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--bg3);font-size:12px;}
+.mrow:last-child{border-bottom:none;}
+.mrow-lbl{color:var(--text2);}
+.mrow-val{font-weight:600;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Tab Bar -->
+  <div id="tabbar">
+    <button class="tab active" onclick="goTab('activite')"  id="tab-activite">📋 Activité</button>
+    <button class="tab"        onclick="goTab('users')"     id="tab-users">👤 Utilisateurs</button>
+    <button class="tab"        onclick="goTab('securite')"  id="tab-securite">🔐 Sécurité</button>
+    <button class="tab"        onclick="goTab('erreurs')"   id="tab-erreurs">❌ Erreurs<span class="tab-badge" id="err-badge"></span></button>
+    <button class="tab"        onclick="goTab('finance')"   id="tab-finance">💰 Audit Fin.</button>
+    <button class="tab"        onclick="goTab('events')"    id="tab-events">📡 Événements</button>
+    <button class="tab"        onclick="goTab('recherche')" id="tab-recherche">🔍 Recherche</button>
+    <button class="tab"        onclick="goTab('export')"    id="tab-export">📤 Export</button>
+  </div>
+
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <input class="t-input" id="search-input" placeholder="🔍 Rechercher dans les logs…"
+      oninput="onSearch(this.value)">
+    <select class="t-select" id="level-filter" onchange="applyFilters()">
+      <option value="">Tous niveaux</option>
+      <option value="info">Info</option>
+      <option value="success">Succès</option>
+      <option value="warning">Avertissement</option>
+      <option value="error">Erreur</option>
+      <option value="security">Sécurité</option>
+    </select>
+    <select class="t-select" id="period-filter" onchange="applyFilters()">
+      <option value="1">Aujourd'hui</option>
+      <option value="7" selected>7 jours</option>
+      <option value="30">30 jours</option>
+      <option value="90">3 mois</option>
+    </select>
+    <span class="t-spacer"></span>
+    <button class="t-btn primary" onclick="loadAll()">↻</button>
+  </div>
+
+  <!-- Content -->
+  <div id="content">
+    <div style="display:flex;align-items:center;justify-content:center;height:200px;
+      color:var(--text2);font-size:13px;gap:10px;">
+      <div style="width:18px;height:18px;border:2px solid var(--bg4);border-top-color:var(--acc);
+        border-radius:50%;animation:spin .7s linear infinite;"></div>
+      Chargement des logs…
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+<style>@keyframes spin{to{transform:rotate(360deg);}}</style>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   VERALUZ — AUDIT & LOGS MODULE v1.0
+   READ-ONLY | Mobile-First | Event Bus Compatible
+   ═════════════════════════════════════════════════════════ */
+
+var MODULE_ID = 'veraluz-audit';
+var SUPA_URL  = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var SUPA_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+
+var currentTab    = 'activite';
+var searchQuery   = '';
+var levelFilter   = '';
+var periodDays    = 7;
+var LOGS          = [];        /* master log store */
+var EVENT_LOGS    = [];        /* event bus captures */
+var expandedIds   = {};
+
+/* ── Event Bus ───────────────────────────────────────────── */
+function emit(type, data) {
+  try { window.parent.postMessage({ source: MODULE_ID, type: type, data: data || {} }, '*'); }
+  catch(e) {}
+}
+
+window.addEventListener('message', function(ev) {
+  if (!ev.data || ev.data.source !== 'veraluz-core') return;
+  var msg = ev.data;
+  if (msg.type === 'refresh') { loadAll(); return; }
+  if (msg.type === 'navigate-tab' && msg.data && msg.data.tab) { goTab(msg.data.tab); return; }
+  if (msg.type === 'module-event') {
+    captureEvent(msg.data);
+  }
+});
+
+window.addEventListener('load', function() {
+  emit('module-ready', { module: 'audit', version: '1.0' });
+  loadAll();
+});
+
+function captureEvent(data) {
+  EVENT_LOGS.unshift({
+    id: 'ev_' + Date.now(),
+    ts: new Date().toISOString(),
+    source: data.originalSource || 'unknown',
+    type: data.originalType || 'event',
+    payload: data.payload || {},
+    level: 'info'
+  });
+  if (EVENT_LOGS.length > 200) EVENT_LOGS.pop();
+  if (currentTab === 'events') renderTab('events');
+}
+
+/* ── Seed / Demo data ────────────────────────────────────── */
+var _seed = 99991;
+function rng(a, b) {
+  _seed = (_seed * 1664525 + 1013904223) & 0xffffffff;
+  var u = (_seed >>> 0) / 0xffffffff;
+  return a + Math.floor(u * (b - a + 1));
+}
+
+function tsAgo(hoursAgo, minAgo) {
+  var d = new Date();
+  d.setHours(d.getHours() - (hoursAgo || 0));
+  d.setMinutes(d.getMinutes() - (minAgo || 0));
+  return d.toISOString();
+}
+
+function genLogs(days) {
+  var logs = [];
+  var id = 1;
+
+  var users   = ['Admin','Moise K.','Beatrice N.','Jean-Paul T.','Awa S.','Eric M.'];
+  var modules = ['reservations','paiements','housekeeping','restaurant','finance','rh','notifications'];
+  var ips      = ['197.234.12.4','197.234.12.5','41.202.207.18','197.255.116.9','196.168.1.10'];
+
+  /* ── User actions ── */
+  var actions = [
+    {msg:'Connexion réussie',         level:'success',  cat:'user',     icon:'✅'},
+    {msg:'Réservation créée #RES-',   level:'success',  cat:'user',     icon:'🛏️'},
+    {msg:'Paiement validé',           level:'success',  cat:'finance',  icon:'💳'},
+    {msg:'Check-in effectué',         level:'info',     cat:'user',     icon:'🏨'},
+    {msg:'Check-out effectué',        level:'info',     cat:'user',     icon:'🏠'},
+    {msg:'Employé ajouté',            level:'info',     cat:'user',     icon:'👤'},
+    {msg:'Fiche nettoyage validée',   level:'success',  cat:'user',     icon:'🧹'},
+    {msg:'Rapport exporté',           level:'info',     cat:'user',     icon:'📤'},
+    {msg:'Profil modifié',            level:'info',     cat:'user',     icon:'✏️'},
+    {msg:'Déconnexion',               level:'info',     cat:'user',     icon:'👋'},
+    /* warnings */
+    {msg:'Tentative connexion échouée', level:'warning', cat:'security', icon:'⚠️'},
+    {msg:'Accès page non autorisé',     level:'warning', cat:'security', icon:'🚫'},
+    {msg:'Modification données sensibles', level:'warning', cat:'security', icon:'🔒'},
+    {msg:'Session expirée',             level:'warning', cat:'security', icon:'⏰'},
+    /* errors */
+    {msg:'Erreur chargement module',    level:'error',   cat:'error',    icon:'❌'},
+    {msg:'Timeout API Supabase',        level:'error',   cat:'error',    icon:'🔴'},
+    {msg:'Erreur paiement CinetPay',    level:'error',   cat:'error',    icon:'💸'},
+    {msg:'Base de données inaccessible',level:'error',   cat:'error',    icon:'🗄️'},
+    /* security */
+    {msg:'IP suspecte bloquée',         level:'security',cat:'security', icon:'🛡️'},
+    {msg:'2FA activé',                  level:'security',cat:'security', icon:'🔐'},
+    {msg:'Mot de passe modifié',        level:'security',cat:'security', icon:'🔑'},
+    {msg:'Token API régénéré',          level:'security',cat:'security', icon:'🔄'},
+    /* finance */
+    {msg:'Virement enregistré',         level:'success', cat:'finance',  icon:'💰'},
+    {msg:'Dépense approuvée',           level:'success', cat:'finance',  icon:'📋'},
+    {msg:'Écart caisse détecté',        level:'warning', cat:'finance',  icon:'⚠️'},
+    {msg:'Remboursement effectué',      level:'info',    cat:'finance',  icon:'↩️'},
+  ];
+
+  var total = days * rng(8, 18);
+  for (var i = 0; i < total; i++) {
+    var a    = actions[rng(0, actions.length - 1)];
+    var user = users[rng(0, users.length - 1)];
+    var mod  = modules[rng(0, modules.length - 1)];
+    var ip   = ips[rng(0, ips.length - 1)];
+    var hAgo = rng(0, days * 24);
+    var mAgo = rng(0, 59);
+    var suffix = a.msg.includes('#RES-') ? String(rng(1000,9999)) : '';
+    logs.push({
+      id:     'log_' + (id++),
+      ts:     tsAgo(hAgo, mAgo),
+      level:  a.level,
+      cat:    a.cat,
+      icon:   a.icon,
+      msg:    a.msg + suffix,
+      user:   user,
+      module: mod,
+      ip:     ip,
+      detail: {
+        user_agent: 'Veraluz-OS/2.0',
+        session_id: 'sess_' + Math.random().toString(36).slice(2,10),
+        duration_ms: rng(12, 3200),
+        extra: a.level === 'error' ? 'Stack: ' + mod + '.js:' + rng(1,500) : null
+      }
+    });
+  }
+
+  /* Sort newest first */
+  logs.sort(function(a, b) { return new Date(b.ts) - new Date(a.ts); });
+  return logs;
+}
+
+/* ── Finance audit entries ───────────────────────────────── */
+function genFinanceAudit(days) {
+  var entries = [];
+  var types = [
+    {t:'Paiement chambre',    a:'Crédit', color:'var(--green)'},
+    {t:'Vente restaurant',    a:'Crédit', color:'var(--green)'},
+    {t:'Remboursement',       a:'Débit',  color:'var(--red)'},
+    {t:'Dépense entretien',   a:'Débit',  color:'var(--red)'},
+    {t:'Salaire employé',     a:'Débit',  color:'var(--red)'},
+    {t:'Avance sur salaire',  a:'Débit',  color:'var(--amber)'},
+    {t:'Virement entrant',    a:'Crédit', color:'var(--green)'},
+  ];
+  for (var i = 0; i < days * 3; i++) {
+    var t = types[rng(0, types.length - 1)];
+    var d = new Date(); d.setHours(d.getHours() - rng(0, days*24));
+    var amt = rng(15000, 450000);
+    entries.push({
+      id:     'fin_' + i,
+      ts:     d.toISOString(),
+      type:   t.t,
+      action: t.a,
+      amount: amt,
+      color:  t.color,
+      user:   ['Admin','Moise K.','Beatrice N.'][rng(0,2)],
+      ref:    'REF-' + rng(10000, 99999),
+      status: ['validé','validé','validé','en attente','validé'][rng(0,4)]
+    });
+  }
+  return entries.sort(function(a,b){ return new Date(b.ts)-new Date(a.ts); });
+}
+
+/* ── Helpers ─────────────────────────────────────────────── */
+function fmtTs(iso) {
+  var d = new Date(iso);
+  var now = new Date();
+  var diff = Math.floor((now - d) / 1000);
+  if (diff < 60)   return diff + 's';
+  if (diff < 3600) return Math.floor(diff/60) + 'min';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h';
+  return d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+function fmtXAF(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(2) + 'M';
+  if (n >= 1000)    return (n/1000).toFixed(0) + 'k';
+  return n;
+}
+function badgeClass(level) {
+  return {info:'b-info',success:'b-success',warning:'b-warning',
+          error:'b-error',security:'b-security',finance:'b-finance'}[level] || 'b-info';
+}
+function badgeLabel(level) {
+  return {info:'Info',success:'Succès',warning:'Attention',
+          error:'Erreur',security:'Sécurité',finance:'Finance'}[level] || level;
+}
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 2500);
+}
+function highlight(text, q) {
+  if (!q) return text;
+  var re = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + ')', 'gi');
+  return text.replace(re, '<mark>$1</mark>');
+}
+
+/* ── Load ────────────────────────────────────────────────── */
+function loadAll() {
+  periodDays = parseInt(document.getElementById('period-filter').value) || 7;
+  LOGS = genLogs(periodDays);
+  /* seed event logs if empty */
+  if (EVENT_LOGS.length === 0) {
+    var mods = ['veraluz-rh','veraluz-finance','veraluz-reservations','veraluz-notifications'];
+    var types = ['module-ready','data-updated','reservation-created','payment-validated'];
+    for (var i = 0; i < 8; i++) {
+      EVENT_LOGS.push({
+        id: 'ev_seed_'+i,
+        ts: tsAgo(rng(0,48), rng(0,59)),
+        source: mods[rng(0,mods.length-1)],
+        type:   types[rng(0,types.length-1)],
+        payload: { demo: true },
+        level: 'info'
+      });
+    }
+  }
+  /* update error badge */
+  var errCount = LOGS.filter(function(l){ return l.level==='error'; }).length;
+  var badge = document.getElementById('err-badge');
+  if (badge) { badge.textContent = errCount > 0 ? errCount : ''; }
+  renderTab(currentTab);
+  emit('audit-loaded', { total: LOGS.length, period: periodDays });
+}
+
+/* ── Filter + Search ─────────────────────────────────────── */
+function onSearch(val) {
+  searchQuery = val.trim().toLowerCase();
+  renderTab(currentTab);
+}
+function applyFilters() {
+  levelFilter = document.getElementById('level-filter').value;
+  periodDays  = parseInt(document.getElementById('period-filter').value) || 7;
+  loadAll();
+}
+
+function filteredLogs(cat) {
+  return LOGS.filter(function(l) {
+    if (cat && l.cat !== cat) return false;
+    if (levelFilter && l.level !== levelFilter) return false;
+    if (searchQuery) {
+      var hay = (l.msg + l.user + l.module + l.ip).toLowerCase();
+      if (!hay.includes(searchQuery)) return false;
+    }
+    return true;
+  });
+}
+
+/* ── Tab Navigation ──────────────────────────────────────── */
+function goTab(id) {
+  currentTab = id;
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  var btn = document.getElementById('tab-' + id);
+  if (btn) btn.classList.add('active');
+  renderTab(id);
+}
+
+/* ── Toggle log expand ───────────────────────────────────── */
+function toggleLog(id) {
+  expandedIds[id] = !expandedIds[id];
+  var el = document.getElementById('entry-' + id);
+  if (el) el.classList.toggle('expanded', expandedIds[id]);
+}
+
+/* ══════════════════════════════════════════════════════════
+   RENDER
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Log Entry HTML ──────────────────────────────────────── */
+function logEntryHTML(l, q) {
+  var colorMap = {info:'var(--blue)',success:'var(--green)',warning:'var(--amber)',
+                  error:'var(--red)',security:'var(--purple)',finance:'var(--orange)'};
+  var c    = colorMap[l.level] || 'var(--bg4)';
+  var msg  = highlight(l.msg, q);
+  var user = highlight(l.user, q);
+  var mod  = highlight(l.module, q);
+
+  var detail = '<div class="log-detail">'
+    + '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:8px">'
+    + '<div><span style="color:var(--text3)">IP:</span> <span class="mono">' + l.ip + '</span></div>'
+    + '<div><span style="color:var(--text3)">Module:</span> ' + mod + '</div>'
+    + '<div><span style="color:var(--text3)">Durée:</span> ' + l.detail.duration_ms + 'ms</div>'
+    + '<div><span style="color:var(--text3)">Session:</span> <span class="mono">' + l.detail.session_id + '</span></div>'
+    + '</div>'
+    + (l.detail.extra ? '<pre>' + l.detail.extra + '</pre>' : '')
+    + '</div>';
+
+  return '<div class="log-entry" id="entry-' + l.id + '" style="--c:' + c + '"'
+    + ' onclick="toggleLog(\'' + l.id + '\')">'
+    + '<div class="log-row1">'
+    + '<div class="log-icon">' + l.icon + '</div>'
+    + '<div class="log-msg"><strong>' + user + '</strong> — ' + msg + '</div>'
+    + '<div class="log-time">' + fmtTs(l.ts) + '</div>'
+    + '</div>'
+    + '<div class="log-meta">'
+    + '<span class="badge ' + badgeClass(l.level) + '">' + badgeLabel(l.level) + '</span>'
+    + '<span class="badge b-system">' + mod + '</span>'
+    + '</div>'
+    + detail
+    + '</div>';
+}
+
+/* ── Activité ────────────────────────────────────────────── */
+function renderActivite() {
+  var logs = filteredLogs(null).slice(0, 80);
+  var errCount  = LOGS.filter(function(l){ return l.level==='error'; }).length;
+  var warnCount = LOGS.filter(function(l){ return l.level==='warning'; }).length;
+  var secCount  = LOGS.filter(function(l){ return l.cat==='security'; }).length;
+
+  var html = '<div class="kpi-row">'
+    + kpi('📋', LOGS.length,  'Total logs',      'var(--acc)')
+    + kpi('❌', errCount,     'Erreurs',          'var(--red)')
+    + kpi('⚠️',  warnCount,   'Avertissements',   'var(--amber)')
+    + kpi('🔐', secCount,     'Sécurité',         'var(--purple)')
+    + kpi('👤', LOGS.filter(function(l){return l.cat==='user';}).length, 'Actions users', 'var(--blue)')
+    + kpi('💰', LOGS.filter(function(l){return l.cat==='finance';}).length, 'Finance', 'var(--orange)')
+    + '</div>';
+
+  html += '<div class="section"><div class="sec-title">'
+    + '<div class="live-dot"></div> <span>Flux temps réel — ' + periodDays + ' derniers jours</span></div>'
+    + (logs.length ? '<div class="log-list">' + logs.map(function(l){ return logEntryHTML(l, searchQuery); }).join('') + '</div>'
+      : emptyState('📋', 'Aucun log trouvé'))
+    + '</div>';
+  return html;
+}
+
+/* ── Utilisateurs ────────────────────────────────────────── */
+function renderUsers() {
+  var userLogs = filteredLogs('user');
+  /* User stats */
+  var byUser = {};
+  userLogs.forEach(function(l) {
+    if (!byUser[l.user]) byUser[l.user] = { total:0, success:0, warn:0, err:0, last:l.ts };
+    byUser[l.user].total++;
+    if (l.level==='success') byUser[l.user].success++;
+    if (l.level==='warning') byUser[l.user].warn++;
+    if (l.level==='error')   byUser[l.user].err++;
+    if (l.ts > byUser[l.user].last) byUser[l.user].last = l.ts;
+  });
+  var users = Object.keys(byUser).sort(function(a,b){ return byUser[b].total - byUser[a].total; });
+  var max = users.length ? byUser[users[0]].total : 1;
+
+  var html = '<div class="section"><div class="sec-title">👤 <span>Activité par utilisateur</span></div>';
+  users.forEach(function(u) {
+    var s = byUser[u];
+    var pct = Math.round(s.total / max * 100);
+    html += '<div class="prog-wrap">'
+      + '<div class="prog-head"><span><strong>' + u + '</strong>'
+      + ' <span style="color:var(--text3);font-size:10px">— dernier: ' + fmtTs(s.last) + '</span></span>'
+      + '<span>' + s.total + ' actions</span></div>'
+      + '<div class="prog-bar"><div class="prog-fill" style="width:' + pct + '%;background:var(--acc)"></div></div>'
+      + '<div style="display:flex;gap:10px;margin-top:3px;font-size:10px">'
+      + '<span style="color:var(--green)">✅ ' + s.success + '</span>'
+      + '<span style="color:var(--amber)">⚠️ ' + s.warn + '</span>'
+      + '<span style="color:var(--red)">❌ ' + s.err + '</span>'
+      + '</div></div>';
+  });
+  html += '</div>';
+
+  html += '<div class="section"><div class="sec-title">📋 <span>Historique actions utilisateurs</span></div>'
+    + (userLogs.length
+      ? '<div class="log-list">' + userLogs.slice(0,40).map(function(l){ return logEntryHTML(l,searchQuery); }).join('') + '</div>'
+      : emptyState('👤','Aucune action trouvée'))
+    + '</div>';
+  return html;
+}
+
+/* ── Sécurité ────────────────────────────────────────────── */
+function renderSecurite() {
+  var secLogs = filteredLogs('security');
+  var conns   = LOGS.filter(function(l){ return l.msg.includes('Connexion réussie'); });
+  var fails   = LOGS.filter(function(l){ return l.msg.includes('Tentative connexion échouée'); });
+  var blocked = LOGS.filter(function(l){ return l.msg.includes('suspecte bloquée'); });
+
+  var html = '<div class="kpi-row">'
+    + kpi('✅', conns.length,   'Connexions réussies', 'var(--green)')
+    + kpi('🚫', fails.length,   'Tentatives échouées', 'var(--red)')
+    + kpi('🛡️', blocked.length, 'IPs bloquées',        'var(--purple)')
+    + kpi('🔐', LOGS.filter(function(l){return l.msg.includes('2FA');}).length, '2FA activés', 'var(--acc)')
+    + '</div>';
+
+  /* Connection table */
+  html += '<div class="section"><div class="sec-title">🔑 <span>Dernières connexions</span></div>'
+    + '<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+    + '<th>Utilisateur</th><th>IP</th><th>Heure</th><th>Statut</th>'
+    + '</tr></thead><tbody>'
+    + conns.slice(0,15).map(function(l){
+        return '<tr><td>👤 ' + l.user + '</td>'
+          + '<td class="mono">' + l.ip + '</td>'
+          + '<td>' + fmtTs(l.ts) + '</td>'
+          + '<td><span class="badge b-success">Réussi</span></td></tr>';
+      }).join('')
+    + fails.slice(0,5).map(function(l){
+        return '<tr><td>👤 ' + l.user + '</td>'
+          + '<td class="mono">' + l.ip + '</td>'
+          + '<td>' + fmtTs(l.ts) + '</td>'
+          + '<td><span class="badge b-error">Échoué</span></td></tr>';
+      }).join('')
+    + '</tbody></table></div></div>';
+
+  /* Security logs feed */
+  html += '<div class="section"><div class="sec-title">🔐 <span>Événements sécurité</span></div>'
+    + (secLogs.length
+      ? '<div class="log-list">' + secLogs.slice(0,30).map(function(l){ return logEntryHTML(l,searchQuery); }).join('') + '</div>'
+      : emptyState('🔐','Aucun événement sécurité'))
+    + '</div>';
+  return html;
+}
+
+/* ── Erreurs ─────────────────────────────────────────────── */
+function renderErreurs() {
+  var errLogs  = filteredLogs('error');
+  var warnLogs = LOGS.filter(function(l){ return l.level==='warning'; });
+
+  var byMod = {};
+  errLogs.forEach(function(l){
+    byMod[l.module] = (byMod[l.module]||0) + 1;
+  });
+  var modList = Object.keys(byMod).sort(function(a,b){ return byMod[b]-byMod[a]; });
+  var maxE = modList.length ? byMod[modList[0]] : 1;
+
+  var html = '<div class="kpi-row">'
+    + kpi('❌', errLogs.length,  'Erreurs totales',   'var(--red)')
+    + kpi('⚠️',  warnLogs.length, 'Avertissements',    'var(--amber)')
+    + kpi('🔴', modList.length,  'Modules affectés',  'var(--orange)')
+    + '</div>';
+
+  if (modList.length) {
+    html += '<div class="section"><div class="sec-title">📊 <span>Erreurs par module</span></div>';
+    modList.forEach(function(m) {
+      var pct = Math.round(byMod[m] / maxE * 100);
+      html += '<div class="prog-wrap">'
+        + '<div class="prog-head"><span>' + m + '</span><span style="color:var(--red)">' + byMod[m] + ' erreurs</span></div>'
+        + '<div class="prog-bar"><div class="prog-fill" style="width:' + pct + '%;background:var(--red)"></div></div>'
+        + '</div>';
+    });
+    html += '</div>';
+  }
+
+  html += '<div class="section"><div class="sec-title">❌ <span>Log d\'erreurs</span></div>'
+    + (errLogs.length
+      ? '<div class="log-list">' + errLogs.map(function(l){ return logEntryHTML(l,searchQuery); }).join('') + '</div>'
+      : '<div class="empty"><div class="empty-icon">✅</div><div class="empty-msg">Aucune erreur — système stable!</div></div>')
+    + '</div>';
+
+  html += '<div class="section"><div class="sec-title">⚠️ <span>Avertissements</span></div>'
+    + (warnLogs.length
+      ? '<div class="log-list">' + warnLogs.slice(0,20).map(function(l){ return logEntryHTML(l,searchQuery); }).join('') + '</div>'
+      : emptyState('⚠️','Aucun avertissement'))
+    + '</div>';
+  return html;
+}
+
+/* ── Finance ─────────────────────────────────────────────── */
+function renderFinance() {
+  var finLogs = genFinanceAudit(periodDays);
+  var credits = finLogs.filter(function(e){ return e.action==='Crédit'; });
+  var debits  = finLogs.filter(function(e){ return e.action==='Débit'; });
+  var totC = credits.reduce(function(a,e){ return a+e.amount; },0);
+  var totD = debits.reduce(function(a,e){ return a+e.amount; },0);
+
+  var html = '<div class="kpi-row">'
+    + kpi('💰', fmtXAF(totC)+'k', 'Total crédits',    'var(--green)')
+    + kpi('💸', fmtXAF(totD)+'k', 'Total débits',     'var(--red)')
+    + kpi('📊', fmtXAF(totC-totD)+'k','Solde net',    totC>=totD?'var(--green)':'var(--red)')
+    + kpi('📋', finLogs.length,   'Transactions',     'var(--blue)')
+    + '</div>';
+
+  /* Pending */
+  var pending = finLogs.filter(function(e){ return e.status==='en attente'; });
+  if (pending.length) {
+    html += '<div class="section" style="border-color:var(--amber)">'
+      + '<div class="sec-title">⏳ <span>En attente de validation (' + pending.length + ')</span></div>'
+      + '<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+      + '<th>Type</th><th>Montant</th><th>Utilisateur</th><th>Réf.</th><th>Statut</th>'
+      + '</tr></thead><tbody>'
+      + pending.map(function(e){
+          return '<tr><td>' + e.type + '</td>'
+            + '<td style="color:' + e.color + ';font-weight:600">' + (e.action==='Crédit'?'+':'-') + fmtXAF(e.amount) + ' XAF</td>'
+            + '<td>' + e.user + '</td><td class="mono">' + e.ref + '</td>'
+            + '<td><span class="badge b-warning">En attente</span></td></tr>';
+        }).join('')
+      + '</tbody></table></div></div>';
+  }
+
+  html += '<div class="section"><div class="sec-title">💳 <span>Historique transactions</span></div>'
+    + '<div style="overflow-x:auto"><table class="tbl"><thead><tr>'
+    + '<th>Heure</th><th>Type</th><th>Montant</th><th>Par</th><th>Réf.</th><th>Statut</th>'
+    + '</tr></thead><tbody>'
+    + finLogs.slice(0,30).map(function(e){
+        var badge = e.status==='validé' ? 'b-success' : 'b-warning';
+        return '<tr><td style="color:var(--text3);font-size:11px">' + fmtTs(e.ts) + '</td>'
+          + '<td>' + e.type + '</td>'
+          + '<td style="color:' + e.color + ';font-weight:600">' + (e.action==='Crédit'?'+ ':'-') + fmtXAF(e.amount) + ' XAF</td>'
+          + '<td>' + e.user + '</td>'
+          + '<td class="mono">' + e.ref + '</td>'
+          + '<td><span class="badge ' + badge + '">' + e.status + '</span></td></tr>';
+      }).join('')
+    + '</tbody></table></div></div>';
+  return html;
+}
+
+/* ── Événements modules ──────────────────────────────────── */
+function renderEvents() {
+  var evs = EVENT_LOGS;
+
+  var html = '<div class="kpi-row">'
+    + kpi('📡', evs.length,       'Événements captés',    'var(--acc)')
+    + kpi('🔄', evs.filter(function(e){return e.type==='module-ready';}).length,'Module ready','var(--green)')
+    + kpi('📊', [...new Set(evs.map(function(e){return e.source;}))].length, 'Sources', 'var(--blue)')
+    + '</div>';
+
+  html += '<div class="section"><div class="sec-title">'
+    + '<div class="live-dot"></div> <span>Event Bus — écoute active</span></div>'
+    + (evs.length ? '<div class="log-list">'
+      + evs.map(function(e){
+          return '<div class="log-entry" style="--c:var(--acc)">'
+            + '<div class="log-row1">'
+            + '<div class="log-icon">📡</div>'
+            + '<div class="log-msg"><strong>' + e.source + '</strong> → <code style="color:var(--acc);font-size:11px">' + e.type + '</code></div>'
+            + '<div class="log-time">' + fmtTs(e.ts) + '</div>'
+            + '</div>'
+            + '<div class="log-meta"><span class="badge b-system">' + e.source + '</span></div>'
+            + '</div>';
+        }).join('')
+      + '</div>'
+      : '<div class="empty" style="padding:30px">'
+        + '<div class="empty-icon">📡</div>'
+        + '<div class="empty-msg">En attente d\'événements des autres modules…<br>'
+        + '<span style="font-size:11px;color:var(--text3)">Naviguez dans d\'autres modules pour générer des événements</span></div></div>')
+    + '</div>';
+
+  /* Module source breakdown */
+  if (evs.length) {
+    var bySource = {};
+    evs.forEach(function(e){ bySource[e.source]=(bySource[e.source]||0)+1; });
+    var sources = Object.keys(bySource);
+    html += '<div class="section"><div class="sec-title">📊 <span>Sources événements</span></div>';
+    sources.forEach(function(s){
+      var pct = Math.round(bySource[s]/evs.length*100);
+      html += '<div class="mrow"><span class="mrow-lbl">' + s + '</span>'
+        + '<span class="mrow-val">' + bySource[s] + ' <span style="color:var(--text3);font-weight:400">(' + pct + '%)</span></span></div>';
+    });
+    html += '</div>';
+  }
+  return html;
+}
+
+/* ── Recherche ───────────────────────────────────────────── */
+function renderRecherche() {
+  var q = searchQuery;
+  var html = '<div class="section"><div class="sec-title">🔍 <span>Recherche globale</span></div>';
+  if (!q) {
+    html += '<div class="empty"><div class="empty-icon">🔍</div>'
+      + '<div class="empty-msg">Tapez dans la barre de recherche ci-dessus<br>'
+      + '<span style="font-size:11px;color:var(--text3)">Recherche dans messages, utilisateurs, IPs, modules</span></div></div>';
+  } else {
+    var results = LOGS.filter(function(l){
+      return (l.msg+l.user+l.module+l.ip).toLowerCase().includes(q);
+    });
+    html += '<div style="color:var(--text2);font-size:12px;margin-bottom:10px">'
+      + results.length + ' résultat(s) pour "<strong style="color:var(--acc)">' + q + '</strong>"</div>'
+      + (results.length
+        ? '<div class="log-list">' + results.map(function(l){ return logEntryHTML(l,q); }).join('') + '</div>'
+        : emptyState('🔍','Aucun résultat pour "' + q + '"'));
+  }
+  html += '</div>';
+  return html;
+}
+
+/* ── Export ──────────────────────────────────────────────── */
+function renderExport() {
+  var html = '<div class="section"><div class="sec-title">📤 <span>Exporter les journaux</span></div>'
+    + '<div class="exp-grid">'
+    + expCard('📋','Tous les logs','Journal complet','exportLogs("all")')
+    + expCard('👤','Logs utilisateurs','Actions & connexions','exportLogs("user")')
+    + expCard('🔐','Logs sécurité','Accès & incidents','exportLogs("security")')
+    + expCard('❌','Logs erreurs','Erreurs & warnings','exportLogs("error")')
+    + expCard('💰','Audit financier','Transactions','exportLogs("finance")')
+    + expCard('📡','Événements Bus','Events inter-modules','exportLogs("events")')
+    + '</div>'
+    + '<div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap">'
+    + '<button style="padding:10px 24px;border-radius:8px;border:none;background:var(--acc);color:#000;font-weight:600;font-size:13px;cursor:pointer" onclick="exportAll()">⬇️ Tout exporter</button>'
+    + '</div></div>'
+    + '<div class="section"><div class="sec-title">ℹ️ <span>Résumé de la période</span></div>'
+    + '<div class="mrow"><span class="mrow-lbl">Période analysée</span><span class="mrow-val">' + periodDays + ' jours</span></div>'
+    + '<div class="mrow"><span class="mrow-lbl">Total entrées</span><span class="mrow-val">' + LOGS.length + '</span></div>'
+    + '<div class="mrow"><span class="mrow-lbl">Erreurs</span><span class="mrow-val" style="color:var(--red)">' + LOGS.filter(function(l){return l.level==='error';}).length + '</span></div>'
+    + '<div class="mrow"><span class="mrow-lbl">Événements Bus</span><span class="mrow-val">' + EVENT_LOGS.length + '</span></div>'
+    + '<div class="mrow"><span class="mrow-lbl">Généré le</span><span class="mrow-val">' + new Date().toLocaleString('fr-FR') + '</span></div>'
+    + '</div>';
+  return html;
+}
+
+/* ── Export functions ────────────────────────────────────── */
+function exportLogs(type) {
+  var rows, header;
+  if (type === 'events') {
+    header = 'Timestamp,Source,Type,Payload';
+    rows = EVENT_LOGS.map(function(e){
+      return e.ts + ',' + e.source + ',' + e.type + ',"' + JSON.stringify(e.payload).replace(/"/g,'""') + '"';
+    });
+  } else if (type === 'finance') {
+    var fin = genFinanceAudit(periodDays);
+    header = 'Timestamp,Type,Action,Montant XAF,Utilisateur,Référence,Statut';
+    rows = fin.map(function(e){
+      return e.ts+','+e.type+','+e.action+','+e.amount+','+e.user+','+e.ref+','+e.status;
+    });
+  } else {
+    var src = type === 'all' ? LOGS : LOGS.filter(function(l){ return l.cat===type; });
+    header = 'Timestamp,Niveau,Catégorie,Message,Utilisateur,Module,IP';
+    rows = src.map(function(l){
+      return l.ts+','+l.level+','+l.cat+',"'+l.msg.replace(/"/g,'""')+'",'+l.user+','+l.module+','+l.ip;
+    });
+  }
+  var csv = [header].concat(rows).join('\n');
+  var blob = new Blob([csv],{type:'text/csv'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href=url; a.download='veraluz_audit_'+type+'_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+  toast('✅ Export ' + type + ' téléchargé');
+  emit('audit-export',{type:type});
+}
+function exportAll() {
+  ['all','security','error','finance','events'].forEach(function(t,i){
+    setTimeout(function(){ exportLogs(t); }, i*300);
+  });
+}
+
+/* ── UI helpers ──────────────────────────────────────────── */
+function kpi(icon, val, label, color) {
+  return '<div class="kpi" style="--c:' + color + '">'
+    + '<div style="font-size:18px;margin-bottom:4px">' + icon + '</div>'
+    + '<div class="kpi-val">' + val + '</div>'
+    + '<div class="kpi-lbl">' + label + '</div>'
+    + '</div>';
+}
+function emptyState(icon, msg) {
+  return '<div class="empty"><div class="empty-icon">' + icon + '</div><div class="empty-msg">' + msg + '</div></div>';
+}
+function expCard(icon, name, desc, fn) {
+  return '<div class="exp-card" onclick="' + fn + '">'
+    + '<div class="exp-icon">' + icon + '</div>'
+    + '<div class="exp-name">' + name + '</div>'
+    + '<div class="exp-desc">' + desc + '</div>'
+    + '</div>';
+}
+
+/* ── Main render ─────────────────────────────────────────── */
+function renderTab(id) {
+  var c = document.getElementById('content');
+  var html = '';
+  if      (id==='activite')  html = renderActivite();
+  else if (id==='users')     html = renderUsers();
+  else if (id==='securite')  html = renderSecurite();
+  else if (id==='erreurs')   html = renderErreurs();
+  else if (id==='finance')   html = renderFinance();
+  else if (id==='events')    html = renderEvents();
+  else if (id==='recherche') html = renderRecherche();
+  else if (id==='export')    html = renderExport();
+  c.innerHTML = html;
+  c.scrollTop = 0;
+}
+</script>
+</body>
+</html>

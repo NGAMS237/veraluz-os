@@ -190,6 +190,44 @@ input,select,textarea{font-family:inherit;font-size:14px}
 
 /* Form select */
 form-select{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:7px 10px;width:100%}
+
+/* Modal tabs */
+.modal-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:14px;gap:0}
+.mtab-btn{flex:1;background:none;color:var(--text2);padding:8px 10px;font-size:12px;font-weight:700;border:none;border-bottom:2px solid transparent;transition:.2s;text-align:center;cursor:pointer}
+.mtab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* Invoice */
+.inv-line{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+.inv-line:last-child{border-bottom:none}
+.inv-total{display:flex;justify-content:space-between;padding:10px 0 0;font-weight:800;font-size:15px;border-top:2px solid var(--border2);margin-top:4px}
+.balance-due{color:var(--danger)}
+.balance-ok{color:var(--success)}
+.inv-hist-item{background:var(--bg3);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px}
+
+/* Pay form */
+.pay-form{background:var(--bg3);border-radius:10px;padding:14px;margin-top:4px}
+.pay-form .form-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 4px;display:block}
+.pay-form .form-input{width:100%;background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:8px 10px;font-family:inherit;font-size:13px}
+.pay-method-btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.pmb{background:var(--bg4);border:1px solid var(--border);color:var(--text2);padding:5px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
+.pmb.sel{border-color:var(--accent);color:var(--accent);background:rgba(6,182,212,.1)}
+.btn-pay{background:linear-gradient(135deg,var(--success),#34d399);color:#fff;font-weight:800;padding:11px;border-radius:var(--radius-sm);width:100%;font-size:13px;margin-top:10px;cursor:pointer;border:none;font-family:inherit}
+.btn-pay:disabled{opacity:.5;cursor:not-allowed}
+
+/* Params tab */
+.param-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+.param-card-hdr{padding:12px 14px;background:var(--bg3);font-size:13px;font-weight:700;color:var(--text);display:flex;align-items:center;justify-content:space-between}
+.param-card-body{padding:14px}
+.unit-row{display:grid;grid-template-columns:1fr 90px 60px 76px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.unit-row:last-child{border-bottom:none}
+.unit-row input{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 7px;width:100%;font-family:inherit;font-size:12px}
+.btn-save-unit{background:rgba(6,182,212,.15);color:var(--accent);border:1px solid rgba(6,182,212,.3);padding:5px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+.param-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);gap:10px}
+.param-row:last-child{border-bottom:none}
+.param-lbl{color:var(--text2);font-size:12px;flex:1}
+.param-input{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;font-size:12px;width:140px;text-align:right;font-family:inherit}
+.btn-save-params{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;padding:10px 20px;border-radius:var(--radius-sm);font-size:13px;margin-top:14px;width:100%;cursor:pointer;border:none;font-family:inherit}
+.param-section-title{font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
 </style>
 </head>
 <body>
@@ -217,6 +255,7 @@ form-select{background:var(--bg3);border:1px solid var(--border);border-radius:v
         📋 Réservations <span class="tbadge warn" id="rez-badge" style="display:none">0</span>
       </button>
       <button class="tab-btn" id="tab-nouvelle" onclick="goTab('nouvelle')">✏️ Nouvelle</button>
+      <button class="tab-btn" id="tab-params" onclick="goTab('params')">⚙️ Paramètres</button>
     </div>
   </div>
 
@@ -285,6 +324,11 @@ form-select{background:var(--bg3);border:1px solid var(--border);border-radius:v
       <div id="formSteps"></div>
     </div>
 
+
+    <!-- PARAMÈTRES -->
+    <div class="tab-pane" id="pane-params">
+      <div id="paramsContent"><div class="empty-state"><p>Chargement…</p></div></div>
+    </div>
   </div><!-- /mod-body -->
 </div><!-- /mod-wrap -->
 
@@ -483,6 +527,7 @@ function renderTab(id){
   else if(id==='chambres') renderRooms();
   else if(id==='liste') renderRezList();
   else if(id==='nouvelle') renderNewForm();
+  else if(id==='params') renderParams();
 }
 function updateBadges(){
   var avail = _rooms.filter(function(r){return r._dynStatus==='available';}).length;
@@ -709,29 +754,137 @@ function removeImg(roomId,idx){
   try{localStorage.setItem('vlz_room_images_'+roomId,JSON.stringify(room._images));}catch(e){}
   toast('Photo retirée'); openRoomModal(roomId);
 }
+/* ── current open rez id ── */
+var _openRezId = null;
+var _rezPayMethod = 'cash';
+
 function openRezModal(rezId){
+  _openRezId = rezId;
+  _rezPayMethod = 'cash';
   var r=_rez.find(function(x){return x.id===rezId;}); if(!r) return;
   var s=statusInfo(r.status);
   var actions='';
-  if(r.status==='pending') actions+='<button class="act-btn btn-confirm" onclick="doConfirm(\''+r.id+'\')">Confirmer</button>';
-  if(r.status==='confirmed') actions+='<button class="act-btn btn-checkin" onclick="doCheckIn(\''+r.id+'\')">Check-in</button>';
-  if(r.status==='checkedin'||r.status==='checked_in') actions+='<button class="act-btn btn-checkout" onclick="doCheckOut(\''+r.id+'\')">Check-out</button>';
-  if(['pending','confirmed'].includes(r.status)) actions+='<button class="act-btn btn-cancel" onclick="doCancel(\''+r.id+'\')">Annuler</button>';
-  document.getElementById('rezModalContent').innerHTML=
+  if(r.status==='pending') actions+='<button class="act-btn btn-confirm" data-rid="'+r.id+'" onclick="doConfirm(this.dataset.rid)">Confirmer</button>';
+  if(r.status==='confirmed') actions+='<button class="act-btn btn-checkin" data-rid="'+r.id+'" onclick="doCheckIn(this.dataset.rid)">Check-in</button>';
+  if(r.status==='checkedin'||r.status==='checked_in') actions+='<button class="act-btn btn-checkout" data-rid="'+r.id+'" onclick="doCheckOut(this.dataset.rid)">Check-out</button>';
+  if(['pending','confirmed','checkedin','checked_in'].includes(r.status)) actions+='<button class="act-btn btn-cancel" data-rid="'+r.id+'" onclick="doCancel(this.dataset.rid)">Annuler</button>';
+
+  var balance = (r.total||0)-(r.paid||0);
+  var balCls = balance<=0 ? 'balance-ok' : 'balance-due';
+  var balLbl = balance<=0 ? 'Soldée ✓' : fmtMoney(balance)+' restant';
+  var nights = r.nights || diffDays(r.check_in,r.check_out) || 1;
+  var ppu = (r.total||0)/(nights||1);
+
+  var html =
     '<div class="modal-title">'+esc(r.guest_name||'—')+'</div>'+
-    '<div class="modal-sub"><span class="rez-sbadge '+s.badge+'" style="display:inline-block">'+s.label+'</span></div>'+
-    '<div class="modal-section"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">'+
+    '<div class="modal-sub"><span class="rez-sbadge '+s.badge+'" style="display:inline-block">'+s.label+'</span>'+
+    (r.guest_phone ? ' &nbsp;📞 '+esc(r.guest_phone) : '')+
+    (r.guest_email ? ' &nbsp;✉ '+esc(r.guest_email) : '')+'</div>'+
+    '<div class="modal-tabs">'+
+    '<button class="mtab-btn active" id="mtab-detail" onclick="switchRezTab(\'detail\')">📋 Détails</button>'+
+    '<button class="mtab-btn" id="mtab-facture" onclick="switchRezTab(\'facture\')">🧾 Facture</button>'+
+    '<button class="mtab-btn" id="mtab-paiement" onclick="switchRezTab(\'paiement\')">💳 Paiement</button>'+
+    '</div>'+
+    '<div id="rzpane-detail">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:12px">'+
     '<div><div style="color:var(--text2);font-size:11px">Logement</div><div style="font-weight:600">'+esc(r.unit_name||unitName(r.unit_id)||'—')+'</div></div>'+
-    '<div><div style="color:var(--text2);font-size:11px">Clients</div><div style="font-weight:600">'+(r.guests||1)+' pers.</div></div>'+
+    '<div><div style="color:var(--text2);font-size:11px">Voyageurs</div><div style="font-weight:600">'+(r.guests||1)+' pers.</div></div>'+
     '<div><div style="color:var(--text2);font-size:11px">Arrivée</div><div style="font-weight:600">'+fmtFull(r.check_in)+'</div></div>'+
     '<div><div style="color:var(--text2);font-size:11px">Départ</div><div style="font-weight:600">'+fmtFull(r.check_out)+'</div></div>'+
-    '<div><div style="color:var(--text2);font-size:11px">Total</div><div style="font-weight:700;color:var(--gold)">'+fmtMoney(r.total)+'</div></div>'+
-    '<div><div style="color:var(--text2);font-size:11px">Payé</div><div style="font-weight:700;color:var(--success)">'+fmtMoney(r.paid)+'</div></div>'+
-    '</div></div>'+
-    (r.guest_phone||r.guest_email?'<div class="modal-section"><div style="font-size:12px;color:var(--text2)">📞 '+esc(r.guest_phone||'—')+'  ✉ '+esc(r.guest_email||'—')+'</div></div>':'')+
-    (r.notes?'<div class="modal-section"><div class="modal-section-title">Notes</div><div style="font-size:13px;color:var(--text2)">'+esc(r.notes)+'</div></div>':'')+
-    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">'+actions+'</div>';
+    '<div><div style="color:var(--text2);font-size:11px">Durée</div><div style="font-weight:600">'+nights+' nuit'+(nights>1?'s':'')+'</div></div>'+
+    '<div><div style="color:var(--text2);font-size:11px">Source</div><div style="font-weight:600">'+esc(r.source||'—')+'</div></div>'+
+    '</div>'+
+    (r.notes ? '<div style="background:var(--bg3);border-radius:8px;padding:10px;font-size:12px;color:var(--text2);margin-bottom:10px">📝 '+esc(r.notes)+'</div>' : '')+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+actions+'</div>'+
+    '</div>'+
+    '<div id="rzpane-facture" style="display:none">'+
+    '<div class="inv-line"><span>Nuitées ('+nights+' × '+fmtMoney(Math.round(ppu))+')</span><strong>'+fmtMoney(r.total||0)+'</strong></div>'+
+    '<div class="inv-line"><span style="color:var(--success)">Acompte versé</span><strong style="color:var(--success)">- '+fmtMoney(r.paid||0)+'</strong></div>'+
+    '<div class="inv-total"><span>Solde restant</span><span class="'+balCls+'">'+balLbl+'</span></div>'+
+    '<div style="margin-top:14px"><div class="param-section-title">Historique des paiements</div>'+
+    '<div id="pay-history-lst">Chargement…</div></div>'+
+    '</div>'+
+    '<div id="rzpane-paiement" style="display:none">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
+    '<span style="font-size:13px;color:var(--text2)">Solde dû</span>'+
+    '<span style="font-size:18px;font-weight:800" class="'+balCls+'">'+balLbl+'</span></div>'+
+    '<div class="pay-form">'+
+    '<label class="form-label">Méthode</label>'+
+    '<div class="pay-method-btns">'+
+    '<button class="pmb sel" data-m="cash" onclick="selPayMethod(this)">💵 Espèces</button>'+
+    '<button class="pmb" data-m="card" onclick="selPayMethod(this)">💳 Carte</button>'+
+    '<button class="pmb" data-m="mobile_money" onclick="selPayMethod(this)">📱 Mobile</button>'+
+    '<button class="pmb" data-m="transfer" onclick="selPayMethod(this)">🏦 Virement</button>'+
+    '</div>'+
+    '<label class="form-label">Montant (FCFA)</label>'+
+    '<input class="form-input" type="number" id="pay-amount" placeholder="Ex: 75000" value="'+Math.max(0,balance)+'" min="0">'+
+    '<label class="form-label">Note (optionnel)</label>'+
+    '<input class="form-input" type="text" id="pay-note" placeholder="Acompte, solde final…">'+
+    '<button class="btn-pay" onclick="recordPayment()">✓ Enregistrer le paiement</button>'+
+    '</div></div>';
+
+  document.getElementById('rezModalContent').innerHTML = html;
   openModal('rezModal');
+  loadPayHistory(rezId);
+}
+
+function switchRezTab(tab){
+  ['detail','facture','paiement'].forEach(function(t){
+    var pane=document.getElementById('rzpane-'+t);
+    var btn=document.getElementById('mtab-'+t);
+    if(pane) pane.style.display=(t===tab)?'':'none';
+    if(btn) btn.className='mtab-btn'+(t===tab?' active':'');
+  });
+}
+function selPayMethod(btn){
+  document.querySelectorAll('.pmb').forEach(function(b){b.classList.remove('sel');});
+  btn.classList.add('sel');
+  _rezPayMethod = btn.getAttribute('data-m');
+}
+function loadPayHistory(rezId){
+  var el = document.getElementById('pay-history-lst'); if(!el) return;
+  sbGet('veraluz_payments?reservation_id=eq.'+rezId+'&order=created_at.desc').then(function(data){
+    if(!el) return;
+    if(!Array.isArray(data)||!data.length){
+      el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:10px">Aucun paiement enregistré</div>';
+      return;
+    }
+    var mLbl={cash:'Espèces',card:'Carte',mobile_money:'Mobile Money',transfer:'Virement'};
+    el.innerHTML=data.map(function(p){
+      var d=p.created_at?new Date(p.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+      return '<div class="inv-hist-item">'+
+        '<div style="display:flex;justify-content:space-between"><strong style="color:var(--success)">+'+fmtMoney(p.amount||0)+'</strong><span style="color:var(--text3)">'+d+'</span></div>'+
+        '<div style="color:var(--text2);margin-top:2px">'+(mLbl[p.method]||p.method||'—')+(p.notes?' — '+esc(p.notes):'')+'</div></div>';
+    }).join('');
+  }).catch(function(){
+    if(el) el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px">Impossible de charger l\'historique</div>';
+  });
+}
+function recordPayment(){
+  var rezId=_openRezId; if(!rezId) return;
+  var r=_rez.find(function(x){return x.id===rezId;}); if(!r) return;
+  var amt=parseFloat((document.getElementById('pay-amount')||{}).value||0);
+  if(!amt||amt<=0){toast('Montant invalide','danger');return;}
+  var note=(document.getElementById('pay-note')||{}).value||'';
+  var btn=document.querySelector('.btn-pay');
+  if(btn){btn.disabled=true;btn.textContent='Enregistrement…';}
+  var payData={reservation_id:rezId,amount:amt,method:_rezPayMethod||'cash',status:'validated',
+    notes:note||null,guest_name:r.guest_name||null,payment_type:'payment',source:'reception',
+    created_at:new Date().toISOString()};
+  sbPost('veraluz_payments',payData).then(function(){
+    var newPaid=(r.paid||0)+amt;
+    return sbPatch('veraluz_reservations?id=eq.'+rezId,{paid:newPaid}).then(function(){
+      r.paid=newPaid;
+      try{localStorage.setItem('vlz_cache_rez',JSON.stringify(_rez));}catch(e){}
+      toast('Paiement de '+fmtMoney(amt)+' enregistré !','success');
+      openRezModal(rezId);
+    });
+  }).catch(function(){
+    r.paid=(r.paid||0)+amt;
+    toast('Paiement enregistré (hors ligne)');
+    if(btn){btn.disabled=false;btn.textContent='✓ Enregistrer le paiement';}
+    try{localStorage.setItem('vlz_cache_rez',JSON.stringify(_rez));}catch(e){}
+  });
 }
 
 /* ── NOUVELLE RÉSERVATION ── */
@@ -883,6 +1036,82 @@ function dismissSync(i){
     localStorage.setItem('vlz_booking_sync',JSON.stringify(sync));
     openSyncModal(); checkBkSync();
   }catch(e){}
+}
+
+/* ── PARAMÈTRES ── */
+var _settings = {};
+function renderParams(){
+  var el=document.getElementById('paramsContent'); if(!el) return;
+  try{ _settings=JSON.parse(localStorage.getItem('vlz_settings')||'{}'); }catch(e){}
+  var unitsRows=_rooms.map(function(u){
+    return '<div class="unit-row">'+
+      '<input id="uname-'+u.id+'" value="'+esc(u.name||'')+'" placeholder="Nom">'+
+      '<input type="number" id="uprice-'+u.id+'" value="'+(u.price||0)+'" min="0">'+
+      '<input type="number" id="ucap-'+u.id+'" value="'+(u.capacity||2)+'" min="1" max="20">'+
+      '<button class="btn-save-unit" data-uid="'+u.id+'" onclick="saveUnitParam(this.dataset.uid)">✓ Sauver</button>'+
+      '</div>';
+  }).join('');
+  el.innerHTML=
+    '<div class="param-card">'+
+    '<div class="param-card-hdr">🛏 Hébergements<span style="font-size:11px;color:var(--text2);font-weight:400">Nom · Prix/nuit · Capacité</span></div>'+
+    '<div class="param-card-body">'+
+    '<div style="display:grid;grid-template-columns:1fr 90px 60px 76px;gap:8px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border)">'+
+    '<div>Nom</div><div>Prix/nuit</div><div>Cap.</div><div></div></div>'+
+    unitsRows+'</div></div>'+
+    '<div class="param-card">'+
+    '<div class="param-card-hdr">⚙️ Paramètres généraux</div>'+
+    '<div class="param-card-body">'+
+    '<div class="param-row"><span class="param-lbl">Nom de la résidence</span><input class="param-input" id="p-hotel" value="'+esc(_settings.hotel_name||'Veraluz')+'" placeholder="Nom hôtel"></div>'+
+    '<div class="param-row"><span class="param-lbl">Heure check-in</span><input class="param-input" id="p-ci-time" value="'+esc(_settings.checkin_time||'14:00')+'"></div>'+
+    '<div class="param-row"><span class="param-lbl">Heure check-out</span><input class="param-input" id="p-co-time" value="'+esc(_settings.checkout_time||'11:00')+'"></div>'+
+    '<div class="param-row"><span class="param-lbl">Devise</span><input class="param-input" id="p-currency" value="'+esc(_settings.currency||'FCFA')+'"></div>'+
+    '<div class="param-row"><span class="param-lbl">WhatsApp réception</span><input class="param-input" id="p-wa" value="'+esc(_settings.whatsapp||'')+'" placeholder="+237 6XX…"></div>'+
+    '<button class="btn-save-params" onclick="saveSettings()">✓ Enregistrer les paramètres</button>'+
+    '</div></div>'+
+    '<div class="param-card">'+
+    '<div class="param-card-hdr">🍳 Extras & Frais optionnels</div>'+
+    '<div class="param-card-body">'+
+    '<div class="param-row"><span class="param-lbl">Petit-déjeuner (FCFA/pers./nuit)</span><input class="param-input" type="number" id="p-bkf" value="'+(_settings.breakfast_price||0)+'" min="0"></div>'+
+    '<div class="param-row"><span class="param-lbl">Transfert aéroport (FCFA)</span><input class="param-input" type="number" id="p-trf" value="'+(_settings.transfer_price||0)+'" min="0"></div>'+
+    '<div class="param-row"><span class="param-lbl">Frais de ménage (FCFA)</span><input class="param-input" type="number" id="p-clean" value="'+(_settings.cleaning_fee||0)+'" min="0"></div>'+
+    '<div class="param-row"><span class="param-lbl">Taxe de séjour (%)</span><input class="param-input" type="number" id="p-tax" value="'+(_settings.tax_pct||0)+'" min="0" max="100"></div>'+
+    '<button class="btn-save-params" onclick="saveExtras()">✓ Enregistrer les extras</button>'+
+    '</div></div>';
+}
+function saveUnitParam(uid){
+  var nameEl=document.getElementById('uname-'+uid);
+  var priceEl=document.getElementById('uprice-'+uid);
+  var capEl=document.getElementById('ucap-'+uid);
+  if(!nameEl) return;
+  var name=nameEl.value.trim(), price=parseFloat(priceEl.value||0), cap=parseInt(capEl.value||2);
+  if(!name){toast('Nom requis','danger');return;}
+  sbPatch('veraluz_units?id=eq.'+uid,{name:name,price:price,capacity:cap}).then(function(){
+    var r=_rooms.find(function(r){return r.id===uid;});
+    if(r){r.name=name;r.price=price;r.capacity=cap;}
+    try{localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms));}catch(e){}
+    toast('Hébergement mis à jour ✓','success');
+  }).catch(function(){
+    var r=_rooms.find(function(r){return r.id===uid;});
+    if(r){r.name=name;r.price=price;r.capacity=cap;}
+    toast('Mis à jour (hors ligne)');
+  });
+}
+function saveSettings(){
+  _settings.hotel_name=(document.getElementById('p-hotel')||{}).value||'Veraluz';
+  _settings.checkin_time=(document.getElementById('p-ci-time')||{}).value||'14:00';
+  _settings.checkout_time=(document.getElementById('p-co-time')||{}).value||'11:00';
+  _settings.currency=(document.getElementById('p-currency')||{}).value||'FCFA';
+  _settings.whatsapp=(document.getElementById('p-wa')||{}).value||'';
+  try{localStorage.setItem('vlz_settings',JSON.stringify(_settings));}catch(e){}
+  toast('Paramètres sauvegardés ✓','success');
+}
+function saveExtras(){
+  _settings.breakfast_price=parseFloat((document.getElementById('p-bkf')||{}).value||0);
+  _settings.transfer_price=parseFloat((document.getElementById('p-trf')||{}).value||0);
+  _settings.cleaning_fee=parseFloat((document.getElementById('p-clean')||{}).value||0);
+  _settings.tax_pct=parseFloat((document.getElementById('p-tax')||{}).value||0);
+  try{localStorage.setItem('vlz_settings',JSON.stringify(_settings));}catch(e){}
+  toast('Extras sauvegardés ✓','success');
 }
 
 /* ── INIT ── */

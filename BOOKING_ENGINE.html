@@ -2,1138 +2,1089 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Résidence Veraluz — Réservation · Kribi</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Résidence Veraluz — Réservation en ligne</title>
+<meta name="description" content="Réservez votre séjour à la Résidence Veraluz, appartements meublés vue mer à Kribi, Cameroun.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --navy:#0b2d4a;--navy2:#0f3a5e;--navy3:#1a4f7a;
-  --gold:#c9a84c;--gold2:#e8c56a;--gold3:#f5e0a0;--gold-bg:#fdf8ee;
-  --teal:#0891b2;--coral:#f97316;
-  --bg:#f0f4f8;--bg2:#ffffff;--bg3:#f1f5f9;
-  --text:#0f172a;--text2:#334155;--text3:#64748b;
-  --border:#e2e8f0;
-  --radius:16px;
-  --shadow:0 4px 24px rgba(11,45,74,.09);
-  --shadow-lg:0 12px 48px rgba(11,45,74,.16);
+  --sky1:#b8e4f7;--sky2:#5bb8e0;--sky3:#1a7aaa;
+  --ocean1:#006994;--ocean2:#004f75;--ocean3:#003554;
+  --sand1:#f9e4b7;--sand2:#e8c97a;--gold:#c9a84c;--gold2:#e8c56a;
+  --sun:#FFD700;--sun2:#FFA500;--coral:#f4845f;
+  --navy:#023047;--navy2:#0a3d5c;
+  --green1:#2d6a4f;--green2:#52b788;
+  --bg:#fdf8f0;--bg2:#fff;--bg3:#f8f4ec;
+  --text:#023047;--text2:#344e5c;--text3:#6b8a99;
+  --border:#dde8f0;
+  --radius:18px;
+  --shadow:0 4px 24px rgba(2,48,71,.1);
+  --shadow-lg:0 12px 48px rgba(2,48,71,.18);
 }
 html{scroll-behavior:smooth}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+button{cursor:pointer;border:none;font-family:inherit}
 a{text-decoration:none;color:inherit}
-button{cursor:pointer;border:none;font-family:inherit;outline:none}
 
-/* ════════════════════════════════
-   NAVBAR — glass-morphism moderne
-   ════════════════════════════════ */
+/* ─── NAVBAR ─── */
 .nav{
-  position:fixed;top:0;left:0;right:0;z-index:400;
-  height:68px;display:flex;align-items:center;padding:0 24px;
-  background:rgba(11,45,74,0.15);
-  backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);
-  border-bottom:1px solid rgba(201,168,76,0);
-  transition:background .4s ease, backdrop-filter .4s ease, border-color .4s ease, height .3s ease;
+  position:fixed;top:0;left:0;right:0;z-index:400;height:64px;
+  display:flex;align-items:center;padding:0 24px;gap:16px;
+  background:rgba(2,48,71,.05);backdrop-filter:blur(0px);
+  border-bottom:1px solid transparent;
+  transition:background .4s,backdrop-filter .4s,border-color .4s,height .3s;
 }
-.nav.scrolled{
-  background:rgba(11,45,74,0.88);
-  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-  border-bottom-color:rgba(201,168,76,0.25);
-  height:60px;
+.nav.stuck{
+  background:rgba(2,48,71,.9);backdrop-filter:blur(20px);
+  border-bottom-color:rgba(201,168,76,.3);height:58px;
 }
-/* Glow ligne dorée sous nav */
-.nav::after{
-  content:'';position:absolute;bottom:0;left:10%;right:10%;height:1px;
-  background:linear-gradient(90deg,transparent,var(--gold),transparent);
-  opacity:0;transition:opacity .4s;
+.nav-brand{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
+.nav-logo{width:38px;height:44px;flex-shrink:0;filter:drop-shadow(0 2px 8px rgba(201,168,76,.5));transition:filter .3s}
+.nav.stuck .nav-logo{filter:drop-shadow(0 2px 12px rgba(201,168,76,.7))}
+.nav-name{font-size:15px;font-weight:800;color:#fff;letter-spacing:.02em;text-shadow:0 1px 6px rgba(0,0,0,.4);white-space:nowrap}
+.nav-sub{font-size:10px;color:rgba(255,255,255,.55);letter-spacing:.09em;text-transform:uppercase;display:block}
+.nav-links{display:flex;gap:2px}
+.nav-a{
+  color:rgba(255,255,255,.8);font-size:13px;font-weight:600;
+  padding:7px 14px;border-radius:8px;transition:.2s;position:relative;
 }
-.nav.scrolled::after{opacity:1}
-
-/* Logo + Brand */
-.nav-brand{display:flex;align-items:center;gap:12px;flex:1}
-.nav-logo-wrap{position:relative;width:40px;height:46px;flex-shrink:0}
-.nav-logo-wrap svg{width:40px;height:46px;filter:drop-shadow(0 2px 8px rgba(201,168,76,.4));transition:filter .3s}
-.nav-logo-wrap:hover svg{filter:drop-shadow(0 4px 16px rgba(201,168,76,.7))}
-/* Shimmer ring on logo */
-.nav-logo-wrap::before{
-  content:'';position:absolute;inset:-4px;border-radius:50%;
-  background:conic-gradient(from 0deg, transparent 60%, rgba(201,168,76,.5) 70%, transparent 80%);
-  animation:logoSpin 4s linear infinite;opacity:0;transition:opacity .3s;
-}
-.nav-logo-wrap:hover::before{opacity:1}
-@keyframes logoSpin{to{transform:rotate(360deg)}}
-
-.nav-brand-text{line-height:1.15}
-.nav-brand-name{
-  font-size:16px;font-weight:800;color:#fff;letter-spacing:.03em;
-  text-shadow:0 1px 8px rgba(0,0,0,.3);
-}
-.nav-brand-sub{font-size:10px;color:rgba(255,255,255,.55);letter-spacing:.1em;text-transform:uppercase;display:block;margin-top:1px}
-
-/* Nav links */
-.nav-links{display:flex;align-items:center;gap:4px;margin-right:16px}
-.nav-link{
-  position:relative;color:rgba(255,255,255,.75);font-size:13px;font-weight:600;
-  padding:7px 14px;border-radius:8px;transition:color .2s,background .2s;
-  letter-spacing:.02em;
-}
-.nav-link::after{
-  content:'';position:absolute;bottom:2px;left:50%;right:50%;
-  height:2px;background:var(--gold);border-radius:2px;
-  transition:left .25s ease,right .25s ease;
-}
-.nav-link:hover{color:#fff;background:rgba(255,255,255,.08)}
-.nav-link:hover::after{left:14px;right:14px}
-
-/* CTA Book button */
+.nav-a::after{content:'';position:absolute;bottom:4px;left:50%;right:50%;height:2px;
+  background:var(--gold);border-radius:2px;transition:.25s}
+.nav-a:hover{color:#fff;background:rgba(255,255,255,.1)}
+.nav-a:hover::after{left:14px;right:14px}
 .nav-cta{
-  background:linear-gradient(135deg,var(--gold),var(--gold2));
-  color:var(--navy);font-weight:800;font-size:13px;
-  padding:9px 20px;border-radius:10px;
-  box-shadow:0 4px 16px rgba(201,168,76,.4);
-  transition:transform .2s,box-shadow .2s;
-  white-space:nowrap;flex-shrink:0;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);
+  font-weight:800;font-size:13px;padding:9px 20px;border-radius:10px;
+  box-shadow:0 4px 16px rgba(201,168,76,.45);transition:.2s;white-space:nowrap;
 }
-.nav-cta:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(201,168,76,.55)}
-.nav-cta:active{transform:translateY(0)}
-
-/* Hamburger (mobile) */
-.nav-burger{
-  display:none;flex-direction:column;gap:5px;padding:8px;
-  background:rgba(255,255,255,.1);border-radius:8px;margin-left:12px;
+.nav-cta:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(201,168,76,.6)}
+/* Staff button */
+.staff-btn{
+  display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.5);
+  font-size:11px;font-weight:600;padding:6px 10px;border-radius:8px;
+  border:1px solid rgba(255,255,255,.15);transition:.2s;background:transparent;margin-left:4px;
 }
-.nav-burger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;
-  transition:transform .3s,opacity .3s}
-.nav-burger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
-.nav-burger.open span:nth-child(2){opacity:0}
-.nav-burger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-
-/* Mobile nav drawer */
-.nav-mobile{
-  position:fixed;top:68px;left:0;right:0;z-index:399;
-  background:rgba(11,45,74,.96);backdrop-filter:blur(20px);
-  padding:16px 24px 24px;
-  transform:translateY(-110%);transition:transform .35s cubic-bezier(.32,.72,0,1);
+.staff-btn:hover{color:rgba(255,255,255,.9);background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3)}
+.staff-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;flex-shrink:0}
+/* Burger */
+.burger{display:none;flex-direction:column;gap:5px;padding:8px;
+  background:rgba(255,255,255,.1);border-radius:8px}
+.burger span{display:block;width:20px;height:2px;background:#fff;border-radius:2px;transition:.3s}
+.burger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.burger.open span:nth-child(2){opacity:0}
+.burger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.nav-mob{
+  position:fixed;top:64px;left:0;right:0;z-index:399;
+  background:rgba(2,48,71,.97);backdrop-filter:blur(20px);
+  padding:8px 24px 20px;transform:translateY(-110%);
+  transition:transform .35s cubic-bezier(.32,.72,0,1);
   border-bottom:1px solid rgba(201,168,76,.2);
 }
-.nav-mobile.open{transform:translateY(0)}
-.nav-mobile a,.nav-mobile button{
-  display:block;width:100%;text-align:left;color:rgba(255,255,255,.85);
-  font-size:15px;font-weight:600;padding:14px 0;
-  border-bottom:1px solid rgba(255,255,255,.07);background:none;
-}
-.nav-mobile a:last-child,.nav-mobile button:last-child{border:none}
-.nav-mobile .nm-cta{
-  margin-top:12px;text-align:center;background:linear-gradient(135deg,var(--gold),var(--gold2));
-  color:var(--navy);border-radius:12px;padding:14px;font-weight:800;font-size:15px;
-}
+.nav-mob.open{transform:translateY(0)}
+.nav-mob a,.nav-mob button{display:block;color:rgba(255,255,255,.85);font-size:15px;font-weight:600;
+  padding:13px 0;border-bottom:1px solid rgba(255,255,255,.07);background:none;width:100%;text-align:left}
+.nav-mob .nm-cta{text-align:center;background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:var(--navy);border-radius:12px;padding:14px;margin-top:10px;font-weight:800;border:none}
+@media(max-width:600px){.nav-links,.nav-cta{display:none}.burger{display:flex}}
 
-@media(max-width:640px){
-  .nav-links{display:none}
-  .nav-burger{display:flex}
-  .nav-cta{display:none}
-}
-
-/* ════════ HERO ════════ */
+/* ─── HERO TROPICAL ─── */
 .hero{
   min-height:100svh;position:relative;overflow:hidden;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;padding:100px 24px 80px;
+  text-align:center;padding:80px 24px 100px;
 }
-.hero-bg{
+/* Sky gradient */
+.hero-sky{
   position:absolute;inset:0;
-  background:linear-gradient(150deg,#05192c 0%,var(--navy) 40%,#0b4f68 75%,#1a7a8a 100%);
+  background:linear-gradient(180deg,
+    #0d1b2a 0%,#0e3a5c 20%,#1a6fa8 40%,
+    #38b6ff 60%,#87d7f5 72%,
+    #006994 78%,#004f75 88%,
+    #f9e4b7 93%,#e8c97a 100%);
 }
-/* Animated orbs */
-.hero-orb{position:absolute;border-radius:50%;filter:blur(60px);animation:orbFloat 8s ease-in-out infinite;pointer-events:none}
-.hero-orb1{width:400px;height:400px;background:radial-gradient(circle,rgba(201,168,76,.25),transparent 70%);top:-80px;right:-80px;animation-delay:0s}
-.hero-orb2{width:300px;height:300px;background:radial-gradient(circle,rgba(8,145,178,.2),transparent 70%);bottom:0;left:-60px;animation-delay:-3s}
-.hero-orb3{width:200px;height:200px;background:radial-gradient(circle,rgba(201,168,76,.15),transparent 70%);bottom:30%;right:10%;animation-delay:-6s}
-@keyframes orbFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-30px) scale(1.08)}}
-
-/* Wave bottom */
-.hero-wave{position:absolute;bottom:0;left:0;right:0;pointer-events:none;line-height:0}
-.hero-wave svg{display:block;width:100%;height:80px}
-
+/* Animated stars */
+.stars{position:absolute;top:0;left:0;right:0;height:40%;pointer-events:none}
+.star{position:absolute;background:#fff;border-radius:50%;animation:twinkle 2.5s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:.2;transform:scale(1)}50%{opacity:1;transform:scale(1.4)}}
+/* Sun */
+.sun-wrap{position:absolute;top:8%;left:50%;transform:translateX(-50%);width:90px;height:90px;pointer-events:none}
+.sun{width:90px;height:90px;border-radius:50%;
+  background:radial-gradient(circle at 40% 38%,#fff7a1,#FFD700 50%,#FFA500);
+  box-shadow:0 0 40px 15px rgba(255,200,0,.4),0 0 80px 30px rgba(255,160,0,.2);
+  animation:sunPulse 4s ease-in-out infinite}
+@keyframes sunPulse{0%,100%{box-shadow:0 0 40px 15px rgba(255,200,0,.4),0 0 80px 30px rgba(255,160,0,.2)}
+  50%{box-shadow:0 0 60px 25px rgba(255,200,0,.55),0 0 110px 50px rgba(255,160,0,.28)}}
+.sun-ray{position:absolute;top:50%;left:50%;width:4px;border-radius:2px;
+  background:linear-gradient(to top,rgba(255,200,0,.7),transparent);
+  transform-origin:bottom center;animation:rayFade 4s ease-in-out infinite}
+@keyframes rayFade{0%,100%{opacity:.6}50%{opacity:1}}
+/* Palm trees */
+.palms{position:absolute;bottom:calc(8% - 2px);left:0;right:0;pointer-events:none;height:220px}
+.palm{position:absolute;bottom:0}
+.palm svg{display:block}
+/* Ocean waves */
+.waves{position:absolute;bottom:0;left:0;right:0;pointer-events:none}
+.wave-svg{display:block;width:100%;overflow:visible}
+.w1{animation:waveMove 7s ease-in-out infinite}
+.w2{animation:waveMove 5s ease-in-out infinite reverse;animation-delay:-2s;opacity:.7}
+.w3{animation:waveMove 9s ease-in-out infinite;animation-delay:-4s;opacity:.5}
+@keyframes waveMove{0%,100%{transform:translateX(0)}50%{transform:translateX(-3%)}}
+/* Beach sand */
+.sand{position:absolute;bottom:0;left:0;right:0;height:9%;
+  background:linear-gradient(180deg,#e8c97a 0%,#d4a95a 100%);
+  clip-path:ellipse(60% 100% at 50% 100%);
+}
+/* Birds */
+.birds{position:absolute;top:28%;left:15%;pointer-events:none;animation:birdsFloat 12s ease-in-out infinite}
+@keyframes birdsFloat{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-20px)}}
 /* Hero content */
-.hero-content{position:relative;z-index:2}
-.hero-badge{
+.hero-content{position:relative;z-index:5;margin-top:-40px}
+.hero-eyebrow{
   display:inline-flex;align-items:center;gap:8px;
-  background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);
-  color:var(--gold2);font-size:12px;font-weight:700;
-  padding:7px 16px;border-radius:24px;letter-spacing:.07em;text-transform:uppercase;
-  margin-bottom:24px;animation:fadeUp .6s ease both;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);
+  color:#fff;font-size:12px;font-weight:700;
+  padding:7px 18px;border-radius:24px;letter-spacing:.08em;text-transform:uppercase;
+  margin-bottom:22px;backdrop-filter:blur(8px);
 }
 .hero-title{
-  font-size:clamp(36px,8vw,64px);font-weight:900;color:#fff;
-  line-height:1.1;margin-bottom:20px;
-  animation:fadeUp .6s .1s ease both;
-  text-shadow:0 2px 20px rgba(0,0,0,.4);
+  font-size:clamp(34px,7.5vw,64px);font-weight:900;color:#fff;line-height:1.1;
+  margin-bottom:18px;text-shadow:0 2px 24px rgba(0,0,0,.5);
 }
 .hero-title em{font-style:normal;
-  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  background:linear-gradient(135deg,#FFD700,#FFA500);
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
-.hero-desc{
-  font-size:clamp(15px,2.5vw,18px);color:rgba(255,255,255,.75);
-  max-width:540px;margin:0 auto 36px;line-height:1.7;
-  animation:fadeUp .6s .2s ease both;
+.hero-desc{font-size:clamp(14px,2.5vw,18px);color:rgba(255,255,255,.82);
+  max-width:520px;margin:0 auto 34px;line-height:1.7;text-shadow:0 1px 8px rgba(0,0,0,.4)}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:48px}
+.h-btn-main{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy);
+  font-weight:800;font-size:15px;padding:15px 30px;border-radius:14px;
+  box-shadow:0 6px 28px rgba(201,168,76,.5);transition:.25s;
+  display:flex;align-items:center;gap:8px}
+.h-btn-main svg{width:18px;height:18px;stroke:currentColor;fill:none;flex-shrink:0}
+.h-btn-main:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(201,168,76,.65)}
+.h-btn-ghost{background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.35);
+  color:#fff;font-weight:700;font-size:15px;padding:14px 26px;border-radius:14px;
+  backdrop-filter:blur(8px);transition:.25s;display:flex;align-items:center;gap:8px}
+.h-btn-ghost svg{width:18px;height:18px;stroke:currentColor;fill:none;flex-shrink:0}
+.h-btn-ghost:hover{background:rgba(255,255,255,.22)}
+.hero-tags{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.hero-tag{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);
+  color:rgba(255,255,255,.9);font-size:12px;font-weight:600;
+  padding:9px 16px;border-radius:24px;backdrop-filter:blur(6px);
 }
-.hero-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:52px;animation:fadeUp .6s .3s ease both}
-.hero-btn-main{
-  background:linear-gradient(135deg,var(--gold),var(--gold2));
-  color:var(--navy);font-weight:800;font-size:16px;
-  padding:16px 32px;border-radius:14px;
-  box-shadow:0 8px 30px rgba(201,168,76,.45);
-  transition:transform .25s,box-shadow .25s;display:block;
-}
-.hero-btn-main:hover{transform:translateY(-3px);box-shadow:0 14px 40px rgba(201,168,76,.6)}
-.hero-btn-ghost{
-  background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.3);
-  color:#fff;font-weight:700;font-size:15px;
-  padding:15px 28px;border-radius:14px;
-  backdrop-filter:blur(8px);transition:.25s;display:block;
-}
-.hero-btn-ghost:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.5)}
-.hero-feats{display:flex;gap:28px;flex-wrap:wrap;justify-content:center;animation:fadeUp .6s .4s ease both}
-.hero-feat{
-  display:flex;flex-direction:column;align-items:center;gap:6px;
-  color:rgba(255,255,255,.8);cursor:default;
-}
-.hero-feat-icon{
-  width:48px;height:48px;border-radius:14px;
-  background:rgba(255,255,255,.08);backdrop-filter:blur(8px);
-  border:1px solid rgba(255,255,255,.15);
-  display:flex;align-items:center;justify-content:center;font-size:22px;
-  transition:transform .2s,background .2s;
-}
-.hero-feat:hover .hero-feat-icon{transform:translateY(-3px);background:rgba(201,168,76,.15)}
-.hero-feat span{font-size:11px;font-weight:600;letter-spacing:.05em}
+.hero-tag svg{width:16px;height:16px;stroke:currentColor;fill:none;flex-shrink:0}
 
-@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-
-/* ════════ ROOMS SECTION ════════ */
-.rooms-section{padding:72px 20px 80px;max-width:1160px;margin:0 auto}
-.sec-header{text-align:center;margin-bottom:40px}
-.sec-eyebrow{
-  display:inline-flex;align-items:center;gap:6px;
-  background:var(--gold-bg);color:var(--gold);
-  font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;
-  letter-spacing:.09em;text-transform:uppercase;margin-bottom:14px;
-}
-.sec-title{font-size:clamp(26px,5vw,40px);font-weight:800;color:var(--navy);margin-bottom:12px;line-height:1.2}
-.sec-desc{font-size:15px;color:var(--text3);max-width:520px;margin:0 auto;line-height:1.65}
-
-/* Date-bar */
-.datebar{
-  display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
+/* ─── DATE BAR ─── */
+.rooms-wrap{padding:64px 20px 80px;max-width:1160px;margin:0 auto}
+.sec-head{text-align:center;margin-bottom:36px}
+.sec-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(201,168,76,.15);
+  color:var(--gold);font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;
+  letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;border:1px solid rgba(201,168,76,.25)}
+.sec-pill svg{width:14px;height:14px;stroke:currentColor;fill:none}
+.sec-title{font-size:clamp(24px,5vw,38px);font-weight:800;color:var(--navy);margin-bottom:10px}
+.sec-desc{font-size:15px;color:var(--text3);max-width:500px;margin:0 auto;line-height:1.65}
+.datebar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
   background:#fff;border:1.5px solid var(--border);border-radius:20px;
-  padding:18px 24px;margin-bottom:40px;
-  box-shadow:0 4px 20px rgba(11,45,74,.07);
-}
-.datebar-field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:130px}
-.datebar-field label{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.07em;text-transform:uppercase}
-.datebar-field input{
-  border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;
-  font-size:14px;color:var(--text);outline:none;transition:.2s;background:var(--bg3);
-}
-.datebar-field input:focus{border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,168,76,.12)}
-.datebar-sep{color:var(--text3);font-size:22px;padding-bottom:6px;flex-shrink:0}
-.datebar-btn{
-  background:var(--navy);color:#fff;font-weight:700;font-size:14px;
-  padding:11px 22px;border-radius:12px;white-space:nowrap;flex-shrink:0;
-  transition:.2s;
-}
-.datebar-btn:hover{background:var(--navy3)}
+  padding:18px 22px;margin-bottom:38px;box-shadow:var(--shadow)}
+.df{display:flex;flex-direction:column;gap:6px;flex:1;min-width:130px}
+.df label{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;
+  display:flex;align-items:center;gap:6px}
+.df label svg{width:13px;height:13px;stroke:currentColor;fill:none}
+.df input{border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;
+  color:var(--text);outline:none;background:var(--bg3);transition:.2s}
+.df input:focus{border-color:var(--gold);background:#fff;box-shadow:0 0 0 3px rgba(201,168,76,.12)}
+.db-sep{color:var(--text3);font-size:20px;padding-bottom:6px;flex-shrink:0}
+.db-btn{background:var(--navy);color:#fff;font-weight:700;font-size:14px;
+  padding:11px 22px;border-radius:12px;white-space:nowrap;flex-shrink:0;transition:.2s;
+  display:flex;align-items:center;gap:8px}
+.db-btn svg{width:16px;height:16px;stroke:currentColor;fill:none}
+.db-btn:hover{background:var(--navy2)}
 
-/* Room grid */
+/* ─── ROOM CARDS ─── */
 .rooms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:22px}
-.room-card{
-  background:#fff;border-radius:20px;overflow:hidden;
+.rcard{background:#fff;border-radius:20px;overflow:hidden;
   box-shadow:var(--shadow);border:1px solid var(--border);
-  transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s;
-}
-.room-card:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg)}
-.room-thumb{height:190px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
-.room-thumb::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,.25));
-}
-.room-emoji{font-size:4rem;filter:drop-shadow(0 4px 16px rgba(0,0,0,.35));z-index:1;transition:transform .3s}
-.room-card:hover .room-emoji{transform:scale(1.1) translateY(-4px)}
-.room-status{
-  position:absolute;top:14px;right:14px;z-index:2;
-  font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;
-}
-.room-status.ok{background:rgba(16,185,129,.9);color:#fff}
-.room-status.na{background:rgba(239,68,68,.85);color:#fff}
-.room-body{padding:20px}
-.room-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
-.room-name{font-size:18px;font-weight:700;color:var(--navy);line-height:1.2}
-.room-cap{font-size:12px;color:var(--text3);margin-top:3px}
-.room-price-box{text-align:right;flex-shrink:0}
-.room-price{font-size:16px;font-weight:800;color:var(--gold)}
-.room-pnight{font-size:10px;color:var(--text3)}
-.room-desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:14px}
-.room-amenities{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
-.room-amen{font-size:11px;color:var(--text2);background:var(--bg3);border:1px solid var(--border);padding:4px 10px;border-radius:20px}
-.room-cta{
-  width:100%;background:linear-gradient(135deg,var(--navy),var(--navy3));
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s}
+.rcard:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg)}
+.rthumb{height:185px;display:flex;align-items:center;justify-content:center;position:relative}
+.rthumb::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,.3))}
+.rthumb-icon{width:64px;height:64px;color:rgba(255,255,255,.9);z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));transition:.3s}
+.rcard:hover .rthumb-icon{transform:scale(1.1) translateY(-4px)}
+.rbadge{position:absolute;top:12px;right:12px;z-index:2;font-size:11px;font-weight:700;
+  padding:5px 12px;border-radius:20px;display:flex;align-items:center;gap:5px}
+.rbadge svg{width:10px;height:10px}
+.rbadge.ok{background:rgba(16,185,129,.88);color:#fff}
+.rbadge.na{background:rgba(239,68,68,.82);color:#fff}
+.rbody{padding:20px}
+.rrow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.rname{font-size:17px;font-weight:700;color:var(--navy)}
+.rcap{font-size:12px;color:var(--text3);margin-top:2px;display:flex;align-items:center;gap:5px}
+.rcap svg{width:13px;height:13px;stroke:currentColor;fill:none}
+.rprice{font-size:16px;font-weight:800;color:var(--gold);text-align:right}
+.rpnight{font-size:10px;color:var(--text3);text-align:right}
+.rdesc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:12px}
+.ramen{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.ramen span{font-size:11px;color:var(--text2);background:var(--bg3);
+  border:1px solid var(--border);padding:4px 10px;border-radius:20px;
+  display:flex;align-items:center;gap:5px}
+.ramen span svg{width:11px;height:11px;stroke:currentColor;fill:none}
+.rcta{width:100%;background:linear-gradient(135deg,var(--navy),var(--navy2));
   color:#fff;font-weight:700;font-size:14px;padding:13px;border-radius:12px;
-  transition:.25s;position:relative;overflow:hidden;
-}
-.room-cta::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,.12));
-  opacity:0;transition:opacity .25s;
-}
-.room-cta:hover::after{opacity:1}
-.room-cta:hover{box-shadow:0 6px 20px rgba(11,45,74,.3)}
-.room-cta:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
-.rooms-loading{text-align:center;padding:70px 20px;color:var(--text3)}
-.rooms-spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--gold);
-  border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 18px}
+  transition:.25s;display:flex;align-items:center;justify-content:center;gap:8px}
+.rcta svg{width:18px;height:18px;stroke:currentColor;fill:none}
+.rcta:hover{box-shadow:0 6px 20px rgba(2,48,71,.3)}
+.rcta:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.rload{text-align:center;padding:70px 20px;color:var(--text3);grid-column:1/-1}
+.rspinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--gold);
+  border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ════════ PERKS STRIP ════════ */
-.perks{background:var(--navy);padding:48px 24px}
-.perks-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:28px}
+/* ─── PERKS STRIP ─── */
+.perks{background:linear-gradient(135deg,var(--ocean2),var(--ocean3));padding:48px 24px}
+.perks-in{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:28px}
 .perk{display:flex;align-items:flex-start;gap:14px}
-.perk-icon{
-  width:48px;height:48px;flex-shrink:0;border-radius:14px;
-  background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.25);
-  display:flex;align-items:center;justify-content:center;font-size:22px;
-}
-.perk-text strong{display:block;font-size:14px;font-weight:700;color:#fff;margin-bottom:3px}
-.perk-text span{font-size:12px;color:rgba(255,255,255,.55);line-height:1.5}
+.perk-ico{width:48px;height:48px;flex-shrink:0;border-radius:14px;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  display:flex;align-items:center;justify-content:center}
+.perk-ico svg{width:24px;height:24px;stroke:rgba(255,255,255,.9);fill:none;stroke-width:1.8}
+.perk strong{display:block;color:#fff;font-size:14px;font-weight:700;margin-bottom:3px}
+.perk span{color:rgba(255,255,255,.55);font-size:12px;line-height:1.5}
 
-/* ════════ OVERLAY / DRAWER ════════ */
-.overlay{
-  position:fixed;inset:0;background:rgba(5,20,35,.65);backdrop-filter:blur(6px);
+/* ─── OVERLAY / DRAWER ─── */
+.overlay{position:fixed;inset:0;background:rgba(2,48,71,.6);backdrop-filter:blur(6px);
   z-index:500;display:flex;align-items:flex-end;
-  opacity:0;pointer-events:none;transition:opacity .3s;
-}
+  opacity:0;pointer-events:none;transition:opacity .3s}
 .overlay.open{opacity:1;pointer-events:all}
-.drawer{
-  background:#fff;border-radius:26px 26px 0 0;
-  width:100%;max-width:540px;margin:0 auto;
-  max-height:92svh;overflow-y:auto;overflow-x:hidden;
+.drawer{background:#fff;border-radius:26px 26px 0 0;width:100%;max-width:540px;margin:0 auto;
+  max-height:92svh;overflow-y:auto;
   transform:translateY(100%);transition:transform .38s cubic-bezier(.32,.72,0,1);
-  box-shadow:0 -8px 60px rgba(11,45,74,.25);
-}
+  box-shadow:0 -8px 60px rgba(2,48,71,.25)}
 .overlay.open .drawer{transform:translateY(0)}
 .drawer-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0}
-.drawer-head{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:16px 22px 14px;position:sticky;top:0;background:#fff;z-index:10;
-  border-bottom:1px solid var(--border);
-}
-.drawer-title{font-size:17px;font-weight:800;color:var(--navy)}
-.drawer-close{
-  width:32px;height:32px;border-radius:50%;
-  background:var(--bg3);border:1.5px solid var(--border);
-  font-size:14px;display:flex;align-items:center;justify-content:center;
-  transition:.2s;
-}
-.drawer-close:hover{background:var(--border)}
+.drawer-head{display:flex;justify-content:space-between;align-items:center;
+  padding:14px 22px;position:sticky;top:0;background:#fff;z-index:10;border-bottom:1px solid var(--border)}
+.dtitle{font-size:16px;font-weight:800;color:var(--navy)}
+.dclose{width:32px;height:32px;border-radius:50%;background:var(--bg3);
+  border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;transition:.2s}
+.dclose:hover{background:var(--border)}
+.dclose svg{width:14px;height:14px;stroke:var(--text);fill:none;stroke-width:2.5}
 
 /* Steps */
-.steps{display:flex;align-items:center;padding:16px 22px;overflow-x:auto;gap:0}
-.sdot{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}
-.sdot-num{
-  width:30px;height:30px;border-radius:50%;
-  background:var(--bg3);border:2px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:700;color:var(--text3);transition:.25s;
-}
-.sdot-lbl{font-size:9px;color:var(--text3);font-weight:600;text-align:center;width:52px;transition:.25s}
-.sdot.active .sdot-num{background:var(--navy);border-color:var(--navy);color:#fff}
-.sdot.active .sdot-lbl{color:var(--navy);font-weight:800}
-.sdot.done .sdot-num{background:var(--gold);border-color:var(--gold);color:var(--navy)}
-.sdot.done .sdot-lbl{color:var(--gold)}
-.sline{flex:1;height:2px;background:var(--border);min-width:8px;transition:background .3s}
-.sline.done{background:var(--gold)}
+.steps{display:flex;align-items:center;padding:14px 20px;overflow-x:auto;gap:0}
+.sd{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0}
+.sdn{width:28px;height:28px;border-radius:50%;background:var(--bg3);border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);transition:.25s}
+.sdl{font-size:9px;color:var(--text3);font-weight:600;text-align:center;width:50px;transition:.25s}
+.sd.active .sdn{background:var(--navy);border-color:var(--navy);color:#fff}
+.sd.active .sdl{color:var(--navy);font-weight:800}
+.sd.done .sdn{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+.sd.done .sdl{color:var(--gold)}
+.sl{flex:1;height:2px;background:var(--border);min-width:8px;transition:background .3s}
+.sl.done{background:var(--gold)}
 
 /* Panels */
-.panel{display:none;padding:20px 22px 0}
-.panel.on{display:block}
-.ptitle{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:20px}
-
-/* Mini room preview */
-.room-mini{
-  display:flex;align-items:center;gap:14px;border-radius:16px;
-  padding:14px 16px;margin-bottom:20px;color:#fff;
-}
-.room-mini-emoji{font-size:2.2rem}
-.room-mini-name{font-weight:700;font-size:15px}
-.room-mini-price{font-size:13px;opacity:.82;margin-top:2px}
+.pan{display:none;padding:20px 22px 0}
+.pan.on{display:block}
+.ptit{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:18px;
+  display:flex;align-items:center;gap:8px}
+.ptit svg{width:20px;height:20px;stroke:var(--gold);fill:none;stroke-width:2}
+.rmini{display:flex;align-items:center;gap:14px;border-radius:16px;padding:14px 16px;margin-bottom:18px;color:#fff}
+.rmini-icon{width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.18);border-radius:12px}
+.rmini-icon svg{width:26px;height:26px;stroke:#fff;fill:none}
+.rmini-name{font-weight:700;font-size:15px}
+.rmini-price{font-size:13px;opacity:.82;margin-top:2px}
 
 /* Form */
-.fg{margin-bottom:15px}
-.flabel{display:block;font-size:11px;font-weight:700;color:var(--text2);
+.fg{margin-bottom:14px}
+.fl{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--text2);
   letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
-.finput{
-  width:100%;border:1.5px solid var(--border);border-radius:11px;
-  padding:12px 14px;font-size:14px;color:var(--text);background:#fff;outline:none;transition:.2s;
-}
-.finput:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.12)}
-textarea.finput{resize:vertical;min-height:80px}
-.ferr{color:#dc2626;font-size:12px;font-weight:600;margin-top:10px;
+.fl svg{width:13px;height:13px;stroke:currentColor;fill:none}
+.fi{width:100%;border:1.5px solid var(--border);border-radius:11px;padding:11px 14px;
+  font-size:14px;color:var(--text);background:#fff;outline:none;transition:.2s}
+.fi:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,.12)}
+textarea.fi{resize:vertical;min-height:78px}
+.ferr{color:#dc2626;font-size:12px;font-weight:600;margin-top:8px;
   padding:10px 14px;background:#fef2f2;border-radius:10px;display:none}
 .ferr.on{display:block}
+.nights-bar{background:linear-gradient(135deg,#fdf8ee,#fffbf0);border:1.5px solid var(--gold);
+  border-radius:14px;padding:14px 16px;margin-bottom:14px;display:none}
+.nights-row{display:flex;justify-content:space-between;align-items:center;
+  font-weight:700;color:var(--navy);font-size:15px}
 
-/* Nights preview */
-.nights-prev{
-  background:linear-gradient(135deg,var(--gold-bg),#fff8e6);
-  border:1.5px solid var(--gold);border-radius:14px;
-  padding:14px 18px;margin-bottom:16px;display:none;
-}
-.nights-row{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:var(--navy);font-size:15px}
-
-/* Step 2 confirm */
-.rc-card{border-radius:16px;overflow:hidden;margin-bottom:16px}
-.rc-inner{display:flex;align-items:center;gap:16px;padding:20px;color:#fff}
-.rc-emoji{font-size:2.8rem}
-.rc-name{font-weight:700;font-size:17px}
-.rc-dates{font-size:13px;opacity:.75;margin-top:3px}
-.rc-total{font-size:15px;font-weight:700;color:var(--gold3);margin-top:8px}
-.avail-ok{
-  display:inline-flex;align-items:center;gap:8px;
-  background:#ecfdf5;color:#065f46;
-  padding:12px 16px;border-radius:12px;font-size:13px;font-weight:700;margin-top:10px;
-  border:1px solid #a7f3d0;
-}
+/* Step 2 */
+.rc-card{border-radius:16px;overflow:hidden;margin-bottom:14px}
+.rc-in{display:flex;align-items:center;gap:16px;padding:18px;color:#fff}
+.rc-ico{width:50px;height:50px;background:rgba(255,255,255,.18);border-radius:14px;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rc-ico svg{width:28px;height:28px;stroke:#fff;fill:none}
+.rc-name{font-weight:700;font-size:16px}
+.rc-dates{font-size:12px;opacity:.75;margin-top:3px}
+.rc-total{font-size:14px;font-weight:700;color:#fde68a;margin-top:6px}
+.avail-ok{display:inline-flex;align-items:center;gap:8px;background:#ecfdf5;color:#065f46;
+  padding:11px 14px;border-radius:12px;font-size:13px;font-weight:700;margin-top:10px;border:1px solid #a7f3d0}
+.avail-ok svg{width:16px;height:16px;stroke:#065f46;fill:none}
 
 /* Payment */
-.pay-sum{background:var(--bg3);border-radius:14px;padding:16px;margin-bottom:18px}
-.pay-sum-row{display:flex;justify-content:space-between;padding:7px 0;
+.psum{background:var(--bg3);border-radius:14px;padding:14px;margin-bottom:16px}
+.psum-row{display:flex;justify-content:space-between;padding:6px 0;
   border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)}
-.pay-sum-total{display:flex;justify-content:space-between;padding:12px 0 0;
-  font-size:16px;font-weight:700;color:var(--navy)}
-.pay-section-label{font-size:11px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.07em;color:var(--text3);margin-bottom:10px}
-.amt-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
-.amt-btn{
-  border:2px solid var(--border);border-radius:14px;
-  padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:3px;
-  background:#fff;transition:.2s;
-}
-.amt-btn.sel{border-color:var(--gold);background:var(--gold-bg)}
-.amt-pct{font-size:24px;font-weight:900;color:var(--navy)}
-.amt-tag{font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em}
-.amt-val{font-size:14px;font-weight:700;color:var(--navy);margin-top:2px}
-.amt-note{font-size:10px;color:var(--text3)}
-.pm-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:16px}
-.pm-btn{
-  border:2px solid var(--border);border-radius:12px;
-  padding:13px 8px;display:flex;flex-direction:column;align-items:center;gap:5px;
-  background:#fff;transition:.2s;
-}
-.pm-btn.sel{border-color:var(--navy);background:#f0f4f8}
-.pm-icon{font-size:24px}
-.pm-name{font-size:11px;font-weight:700;color:var(--text2)}
-.pay-instr{border-radius:14px;padding:16px;margin-bottom:6px;font-size:13px}
-.pay-instr.orange{background:#fff3e0;border:1px solid #ffb74d}
-.pay-instr.mtn{background:#fffde7;border:1px solid #ffd54f}
-.pay-instr.arrival{background:#e8f5e9;border:1px solid #81c784}
-.pay-instr.transfer{background:#e3f2fd;border:1px solid #64b5f6}
-.pi-title{font-weight:700;margin-bottom:10px;font-size:14px;color:var(--text)}
-.pi-row{margin-bottom:6px;color:var(--text2);padding-left:6px;font-size:13px}
-.pi-num{
-  font-size:17px;font-weight:700;text-align:center;
-  padding:10px;background:rgba(255,255,255,.7);border-radius:10px;
-  margin:10px 0;letter-spacing:2px;color:var(--navy);
-}
-.pi-note{font-size:11px;color:var(--text3);margin-top:8px;font-style:italic}
+.psum-tot{display:flex;justify-content:space-between;padding:10px 0 0;font-size:16px;font-weight:700;color:var(--navy)}
+.plabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:9px}
+.amtg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.abtn{border:2px solid var(--border);border-radius:14px;padding:14px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:3px;background:#fff;transition:.2s}
+.abtn.sel{border-color:var(--gold);background:var(--bg3)}
+.abtn .apct{font-size:24px;font-weight:900;color:var(--navy)}
+.abtn .atag{font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em}
+.abtn .aval{font-size:14px;font-weight:700;color:var(--navy);margin-top:2px}
+.abtn .anote{font-size:10px;color:var(--text3)}
+.pmg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.pmbtn{border:2px solid var(--border);border-radius:12px;padding:12px 8px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;background:#fff;transition:.2s}
+.pmbtn.sel{border-color:var(--navy);background:#f0f4f8}
+.pmbtn .pmic{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.pmbtn .pmic svg{width:18px;height:18px;stroke:var(--navy);fill:none;stroke-width:2}
+.pmbtn .pmn{font-size:11px;font-weight:700;color:var(--text2)}
+.pinstr{border-radius:14px;padding:14px;margin-bottom:4px;font-size:13px}
+.pinstr.orange{background:#fff3e0;border:1px solid #ffb74d}
+.pinstr.mtn{background:#fffde7;border:1px solid #ffd54f}
+.pinstr.arrival{background:#e8f5e9;border:1px solid #81c784}
+.pinstr.transfer{background:#e3f2fd;border:1px solid #64b5f6}
+.pi-tit{font-weight:700;margin-bottom:8px;font-size:14px;color:var(--text)}
+.pi-r{margin-bottom:5px;color:var(--text2);padding-left:6px}
+.pi-num{font-size:16px;font-weight:700;text-align:center;padding:9px;background:rgba(255,255,255,.7);
+  border-radius:10px;margin:8px 0;letter-spacing:2px;color:var(--navy)}
+.pi-note{font-size:11px;color:var(--text3);margin-top:6px;font-style:italic}
 
 /* Panel footer */
-.pfooter{
-  display:flex;gap:10px;padding:16px 22px;
-  position:sticky;bottom:0;background:#fff;
-  border-top:1px solid var(--border);margin-top:18px;
-}
-.pbtn-back{
-  background:var(--bg3);color:var(--text);font-weight:600;font-size:14px;
-  padding:13px 20px;border-radius:12px;flex-shrink:0;
-  border:1.5px solid var(--border);transition:.2s;
-}
-.pbtn-back:hover{background:var(--border)}
-.pbtn-next{
-  flex:1;background:var(--navy);color:#fff;font-weight:700;
-  font-size:15px;padding:13px;border-radius:12px;transition:.2s;
-}
-.pbtn-next:hover{background:var(--navy3)}
-.pbtn-next:disabled{opacity:.5}
-.pbtn-pay{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy)}
-.pbtn-pay:hover{filter:brightness(1.06)}
+.pfoo{display:flex;gap:10px;padding:14px 22px;position:sticky;bottom:0;background:#fff;
+  border-top:1px solid var(--border);margin-top:16px}
+.pbk{background:var(--bg3);color:var(--text);font-weight:600;font-size:14px;
+  padding:12px 18px;border-radius:12px;flex-shrink:0;border:1.5px solid var(--border);transition:.2s}
+.pbk:hover{background:var(--border)}
+.pnx{flex:1;background:var(--navy);color:#fff;font-weight:700;font-size:15px;
+  padding:12px;border-radius:12px;transition:.2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.pnx svg{width:18px;height:18px;stroke:currentColor;fill:none}
+.pnx:hover{background:var(--navy2)}
+.pnx:disabled{opacity:.5}
+.ppay{background:linear-gradient(135deg,var(--gold),var(--gold2));color:var(--navy)}
+.ppay:hover{filter:brightness(1.05)}
 
 /* Confirmation */
 .conf-body{text-align:center;padding:28px 22px 24px}
-.conf-circle{width:88px;height:88px;margin:0 auto 20px;animation:popIn .55s cubic-bezier(.34,1.56,.64,1)}
+.conf-check{width:90px;height:90px;margin:0 auto 18px;animation:popIn .55s cubic-bezier(.34,1.56,.64,1)}
 @keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
-.conf-title{font-size:24px;font-weight:800;color:var(--navy);margin-bottom:8px}
+.conf-title{font-size:24px;font-weight:800;color:var(--navy);margin-bottom:6px}
 .conf-sub{font-size:14px;color:var(--text3);margin-bottom:20px}
-.conf-ref{
-  background:var(--gold-bg);border:1.5px solid var(--gold);border-radius:14px;
-  padding:16px;margin-bottom:16px;text-align:left;
-}
-.conf-ref-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px}
-.conf-ref-num{font-size:20px;font-weight:800;color:var(--navy);letter-spacing:3px}
-.conf-details{background:var(--bg3);border-radius:14px;padding:16px;margin-bottom:16px;text-align:left}
-.conf-row{display:flex;justify-content:space-between;padding:8px 0;
-  border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)}
-.conf-row:last-child{border:none;font-weight:700;color:var(--navy);font-size:14px}
-.conf-next{
-  background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;
-  padding:14px;margin-bottom:18px;font-size:12px;color:#1e40af;line-height:1.75;text-align:left;
-}
-.conf-actions{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
-.btn-wa{
-  display:block;text-align:center;padding:15px;
-  background:linear-gradient(135deg,#25d366,#128c7e);
-  color:#fff;border-radius:14px;font-weight:800;font-size:15px;
-  box-shadow:0 4px 16px rgba(37,211,102,.4);transition:.2s;
-}
-.btn-wa:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(37,211,102,.5)}
+.conf-ref{background:linear-gradient(135deg,#fdf8ee,#fffbf0);border:1.5px solid var(--gold);
+  border-radius:14px;padding:16px;margin-bottom:14px;text-align:left}
+.conf-rl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px}
+.conf-rn{font-size:20px;font-weight:800;color:var(--navy);letter-spacing:3px}
+.conf-det{background:var(--bg3);border-radius:14px;padding:14px;margin-bottom:14px;text-align:left}
+.conf-row{display:flex;justify-content:space-between;padding:7px 0;
+  border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);align-items:center}
+.conf-row svg{width:14px;height:14px;stroke:var(--text3);fill:none;margin-right:4px;flex-shrink:0}
+.conf-row:last-child{border:none;font-weight:700;color:var(--navy)}
+.conf-next{background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;
+  padding:14px;margin-bottom:16px;font-size:12px;color:#1e40af;line-height:1.8;text-align:left}
+/* Confirmation action buttons */
+.conf-acts{display:flex;flex-direction:column;gap:9px;margin-bottom:8px}
+.cact{display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px;border-radius:14px;font-weight:700;font-size:14px;transition:.2s}
+.cact svg{width:18px;height:18px;stroke:currentColor;fill:none;flex-shrink:0}
+.cact-pdf{background:var(--navy);color:#fff}
+.cact-pdf:hover{background:var(--navy2)}
+.cact-mail{background:var(--bg3);color:var(--text);border:1.5px solid var(--border)}
+.cact-mail:hover{background:var(--border)}
+.cact-wa{background:linear-gradient(135deg,#25d366,#128c7e);color:#fff}
+.cact-wa:hover{filter:brightness(1.06)}
 
 /* Footer */
-.footer{background:linear-gradient(135deg,#05192c,var(--navy));color:rgba(255,255,255,.65);text-align:center;padding:44px 24px 32px}
+.footer{background:linear-gradient(135deg,#031525,var(--ocean2));
+  color:rgba(255,255,255,.6);text-align:center;padding:44px 24px 32px}
 .footer-logo{display:flex;align-items:center;justify-content:center;gap:10px;color:#fff;margin-bottom:14px}
 .footer-logo span{font-weight:800;font-size:17px}
 .footer p{font-size:13px;line-height:1.9}
-.footer-copy{font-size:11px;margin-top:16px;opacity:.4}
-.footer-gold{color:var(--gold2);opacity:1}
+.fgold{color:var(--gold2)}
+.footer-copy{font-size:11px;margin-top:14px;opacity:.4}
 
-/* Responsive */
 @media(max-width:480px){
-  .datebar{flex-direction:column;padding:16px}
-  .datebar-sep{display:none}
-  .datebar-btn{width:100%}
+  .datebar{flex-direction:column;padding:14px}
+  .db-sep{display:none}
+  .db-btn{width:100%}
   .rooms-grid{grid-template-columns:1fr}
-  .hero-btns{flex-direction:column;width:100%}
-  .hero-btn-main,.hero-btn-ghost{width:100%;text-align:center}
-  .hero-feats{gap:16px}
-  .perks-inner{grid-template-columns:1fr 1fr}
+  .hero-btns{flex-direction:column;width:100%;max-width:280px;margin-left:auto;margin-right:auto}
+  .h-btn-main,.h-btn-ghost{justify-content:center}
+  .perks-in{grid-template-columns:1fr 1fr}
 }
 @media(min-width:640px){
   .overlay{align-items:center}
   .drawer{border-radius:var(--radius);max-height:88svh}
 }
+
 </style>
 </head>
 <body>
-
-<!-- ══════════ NAVBAR ══════════ -->
-<nav class="nav" id="mainNav">
-  <a href="#" class="nav-brand">
-    <div class="nav-logo-wrap">
-      <svg viewBox="0 0 40 46" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M20 2L37 8.5V22C37 32.5 29.5 41.5 20 44.5C10.5 41.5 3 32.5 3 22V8.5Z" fill="#0b2d4a" stroke="#c9a84c" stroke-width="2"/>
-        <path d="M20 11C20 11 14.5 16 14.5 21.5C14.5 24.5 17 27 20 27C23 27 25.5 24.5 25.5 21.5C25.5 16 20 11 20 11Z" fill="#c9a84c" opacity="0.9"/>
-        <path d="M12 30Q20 36 28 30" stroke="#c9a84c" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-        <path d="M14 35Q20 40 26 35" stroke="#c9a84c" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.7"/>
-        <line x1="17" y1="42" x2="23" y2="42" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
+<!-- ── NAVBAR ── -->
+<nav class="nav" id="nav">
+  <div class="nav-brand">
+    <svg class="nav-logo" viewBox="0 0 40 46" fill="none">
+      <path d="M20 2L37 8.5V22C37 32.5 29.5 41.5 20 44.5C10.5 41.5 3 32.5 3 22V8.5Z" fill="#023047" stroke="#c9a84c" stroke-width="2"/>
+      <path d="M20 11C20 11 14.5 16 14.5 21.5C14.5 24.5 17 27 20 27C23 27 25.5 24.5 25.5 21.5C25.5 16 20 11 20 11Z" fill="#c9a84c" opacity="0.9"/>
+      <path d="M12 30Q20 36 28 30" stroke="#c9a84c" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="M14 35Q20 40 26 35" stroke="#c9a84c" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.7"/>
+    </svg>
+    <div>
+      <div class="nav-name">Résidence Veraluz</div>
+      <span class="nav-sub">Kribi · Cameroun</span>
     </div>
-    <div class="nav-brand-text">
-      <div class="nav-brand-name">Résidence Veraluz</div>
-      <span class="nav-brand-sub">Kribi · Cameroun</span>
-    </div>
-  </a>
-  <div class="nav-links">
-    <a href="#roomsSection" class="nav-link">Logements</a>
-    <a href="tel:+237600000000" class="nav-link">Contact</a>
-    <a href="https://wa.me/237600000000" target="_blank" class="nav-link">WhatsApp</a>
   </div>
-  <button class="nav-cta" onclick="scrollToRooms()">🏖️ Réserver</button>
-  <button class="nav-burger" id="navBurger" onclick="toggleMobile()" aria-label="Menu">
-    <span></span><span></span><span></span>
-  </button>
+  <div class="nav-links">
+    <a href="#roomsSec" class="nav-a">Logements</a>
+    <a href="tel:+237600000000" class="nav-a">Contact</a>
+    <a href="https://wa.me/237600000000" target="_blank" class="nav-a">WhatsApp</a>
+  </div>
+  <button class="nav-cta" onclick="scrollRooms()">Réserver</button>
+  <a href="https://ngams237.github.io/veraluz-os/VERALUZ_OS_CORE.html" target="_blank" class="staff-btn" title="Accès staff">
+    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    Staff
+  </a>
+  <button class="burger" id="burger" onclick="toggleMob()"><span></span><span></span><span></span></button>
 </nav>
-
-<!-- Mobile nav -->
-<div class="nav-mobile" id="navMobile">
-  <a href="#roomsSection" onclick="closeMobile()">🏠 Logements</a>
-  <a href="tel:+237600000000">📞 Appeler</a>
-  <a href="https://wa.me/237600000000" target="_blank">💬 WhatsApp</a>
-  <button class="nm-cta" onclick="closeMobile();scrollToRooms()">🏖️ Réserver maintenant</button>
+<div class="nav-mob" id="navmob">
+  <a href="#roomsSec" onclick="closeMob()">Logements</a>
+  <a href="tel:+237600000000">Appeler</a>
+  <a href="https://wa.me/237600000000" target="_blank">WhatsApp</a>
+  <a href="https://ngams237.github.io/veraluz-os/VERALUZ_OS_CORE.html" target="_blank">Espace Staff</a>
+  <button class="nm-cta" onclick="closeMob();scrollRooms()">Réserver maintenant</button>
 </div>
 
-<!-- ══════════ HERO ══════════ -->
+<!-- ── HERO ── -->
 <section class="hero">
-  <div class="hero-bg"></div>
-  <div class="hero-orb hero-orb1"></div>
-  <div class="hero-orb hero-orb2"></div>
-  <div class="hero-orb hero-orb3"></div>
-  <div class="hero-wave">
-    <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
-      <path d="M0,40C360,80 720,0 1080,40C1260,60 1380,30 1440,40L1440,80L0,80Z" fill="#f0f4f8"/>
+  <div class="hero-sky"></div>
+  <!-- Stars -->
+  <div class="stars" id="stars"></div>
+  <!-- Sun -->
+  <div class="sun-wrap" id="sunWrap">
+    <div class="sun"></div>
+  </div>
+  <!-- Birds -->
+  <div class="birds">
+    <svg width="80" height="30" viewBox="0 0 80 30" fill="none">
+      <path d="M5 20 Q12 8 20 20" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" fill="none"/>
+      <path d="M25 15 Q33 3 42 15" stroke="rgba(255,255,255,0.7)" stroke-width="1.5" fill="none"/>
+      <path d="M50 18 Q56 8 63 18" stroke="rgba(255,255,255,0.5)" stroke-width="1.2" fill="none"/>
     </svg>
   </div>
+  <!-- Palm trees -->
+  <div class="palms">
+    <!-- Left palm -->
+    <div class="palm" style="left:-20px">
+      <svg width="140" height="210" viewBox="0 0 140 210" fill="none">
+        <path d="M55 210 Q58 160 65 120 Q68 100 60 80" stroke="#1a3a1a" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <ellipse cx="30" cy="65" rx="38" ry="14" fill="#1e4d1e" transform="rotate(-15 30 65)"/>
+        <ellipse cx="15" cy="72" rx="34" ry="12" fill="#2d6a2d" transform="rotate(-30 15 72)"/>
+        <ellipse cx="60" cy="55" rx="36" ry="13" fill="#1e4d1e" transform="rotate(10 60 55)"/>
+        <ellipse cx="75" cy="65" rx="30" ry="11" fill="#2d6a2d" transform="rotate(25 75 65)"/>
+        <ellipse cx="40" cy="48" rx="28" ry="11" fill="#245224" transform="rotate(-5 40 48)"/>
+      </svg>
+    </div>
+    <!-- Right palm -->
+    <div class="palm" style="right:-20px">
+      <svg width="140" height="210" viewBox="0 0 140 210" fill="none">
+        <path d="M85 210 Q82 160 75 120 Q72 100 80 80" stroke="#1a3a1a" stroke-width="10" fill="none" stroke-linecap="round"/>
+        <ellipse cx="110" cy="65" rx="38" ry="14" fill="#1e4d1e" transform="rotate(15 110 65)"/>
+        <ellipse cx="125" cy="72" rx="34" ry="12" fill="#2d6a2d" transform="rotate(30 125 72)"/>
+        <ellipse cx="80" cy="55" rx="36" ry="13" fill="#1e4d1e" transform="rotate(-10 80 55)"/>
+        <ellipse cx="65" cy="65" rx="30" ry="11" fill="#2d6a2d" transform="rotate(-25 65 65)"/>
+        <ellipse cx="100" cy="48" rx="28" ry="11" fill="#245224" transform="rotate(5 100 48)"/>
+      </svg>
+    </div>
+    <!-- Small center-left palm -->
+    <div class="palm" style="left:18%;transform:scale(.7);transform-origin:bottom center">
+      <svg width="100" height="160" viewBox="0 0 100 160" fill="none">
+        <path d="M45 160 Q48 120 52 90 Q55 75 48 60" stroke="#1a3a1a" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <ellipse cx="22" cy="48" rx="30" ry="11" fill="#2d6a2d" transform="rotate(-20 22 48)"/>
+        <ellipse cx="55" cy="42" rx="28" ry="10" fill="#1e4d1e" transform="rotate(15 55 42)"/>
+        <ellipse cx="35" cy="35" rx="22" ry="9" fill="#245224" transform="rotate(-5 35 35)"/>
+      </svg>
+    </div>
+  </div>
+  <!-- Animated waves -->
+  <div class="waves">
+    <svg class="wave-svg" viewBox="0 0 1440 120" preserveAspectRatio="none" height="120">
+      <path class="w3" d="M0,70 C240,40 480,100 720,70 C960,40 1200,90 1440,70 L1440,120 L0,120Z" fill="rgba(0,105,148,.5)"/>
+      <path class="w2" d="M0,80 C360,50 720,110 1080,80 C1260,65 1380,90 1440,80 L1440,120 L0,120Z" fill="rgba(0,79,117,.65)"/>
+      <path class="w1" d="M0,90 C300,60 600,110 900,85 C1100,68 1300,100 1440,88 L1440,120 L0,120Z" fill="#004f75"/>
+    </svg>
+  </div>
+  <!-- Sand -->
+  <div class="sand"></div>
+
+  <!-- Content -->
   <div class="hero-content">
-    <div class="hero-badge">✨ Vue directe sur l'Atlantique</div>
+    <div class="hero-eyebrow">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+      Vue directe sur l'Atlantique
+    </div>
     <h1 class="hero-title">Séjournez à Kribi,<br><em>face à la mer</em></h1>
     <p class="hero-desc">Appartements meublés haut de gamme avec vue panoramique sur l'océan Atlantique. Réservez directement — meilleur tarif garanti.</p>
     <div class="hero-btns">
-      <button class="hero-btn-main" onclick="scrollToRooms()">🏖️ Voir les logements</button>
-      <a href="https://wa.me/237600000000?text=Bonjour, je souhaite avoir plus d'informations sur la Résidence Veraluz" target="_blank" class="hero-btn-ghost">💬 Nous contacter</a>
+      <button class="h-btn-main" onclick="scrollRooms()">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Voir les logements
+      </button>
+      <a href="https://wa.me/237600000000" target="_blank" class="h-btn-ghost">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        Nous contacter
+      </a>
     </div>
-    <div class="hero-feats">
-      <div class="hero-feat"><div class="hero-feat-icon">🌊</div><span>Vue mer</span></div>
-      <div class="hero-feat"><div class="hero-feat-icon">❄️</div><span>Climatisé</span></div>
-      <div class="hero-feat"><div class="hero-feat-icon">📶</div><span>WiFi inclus</span></div>
-      <div class="hero-feat"><div class="hero-feat-icon">🔑</div><span>Check-in 24h</span></div>
-      <div class="hero-feat"><div class="hero-feat-icon">🍽️</div><span>Restaurant</span></div>
+    <div class="hero-tags">
+      <div class="hero-tag"><svg viewBox="0 0 24 24"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>Vue mer</div>
+      <div class="hero-tag"><svg viewBox="0 0 24 24"><path d="M4 13.5A4 4 0 004 6h-1"/><path d="M20 6a4 4 0 010 7.5"/><path d="M12 12v6"/><path d="M8 21h8"/><path d="M7 12H4"/><path d="M20 12h-3"/><path d="M12 3v3"/></svg>Climatisé</div>
+      <div class="hero-tag"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>WiFi inclus</div>
+      <div class="hero-tag"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Check-in 24h</div>
+      <div class="hero-tag"><svg viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg>Restaurant</div>
     </div>
   </div>
 </section>
 
-<!-- ══════════ ROOMS ══════════ -->
-<section class="rooms-section" id="roomsSection">
-  <div class="sec-header">
-    <div class="sec-eyebrow">🏠 Nos logements</div>
+<!-- ── ROOMS ── -->
+<section class="rooms-wrap" id="roomsSec">
+  <div class="sec-head">
+    <div class="sec-pill">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Nos logements
+    </div>
     <h2 class="sec-title">Choisissez votre hébergement</h2>
-    <p class="sec-desc">Tous nos logements sont entièrement meublés avec vue jardin tropical ou vue océan Atlantique.</p>
+    <p class="sec-desc">Tous nos logements sont entièrement meublés avec vue jardin tropical ou vue océan.</p>
   </div>
   <div class="datebar">
-    <div class="datebar-field">
-      <label>📅 Arrivée</label>
-      <input type="date" id="hArr" oninput="syncDates()">
+    <div class="df">
+      <label><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Arrivée</label>
+      <input type="date" id="hArr" oninput="syncD()">
     </div>
-    <div class="datebar-sep">→</div>
-    <div class="datebar-field">
-      <label>📅 Départ</label>
-      <input type="date" id="hDep" oninput="syncDates()">
+    <div class="db-sep">→</div>
+    <div class="df">
+      <label><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Départ</label>
+      <input type="date" id="hDep" oninput="syncD()">
     </div>
-    <button class="datebar-btn" onclick="scrollToRooms()">🔍 Vérifier dispo</button>
+    <button class="db-btn" onclick="scrollRooms()">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Vérifier dispo
+    </button>
   </div>
   <div class="rooms-grid" id="roomsGrid">
-    <div class="rooms-loading" style="grid-column:1/-1">
-      <div class="rooms-spinner"></div>
-      <p>Chargement des logements…</p>
-    </div>
+    <div class="rload"><div class="rspinner"></div><p>Chargement des logements…</p></div>
   </div>
 </section>
 
-<!-- ══════════ PERKS ══════════ -->
+<!-- ── PERKS ── -->
 <section class="perks">
-  <div class="perks-inner">
-    <div class="perk"><div class="perk-icon">🏖️</div><div class="perk-text"><strong>Plage à 2 minutes</strong><span>Accès direct à la plage de sable blanc de Kribi</span></div></div>
-    <div class="perk"><div class="perk-icon">🍽️</div><div class="perk-text"><strong>Restaurant sur place</strong><span>Cuisine locale et internationale avec vue mer</span></div></div>
-    <div class="perk"><div class="perk-icon">🔒</div><div class="perk-text"><strong>Paiement sécurisé</strong><span>Orange Money, MTN MoMo, virement bancaire</span></div></div>
-    <div class="perk"><div class="perk-icon">💬</div><div class="perk-text"><strong>Support WhatsApp 24h</strong><span>Notre équipe vous répond rapidement</span></div></div>
+  <div class="perks-in">
+    <div class="perk"><div class="perk-ico"><svg viewBox="0 0 24 24"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/></svg></div><div><strong>Plage à 2 minutes</strong><span>Accès direct à la plage de sable blanc de Kribi</span></div></div>
+    <div class="perk"><div class="perk-ico"><svg viewBox="0 0 24 24"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></div><div><strong>Restaurant sur place</strong><span>Cuisine locale et internationale, vue mer</span></div></div>
+    <div class="perk"><div class="perk-ico"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div><div><strong>Paiement sécurisé</strong><span>Orange Money, MTN MoMo, virement bancaire</span></div></div>
+    <div class="perk"><div class="perk-ico"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div><div><strong>Support WhatsApp 24h</strong><span>Notre équipe répond rapidement</span></div></div>
   </div>
 </section>
 
-<!-- ══════════ BOOKING OVERLAY ══════════ -->
-<div class="overlay" id="overlay">
-  <div class="drawer" id="drawer">
+<!-- ── OVERLAY ── -->
+<div class="overlay" id="ov">
+  <div class="drawer" id="dr">
     <div class="drawer-handle"></div>
     <div class="drawer-head">
-      <div class="drawer-title" id="drawerTitle">Réservation</div>
-      <button class="drawer-close" onclick="closeOverlay()">✕</button>
+      <div class="dtitle" id="dtit">Réservation</div>
+      <button class="dclose" onclick="closeOv()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div class="steps" id="stepsBar">
-      <div class="sdot active" id="sd1"><div class="sdot-num">1</div><div class="sdot-lbl">Dates</div></div>
-      <div class="sline" id="sl1"></div>
-      <div class="sdot" id="sd2"><div class="sdot-num">2</div><div class="sdot-lbl">Logement</div></div>
-      <div class="sline" id="sl2"></div>
-      <div class="sdot" id="sd3"><div class="sdot-num">3</div><div class="sdot-lbl">Vos infos</div></div>
-      <div class="sline" id="sl3"></div>
-      <div class="sdot" id="sd4"><div class="sdot-num">4</div><div class="sdot-lbl">Paiement</div></div>
-      <div class="sline" id="sl4"></div>
-      <div class="sdot" id="sd5"><div class="sdot-num">5</div><div class="sdot-lbl">Confirmé</div></div>
+    <div class="steps">
+      <div class="sd active" id="sd1"><div class="sdn">1</div><div class="sdl">Dates</div></div>
+      <div class="sl" id="sl1"></div>
+      <div class="sd" id="sd2"><div class="sdn">2</div><div class="sdl">Logement</div></div>
+      <div class="sl" id="sl2"></div>
+      <div class="sd" id="sd3"><div class="sdn">3</div><div class="sdl">Vos infos</div></div>
+      <div class="sl" id="sl3"></div>
+      <div class="sd" id="sd4"><div class="sdn">4</div><div class="sdl">Paiement</div></div>
+      <div class="sl" id="sl4"></div>
+      <div class="sd" id="sd5"><div class="sdn">5</div><div class="sdl">Confirmé</div></div>
     </div>
 
-    <!-- Panel 1: Dates -->
-    <div class="panel on" id="p1">
+    <!-- P1: Dates -->
+    <div class="pan on" id="p1">
       <div id="rmini"></div>
-      <div class="ptitle">📅 Choisissez vos dates</div>
-      <div class="fg"><label class="flabel">Date d'arrivée *</label><input type="date" id="arrDate" class="finput" oninput="calcNights()"></div>
-      <div class="fg"><label class="flabel">Date de départ *</label><input type="date" id="depDate" class="finput" oninput="calcNights()"></div>
-      <div class="nights-prev" id="nightsPrev"><div class="nights-row"><span id="nlabel">— nuits</span><span id="ntotal">—</span></div></div>
-      <div class="ferr" id="errDate"></div>
-      <div class="pfooter">
-        <button class="pbtn-back" onclick="closeOverlay()">Annuler</button>
-        <button class="pbtn-next" onclick="p1Next()">Continuer →</button>
-      </div>
+      <div class="ptit"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Choisissez vos dates</div>
+      <div class="fg"><label class="fl"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Date d'arrivée *</label><input type="date" id="arrD" class="fi" oninput="calcN()"></div>
+      <div class="fg"><label class="fl"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Date de départ *</label><input type="date" id="depD" class="fi" oninput="calcN()"></div>
+      <div class="nights-bar" id="nightsBar"><div class="nights-row"><span id="nlbl">— nuits</span><span id="ntot">—</span></div></div>
+      <div class="ferr" id="e1"></div>
+      <div class="pfoo"><button class="pbk" onclick="closeOv()">Annuler</button><button class="pnx" onclick="p1nx()">Continuer <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
     </div>
 
-    <!-- Panel 2: Confirm room -->
-    <div class="panel" id="p2">
-      <div class="ptitle">🏠 Votre logement</div>
-      <div id="rcCard"></div>
-      <div id="rcAvail"></div>
-      <div class="pfooter">
-        <button class="pbtn-back" onclick="goS(1)">← Retour</button>
-        <button class="pbtn-next" onclick="goS(3)">Continuer →</button>
-      </div>
+    <!-- P2: Room confirm -->
+    <div class="pan" id="p2">
+      <div class="ptit"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Votre logement</div>
+      <div id="rcC"></div><div id="rcAv"></div>
+      <div class="pfoo"><button class="pbk" onclick="goS(1)">← Retour</button><button class="pnx" onclick="goS(3)">Continuer <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
     </div>
 
-    <!-- Panel 3: Guest -->
-    <div class="panel" id="p3">
-      <div class="ptitle">👤 Vos coordonnées</div>
-      <div class="fg"><label class="flabel">Nom complet *</label><input type="text" id="gName" class="finput" placeholder="Jean Dupont" autocomplete="name"></div>
-      <div class="fg"><label class="flabel">Email *</label><input type="email" id="gEmail" class="finput" placeholder="votre@email.com" autocomplete="email"></div>
-      <div class="fg"><label class="flabel">Téléphone / WhatsApp *</label><input type="tel" id="gPhone" class="finput" placeholder="+237 6XX XXX XXX" autocomplete="tel"></div>
-      <div class="fg"><label class="flabel">Nombre de voyageurs</label>
-        <select id="gCount" class="finput">
-          <option value="1">1 personne</option><option value="2" selected>2 personnes</option>
-          <option value="3">3 personnes</option><option value="4">4 personnes</option><option value="5">5+ personnes</option>
-        </select>
+    <!-- P3: Guest -->
+    <div class="pan" id="p3">
+      <div class="ptit"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Vos coordonnées</div>
+      <div class="fg"><label class="fl"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Nom complet *</label><input type="text" id="gN" class="fi" placeholder="Jean Dupont" autocomplete="name"></div>
+      <div class="fg"><label class="fl"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Email *</label><input type="email" id="gE" class="fi" placeholder="votre@email.com" autocomplete="email"></div>
+      <div class="fg"><label class="fl"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.09 9a19.79 19.79 0 01-3-8.58A2 2 0 012.1 2.18h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>Téléphone / WhatsApp *</label><input type="tel" id="gP" class="fi" placeholder="+237 6XX XXX XXX" autocomplete="tel"></div>
+      <div class="fg"><label class="fl"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Voyageurs</label>
+        <select id="gC" class="fi"><option value="1">1 personne</option><option value="2" selected>2 personnes</option><option value="3">3 personnes</option><option value="4">4 personnes</option><option value="5">5+ personnes</option></select>
       </div>
-      <div class="fg"><label class="flabel">Demandes spéciales (optionnel)</label><textarea id="gRequests" class="finput" placeholder="Arrivée tardive, préférences, occasion spéciale…"></textarea></div>
-      <div class="ferr" id="errGuest"></div>
-      <div class="pfooter">
-        <button class="pbtn-back" onclick="goS(2)">← Retour</button>
-        <button class="pbtn-next" onclick="p3Next()">Continuer →</button>
-      </div>
+      <div class="fg"><label class="fl"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Demandes spéciales</label><textarea id="gR" class="fi" placeholder="Arrivée tardive, préférences, occasion spéciale…"></textarea></div>
+      <div class="ferr" id="e3"></div>
+      <div class="pfoo"><button class="pbk" onclick="goS(2)">← Retour</button><button class="pnx" onclick="p3nx()">Continuer <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button></div>
     </div>
 
-    <!-- Panel 4: Payment -->
-    <div class="panel" id="p4">
-      <div class="ptitle">💳 Paiement</div>
-      <div class="pay-sum" id="paySumEl"></div>
-      <div class="pay-section-label">Montant à payer maintenant</div>
-      <div class="amt-grid">
-        <button class="amt-btn sel" id="ab-deposit" onclick="selAmt('deposit')">
-          <div class="amt-pct">30%</div><div class="amt-tag">Acompte</div>
-          <div class="amt-val" id="depositVal">—</div><div class="amt-note">Solde à l'arrivée</div>
-        </button>
-        <button class="amt-btn" id="ab-full" onclick="selAmt('full')">
-          <div class="amt-pct">100%</div><div class="amt-tag">Total</div>
-          <div class="amt-val" id="fullVal">—</div><div class="amt-note">Tout inclus</div>
-        </button>
+    <!-- P4: Payment -->
+    <div class="pan" id="p4">
+      <div class="ptit"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Paiement</div>
+      <div class="psum" id="psEl"></div>
+      <div class="plabel">Montant à payer maintenant</div>
+      <div class="amtg">
+        <button class="abtn sel" id="ab-d" onclick="sAmt('d')"><div class="apct">30%</div><div class="atag">Acompte</div><div class="aval" id="dv">—</div><div class="anote">Solde à l'arrivée</div></button>
+        <button class="abtn" id="ab-f" onclick="sAmt('f')"><div class="apct">100%</div><div class="atag">Total</div><div class="aval" id="fv">—</div><div class="anote">Tout inclus</div></button>
       </div>
-      <div class="pay-section-label">Mode de paiement</div>
-      <div class="pm-grid">
-        <button class="pm-btn sel" id="pm-orange" onclick="selPm('orange')"><div class="pm-icon">🟠</div><div class="pm-name">Orange Money</div></button>
-        <button class="pm-btn" id="pm-mtn" onclick="selPm('mtn')"><div class="pm-icon">🟡</div><div class="pm-name">MTN MoMo</div></button>
-        <button class="pm-btn" id="pm-arrival" onclick="selPm('arrival')"><div class="pm-icon">🏦</div><div class="pm-name">A l'arrivée</div></button>
-        <button class="pm-btn" id="pm-transfer" onclick="selPm('transfer')"><div class="pm-icon">💸</div><div class="pm-name">Virement</div></button>
+      <div class="plabel">Mode de paiement</div>
+      <div class="pmg">
+        <button class="pmbtn sel" id="pm-o" onclick="sPm('o')"><div class="pmic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div><div class="pmn">Orange Money</div></button>
+        <button class="pmbtn" id="pm-m" onclick="sPm('m')"><div class="pmic"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="pmn">MTN MoMo</div></button>
+        <button class="pmbtn" id="pm-a" onclick="sPm('a')"><div class="pmic"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="pmn">A l'arrivée</div></button>
+        <button class="pmbtn" id="pm-t" onclick="sPm('t')"><div class="pmic"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div><div class="pmn">Virement</div></button>
       </div>
-      <div id="payInstrEl"></div>
-      <div class="ferr" id="errPay"></div>
-      <div class="pfooter">
-        <button class="pbtn-back" onclick="goS(3)">← Retour</button>
-        <button class="pbtn-next pbtn-pay" id="payBtn" onclick="confirmRes()">✅ Confirmer la réservation</button>
-      </div>
+      <div id="piEl"></div>
+      <div class="ferr" id="e4"></div>
+      <div class="pfoo"><button class="pbk" onclick="goS(3)">← Retour</button><button class="pnx ppay" id="payBtn" onclick="confRes()">Confirmer <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></button></div>
     </div>
 
-    <!-- Panel 5: Confirmed -->
-    <div class="panel" id="p5">
+    <!-- P5: Confirmed -->
+    <div class="pan" id="p5">
       <div class="conf-body">
-        <div class="conf-circle">
-          <svg viewBox="0 0 88 88" fill="none"><circle cx="44" cy="44" r="40" fill="none" stroke="#c9a84c" stroke-width="4.5"/><path d="M28 44L40 56L60 32" stroke="#c9a84c" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="conf-check">
+          <svg viewBox="0 0 90 90" fill="none"><circle cx="45" cy="45" r="40" fill="none" stroke="#c9a84c" stroke-width="4.5"/><path d="M28 45L40 57L62 33" stroke="#c9a84c" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
         <div class="conf-title">Réservation confirmée !</div>
-        <div class="conf-sub">Merci pour votre confiance.</div>
-        <div class="conf-ref" id="confRef"></div>
-        <div class="conf-details" id="confDetails"></div>
-        <div class="conf-next">📧 Un email de confirmation vous sera envoyé.<br>💬 Notre équipe vous contactera sur WhatsApp pour coordonner votre arrivée.</div>
-        <div class="conf-actions">
-          <a id="confWA" href="#" target="_blank" class="btn-wa">💬 Contacter sur WhatsApp</a>
-          <button class="pbtn-back" style="width:100%;margin-top:4px" onclick="resetBk()">Faire une autre réservation</button>
+        <div class="conf-sub">Merci pour votre confiance — bienvenue à Veraluz.</div>
+        <div class="conf-ref" id="cRef"></div>
+        <div class="conf-det" id="cDet"></div>
+        <div class="conf-next" id="cNext"></div>
+        <div class="conf-acts">
+          <button class="cact cact-pdf" id="pdfBtn" onclick="genPDF()">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Télécharger le reçu PDF
+          </button>
+          <button class="cact cact-mail" id="mailBtn" onclick="sendMail()">
+            <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Envoyer par email
+          </button>
+          <a class="cact cact-wa" id="confWA" href="#" target="_blank">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            Contacter sur WhatsApp
+          </a>
+          <button class="pbk" style="width:100%;margin-top:4px" onclick="resetBk()">Nouvelle réservation</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════ FOOTER ══════════ -->
+<!-- FOOTER -->
 <footer class="footer">
   <div class="footer-logo">
-    <svg viewBox="0 0 34 40" width="28" height="33" fill="none"><path d="M17 1.5L31 7V20C31 29 24.5 36.5 17 39C9.5 36.5 3 29 3 20V7Z" fill="#0b2d4a" stroke="#c9a84c" stroke-width="1.8"/><path d="M17 9C17 9 12.5 13.5 12.5 17.5C12.5 20 14.5 22 17 22C19.5 22 21.5 20 21.5 17.5C21.5 13.5 17 9 17 9Z" fill="#c9a84c" opacity="0.9"/></svg>
+    <svg viewBox="0 0 34 40" width="28" height="33" fill="none"><path d="M17 1.5L31 7V20C31 29 24.5 36.5 17 39C9.5 36.5 3 29 3 20V7Z" fill="#023047" stroke="#c9a84c" stroke-width="1.8"/><path d="M17 9C17 9 12.5 13.5 12.5 17.5C12.5 20 14.5 22 17 22C19.5 22 21.5 20 21.5 17.5C21.5 13.5 17 9 17 9Z" fill="#c9a84c" opacity="0.9"/></svg>
     <span>Résidence Veraluz</span>
   </div>
-  <p>Kribi, Cameroun &nbsp;·&nbsp; Face à l'océan Atlantique</p>
-  <p>📞 +237 6XX XXX XXX &nbsp;|&nbsp; 💬 <a href="https://wa.me/237600000000" class="footer-gold">WhatsApp</a> &nbsp;|&nbsp; ✉️ contact@veraluz.com</p>
+  <p>Kribi, Cameroun · Face à l'océan Atlantique</p>
+  <p>📞 +237 6XX XXX XXX &nbsp;|&nbsp; <a href="https://wa.me/237600000000" class="fgold">WhatsApp</a> &nbsp;|&nbsp; ✉️ contact@veraluz.com</p>
   <p class="footer-copy">© 2025 Résidence Veraluz · Tous droits réservés</p>
 </footer>
-
+</body>
 <script>
-// ── Config ──
-var SB = 'https://dfdmasejsoibxrvubegu.supabase.co';
-var SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+var SB='https://dfdmasejsoibxrvubegu.supabase.co';
+var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
-// ── Catalog (fallback — toujours utilisé si Supabase vide) ──
+// ── SVG icons for room thumbnails (monochrome) ──
+var ROOM_ICONS = {
+  std:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4v16"/><path d="M22 4v16"/><path d="M2 8h20"/><path d="M2 16h20"/><rect x="6" y="8" width="12" height="8" rx="1"/><path d="M9 12h6"/></svg>',
+  sea:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 12s2-4 5-4 5 4 5 4 2-4 5-4 5 4 5 4"/><path d="M2 17s2-4 5-4 5 4 5 4 2-4 5-4 5 4 5 4"/><path d="M2 7s2-3 5-3 5 3 5 3 2-3 5-3 5 3 5 3"/></svg>',
+  apt:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+  suite: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+  villa: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M17 8C8 10 5.9 16.17 3.82 19.5A1 1 0 004.74 21h14.52a1 1 0 00.92-1.5C18.37 17 16.5 13 17 8z"/><path d="M16.5 8c0-2.5-2-4-4-5"/><path d="M12 3v2"/></svg>',
+  studio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>'
+};
+
+// ── Amenity SVG icons ──
+var AMEN_ICONS = {
+  'Climatisation':'<svg viewBox="0 0 24 24"><path d="M4 13.5A4 4 0 004 6h-1"/><path d="M20 6a4 4 0 010 7.5"/><path d="M12 12v6"/><path d="M8 21h8"/></svg>',
+  'WiFi':'<svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>',
+  'Vue':'<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  'TV':'<svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>',
+  'default':'<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'
+};
+
+function amenIcon(a) {
+  for (var k in AMEN_ICONS) { if (k !== 'default' && a.indexOf(k) >= 0) return AMEN_ICONS[k]; }
+  return AMEN_ICONS['default'];
+}
+
 var CATALOG = [
-  {id:'std1', name:'Chambre Standard', emoji:'🛏️', type:'Chambre', price:25000, capacity:2,
-   desc:'Chambre confortable avec vue sur jardin tropical. Parfaite pour un sejour relaxant a Kribi.',
-   amenities:['Climatisation','WiFi gratuit','TV ecran plat','Salle de bain privee'],
-   gradient:'linear-gradient(135deg,#0891b2,#0e7490)', available:true},
-  {id:'mer1', name:'Chambre Vue Mer', emoji:'🌊', type:'Chambre', price:35000, capacity:2,
-   desc:'Chambre avec vue panoramique sur l\'Atlantique. Reveillez-vous face a l\'ocean chaque matin.',
-   amenities:['Vue sur l\'ocean','Climatisation','WiFi gratuit','Balcon prive'],
-   gradient:'linear-gradient(135deg,#0b2d4a,#1a4f7a)', available:true},
-  {id:'apt1', name:'Appartement Vue Mer', emoji:'🏠', type:'Appartement', price:55000, capacity:4,
-   desc:'Grand appartement 2 chambres avec salon, cuisine equipee et vue directe sur l\'Atlantique.',
-   amenities:['2 chambres','Vue mer','Cuisine equipee','Salon','Climatisation'],
-   gradient:'linear-gradient(135deg,#7c3aed,#5b21b6)', available:true},
-  {id:'suite1', name:'Suite Presidentielle', emoji:'👑', type:'Suite', price:85000, capacity:4,
-   desc:'Suite de luxe avec terrasse panoramique, jacuzzi et service de concierge premium.',
-   amenities:['Terrasse panoramique','Jacuzzi','2 chambres','Concierge','Cuisine VIP'],
-   gradient:'linear-gradient(135deg,#92400e,#c9a84c)', available:true},
-  {id:'villa1', name:'Villa Jardin', emoji:'🌴', type:'Villa', price:70000, capacity:6,
-   desc:'Villa independante avec piscine privee, jardin tropical et barbecue. Ideale pour familles.',
-   amenities:['Piscine privee','Jardin tropical','Barbecue','3 chambres','Parking'],
-   gradient:'linear-gradient(135deg,#065f46,#059669)', available:true},
-  {id:'studio1', name:'Studio Cosy', emoji:'✨', type:'Studio', price:18000, capacity:2,
-   desc:'Studio bien equipe pour un sejour economique. Tout le confort essentiel a Kribi.',
-   amenities:['Climatisation','WiFi','Kitchenette','TV'],
-   gradient:'linear-gradient(135deg,#9d174d,#be185d)', available:true}
+  {id:'std1', name:'Chambre Standard', ikey:'std', type:'Chambre', price:25000, capacity:2, gradient:'linear-gradient(135deg,#1a6fa8,#0e3a5c)',
+   desc:'Chambre confortable avec vue sur jardin tropical. Parfaite pour un sejour relaxant.',
+   amenities:['Climatisation','WiFi gratuit','TV ecran plat','Salle de bain'], avail:true},
+  {id:'mer1', name:'Chambre Vue Mer', ikey:'sea', type:'Chambre', price:35000, capacity:2, gradient:'linear-gradient(135deg,#006994,#004f75)',
+   desc:"Vue panoramique sur l'Atlantique. Reveillez-vous face a l'ocean chaque matin.",
+   amenities:['Vue sur mer','Climatisation','WiFi gratuit','Balcon prive'], avail:true},
+  {id:'apt1', name:'Appartement Vue Mer', ikey:'apt', type:'Appartement', price:55000, capacity:4, gradient:'linear-gradient(135deg,#2d6a4f,#1b4332)',
+   desc:"Appartement 2 chambres avec vue directe sur l'Atlantique, salon et cuisine equipee.",
+   amenities:['2 chambres','Vue mer','Cuisine equipee','Salon','Climatisation'], avail:true},
+  {id:'suite1', name:'Suite Presidentielle', ikey:'suite', type:'Suite', price:85000, capacity:4, gradient:'linear-gradient(135deg,#7c3aed,#4c1d95)',
+   desc:'Suite de luxe avec terrasse panoramique, jacuzzi et service de concierge.',
+   amenities:['Terrasse panoramique','Jacuzzi','2 chambres','Concierge','Vue mer'], avail:true},
+  {id:'villa1', name:'Villa Jardin Tropical', ikey:'villa', type:'Villa', price:70000, capacity:6, gradient:'linear-gradient(135deg,#92400e,#78350f)',
+   desc:'Villa independante avec piscine privee, jardin tropical et barbecue.',
+   amenities:['Piscine privee','Jardin tropical','Barbecue','3 chambres','Parking'], avail:true},
+  {id:'studio1', name:'Studio Cosy', ikey:'studio', type:'Studio', price:18000, capacity:2, gradient:'linear-gradient(135deg,#be185d,#9d174d)',
+   desc:'Studio economique avec tout le confort essentiel pour un beau sejour a Kribi.',
+   amenities:['Climatisation','WiFi','Kitchenette','TV'], avail:true}
 ];
 
-// ── State ──
-var _map = {};
-var _bk = {room:null, arr:'', dep:'', nights:0, total:0, deposit:0, amt:'deposit', pm:'orange', guest:{}};
+var _map = {}, _bk = {room:null,arr:'',dep:'',nights:0,total:0,deposit:0,amt:'d',pm:'o',guest:{}};
+var _conf = {};
 
-// ── Supabase helpers ──
-function sbGet(table, qs) {
-  return fetch(SB + '/rest/v1/' + table + '?' + qs, {
-    headers:{'apikey': SK, 'Authorization': 'Bearer ' + SK}
-  }).then(function(r){ return r.ok ? r.json() : []; })
-    .catch(function(){ return []; });
-}
-function sbPost(table, data) {
-  return fetch(SB + '/rest/v1/' + table, {
-    method:'POST',
-    headers:{'apikey': SK, 'Authorization': 'Bearer ' + SK,
-             'Content-Type':'application/json', 'Prefer':'return=representation'},
-    body: JSON.stringify(data)
-  }).then(function(r){ return r.ok ? r.json() : null; })
-    .catch(function(){ return null; });
-}
+function sbGet(t,q){ return fetch(SB+'/rest/v1/'+t+'?'+q,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];}); }
+function sbPost(t,d){ return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(d)}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}); }
 
-// ── Load & Render rooms ──
 function loadRooms() {
-  sbGet('veraluz_units', 'select=*&order=price.asc').then(function(data) {
-    var rooms;
-    if (data && data.length > 0) {
-      rooms = data.map(function(u) {
-        return {
-          id: u.id,
-          name: u.name || 'Logement',
-          emoji: u.emoji || '🏠',
-          type: u.type || 'chambre',
-          price: u.price || 0,
-          capacity: u.capacity || 2,
-          desc: u.description || '',
-          amenities: u.amenities || [],
-          gradient: 'linear-gradient(135deg,#0b2d4a,#1a4f7a)',
-          available: (u.status === 'available' || u.status === 'active')
-        };
-      });
-    } else {
-      rooms = CATALOG;
-    }
-    _map = {};
-    rooms.forEach(function(r){ _map[r.id] = r; });
+  sbGet('veraluz_units','select=*&order=price.asc').then(function(data) {
+    var rooms = (data && data.length > 0) ? data.map(function(u) {
+      var ikeys = ['std','sea','apt','suite','villa','studio'];
+      var n = (u.name||'').toLowerCase();
+      var ik = n.indexOf('mer')>=0?'sea':n.indexOf('suite')>=0?'suite':n.indexOf('villa')>=0?'villa':n.indexOf('apt')>=0?'apt':n.indexOf('studio')>=0?'studio':'std';
+      var avail = u.status==='available'||u.status==='active';
+      return {id:u.id,name:u.name||'Logement',ikey:ik,type:u.type||'chambre',price:u.price||0,capacity:u.capacity||2,
+              gradient:CATALOG.find(function(c){return c.ikey===ik;})?CATALOG.find(function(c){return c.ikey===ik;}).gradient:'linear-gradient(135deg,#023047,#0a3d5c)',
+              desc:u.description||'',amenities:Array.isArray(u.amenities)?u.amenities:[],avail:avail};
+    }) : CATALOG;
+    _map = {}; rooms.forEach(function(r){_map[r.id]=r;});
     renderRooms(rooms);
   });
 }
 
 function renderRooms(rooms) {
-  var grid = document.getElementById('roomsGrid');
-  if (!rooms || !rooms.length) {
-    grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;padding:50px;color:#64748b">Aucun logement disponible actuellement.</p>';
-    return;
-  }
-  var h = '';
+  var g = document.getElementById('roomsGrid');
+  if (!rooms||!rooms.length){g.innerHTML='<p style="text-align:center;padding:50px;color:#6b8a99">Aucun logement disponible.</p>';return;}
+  var h='';
   rooms.forEach(function(r) {
-    var feats = '';
-    if (Array.isArray(r.amenities)) {
-      r.amenities.slice(0,4).forEach(function(a){ feats += '<span class="room-amen">✓ ' + a + '</span>'; });
-    }
-    var caps = '';
-    for(var i=0;i<Math.min(Number(r.capacity),5);i++) caps += '👤';
-    h += '<div class="room-card" data-rid="' + r.id + '">';
-    h += '  <div class="room-thumb" style="background:' + r.gradient + '">';
-    h += '    <div class="room-emoji">' + r.emoji + '</div>';
-    h += '    <span class="room-status ' + (r.available ? 'ok' : 'na') + '">';
-    h += (r.available ? 'Disponible' : 'Indisponible') + '</span>';
-    h += '  </div>';
-    h += '  <div class="room-body">';
-    h += '    <div class="room-header">';
-    h += '      <div><div class="room-name">' + r.name + '</div>';
-    h += '      <div class="room-cap">' + r.type + ' · ' + caps + ' max ' + r.capacity + '</div></div>';
-    h += '      <div class="room-price-box"><div class="room-price">' + Number(r.price).toLocaleString('fr-FR') + ' FCFA</div>';
-    h += '      <div class="room-pnight">/ nuit</div></div>';
-    h += '    </div>';
-    h += '    <p class="room-desc">' + r.desc + '</p>';
-    h += '    <div class="room-amenities">' + feats + '</div>';
-    h += '    <button class="room-cta" ' + (r.available ? '' : 'disabled') + '>🏖️ Réserver ce logement</button>';
-    h += '  </div></div>';
+    var icon = ROOM_ICONS[r.ikey]||ROOM_ICONS.std;
+    var feats='';
+    (r.amenities||[]).slice(0,4).forEach(function(a){feats+='<span>'+amenIcon(a)+a+'</span>';});
+    var caps=''; for(var i=0;i<Math.min(Number(r.capacity),5);i++) caps+='·';
+    h+='<div class="rcard" data-rid="'+r.id+'">';
+    h+='<div class="rthumb" style="background:'+r.gradient+'"><div class="rthumb-icon">'+icon+'</div>';
+    h+='<span class="rbadge '+(r.avail?'ok':'na')+'">';
+    h+='<svg viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>';
+    h+=(r.avail?'Disponible':'Indisponible')+'</span></div>';
+    h+='<div class="rbody"><div class="rrow"><div><div class="rname">'+r.name+'</div>';
+    h+='<div class="rcap"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>';
+    h+=r.type+' · max '+r.capacity+'</div></div>';
+    h+='<div><div class="rprice">'+Number(r.price).toLocaleString('fr-FR')+' FCFA</div><div class="rpnight">/ nuit</div></div></div>';
+    h+='<p class="rdesc">'+r.desc+'</p>';
+    h+='<div class="ramen">'+feats+'</div>';
+    h+='<button class="rcta"'+(r.avail?'':' disabled')+'><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>Réserver ce logement</button>';
+    h+='</div></div>';
   });
-  grid.innerHTML = h;
-
-  // Attach click listeners (no inline onclick with quotes)
-  grid.querySelectorAll('.room-cta:not([disabled])').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var rid = this.closest('.room-card').getAttribute('data-rid');
-      openBooking(rid);
-    });
+  g.innerHTML=h;
+  g.querySelectorAll('.rcta:not([disabled])').forEach(function(btn){
+    btn.addEventListener('click',function(){openBk(this.closest('.rcard').getAttribute('data-rid'));});
   });
 }
 
-// ── Booking flow ──
-function openBooking(rid) {
-  var room = _map[rid];
-  if (!room) { alert('Logement introuvable, rechargez la page.'); return; }
-  _bk.room = room;
-  _bk.amt = 'deposit';
-  _bk.pm = 'orange';
-  // Sync dates from hero bar
-  var ha = document.getElementById('hArr');
-  var hd = document.getElementById('hDep');
-  if (ha.value) document.getElementById('arrDate').value = ha.value;
-  if (hd.value) document.getElementById('depDate').value = hd.value;
-  // Render mini preview
-  document.getElementById('rmini').innerHTML =
-    '<div class="room-mini" style="background:' + room.gradient + '">' +
-    '<div class="room-mini-emoji">' + room.emoji + '</div>' +
-    '<div><div class="room-mini-name">' + room.name + '</div>' +
-    '<div class="room-mini-price">' + Number(room.price).toLocaleString('fr-FR') + ' FCFA / nuit</div></div></div>';
-  goS(1);
-  calcNights();
-  document.getElementById('overlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
+function openBk(rid) {
+  var r=_map[rid]; if(!r){alert('Rechargez la page.');return;}
+  _bk.room=r; _bk.amt='d'; _bk.pm='o';
+  var ha=document.getElementById('hArr'),hd=document.getElementById('hDep');
+  if(ha.value) document.getElementById('arrD').value=ha.value;
+  if(hd.value) document.getElementById('depD').value=hd.value;
+  var icon=ROOM_ICONS[r.ikey]||ROOM_ICONS.std;
+  document.getElementById('rmini').innerHTML='<div class="rmini" style="background:'+r.gradient+'"><div class="rmini-icon">'+icon+'</div><div><div class="rmini-name">'+r.name+'</div><div class="rmini-price">'+Number(r.price).toLocaleString('fr-FR')+' FCFA / nuit</div></div></div>';
+  goS(1); calcN();
+  document.getElementById('ov').classList.add('open');
+  document.body.style.overflow='hidden';
 }
 
-function closeOverlay() {
-  document.getElementById('overlay').classList.remove('open');
-  document.body.style.overflow = '';
-}
+function closeOv(){document.getElementById('ov').classList.remove('open');document.body.style.overflow='';}
+function scrollRooms(){document.getElementById('roomsSec').scrollIntoView({behavior:'smooth'});}
+function syncD(){var a=document.getElementById('hArr').value,d=document.getElementById('hDep').value;if(a)document.getElementById('arrD').value=a;if(d)document.getElementById('depD').value=d;calcN();}
 
-function scrollToRooms() {
-  document.getElementById('roomsSection').scrollIntoView({behavior:'smooth'});
-}
-
-function syncDates() {
-  var ha = document.getElementById('hArr').value;
-  var hd = document.getElementById('hDep').value;
-  if (ha) document.getElementById('arrDate').value = ha;
-  if (hd) document.getElementById('depDate').value = hd;
-  calcNights();
-}
-
-function calcNights() {
-  var a = document.getElementById('arrDate').value;
-  var d = document.getElementById('depDate').value;
-  var prev = document.getElementById('nightsPrev');
-  if (!a || !d || !_bk.room) { prev.style.display = 'none'; return; }
-  var nights = Math.floor((new Date(d) - new Date(a)) / 86400000);
-  if (nights <= 0) { prev.style.display = 'none'; return; }
-  var total = nights * _bk.room.price;
-  _bk.arr = a; _bk.dep = d; _bk.nights = nights;
-  _bk.total = total; _bk.deposit = Math.round(total * 0.3);
-  document.getElementById('nlabel').textContent = nights + ' nuit' + (nights > 1 ? 's' : '');
-  document.getElementById('ntotal').textContent = total.toLocaleString('fr-FR') + ' FCFA';
-  prev.style.display = 'block';
+function calcN() {
+  var a=document.getElementById('arrD').value, d=document.getElementById('depD').value;
+  var bar=document.getElementById('nightsBar');
+  if(!a||!d||!_bk.room){bar.style.display='none';return;}
+  var n=Math.floor((new Date(d)-new Date(a))/86400000);
+  if(n<=0){bar.style.display='none';return;}
+  var tot=n*_bk.room.price;
+  _bk.arr=a;_bk.dep=d;_bk.nights=n;_bk.total=tot;_bk.deposit=Math.round(tot*.3);
+  document.getElementById('nlbl').textContent=n+' nuit'+(n>1?'s':'');
+  document.getElementById('ntot').textContent=tot.toLocaleString('fr-FR')+' FCFA';
+  bar.style.display='block';
 }
 
 function goS(n) {
-  for (var i = 1; i <= 5; i++) {
-    var dot = document.getElementById('sd' + i);
-    var panel = document.getElementById('p' + i);
-    if (dot) { dot.classList.remove('active','done'); if(i<n) dot.classList.add('done'); else if(i===n) dot.classList.add('active'); }
-    if (panel) { panel.classList.remove('on'); if(i===n) panel.classList.add('on'); }
-    if (i < 5) { var line = document.getElementById('sl' + i); if(line){ line.classList.remove('done'); if(i<n) line.classList.add('done'); } }
+  for(var i=1;i<=5;i++){
+    var d=document.getElementById('sd'+i),p=document.getElementById('p'+i);
+    if(d){d.classList.remove('active','done');if(i<n)d.classList.add('done');else if(i===n)d.classList.add('active');}
+    if(p){p.classList.remove('on');if(i===n)p.classList.add('on');}
+    if(i<5){var l=document.getElementById('sl'+i);if(l){l.classList.remove('done');if(i<n)l.classList.add('done');}}
   }
-  var drawer = document.getElementById('drawer');
-  if (drawer) drawer.scrollTop = 0;
+  var dr=document.getElementById('dr');if(dr)dr.scrollTop=0;
 }
 
-function p1Next() {
-  var a = document.getElementById('arrDate').value;
-  var d = document.getElementById('depDate').value;
-  var err = document.getElementById('errDate');
-  if (!a || !d) { err.textContent = 'Veuillez sélectionner les dates.'; err.classList.add('on'); return; }
-  if (new Date(d) <= new Date(a)) { err.textContent = 'La date de départ doit être après l\'arrivée.'; err.classList.add('on'); return; }
-  err.classList.remove('on');
-  calcNights();
-  // Render step 2
-  var r = _bk.room;
-  document.getElementById('rcCard').innerHTML =
-    '<div class="rc-card"><div class="rc-inner" style="background:' + r.gradient + '">' +
-    '<div class="rc-emoji">' + r.emoji + '</div>' +
-    '<div><div class="rc-name">' + r.name + '</div>' +
-    '<div class="rc-dates">' + _bk.nights + ' nuit(s) · ' + fmtD(_bk.arr) + ' → ' + fmtD(_bk.dep) + '</div>' +
-    '<div class="rc-total">' + _bk.total.toLocaleString('fr-FR') + ' FCFA total</div>' +
-    '</div></div></div>';
-  document.getElementById('rcAvail').innerHTML = '<div class="avail-ok">✅ Logement disponible pour ces dates</div>';
+function p1nx() {
+  var a=document.getElementById('arrD').value, d=document.getElementById('depD').value, e=document.getElementById('e1');
+  if(!a||!d){e.textContent='Veuillez sélectionner les dates.';e.classList.add('on');return;}
+  if(new Date(d)<=new Date(a)){e.textContent="La date de départ doit être après l'arrivée.";e.classList.add('on');return;}
+  e.classList.remove('on'); calcN();
+  var r=_bk.room,icon=ROOM_ICONS[r.ikey]||ROOM_ICONS.std;
+  document.getElementById('rcC').innerHTML='<div class="rc-card"><div class="rc-in" style="background:'+r.gradient+'"><div class="rc-ico">'+icon+'</div><div><div class="rc-name">'+r.name+'</div><div class="rc-dates">'+_bk.nights+' nuit(s) · '+fd(_bk.arr)+' → '+fd(_bk.dep)+'</div><div class="rc-total">'+_bk.total.toLocaleString('fr-FR')+' FCFA</div></div></div></div>';
+  document.getElementById('rcAv').innerHTML='<div class="avail-ok"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Logement disponible pour ces dates</div>';
   goS(2);
 }
 
-function p3Next() {
-  var name = document.getElementById('gName').value.trim();
-  var email = document.getElementById('gEmail').value.trim();
-  var phone = document.getElementById('gPhone').value.trim();
-  var err = document.getElementById('errGuest');
-  if (!name || !email || !phone) { err.textContent = 'Veuillez remplir tous les champs obligatoires.'; err.classList.add('on'); return; }
-  var re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!re.test(email)) { err.textContent = 'Adresse email invalide.'; err.classList.add('on'); return; }
+function p3nx() {
+  var n=document.getElementById('gN').value.trim(), e2=document.getElementById('gE').value.trim(), p=document.getElementById('gP').value.trim(), err=document.getElementById('e3');
+  if(!n||!e2||!p){err.textContent='Veuillez remplir tous les champs obligatoires.';err.classList.add('on');return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e2)){err.textContent='Email invalide.';err.classList.add('on');return;}
   err.classList.remove('on');
-  _bk.guest = {name:name, email:email, phone:phone, count:document.getElementById('gCount').value, requests:document.getElementById('gRequests').value.trim()};
-  renderPay();
-  goS(4);
+  _bk.guest={name:n,email:e2,phone:p,count:document.getElementById('gC').value,requests:document.getElementById('gR').value.trim()};
+  rndrPay(); goS(4);
 }
 
-function selAmt(v) {
-  _bk.amt = v;
-  document.getElementById('ab-deposit').classList.toggle('sel', v === 'deposit');
-  document.getElementById('ab-full').classList.toggle('sel', v === 'full');
-  renderPayInstr();
+function sAmt(v){_bk.amt=v;document.getElementById('ab-d').classList.toggle('sel',v==='d');document.getElementById('ab-f').classList.toggle('sel',v==='f');rndrPi();}
+function sPm(v){_bk.pm=v;['o','m','a','t'].forEach(function(x){document.getElementById('pm-'+x).classList.toggle('sel',x===v);});rndrPi();}
+
+function rndrPay() {
+  var bk=_bk,r=bk.room;
+  document.getElementById('psEl').innerHTML='<div class="psum-row"><span>'+r.name+'</span><span></span></div><div class="psum-row"><span>Dates</span><span>'+fd(bk.arr)+' → '+fd(bk.dep)+'</span></div><div class="psum-row"><span>'+bk.nights+' nuit(s)</span><span>'+Number(r.price).toLocaleString('fr-FR')+' FCFA/nuit</span></div><div class="psum-tot"><span>Total</span><span>'+bk.total.toLocaleString('fr-FR')+' FCFA</span></div>';
+  document.getElementById('dv').textContent=bk.deposit.toLocaleString('fr-FR')+' FCFA';
+  document.getElementById('fv').textContent=bk.total.toLocaleString('fr-FR')+' FCFA';
+  sAmt(bk.amt); sPm(bk.pm);
 }
 
-function selPm(v) {
-  _bk.pm = v;
-  ['orange','mtn','arrival','transfer'].forEach(function(m){
-    document.getElementById('pm-' + m).classList.toggle('sel', m === v);
-  });
-  renderPayInstr();
+function rndrPi() {
+  var bk=_bk, a=bk.amt==='d'?bk.deposit:bk.total, s=a.toLocaleString('fr-FR')+' FCFA', tot=bk.total.toLocaleString('fr-FR')+' FCFA', pm=bk.pm, h='';
+  if(pm==='o') h='<div class="pinstr orange"><div class="pi-tit">Orange Money</div><div class="pi-r">1. Composez #150# sur votre téléphone Orange</div><div class="pi-r">2. Envoyez <b>'+s+'</b></div><div class="pi-num">+237 6XX XXX XXX</div><div class="pi-r">Référence: VERALUZ-BK</div><div class="pi-note">Conservez votre reçu SMS.</div></div>';
+  else if(pm==='m') h='<div class="pinstr mtn"><div class="pi-tit">MTN Mobile Money</div><div class="pi-r">1. Ouvrez votre app MTN MoMo</div><div class="pi-r">2. Transférez <b>'+s+'</b></div><div class="pi-num">+237 6XX XXX XXX</div><div class="pi-r">Référence: VERALUZ-BK</div><div class="pi-note">Transaction sécurisée MTN.</div></div>';
+  else if(pm==='a') h='<div class="pinstr arrival"><div class="pi-tit">Paiement à l\'arrivée</div><div class="pi-r">Réservation confirmée sans paiement immédiat.</div><div class="pi-r">Montant dû à l\'arrivée: <b>'+tot+'</b></div><div class="pi-note">Espèces ou mobile money à la réception.</div></div>';
+  else h='<div class="pinstr transfer"><div class="pi-tit">Virement bancaire</div><div class="pi-r">Banque: <b>Afriland First Bank</b></div><div class="pi-r">Titulaire: <b>Résidence Veraluz SARL</b></div><div class="pi-r">Montant: <b>'+s+'</b></div><div class="pi-note">Envoyez votre reçu par WhatsApp.</div></div>';
+  document.getElementById('piEl').innerHTML=h;
 }
 
-function renderPay() {
-  var bk = _bk; var r = bk.room;
-  document.getElementById('paySumEl').innerHTML =
-    '<div class="pay-sum-row"><span>' + r.emoji + ' ' + r.name + '</span><span></span></div>' +
-    '<div class="pay-sum-row"><span>Dates</span><span>' + fmtD(bk.arr) + ' → ' + fmtD(bk.dep) + '</span></div>' +
-    '<div class="pay-sum-row"><span>' + bk.nights + ' nuit(s)</span><span>' + Number(r.price).toLocaleString('fr-FR') + ' FCFA/nuit</span></div>' +
-    '<div class="pay-sum-total"><span>Total</span><span>' + bk.total.toLocaleString('fr-FR') + ' FCFA</span></div>';
-  document.getElementById('depositVal').textContent = bk.deposit.toLocaleString('fr-FR') + ' FCFA';
-  document.getElementById('fullVal').textContent = bk.total.toLocaleString('fr-FR') + ' FCFA';
-  selAmt(bk.amt);
-  selPm(bk.pm);
-}
-
-function renderPayInstr() {
-  var bk = _bk;
-  var a = bk.amt === 'deposit' ? bk.deposit : bk.total;
-  var s = a.toLocaleString('fr-FR') + ' FCFA';
-  var tot = bk.total.toLocaleString('fr-FR') + ' FCFA';
-  var pm = bk.pm;
-  var h = '';
-  if (pm === 'orange') {
-    h = '<div class="pay-instr orange"><div class="pi-title">🟠 Orange Money</div>' +
-        '<div class="pi-row">1. Composez <b>#150#</b> sur votre téléphone Orange</div>' +
-        '<div class="pi-row">2. Envoyez <b>' + s + '</b> au numéro</div>' +
-        '<div class="pi-num">+237 6XX XXX XXX</div>' +
-        '<div class="pi-row">3. Référence: <b>VERALUZ-BK</b></div>' +
-        '<div class="pi-note">Conservez votre reçu SMS.</div></div>';
-  } else if (pm === 'mtn') {
-    h = '<div class="pay-instr mtn"><div class="pi-title">🟡 MTN Mobile Money</div>' +
-        '<div class="pi-row">1. Ouvrez votre app MTN MoMo</div>' +
-        '<div class="pi-row">2. Transférez <b>' + s + '</b> au numéro</div>' +
-        '<div class="pi-num">+237 6XX XXX XXX</div>' +
-        '<div class="pi-row">3. Référence: <b>VERALUZ-BK</b></div>' +
-        '<div class="pi-note">Transaction sécurisée MTN.</div></div>';
-  } else if (pm === 'arrival') {
-    h = '<div class="pay-instr arrival"><div class="pi-title">🏦 Paiement à l\'arrivée</div>' +
-        '<div class="pi-row">Réservation confirmée sans paiement immédiat.</div>' +
-        '<div class="pi-row">Montant dû à l\'arrivée: <b>' + tot + '</b></div>' +
-        '<div class="pi-note">Règlement espèces ou mobile money à la réception.</div></div>';
-  } else {
-    h = '<div class="pay-instr transfer"><div class="pi-title">💸 Virement bancaire</div>' +
-        '<div class="pi-row">Banque: <b>Afriland First Bank</b></div>' +
-        '<div class="pi-row">Titulaire: <b>Résidence Veraluz SARL</b></div>' +
-        '<div class="pi-row">Montant: <b>' + s + '</b></div>' +
-        '<div class="pi-note">Envoyez votre reçu par WhatsApp.</div></div>';
-  }
-  document.getElementById('payInstrEl').innerHTML = h;
-}
-
-function confirmRes() {
-  var btn = document.getElementById('payBtn');
-  btn.disabled = true; btn.textContent = '⏳ En cours…';
-  var bk = _bk;
-  var ref = 'VLZ-' + Date.now().toString(36).toUpperCase();
-  var data = {
-    reference: ref, unit_id: bk.room.id, unit_name: bk.room.name,
-    guest_name: bk.guest.name, guest_email: bk.guest.email, guest_phone: bk.guest.phone,
-    guest_count: parseInt(bk.guest.count) || 1, special_requests: bk.guest.requests || '',
-    check_in: bk.arr, check_out: bk.dep, nights: bk.nights,
-    total_amount: bk.total, deposit_amount: bk.deposit,
-    amount_paid: bk.amt === 'full' ? bk.total : bk.deposit,
-    payment_method: bk.pm, payment_type: bk.amt,
-    status: 'confirmed', source: 'booking_engine', created_at: new Date().toISOString()
-  };
-  sbPost('veraluz_reservations', data).then(function(saved) {
-    if (!saved) {
-      try {
-        var loc = JSON.parse(localStorage.getItem('vlz_res') || '[]');
-        loc.push(data); localStorage.setItem('vlz_res', JSON.stringify(loc));
-      } catch(e) {}
-    }
-    // Emit to PMS event log
+function confRes() {
+  var btn=document.getElementById('payBtn'); btn.disabled=true; btn.innerHTML='En cours…';
+  var bk=_bk, ref='VLZ-'+Date.now().toString(36).toUpperCase();
+  var pm_labels={'o':'Orange Money','m':'MTN MoMo','a':'Paiement à l\'arrivée','t':'Virement bancaire'};
+  var d={reference:ref,unit_id:bk.room.id,unit_name:bk.room.name,
+    guest_name:bk.guest.name,guest_email:bk.guest.email,guest_phone:bk.guest.phone,
+    guest_count:parseInt(bk.guest.count)||1,special_requests:bk.guest.requests||'',
+    check_in:bk.arr,check_out:bk.dep,nights:bk.nights,
+    total_amount:bk.total,deposit_amount:bk.deposit,
+    amount_paid:bk.amt==='f'?bk.total:bk.deposit,
+    payment_method:pm_labels[bk.pm]||bk.pm,payment_type:bk.amt==='d'?'acompte':'total',
+    status:'confirmed',source:'booking_engine',created_at:new Date().toISOString()};
+  _conf=d;
+  sbPost('veraluz_reservations',d).then(function(saved){
+    // Fallback localStorage
+    if(!saved){try{var loc=JSON.parse(localStorage.getItem('vlz_res')||'[]');loc.push(d);localStorage.setItem('vlz_res',JSON.stringify(loc));}catch(e){}}
+    // ── SYNC WITH CORE ── emit to EventBus + reservation cache
     try {
-      var log = JSON.parse(localStorage.getItem('veraluz_event_log') || '[]');
-      log.unshift({id:'evt-'+Date.now(), type:'reservation-created', from:'booking-engine', data:{reference:ref, unit:bk.room.name, guest:bk.guest.name, checkIn:bk.arr, checkOut:bk.dep, total:bk.total}, ts:new Date().toISOString()});
-      if (log.length > 200) log.length = 200;
-      localStorage.setItem('veraluz_event_log', JSON.stringify(log));
-    } catch(e) {}
-    renderConf(ref, data);
+      var log=JSON.parse(localStorage.getItem('veraluz_event_log')||'[]');
+      log.unshift({id:'evt-'+Date.now(),type:'reservation-created',from:'veraluz-booking-engine',
+        data:{reference:ref,unit:bk.room.name,guest:bk.guest.name,checkIn:bk.arr,checkOut:bk.dep,total:bk.total,phone:bk.guest.phone,source:'booking_engine'},
+        ts:new Date().toISOString()});
+      if(log.length>200)log.length=200;
+      localStorage.setItem('veraluz_event_log',JSON.stringify(log));
+      // Also write to reservations sync key so Core module picks it up on load
+      var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
+      sync.unshift(d); if(sync.length>50)sync.length=50;
+      localStorage.setItem('vlz_booking_sync',JSON.stringify(sync));
+    }catch(e){}
+    rndrConf(ref,d);
     goS(5);
-    btn.disabled = false; btn.textContent = '✅ Confirmer la réservation';
+    btn.disabled=false;
+    btn.innerHTML='Confirmer <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none"><polyline points="20 6 9 17 4 12"/></svg>';
   });
 }
 
-function renderConf(ref, d) {
-  document.getElementById('confRef').innerHTML =
-    '<span class="conf-ref-label">Référence de réservation</span>' +
-    '<span class="conf-ref-num">' + ref + '</span>';
-  document.getElementById('confDetails').innerHTML =
-    '<div class="conf-row"><span>🏠 Logement</span><span>' + d.unit_name + '</span></div>' +
-    '<div class="conf-row"><span>📅 Arrivée</span><span>' + fmtD(d.check_in) + '</span></div>' +
-    '<div class="conf-row"><span>📅 Départ</span><span>' + fmtD(d.check_out) + '</span></div>' +
-    '<div class="conf-row"><span>🌙 Durée</span><span>' + d.nights + ' nuit(s)</span></div>' +
-    '<div class="conf-row"><span>👤 Client</span><span>' + d.guest_name + '</span></div>' +
-    '<div class="conf-row"><span>💳 Montant payé</span><span>' + Number(d.amount_paid).toLocaleString('fr-FR') + ' FCFA</span></div>';
-  var msg = encodeURIComponent('Bonjour! Reservation confirmee a la Residence Veraluz.\nReference: ' + ref + '\nLogement: ' + d.unit_name + '\nArrivee: ' + fmtD(d.check_in) + '\nDepart: ' + fmtD(d.check_out));
-  document.getElementById('confWA').href = 'https://wa.me/237600000000?text=' + msg;
+function rndrConf(ref,d) {
+  document.getElementById('cRef').innerHTML='<span class="conf-rl">Référence de réservation</span><span class="conf-rn">'+ref+'</span>';
+  var pm_icons={'Orange Money':'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/></svg>','MTN MoMo':'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><polygon points="12 2 15 8 22 9 17 14 18 21 12 18 6 21 7 14 2 9 9 8 12 2"/></svg>'};
+  document.getElementById('cDet').innerHTML=
+    '<div class="conf-row"><span>Logement</span><span>'+d.unit_name+'</span></div>'+
+    '<div class="conf-row"><span>Arrivée</span><span>'+fd(d.check_in)+'</span></div>'+
+    '<div class="conf-row"><span>Départ</span><span>'+fd(d.check_out)+'</span></div>'+
+    '<div class="conf-row"><span>Durée</span><span>'+d.nights+' nuit(s)</span></div>'+
+    '<div class="conf-row"><span>Client</span><span>'+d.guest_name+'</span></div>'+
+    '<div class="conf-row"><span>Paiement</span><span>'+d.payment_method+'</span></div>'+
+    '<div class="conf-row"><span>Montant payé</span><span>'+Number(d.amount_paid).toLocaleString('fr-FR')+' FCFA</span></div>';
+  document.getElementById('cNext').innerHTML='📧 Téléchargez votre reçu PDF ci-dessous.<br>💬 Notre équipe vous contactera sur WhatsApp.';
+  var msg=encodeURIComponent('Bonjour! Reservation confirmee a la Residence Veraluz.\nReference: '+ref+'\nLogement: '+d.unit_name+'\nArrivee: '+fd(d.check_in)+'\nDepart: '+fd(d.check_out)+'\nMontant: '+Number(d.amount_paid).toLocaleString('fr-FR')+' FCFA');
+  document.getElementById('confWA').href='https://wa.me/237600000000?text='+msg;
 }
 
-function resetBk() {
-  _bk = {room:null, arr:'', dep:'', nights:0, total:0, deposit:0, amt:'deposit', pm:'orange', guest:{}};
-  closeOverlay();
-  scrollToRooms();
+// ── PDF Generation ──
+function genPDF() {
+  if(!window.jspdf){alert('PDF non disponible hors ligne.');return;}
+  var d=_conf;
+  if(!d.reference){alert('Aucune réservation à exporter.');return;}
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  var W=doc.internal.pageSize.getWidth();
+
+  // Header background
+  doc.setFillColor(2,48,71);
+  doc.roundedRect(0,0,W,45,0,0,'F');
+
+  // Gold accent line
+  doc.setFillColor(201,168,76);
+  doc.rect(0,43,W,2,'F');
+
+  // Title
+  doc.setTextColor(201,168,76);
+  doc.setFontSize(22); doc.setFont('helvetica','bold');
+  doc.text('RÉSIDENCE VERALUZ',W/2,18,{align:'center'});
+  doc.setFontSize(11); doc.setTextColor(180,210,230);
+  doc.setFont('helvetica','normal');
+  doc.text('Kribi, Cameroun  ·  Front de mer Atlantique',W/2,28,{align:'center'});
+  doc.setFontSize(9); doc.setTextColor(140,180,200);
+  doc.text('contact@veraluz.com  ·  +237 6XX XXX XXX',W/2,36,{align:'center'});
+
+  // Receipt label
+  doc.setTextColor(2,48,71); doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('REÇU DE RÉSERVATION',W/2,58,{align:'center'});
+
+  // Reference box
+  doc.setFillColor(253,248,238); doc.setDrawColor(201,168,76);
+  doc.roundedRect(20,64,W-40,16,3,3,'FD');
+  doc.setFontSize(9); doc.setTextColor(107,138,153); doc.setFont('helvetica','normal');
+  doc.text('RÉFÉRENCE',W/2,70,{align:'center'});
+  doc.setFontSize(15); doc.setTextColor(2,48,71); doc.setFont('helvetica','bold');
+  doc.text(d.reference,W/2,78,{align:'center'});
+
+  // Date
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(107,138,153);
+  doc.text('Émis le '+new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}),W/2,88,{align:'center'});
+
+  // Details table
+  var rows=[
+    ['Logement',d.unit_name||''],
+    ["Date d'arrivée",fd(d.check_in)],
+    ['Date de départ',fd(d.check_out)],
+    ['Durée',d.nights+' nuit(s)'],
+    ['Nombre de voyageurs',String(d.guest_count||1)],
+    ['Nom du client',d.guest_name||''],
+    ['Email',d.guest_email||''],
+    ['Téléphone',d.guest_phone||''],
+    ['Mode de paiement',d.payment_method||''],
+    ['Type de paiement',d.payment_type==='d'?'Acompte 30%':'Paiement intégral'],
+    ['Montant total séjour',Number(d.total_amount||0).toLocaleString('fr-FR')+' FCFA'],
+    ['Montant payé',Number(d.amount_paid||0).toLocaleString('fr-FR')+' FCFA'],
+    ['Statut','CONFIRMÉ'],
+  ];
+  var y=98;
+  rows.forEach(function(row,idx){
+    if(idx%2===0){doc.setFillColor(248,252,255);doc.rect(20,y-4,W-40,10,'F');}
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(52,78,92);
+    doc.text(row[0],24,y+3);
+    doc.setFont('helvetica','normal'); doc.setTextColor(2,48,71);
+    doc.text(row[1],100,y+3);
+    y+=10;
+    if(idx===rows.length-1){
+      // Highlight last row (status)
+      doc.setFillColor(212,243,226); doc.roundedRect(20,y-14,W-40,12,2,2,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.setTextColor(6,95,70);
+      doc.text('Statut',24,y-6); doc.text('✓ RÉSERVATION CONFIRMÉE',100,y-6);
+    }
+  });
+
+  // Special requests
+  if(d.special_requests) {
+    y+=6;
+    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(52,78,92);
+    doc.text('Demandes spéciales:',24,y);
+    doc.setFont('helvetica','italic'); doc.setTextColor(107,138,153);
+    var lines=doc.splitTextToSize(d.special_requests,W-50);
+    doc.text(lines,24,y+7);
+    y+=7+lines.length*5;
+  }
+
+  // Footer
+  y=Math.max(y+10,270);
+  doc.setFillColor(2,48,71);
+  doc.rect(0,y,W,30,'F');
+  doc.setFillColor(201,168,76); doc.rect(0,y,W,1.5,'F');
+  doc.setTextColor(180,210,230); doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Résidence Veraluz · Kribi, Cameroun',W/2,y+10,{align:'center'});
+  doc.text('Ce reçu constitue la confirmation officielle de votre réservation.',W/2,y+18,{align:'center'});
+  doc.setTextColor(201,168,76); doc.setFontSize(8);
+  doc.text('Merci de votre confiance — bienvenue face à l\'Atlantique.',W/2,y+25,{align:'center'});
+
+  doc.save('Recu_Veraluz_'+d.reference+'.pdf');
 }
 
-function fmtD(s) {
-  if (!s) return '—';
-  try { return new Date(s + 'T12:00:00').toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric'}); }
-  catch(e) { return s; }
+// ── Send by email ──
+function sendMail() {
+  var d=_conf;
+  if(!d.reference){alert('Aucune réservation.');return;}
+  var subj='Confirmation de réservation '+d.reference+' — Résidence Veraluz';
+  var body='Bonjour '+d.guest_name+',\n\nVotre réservation à la Résidence Veraluz est confirmée.\n\n'
+    +'Référence: '+d.reference+'\nLogement: '+d.unit_name+'\nArrivée: '+fd(d.check_in)
+    +'\nDépart: '+fd(d.check_out)+'\nDurée: '+d.nights+' nuit(s)'
+    +'\nMode de paiement: '+d.payment_method+'\nMontant payé: '+Number(d.amount_paid).toLocaleString('fr-FR')+' FCFA'
+    +'\n\nPour toute question: +237 6XX XXX XXX ou WhatsApp.'
+    +'\n\nMerci pour votre confiance.\nL\'équipe Résidence Veraluz';
+  window.location.href='mailto:'+d.guest_email+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
 }
 
-// ── Nav effects ──
-function toggleMobile() {
-  document.getElementById('navMobile').classList.toggle('open');
-  document.getElementById('navBurger').classList.toggle('open');
-}
-function closeMobile() {
-  document.getElementById('navMobile').classList.remove('open');
-  document.getElementById('navBurger').classList.remove('open');
-}
+function resetBk(){_bk={room:null,arr:'',dep:'',nights:0,total:0,deposit:0,amt:'d',pm:'o',guest:{}};_conf={};closeOv();scrollRooms();}
 
-window.addEventListener('scroll', function() {
-  var nav = document.getElementById('mainNav');
-  if (window.scrollY > 40) nav.classList.add('scrolled');
-  else nav.classList.remove('scrolled');
-}, {passive:true});
+function fd(s){if(!s)return '—';try{return new Date(s+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return s;}}
+
+// ── Nav ──
+function toggleMob(){document.getElementById('navmob').classList.toggle('open');document.getElementById('burger').classList.toggle('open');}
+function closeMob(){document.getElementById('navmob').classList.remove('open');document.getElementById('burger').classList.remove('open');}
+window.addEventListener('scroll',function(){document.getElementById('nav').classList.toggle('stuck',window.scrollY>50);},{passive:true});
+
+// ── Hero: stars ──
+function mkStars(){
+  var el=document.getElementById('stars'),h='';
+  for(var i=0;i<60;i++){
+    var x=Math.random()*100,y=Math.random()*100,s=Math.random()*2+1,del=Math.random()*3;
+    h+='<div class="star" style="left:'+x+'%;top:'+y+'%;width:'+s+'px;height:'+s+'px;animation-delay:'+del+'s"></div>';
+  }
+  el.innerHTML=h;
+}
 
 // ── Init ──
-document.addEventListener('DOMContentLoaded', function() {
-  // Set min dates
-  var t = new Date().toISOString().split('T')[0];
-  ['hArr','hDep','arrDate','depDate'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.min = t;
-  });
-  // Load rooms
+document.addEventListener('DOMContentLoaded',function(){
+  mkStars();
+  var t=new Date().toISOString().split('T')[0];
+  ['hArr','hDep','arrD','depD'].forEach(function(id){var el=document.getElementById(id);if(el)el.min=t;});
   loadRooms();
-  // Close overlay on bg click
-  document.getElementById('overlay').addEventListener('click', function(e){
-    if (e.target === this) closeOverlay();
-  });
+  document.getElementById('ov').addEventListener('click',function(e){if(e.target===this)closeOv();});
 });
 </script>
-</body>
+</script>
 </html>

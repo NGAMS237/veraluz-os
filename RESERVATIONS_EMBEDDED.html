@@ -464,6 +464,44 @@ a{text-decoration:none;color:inherit}
 
 var SB_URL = (window.__SUPABASE_URL__||'https://dfdmasejsoibxrvubegu.supabase.co');
 var SB_KEY = (window.__SUPABASE_KEY__||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY');
+/* ── SUPABASE FIELD MAPPING ── */
+// Normalize Supabase row → internal format
+function normalizeRes(r) {
+  if(r._normalized) return r;
+  r.guest_name     = r.guest_name     || r.client_name  || '';
+  r.guest_email    = r.guest_email    || r.client_email  || '';
+  r.guest_phone    = r.guest_phone    || r.client_phone  || '';
+  r.guest_count    = r.guest_count    || r.guests        || 1;
+  r.total_amount   = r.total_amount   || r.total         || 0;
+  r.amount_paid    = r.amount_paid    || r.paid          || 0;
+  r.special_requests = r.special_requests || r.notes     || '';
+  r.unit_name      = r.unit_name      || '';
+  var smap = {checkedin:'checked_in', checkedout:'checked_out', confirmed:'confirmed', pending:'pending', cancelled:'cancelled', no_show:'no_show'};
+  r.status = smap[r.status] || r.status || 'pending';
+  r._normalized = true;
+  return r;
+}
+// Map internal format → Supabase columns for POST/PATCH
+function toSbRes(r) {
+  var statusOut = {checked_in:'checkedin', checked_out:'checkedout'}[r.status] || r.status || 'pending';
+  var notes = [r.special_requests, r.payment_method?'Pmt:'+r.payment_method:''].filter(Boolean).join(' | ');
+  return {
+    unit_id:      r.unit_id,
+    client_name:  r.guest_name,
+    client_email: r.guest_email,
+    client_phone: r.guest_phone,
+    guests:       r.guest_count || 1,
+    check_in:     r.check_in,
+    check_out:    r.check_out,
+    nights:       r.nights,
+    total:        r.total_amount || 0,
+    paid:         r.amount_paid  || 0,
+    status:       statusOut,
+    source:       r.source || 'reception',
+    notes:        notes || null
+  };
+}
+
 
 /* ── CONSTANTS ── */
 var RES_STATUS = {
@@ -577,16 +615,29 @@ function loadAll(cb) {
         if(!r._images.length && r.image_url) r._images = [r.image_url];
       });
       preloadRoomImages(); // seed default unit photos if room has no images yet
+      try{localStorage.setItem('vlz_cache_rooms', JSON.stringify(_rooms.map(function(r){return {id:r.id,name:r.name,status:r.status,price:r.price,capacity:r.capacity,type:r.type,description:r.description,amenities:r.amenities,image_url:r.image_url};})));}catch(e){}
       done();
     })
-    .catch(function(){_rooms=[];done();});
+    .catch(function(){
+      try{var c=localStorage.getItem('vlz_cache_rooms');if(c){_rooms=JSON.parse(c);_rooms.forEach(function(r){var saved=localStorage.getItem('vlz_room_images_'+r.id);if(saved)try{r._images=JSON.parse(saved);}catch(e){}if(!r._images)r._images=[];});preloadRoomImages();}}catch(e){_rooms=[];}
+      if(!_rooms.length)_rooms=[];
+      done();
+    });
   sbFetch('veraluz_reservations?select=*&order=created_at.desc&limit=200')
     .then(function(r){return r.json()})
     .then(function(data){
-      _reservations = Array.isArray(data) ? data : [];
+      var rawRes = Array.isArray(data) ? data : [];
+      _reservations = rawRes.map(normalizeRes);
+      // Cache pour persistance offline
+      try{localStorage.setItem('vlz_cache_res', JSON.stringify(_reservations));}catch(e){}
       done();
     })
-    .catch(function(){_reservations=[];done();});
+    .catch(function(){
+      // Fallback cache localStorage
+      try{var c=localStorage.getItem('vlz_cache_res');if(c)_reservations=JSON.parse(c).map(normalizeRes);}catch(e){_reservations=[];}
+      if(!_reservations.length)_reservations=[];
+      done();
+    });
 }
 
 function enrichRoomStatuses() {
@@ -717,7 +768,7 @@ function doCheckIn(resId) {
   if(!confirm('Check-in pour '+res.guest_name+' ?')) return;
   sbFetch('veraluz_reservations?id=eq.'+resId, {
     method:'PATCH',
-    body:JSON.stringify({status:'checked_in', check_in_actual: new Date().toISOString()})
+    body:JSON.stringify({status:'checkedin'})
   }).then(function(){
     res.status='checked_in';
     updateRoomStatusLocal(res.unit_id, 'occupied');
@@ -739,7 +790,7 @@ function doCheckOut(resId) {
   if(!confirm('Check-out pour '+res.guest_name+' — créer tâche ménage ?')) return;
   sbFetch('veraluz_reservations?id=eq.'+resId, {
     method:'PATCH',
-    body:JSON.stringify({status:'checked_out', check_out_actual: new Date().toISOString()})
+    body:JSON.stringify({status:'checkedout'})
   }).then(function(){
     res.status='checked_out';
     updateRoomStatusLocal(res.unit_id, 'cleaning');
@@ -1418,7 +1469,7 @@ function nfSubmit() {
     special_requests: _nfData.notes,
     created_at: new Date().toISOString()
   };
-  sbFetch('veraluz_reservations', {method:'POST', body:JSON.stringify(newRes)})
+  sbFetch('veraluz_reservations', {method:'POST', body:JSON.stringify(toSbRes(newRes))})
     .then(function(r){return r.json()})
     .then(function(data){
       var saved = Array.isArray(data)?data[0]:data;

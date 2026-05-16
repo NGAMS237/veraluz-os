@@ -2,872 +2,1223 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Housekeeping — Veraluz OS</title>
 <style>
 :root {
-  --bg:      #0d0d1a; --bg2: #11112a; --bg3: #181830; --bg4: #1e1e3a;
-  --bg-hover:#252546;
-  --border:  rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
-  --accent:  #6c63ff; --accent2: #8b7fff; --accent3: #a89dff;
-  --success: #22d3a5; --warning: #f59e0b; --danger: #f43f5e; --info: #38bdf8;
-  --text:    #e8e6ff; --text2: #9990cc; --text3: #5a5580;
-  --radius:  10px;
-  --chambre:    #6c63ff;
-  --studio:     #22d3a5;
-  --suite:      #f8b500;
-  --appartement:#38bdf8;
-  --p-urgent: #f43f5e; --p-high: #f97316; --p-normal: #f59e0b; --p-low: #6b7280;
+  --bg:#0d0d1a;--bg2:#11112a;--bg3:#181830;--bg4:#1e1e3a;--bg-hover:#252546;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --accent:#6c63ff;--accent2:#8b7fff;
+  --success:#22d3a5;--warning:#f59e0b;--danger:#f43f5e;--info:#38bdf8;
+  --text:#e8e6ff;--text2:#9990cc;--text3:#5a5580;
+  --radius:12px;
+  /* Room status colors */
+  --c-available:#22d3a5;--c-dirty:#f59e0b;--c-cleaning:#38bdf8;
+  --c-maintenance:#f43f5e;--c-inspected:#a78bfa;--c-reserved:#6c63ff;
+  --c-out:#5a5580;--c-occupied:#fb923c;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body {
-  background: var(--bg); color: var(--text);
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  font-size: 14px; height: 100%; overflow: hidden;
-}
-.hk-shell { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;height:100%;overflow:hidden}
 
-/* Header */
-.hk-header {
-  background: var(--bg2); border-bottom: 1px solid var(--border);
-  padding: 12px 16px; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-}
-.hk-title { font-size: 16px; font-weight: 700; color: var(--accent2); flex: 1; }
-.hk-badge-count {
-  background: var(--danger); color: #fff;
-  font-size: 11px; font-weight: 700; padding: 2px 7px;
-  border-radius: 20px; min-width: 22px; text-align: center;
-}
-.hk-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 7px 13px; border-radius: 8px; font-size: 12px; font-weight: 600;
-  cursor: pointer; border: none; transition: all .18s;
-}
-.hk-btn-primary { background: var(--accent); color: #fff; }
-.hk-btn-primary:hover { background: var(--accent2); }
-.hk-btn-ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
-.hk-btn-ghost:hover { color: var(--text); background: var(--bg4); }
-.hk-btn-sm { padding: 4px 9px; font-size: 11px; }
-.hk-btn-success { background: var(--success); color: #0a1a15; }
-.hk-btn-danger  { background: var(--danger);  color: #fff; }
-.hk-btn-info    { background: var(--info);     color: #001a2a; }
+/* ── Shell ── */
+.hk-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 
-/* Tabs */
-.hk-tabs {
-  display: flex; gap: 2px; padding: 10px 12px 0;
-  background: var(--bg2); border-bottom: 1px solid var(--border);
-  overflow-x: auto; flex-shrink: 0; scrollbar-width: none;
-}
-.hk-tabs::-webkit-scrollbar { display: none; }
-.hk-tab {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 14px; border-radius: 8px 8px 0 0;
-  font-size: 12px; font-weight: 600; cursor: pointer;
-  color: var(--text2); border: none; background: none;
-  white-space: nowrap; transition: all .18s;
-  border-bottom: 2px solid transparent;
-}
-.hk-tab:hover { color: var(--text); background: var(--bg3); }
-.hk-tab.active { color: var(--accent2); border-bottom-color: var(--accent); background: var(--bg3); }
-.hk-tab .badge {
-  background: var(--accent); color: #fff;
-  font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 20px;
-}
-.hk-tab .badge-danger  { background: var(--danger); }
-.hk-tab .badge-warning { background: var(--warning); color: #1a0f00; }
+/* ── Header ── */
+.hk-header{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;gap:8px}
+.hk-header h1{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;flex:1}
+.hk-header h1 svg{opacity:.7}
+.hdr-right{display:flex;gap:8px;align-items:center}
+.mode-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--bg3);color:var(--text2);letter-spacing:.5px}
+.mode-badge.emp{background:rgba(34,211,165,.15);color:var(--success)}
 
-/* Content */
-.hk-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; }
-.hk-pane { display: none; }
-.hk-pane.active { display: block; }
+/* ── Tabs (admin) ── */
+.hk-tabs{display:flex;gap:2px;padding:10px 12px 0;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.hk-tabs::-webkit-scrollbar{display:none}
+.hk-tab{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:8px 8px 0 0;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);border:none;background:none;white-space:nowrap;transition:all .15s;border-bottom:2px solid transparent}
+.hk-tab:hover{color:var(--text);background:var(--bg3)}
+.hk-tab.active{color:var(--accent2);border-bottom-color:var(--accent);background:var(--bg3)}
+.hk-tab .tbadge{background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:20px}
+.hk-tab .tbadge.urgent{background:var(--danger)}
 
-/* Toolbar */
-.hk-toolbar {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  align-items: center; margin-bottom: 14px;
-}
-.hk-search {
-  flex: 1; min-width: 160px;
-  display: flex; align-items: center; gap: 8px;
-  background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: 8px; padding: 6px 10px;
-}
-.hk-search input {
-  border: none; background: none; outline: none;
-  color: var(--text); font-size: 13px; width: 100%;
-}
-.hk-search input::placeholder { color: var(--text3); }
-.hk-filter {
-  padding: 6px 12px; border-radius: 8px; font-size: 12px;
-  background: var(--bg3); border: 1px solid var(--border2);
-  color: var(--text2); cursor: pointer; outline: none;
-}
-.hk-filter:focus { border-color: var(--accent); color: var(--text); }
+/* ── Content ── */
+.hk-content{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px}
+.hk-pane{display:none}.hk-pane.active{display:block}
 
-/* Stats */
-.hk-stats { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-.hk-stat {
-  flex: 1; min-width: 70px;
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 10px 14px; text-align: center;
-}
-.hk-stat-val { font-size: 22px; font-weight: 800; }
-.hk-stat-lbl { font-size: 10px; color: var(--text3); margin-top: 2px; }
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--border2);background:var(--bg3)}
+.btn-success{background:var(--success);color:#000;font-weight:700}.btn-success:hover{opacity:.85}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{opacity:.85}
+.btn-info{background:var(--info);color:#000;font-weight:700}.btn-info:hover{opacity:.85}
+.btn-warn{background:var(--warning);color:#000;font-weight:700}.btn-warn:hover{opacity:.85}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:8px}
+.btn-icon{padding:7px;border-radius:9px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
+.btn-icon:hover{color:var(--text);border-color:var(--border2)}
 
-/* Task Card */
-.hk-card {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 14px;
-  margin-bottom: 10px; transition: border-color .15s;
-}
-.hk-card:hover { border-color: var(--border2); }
-.hk-card-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
-.hk-card-icon {
-  width: 38px; height: 38px; border-radius: 9px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px; flex-shrink: 0;
-}
-.hk-card-body { flex: 1; min-width: 0; }
-.hk-card-unit { font-size: 14px; font-weight: 700; color: var(--text); }
-.hk-card-sub  { font-size: 11px; color: var(--text3); margin-top: 2px; }
-.hk-card-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+/* ── Stats grid ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .15s}
+.stat-card:hover{border-color:var(--border2)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.green::before{background:var(--success)}.stat-card.orange::before{background:var(--warning)}
+.stat-card.blue::before{background:var(--info)}.stat-card.red::before{background:var(--danger)}
+.stat-card.purple::before{background:var(--accent)}.stat-card.gray::before{background:var(--text3)}
+.stat-label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.stat-val{font-size:22px;font-weight:800;color:var(--text)}
+.stat-sub{font-size:10px;color:var(--text2);margin-top:2px}
 
-/* Pills */
-.hk-pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: 10px; font-weight: 600; padding: 2px 7px;
-  border-radius: 20px; border: 1px solid transparent;
-}
-.s-pending    { background: rgba(245,158,11,.15); color: var(--warning); border-color: rgba(245,158,11,.3); }
-.s-in_progress{ background: rgba(56,189,248,.15); color: var(--info);    border-color: rgba(56,189,248,.3); }
-.s-done       { background: rgba(34,211,165,.15); color: var(--success); border-color: rgba(34,211,165,.3); }
-.s-cancelled  { background: rgba(107,114,128,.15);color: var(--text3);   border-color: rgba(107,114,128,.3); }
-.p-urgent { background: rgba(244,63,94,.18);  color: var(--p-urgent); border-color: rgba(244,63,94,.4); }
-.p-high   { background: rgba(249,115,22,.18); color: var(--p-high);   border-color: rgba(249,115,22,.4); }
-.p-normal { background: rgba(245,158,11,.12); color: var(--p-normal); border-color: rgba(245,158,11,.3); }
-.p-low    { background: rgba(107,114,128,.12);color: var(--p-low);    border-color: rgba(107,114,128,.3); }
-.t-cleaning    { background: rgba(108,99,255,.15); color: #a89dff;     border-color: rgba(108,99,255,.3); }
-.t-maintenance { background: rgba(249,115,22,.15); color: #f97316;     border-color: rgba(249,115,22,.3); }
-.t-inspection  { background: rgba(56,189,248,.15); color: var(--info); border-color: rgba(56,189,248,.3); }
-.t-report      { background: rgba(244,63,94,.15);  color: var(--danger);border-color: rgba(244,63,94,.3); }
-.ut-chambre     { background: rgba(108,99,255,.2); color: var(--chambre); }
-.ut-studio      { background: rgba(34,211,165,.2); color: var(--studio); }
-.ut-suite       { background: rgba(248,181,0,.2);  color: var(--suite); }
-.ut-appartement { background: rgba(56,189,248,.2); color: var(--appartement); }
+/* ── Room Grid ── */
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.room-tile{background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:12px;cursor:pointer;transition:all .2s;text-align:center;position:relative}
+.room-tile:hover{transform:translateY(-1px);border-color:var(--border2)}
+.room-tile .rt-name{font-size:13px;font-weight:700;margin-bottom:4px}
+.room-tile .rt-type{font-size:10px;color:var(--text2);margin-bottom:8px}
+.room-tile .rt-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;display:inline-block}
+.room-tile .rt-tasks{position:absolute;top:8px;right:8px;background:var(--danger);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:20px}
+/* Room status colors for tiles */
+.rt-available{border-color:rgba(34,211,165,.3);background:rgba(34,211,165,.05)}
+.rt-available .rt-status{background:rgba(34,211,165,.15);color:var(--c-available)}
+.rt-dirty{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.06)}
+.rt-dirty .rt-status{background:rgba(245,158,11,.15);color:var(--c-dirty)}
+.rt-cleaning{border-color:rgba(56,189,248,.3);background:rgba(56,189,248,.05)}
+.rt-cleaning .rt-status{background:rgba(56,189,248,.15);color:var(--c-cleaning)}
+.rt-maintenance{border-color:rgba(244,63,94,.35);background:rgba(244,63,94,.05)}
+.rt-maintenance .rt-status{background:rgba(244,63,94,.15);color:var(--c-maintenance)}
+.rt-inspected{border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.05)}
+.rt-inspected .rt-status{background:rgba(167,139,250,.15);color:var(--c-inspected)}
+.rt-occupied{border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.05)}
+.rt-occupied .rt-status{background:rgba(251,146,60,.15);color:var(--c-occupied)}
 
-/* Assign row */
-.hk-assign-row {
-  display: flex; align-items: center; gap: 8px;
-  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
-}
-.hk-assign-row input {
-  flex: 1; background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: 7px; padding: 5px 9px; color: var(--text);
-  font-size: 12px; outline: none;
-}
-.hk-assign-row input:focus { border-color: var(--accent); }
-.hk-assign-row input::placeholder { color: var(--text3); }
+/* ── Task Cards (admin) ── */
+.task-list{display:flex;flex-direction:column;gap:10px}
+.task-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:13px;border-left:4px solid transparent;transition:all .15s}
+.task-card:hover{border-color:var(--border2)}
+.task-card.priority-urgent{border-left-color:var(--danger)}
+.task-card.priority-high{border-left-color:var(--warning)}
+.task-card.priority-normal{border-left-color:var(--info)}
+.task-card.priority-low{border-left-color:var(--text3)}
+.task-card.status-done,.task-card.status-completed{opacity:.65}
+.tk-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.tk-room-name{font-size:15px;font-weight:800;color:var(--text)}
+.tk-type{font-size:12px;color:var(--text2);margin-top:2px}
+.tk-badges{display:flex;gap:5px;flex-wrap:wrap}
+.tk-bottom{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.tk-assign{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:5px}
+.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge-green{background:rgba(34,211,165,.15);color:var(--success)}
+.badge-orange{background:rgba(245,158,11,.15);color:var(--warning)}
+.badge-blue{background:rgba(56,189,248,.15);color:var(--info)}
+.badge-red{background:rgba(244,63,94,.15);color:var(--danger)}
+.badge-purple{background:rgba(108,99,255,.15);color:var(--accent2)}
+.badge-gray{background:rgba(255,255,255,.07);color:var(--text2)}
 
-/* Action row */
-.hk-action-row {
-  display: flex; gap: 6px; flex-wrap: wrap;
-  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
-}
+/* ── Toolbar ── */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.search-wrap{flex:1;min-width:160px;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 11px}
+.search-wrap svg{color:var(--text3);flex-shrink:0}
+.search-wrap input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:100%}
+.search-wrap input::placeholder{color:var(--text3)}
+.filter-sel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;padding:7px 10px;cursor:pointer;outline:none}
 
-/* Notes */
-.hk-notes {
-  font-size: 12px; color: var(--text2); font-style: italic;
-  background: var(--bg3); border-radius: 7px; padding: 7px 10px;
-  margin-top: 8px; border-left: 3px solid var(--border2);
-}
+/* ── EMPLOYEE VIEW ── */
+.emp-shell{display:none;flex-direction:column;height:100vh;overflow:hidden}
+.emp-shell.active{display:flex}
+.hk-shell.emp-mode .hk-tabs{display:none}
+.emp-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 16px;flex-shrink:0}
+.emp-header h2{font-size:18px;font-weight:800;color:var(--text);margin-bottom:2px}
+.emp-header p{font-size:12px;color:var(--text2)}
+.emp-day{background:var(--bg3);padding:10px 16px;font-size:12px;color:var(--text2);border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
+.emp-content{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:12px}
 
-/* Empty */
-.hk-empty { text-align: center; padding: 60px 20px; color: var(--text3); }
-.hk-empty-icon { font-size: 48px; margin-bottom: 12px; }
-.hk-empty-msg  { font-size: 14px; }
+/* ── Employee Task Card (BIG) ── */
+.emp-task{background:var(--bg3);border-radius:14px;overflow:hidden;border:2px solid var(--border)}
+.emp-task.prio-urgent{border-color:rgba(244,63,94,.4)}
+.emp-task.prio-high{border-color:rgba(245,158,11,.35)}
+.emp-task.prio-normal{border-color:rgba(56,189,248,.25)}
+.emp-task.done{opacity:.5;pointer-events:none}
+.emp-task-top{padding:16px;display:flex;align-items:center;gap:14px}
+.emp-room-num{font-size:28px;font-weight:900;color:var(--text);min-width:60px}
+.emp-task-info{flex:1}
+.emp-task-type{font-size:16px;font-weight:700;color:var(--text);margin-bottom:4px}
+.emp-task-sub{font-size:12px;color:var(--text2)}
+.emp-prio-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.emp-prio-dot.urgent{background:var(--danger)}.emp-prio-dot.high{background:var(--warning)}
+.emp-prio-dot.normal{background:var(--info)}.emp-prio-dot.low{background:var(--text3)}
+.emp-actions{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid var(--border)}
+.emp-btn{padding:14px 8px;border:none;background:none;cursor:pointer;font-size:12px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:5px;transition:all .15s;color:var(--text2)}
+.emp-btn:active{transform:scale(.97)}
+.emp-btn.start{color:var(--info)}.emp-btn.start:hover{background:rgba(56,189,248,.1)}
+.emp-btn.done{color:var(--success)}.emp-btn.done:hover{background:rgba(34,211,165,.1)}
+.emp-btn.problem{color:var(--danger)}.emp-btn.problem:hover{background:rgba(244,63,94,.1)}
+.emp-btn svg{opacity:.8}
+.emp-done-overlay{background:rgba(34,211,165,.15);padding:12px 16px;font-size:13px;font-weight:700;color:var(--success);text-align:center;display:none}
+.emp-task.done .emp-done-overlay{display:block}
 
-/* Unit Grid */
-.unit-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
-  gap: 10px;
-}
-.unit-card {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 14px 12px;
-  cursor: pointer; transition: all .15s; text-align: center;
-}
-.unit-card:hover { border-color: var(--border2); background: var(--bg3); }
-.unit-card-emoji  { font-size: 26px; margin-bottom: 6px; }
-.unit-card-name   { font-size: 12px; font-weight: 700; color: var(--text); }
-.unit-card-type   { font-size: 10px; color: var(--text3); margin-top: 2px; }
-.unit-card-status {
-  display: inline-block; margin-top: 8px;
-  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
-}
-.us-available   { background: rgba(34,211,165,.2); color: var(--success); }
-.us-occupied    { background: rgba(56,189,248,.2); color: var(--info); }
-.us-checkout    { background: rgba(249,115,22,.2); color: var(--p-high); }
-.us-dirty       { background: rgba(244,63,94,.2);  color: var(--danger); }
-.us-cleaning    { background: rgba(245,158,11,.2); color: var(--warning); }
-.us-maintenance { background: rgba(107,114,128,.2);color: var(--text3); }
-.us-out_of_order{ background: rgba(31,41,55,.5);   color: var(--text3); }
-.unit-task-badge {
-  margin-top: 6px; font-size: 10px;
-  background: rgba(244,63,94,.2); color: var(--danger);
-  border-radius: 20px; padding: 1px 7px; display: inline-block;
-}
+/* ── Name picker ── */
+.name-picker{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;gap:16px}
+.name-picker h2{font-size:20px;font-weight:800;color:var(--text);text-align:center}
+.name-picker p{font-size:13px;color:var(--text2);text-align:center}
+.name-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:320px}
+.name-btn{background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;font-size:15px;font-weight:700;color:var(--text);cursor:pointer;transition:all .15s;text-align:center}
+.name-btn:hover,.name-btn:active{border-color:var(--accent);background:var(--bg-hover);color:var(--accent2)}
+.name-input-wrap{display:flex;gap:8px;width:100%;max-width:320px}
+.name-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:10px 14px;font-size:14px;outline:none}
+.name-input:focus{border-color:var(--accent)}
 
-/* Modal */
-.hk-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,.65);
-  z-index: 1000; display: none; align-items: center; justify-content: center; padding: 20px;
-}
-.hk-overlay.show { display: flex; }
-.hk-modal {
-  background: var(--bg2); border: 1px solid var(--border2);
-  border-radius: 14px; padding: 24px; width: 100%; max-width: 440px;
-  max-height: 90vh; overflow-y: auto;
-}
-.hk-modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--accent2); }
-.hk-form-row { margin-bottom: 12px; }
-.hk-form-row label {
-  display: block; font-size: 11px; color: var(--text3);
-  margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px;
-}
-.hk-form-row select,
-.hk-form-row input,
-.hk-form-row textarea {
-  width: 100%; background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: 8px; padding: 8px 10px; color: var(--text);
-  font-size: 13px; outline: none; font-family: inherit;
-}
-.hk-form-row select:focus,
-.hk-form-row input:focus,
-.hk-form-row textarea:focus { border-color: var(--accent); }
-.hk-form-row textarea { resize: vertical; min-height: 70px; }
-.hk-modal-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+/* ── Empty / Loading ── */
+.empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty svg{margin-bottom:12px;opacity:.3}
+.all-done{text-align:center;padding:40px 20px}
+.all-done .check{font-size:56px;margin-bottom:12px}
+.all-done h3{font-size:18px;font-weight:800;color:var(--success)}
+.all-done p{font-size:13px;color:var(--text2);margin-top:6px}
 
-/* Loader / Toast */
-.hk-loader { text-align: center; padding: 40px; color: var(--text3); font-size: 13px; }
-.hk-toast {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  background: var(--bg4); border: 1px solid var(--border2);
-  border-radius: 10px; padding: 10px 18px; font-size: 13px;
-  color: var(--text); z-index: 2000; display: none;
-  box-shadow: 0 4px 20px rgba(0,0,0,.5); white-space: nowrap;
-}
-.hk-toast.show { display: block; }
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:85vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s cubic-bezier(.32,1,.1,1)}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:15px 17px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-header h3{font-size:15px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;border-radius:6px}
+.modal-close:hover{color:var(--text);background:var(--bg3)}
+.modal-body{flex:1;overflow-y:auto;padding:16px}
+.modal-footer{padding:13px 17px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0}
+.form-group{margin-bottom:13px}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.form-control{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;transition:border-color .15s}
+.form-control:focus{border-color:var(--accent)}
+select.form-control option{background:var(--bg2)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 
-@media (max-width: 500px) {
-  .hk-header { padding: 10px 12px; }
-  .hk-content { padding: 12px; }
-  .unit-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+/* ── Problem modal (employee) ── */
+.problem-types{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.prob-btn{background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:12px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;text-align:center;transition:all .15s}
+.prob-btn.selected,.prob-btn:hover{border-color:var(--danger);color:var(--danger);background:rgba(244,63,94,.08)}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg4);border:1px solid var(--border2);color:var(--text);padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;transition:transform .3s;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:var(--success);color:var(--success)}
+.toast.err{border-color:var(--danger);color:var(--danger)}
+
+@media(max-width:420px){
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .room-grid{grid-template-columns:repeat(auto-fill,minmax(100px,1fr))}
+  .name-grid{grid-template-columns:1fr 1fr}
 }
 </style>
 </head>
 <body>
+<div class="hk-shell" id="hkShell">
 
-<div class="hk-shell">
-
-  <!-- Header -->
-  <div class="hk-header">
-    <div class="hk-title">🧹 Housekeeping</div>
-    <span class="hk-badge-count" id="pending-count">0</span>
-    <button class="hk-btn hk-btn-primary" onclick="openNewTask()">+ Tâche</button>
-    <button class="hk-btn hk-btn-ghost" onclick="loadAll()" title="Rafraîchir">↻</button>
+  <!-- ── ADMIN HEADER ── -->
+  <div class="hk-header" id="adminHeader">
+    <h1>
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      Housekeeping
+    </h1>
+    <div class="hdr-right">
+      <button class="btn btn-ghost btn-sm" onclick="loadAll(refresh)" title="Actualiser">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="openNewTaskModal()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Tâche
+      </button>
+      <button class="btn btn-success btn-sm" onclick="switchToEmployee()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        Employé
+      </button>
+    </div>
   </div>
 
-  <!-- Tabs -->
+  <!-- ── ADMIN TABS ── -->
   <div class="hk-tabs">
-    <button class="hk-tab active" data-tab="cleaning" onclick="switchTab('cleaning')">
-      🧹 Nettoyage <span class="badge" id="badge-cleaning">0</span>
+    <button class="hk-tab active" id="tab-dash" onclick="goTab('dash')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Vue d'ensemble
     </button>
-    <button class="hk-tab" data-tab="maintenance" onclick="switchTab('maintenance')">
-      🔧 Maintenance <span class="badge badge-danger" id="badge-maintenance">0</span>
+    <button class="hk-tab" id="tab-tasks" onclick="goTab('tasks')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><polyline points="3 6 4 7 6 5"/><polyline points="3 12 4 13 6 11"/><polyline points="3 18 4 19 6 17"/></svg>
+      Tâches<span class="tbadge" id="badge-tasks">0</span>
     </button>
-    <button class="hk-tab" data-tab="report" onclick="switchTab('report')">
-      ⚠️ Signalements <span class="badge badge-warning" id="badge-report">0</span>
+    <button class="hk-tab" id="tab-rooms" onclick="goTab('rooms')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Chambres<span class="tbadge urgent" id="badge-dirty">0</span>
     </button>
-    <button class="hk-tab" data-tab="history" onclick="switchTab('history')">
-      ✅ Historique
-    </button>
-    <button class="hk-tab" data-tab="chambres" onclick="switchTab('chambres')">
-      🏨 Chambres
+    <button class="hk-tab" id="tab-history" onclick="goTab('history')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Historique
     </button>
   </div>
 
-  <!-- Content -->
+  <!-- ── ADMIN CONTENT ── -->
   <div class="hk-content">
 
-    <!-- Stats bar -->
-    <div class="hk-stats">
-      <div class="hk-stat">
-        <div class="hk-stat-val" id="stat-pending" style="color:var(--warning)">0</div>
-        <div class="hk-stat-lbl">En attente</div>
-      </div>
-      <div class="hk-stat">
-        <div class="hk-stat-val" id="stat-inprogress" style="color:var(--info)">0</div>
-        <div class="hk-stat-lbl">En cours</div>
-      </div>
-      <div class="hk-stat">
-        <div class="hk-stat-val" id="stat-done" style="color:var(--success)">0</div>
-        <div class="hk-stat-lbl">Terminés</div>
-      </div>
-      <div class="hk-stat">
-        <div class="hk-stat-val" id="stat-urgent" style="color:var(--danger)">0</div>
-        <div class="hk-stat-lbl">Urgents</div>
-      </div>
+    <!-- DASHBOARD -->
+    <div class="hk-pane active" id="pane-dash">
+      <div class="stat-grid" id="dash-stats"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">État des chambres</div>
+      <div class="room-grid" id="dash-rooms"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 10px">Tâches actives</div>
+      <div id="dash-active-tasks"></div>
     </div>
 
-    <!-- Cleaning pane -->
-    <div class="hk-pane active" id="pane-cleaning">
-      <div class="hk-toolbar">
-        <div class="hk-search">
-          <span>🔍</span>
-          <input type="text" placeholder="Chambre, agent..." id="search-cleaning" oninput="renderTaskList('cleaning')"/>
+    <!-- TASKS -->
+    <div class="hk-pane" id="pane-tasks">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="task-search" placeholder="Chambre, employé..." oninput="renderTasks()"/>
         </div>
-        <select class="hk-filter" id="filter-cleaning-prio" onchange="renderTaskList('cleaning')">
-          <option value="">Toutes priorités</option>
-          <option value="urgent">🔴 Urgent</option>
-          <option value="high">🟠 Haute</option>
-          <option value="normal">🟡 Normale</option>
-          <option value="low">⚫ Basse</option>
+        <select class="filter-sel" id="task-status-filter" onchange="renderTasks()">
+          <option value="active">Actives</option>
+          <option value="all">Toutes</option>
+          <option value="pending">En attente</option>
+          <option value="in_progress">En cours</option>
+          <option value="done">Terminées</option>
+        </select>
+        <select class="filter-sel" id="task-priority-filter" onchange="renderTasks()">
+          <option value="all">Toutes priorités</option>
+          <option value="urgent">Urgent</option>
+          <option value="high">Haute</option>
+          <option value="normal">Normal</option>
         </select>
       </div>
-      <div id="list-cleaning"><div class="hk-loader">Chargement...</div></div>
+      <div class="task-list" id="tasks-list"></div>
     </div>
 
-    <!-- Maintenance pane -->
-    <div class="hk-pane" id="pane-maintenance">
-      <div class="hk-toolbar">
-        <div class="hk-search">
-          <span>🔍</span>
-          <input type="text" placeholder="Chambre, problème..." id="search-maintenance" oninput="renderTaskList('maintenance')"/>
-        </div>
-        <select class="hk-filter" id="filter-maintenance-prio" onchange="renderTaskList('maintenance')">
-          <option value="">Toutes priorités</option>
-          <option value="urgent">🔴 Urgent</option>
-          <option value="high">🟠 Haute</option>
-          <option value="normal">🟡 Normale</option>
-          <option value="low">⚫ Basse</option>
+    <!-- ROOMS -->
+    <div class="hk-pane" id="pane-rooms">
+      <div class="toolbar">
+        <select class="filter-sel" id="room-status-filter" onchange="renderRoomsTab()">
+          <option value="all">Tous statuts</option>
+          <option value="available">Disponible</option>
+          <option value="dirty">Sale</option>
+          <option value="cleaning">En nettoyage</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="inspected">Inspecté</option>
         </select>
       </div>
-      <div id="list-maintenance"><div class="hk-loader">Chargement...</div></div>
+      <div class="room-grid" id="rooms-grid"></div>
     </div>
 
-    <!-- Report pane -->
-    <div class="hk-pane" id="pane-report">
-      <div class="hk-toolbar">
-        <div class="hk-search">
-          <span>🔍</span>
-          <input type="text" placeholder="Chercher..." id="search-report" oninput="renderTaskList('report')"/>
-        </div>
-      </div>
-      <div id="list-report"><div class="hk-loader">Chargement...</div></div>
-    </div>
-
-    <!-- History pane -->
+    <!-- HISTORY -->
     <div class="hk-pane" id="pane-history">
-      <div class="hk-toolbar">
-        <div class="hk-search">
-          <span>🔍</span>
-          <input type="text" placeholder="Chercher dans l'historique..." id="search-history" oninput="renderHistory()"/>
-        </div>
-        <select class="hk-filter" id="filter-history-type" onchange="renderHistory()">
-          <option value="">Tous types</option>
-          <option value="cleaning">🧹 Nettoyage</option>
-          <option value="maintenance">🔧 Maintenance</option>
-          <option value="inspection">🔍 Inspection</option>
-          <option value="report">⚠️ Signalement</option>
+      <div class="toolbar">
+        <select class="filter-sel" id="hist-filter" onchange="renderHistory()">
+          <option value="done">Terminées</option>
+          <option value="all">Toutes</option>
         </select>
       </div>
-      <div id="list-history"><div class="hk-loader">Chargement...</div></div>
-    </div>
-
-    <!-- Chambres pane -->
-    <div class="hk-pane" id="pane-chambres">
-      <div class="hk-toolbar">
-        <div class="hk-search">
-          <span>🔍</span>
-          <input type="text" placeholder="Chercher une chambre..." id="search-units" oninput="renderUnits()"/>
-        </div>
-        <select class="hk-filter" id="filter-unit-status" onchange="renderUnits()">
-          <option value="">Tous statuts</option>
-          <option value="available">✅ Disponible</option>
-          <option value="occupied">🛏️ Occupée</option>
-          <option value="checkout">🚪 Checkout</option>
-          <option value="dirty">🔴 Sale</option>
-          <option value="cleaning">🧹 En nettoyage</option>
-          <option value="maintenance">🔧 Maintenance</option>
-        </select>
-      </div>
-      <div class="unit-grid" id="unit-grid">
-        <div class="hk-loader" style="grid-column:1/-1">Chargement...</div>
-      </div>
+      <div id="history-list"></div>
     </div>
 
   </div>
 </div>
 
-<!-- Modal nouvelle tâche -->
-<div class="hk-overlay" id="modal-overlay">
-  <div class="hk-modal">
-    <h3>➕ Nouvelle tâche</h3>
-    <div class="hk-form-row">
-      <label>Chambre / Unité</label>
-      <select id="new-unit"></select>
+<!-- ── EMPLOYEE SHELL ── -->
+<div class="emp-shell" id="empShell">
+
+  <!-- Employee header -->
+  <div class="hk-header" style="flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:10px;flex:1">
+      <button class="btn-icon" onclick="exitEmployeeMode()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div>
+        <div style="font-size:15px;font-weight:800" id="emp-name-display">Employé</div>
+        <div style="font-size:11px;color:var(--text2)" id="emp-date-display"></div>
+      </div>
     </div>
-    <div class="hk-form-row">
-      <label>Type de tâche</label>
-      <select id="new-type">
-        <option value="cleaning">🧹 Nettoyage</option>
-        <option value="maintenance">🔧 Maintenance</option>
-        <option value="inspection">🔍 Inspection</option>
-        <option value="report">⚠️ Signalement</option>
-      </select>
+    <span class="mode-badge emp">MODE EMPLOYÉ</span>
+    <button class="btn-icon" onclick="changeEmployee()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    </button>
+  </div>
+
+  <!-- Name picker screen -->
+  <div class="name-picker" id="namePicker">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.4">
+      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+    </svg>
+    <h2>Qui êtes-vous ?</h2>
+    <p>Sélectionnez votre nom pour voir vos tâches</p>
+    <div class="name-grid" id="nameGrid"></div>
+    <div class="name-input-wrap">
+      <input class="name-input" id="nameInput" type="text" placeholder="Autre nom..."/>
+      <button class="btn btn-primary" onclick="selectEmployee(document.getElementById('nameInput').value)">OK</button>
     </div>
-    <div class="hk-form-row">
-      <label>Priorité</label>
-      <select id="new-priority">
-        <option value="normal">🟡 Normale</option>
-        <option value="high">🟠 Haute</option>
-        <option value="urgent">🔴 Urgente</option>
-        <option value="low">⚫ Basse</option>
-      </select>
+  </div>
+
+  <!-- Tasks screen -->
+  <div id="empTasksScreen" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+    <div class="emp-day" id="empDayBar">
+      <span id="emp-progress-text">Chargement...</span>
+      <span id="emp-all-done-badge" style="display:none;background:rgba(34,211,165,.15);color:var(--success);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px">Tout terminé !</span>
     </div>
-    <div class="hk-form-row">
-      <label>Assigné à (optionnel)</label>
-      <input type="text" id="new-assigned" placeholder="Nom de l'agent..."/>
+    <div class="emp-content" id="empContent"></div>
+  </div>
+
+</div>
+
+<!-- ── MODAL NOUVELLE TÂCHE ── -->
+<div class="modal-overlay" id="newTaskModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="newTaskTitle">Nouvelle tâche</h3>
+      <button class="modal-close" onclick="closeModal('newTaskModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-    <div class="hk-form-row">
-      <label>Notes / Description</label>
-      <textarea id="new-notes" placeholder="Description du problème ou instructions..."></textarea>
+    <div class="modal-body">
+      <input type="hidden" id="edit-task-id"/>
+      <div class="form-group">
+        <label>Chambre / Unité</label>
+        <select class="form-control" id="nt-unit"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Type de tâche</label>
+          <select class="form-control" id="nt-type">
+            <option value="cleaning">Nettoyage départ</option>
+            <option value="daily_cleaning">Nettoyage quotidien</option>
+            <option value="preparation">Préparation arrivée</option>
+            <option value="vip">Préparation VIP</option>
+            <option value="maintenance">Maintenance légère</option>
+            <option value="urgent">Urgence</option>
+            <option value="inspection">Inspection</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Priorité</label>
+          <select class="form-control" id="nt-priority">
+            <option value="normal">Normale</option>
+            <option value="high">Haute</option>
+            <option value="urgent">Urgente</option>
+            <option value="low">Basse</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Assigné à</label>
+          <select class="form-control" id="nt-assign">
+            <option value="">Non assigné</option>
+            <option value="Marie">Marie</option>
+            <option value="Jean">Jean</option>
+            <option value="Tech">Tech / Maintenance</option>
+            <option value="Equipe">Équipe</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date prévue</label>
+          <input class="form-control" id="nt-date" type="date"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea class="form-control" id="nt-notes" rows="2" placeholder="Instructions spéciales..."></textarea>
+      </div>
     </div>
-    <div class="hk-modal-btns">
-      <button class="hk-btn hk-btn-ghost" onclick="closeModal()">Annuler</button>
-      <button class="hk-btn hk-btn-primary" onclick="saveNewTask()">Créer la tâche</button>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('newTaskModal')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveTask()">Créer la tâche</button>
     </div>
   </div>
 </div>
 
-<!-- Toast -->
-<div class="hk-toast" id="toast"></div>
+<!-- ── MODAL ASSIGNER ── -->
+<div class="modal-overlay" id="assignModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Assigner la tâche</h3>
+      <button class="modal-close" onclick="closeModal('assignModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="assign-task-id"/>
+      <div class="form-group">
+        <label>Tâche</label>
+        <div id="assign-task-info" style="background:var(--bg3);padding:10px;border-radius:10px;font-size:13px;color:var(--text2)"></div>
+      </div>
+      <div class="form-group">
+        <label>Assigner à</label>
+        <select class="form-control" id="assign-to">
+          <option value="">Non assigné</option>
+          <option value="Marie">Marie</option>
+          <option value="Jean">Jean</option>
+          <option value="Tech">Tech / Maintenance</option>
+          <option value="Equipe">Équipe</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Priorité</label>
+        <select class="form-control" id="assign-priority">
+          <option value="normal">Normale</option>
+          <option value="high">Haute</option>
+          <option value="urgent">Urgente</option>
+          <option value="low">Basse</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('assignModal')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveAssign()">Confirmer</button>
+    </div>
+  </div>
+</div>
 
+<!-- ── MODAL PROBLÈME (Employee) ── -->
+<div class="modal-overlay" id="problemModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Signaler un problème</h3>
+      <button class="modal-close" onclick="closeModal('problemModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="prob-task-id"/>
+      <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px" id="prob-room-name">Chambre</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Type de problème :</div>
+      <div class="problem-types">
+        <button class="prob-btn" data-val="Climatisation" onclick="selectProblem(this)">Climatisation</button>
+        <button class="prob-btn" data-val="Plomberie" onclick="selectProblem(this)">Plomberie</button>
+        <button class="prob-btn" data-val="Electricite" onclick="selectProblem(this)">Electricité</button>
+        <button class="prob-btn" data-val="Mobilier" onclick="selectProblem(this)">Mobilier</button>
+        <button class="prob-btn" data-val="Proprete" onclick="selectProblem(this)">Propreté</button>
+        <button class="prob-btn" data-val="Securite" onclick="selectProblem(this)">Sécurité</button>
+        <button class="prob-btn" data-val="Literie" onclick="selectProblem(this)">Literie</button>
+        <button class="prob-btn" data-val="Autre" onclick="selectProblem(this)">Autre</button>
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea class="form-control" id="prob-desc" rows="3" placeholder="Décrivez le problème..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('problemModal')">Annuler</button>
+      <button class="btn btn-danger" onclick="saveProblem()">Signaler</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL ROOM STATUS ── -->
+<div class="modal-overlay" id="roomModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="roomModalTitle">Chambre</h3>
+      <button class="modal-close" onclick="closeModal('roomModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="room-modal-id"/>
+      <div id="room-modal-tasks" style="margin-bottom:14px"></div>
+      <div class="form-group">
+        <label>Changer le statut ménage</label>
+        <select class="form-control" id="room-new-status">
+          <option value="available">Disponible (propre)</option>
+          <option value="dirty">Sale (à nettoyer)</option>
+          <option value="cleaning">En cours de nettoyage</option>
+          <option value="inspected">Inspecté</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="out_of_service">Hors service</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="openNewTaskForRoom()">Créer tâche</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('roomModal')">Fermer</button>
+      <button class="btn btn-primary" onclick="saveRoomStatus()">Mettre à jour</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 <script>
-'use strict';
+/* ── CONFIG ── */
+var SB = (window.__SUPABASE_URL__||'https://dfdmasejsoibxrvubegu.supabase.co');
+var SK = (window.__SUPABASE_KEY__||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY');
+var STAFF = ['Marie','Jean','Tech'];
 
-/* ── Supabase ─────────────────────────────────────────────── */
-window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://dfdmasejsoibxrvubegu.supabase.co';
-window.__SUPABASE_KEY__ = window.__SUPABASE_KEY__ || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+/* ── STATE ── */
+var _tasks = [], _units = [], _activeTab = 'dash';
+var _empName = '', _selProblem = '';
 
-var _url = window.__SUPABASE_URL__;
-var _key = window.__SUPABASE_KEY__;
-
-function sbH() {
-  return { 'apikey': _key, 'Authorization': 'Bearer ' + _key,
-           'Content-Type': 'application/json', 'Accept': 'application/json' };
-}
-function sbGet(path) {
-  return fetch(_url + path, { headers: sbH() })
-    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); });
-}
-function sbPost(table, data) {
-  return fetch(_url + '/rest/v1/' + table, {
-    method: 'POST',
-    headers: Object.assign({}, sbH(), { 'Prefer': 'return=representation' }),
-    body: JSON.stringify(data)
-  }).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); });
-}
-function sbPatch(table, id, data) {
-  return fetch(_url + '/rest/v1/' + table + '?id=eq.' + encodeURIComponent(id), {
-    method: 'PATCH',
-    headers: Object.assign({}, sbH(), { 'Prefer': 'return=minimal' }),
-    body: JSON.stringify(data)
-  }).then(function(r) { if (!r.ok) throw new Error(r.status); });
-}
-
-/* ── State ───────────────────────────────────────────────── */
-var TASKS    = [];
-var UNITS    = [];
-var UMAP     = {};  // id → unit
-var currentTab = 'cleaning';
-
-/* ── Labels ──────────────────────────────────────────────── */
-var T_LBL = { cleaning:'🧹 Nettoyage', maintenance:'🔧 Maintenance', inspection:'🔍 Inspection', report:'⚠️ Signalement' };
-var P_LBL = { urgent:'🔴 Urgent', high:'🟠 Haute', normal:'🟡 Normale', low:'⚫ Basse' };
-var S_LBL = { pending:'En attente', in_progress:'En cours', done:'Terminé', cancelled:'Annulé' };
-var US_LBL = { available:'✅ Disponible', occupied:'🛏️ Occupée', checkout:'🚪 Checkout',
-               dirty:'🔴 Sale', cleaning:'🧹 En nettoyage', maintenance:'🔧 Maintenance', out_of_order:'⛔ Hors service' };
-var UT_CLS = { chambre:'ut-chambre', studio:'ut-studio', suite:'ut-suite', appartement:'ut-appartement' };
-var PRIO_ORDER = { urgent:0, high:1, normal:2, low:3 };
-
+/* ── UTILITIES ── */
 function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if(!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function fmt(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtDate(d) {
+  if(!d) return '—';
+  try { return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}); } catch(e){return d;}
 }
-function genId() { return 'hk-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6); }
-function uName(uid) { return UMAP[uid] ? UMAP[uid].name : uid; }
-function uEmoji(uid) { return UMAP[uid] ? (UMAP[uid].emoji || '🛏️') : '🛏️'; }
-function uTypeCls(uid) { return UMAP[uid] ? (UT_CLS[UMAP[uid].type] || '') : ''; }
-
-/* ── Toast ───────────────────────────────────────────────── */
-var _toastTimer = null;
-function toast(msg, ok) {
-  var el = document.getElementById('toast');
-  el.textContent = msg;
-  el.style.borderColor = ok === false ? 'var(--danger)' : 'var(--success)';
-  el.classList.add('show');
-  if (_toastTimer) clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 3000);
+function fmtTime(d) {
+  if(!d) return '—';
+  try { return new Date(d).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); } catch(e){return d;}
 }
 
-/* ── Load ────────────────────────────────────────────────── */
-function loadAll() {
-  Promise.all([
-    sbGet('/rest/v1/veraluz_units?select=id,name,type,status,emoji&order=name.asc'),
-    sbGet('/rest/v1/veraluz_housekeeping?select=*&order=created_at.desc')
-  ]).then(function(res) {
-    UNITS = res[0]; TASKS = res[1];
-    UMAP = {};
-    UNITS.forEach(function(u){ UMAP[u.id] = u; });
-    populateUnitSelect();
-    updateStats();
-    renderAll();
-  }).catch(function(err){
-    console.error(err);
-    toast('Erreur chargement données', false);
-  });
+function taskTypeLabel(t) {
+  var m={cleaning:'Nettoyage départ',daily_cleaning:'Nettoyage quotidien',preparation:'Préparation arrivée',vip:'Préparation VIP',maintenance:'Maintenance',urgent:'Urgence',inspection:'Inspection',report:'Signalement',done:'Nettoyage'};
+  return m[t]||t||'Tâche';
+}
+function statusLabel(s) {
+  var m={pending:'En attente',in_progress:'En cours',done:'Terminé',completed:'Terminé',cancelled:'Annulé',urgent:'Urgent'};
+  return m[s]||s||'—';
+}
+function hkStatusLabel(s) {
+  var m={available:'Disponible',dirty:'Sale',cleaning:'En nettoyage',maintenance:'Maintenance',inspected:'Inspecté',occupied:'Occupé',reserved:'Réservé',out_of_service:'Hors service',out:'Hors service'};
+  return m[s]||s||'—';
+}
+function priorityLabel(p) {
+  var m={urgent:'Urgent',high:'Haute',normal:'Normal',low:'Basse'};
+  return m[p]||p||'—';
+}
+function statusBadge(s) {
+  var m={pending:'badge-orange',in_progress:'badge-blue',done:'badge-green',completed:'badge-green',cancelled:'badge-gray',urgent:'badge-red'};
+  return '<span class="badge '+(m[s]||'badge-gray')+'">'+esc(statusLabel(s))+'</span>';
+}
+function priorityBadge(p) {
+  var m={urgent:'badge-red',high:'badge-orange',normal:'badge-blue',low:'badge-gray'};
+  return '<span class="badge '+(m[p]||'badge-gray')+'">'+esc(priorityLabel(p))+'</span>';
+}
+function isActive(t) {
+  return t.status !== 'done' && t.status !== 'completed' && t.status !== 'cancelled';
 }
 
-/* ── Stats ───────────────────────────────────────────────── */
-function updateStats() {
-  var p=0,ip=0,d=0,u=0;
-  var bc = { cleaning:0, maintenance:0, report:0 };
-  TASKS.forEach(function(t){
-    if (t.status==='pending')     p++;
-    if (t.status==='in_progress') ip++;
-    if (t.status==='done')        d++;
-    if (t.priority==='urgent' && t.status!=='done' && t.status!=='cancelled') u++;
-    if ((t.status==='pending'||t.status==='in_progress') && bc[t.type]!==undefined) bc[t.type]++;
-  });
-  document.getElementById('stat-pending').textContent    = p;
-  document.getElementById('stat-inprogress').textContent = ip;
-  document.getElementById('stat-done').textContent       = d;
-  document.getElementById('stat-urgent').textContent     = u;
-  document.getElementById('pending-count').textContent   = p+ip;
-  document.getElementById('badge-cleaning').textContent    = bc.cleaning;
-  document.getElementById('badge-maintenance').textContent = bc.maintenance;
-  document.getElementById('badge-report').textContent      = bc.report;
+/* ── SUPABASE ── */
+function sbFetch(path, opts) {
+  return fetch(SB+'/rest/v1/'+path, Object.assign({
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'}
+  }, opts||{}));
 }
 
-/* ── Tabs ────────────────────────────────────────────────── */
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('.hk-tab').forEach(function(b){
-    b.classList.toggle('active', b.dataset.tab === tab);
-  });
-  document.querySelectorAll('.hk-pane').forEach(function(p){
-    p.classList.toggle('active', p.id === 'pane-'+tab);
-  });
+/* ── LOAD ALL ── */
+function loadAll(cb) {
+  var done = 0;
+  function check() { done++; if(done>=2 && cb) cb(); }
+  // Restore cache
+  try{ var c=localStorage.getItem('vlz_hk_tasks'); if(c)_tasks=JSON.parse(c); }catch(e){}
+  try{ var c=localStorage.getItem('vlz_hk_units'); if(c)_units=JSON.parse(c); }catch(e){}
+
+  sbFetch('veraluz_housekeeping?select=*&order=scheduled_for.desc,created_at.desc&limit=200')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(Array.isArray(d)){_tasks=d;try{localStorage.setItem('vlz_hk_tasks',JSON.stringify(d));}catch(e){}}
+      check();
+    }).catch(check);
+
+  sbFetch('veraluz_units?select=id,name,type,status,hk_status,floor&order=sort_order.asc')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(Array.isArray(d)){_units=d;try{localStorage.setItem('vlz_hk_units',JSON.stringify(d));}catch(e){}}
+      check();
+    }).catch(check);
 }
 
-/* ── Render all ──────────────────────────────────────────── */
-function renderAll() {
-  renderTaskList('cleaning');
-  renderTaskList('maintenance');
-  renderTaskList('report');
-  renderHistory();
-  renderUnits();
+/* ── MODAL HELPERS ── */
+function openModal(id){var e=document.getElementById(id);if(e)e.classList.add('open');}
+function closeModal(id){var e=document.getElementById(id);if(e)e.classList.remove('open');}
+function showToast(msg,type){
+  var t=document.getElementById('toast');if(!t)return;
+  t.textContent=msg;t.className='toast show'+(type?' '+type:'');
+  setTimeout(function(){t.className='toast';},3000);
 }
 
-/* ── Task list ───────────────────────────────────────────── */
-function renderTaskList(type) {
-  var listEl   = document.getElementById('list-'+type);
-  var search   = (document.getElementById('search-'+type)||{value:''}).value.toLowerCase();
-  var prioFilt = (document.getElementById('filter-'+type+'-prio')||{value:''}).value;
+/* ── TABS ── */
+function goTab(t) {
+  _activeTab = t;
+  document.querySelectorAll('.hk-tab').forEach(function(b){b.classList.toggle('active',b.id==='tab-'+t);});
+  document.querySelectorAll('.hk-pane').forEach(function(p){p.classList.toggle('active',p.id==='pane-'+t);});
+  var renders={dash:renderDash,tasks:renderTasks,rooms:renderRoomsTab,history:renderHistory};
+  if(renders[t]) renders[t]();
+}
 
-  var tasks = TASKS.filter(function(t){
-    if (t.type !== type) return false;
-    if (t.status !== 'pending' && t.status !== 'in_progress') return false;
-    if (prioFilt && t.priority !== prioFilt) return false;
-    if (search) {
-      var hay = (uName(t.unit_id)+' '+(t.notes||'')+' '+(t.assigned_to||'')).toLowerCase();
-      if (!hay.includes(search)) return false;
+/* ── REFRESH ── */
+function refresh() {
+  updateBadges();
+  if(_activeTab) goTab(_activeTab);
+}
+
+function updateBadges() {
+  var active = _tasks.filter(isActive);
+  var urgent = active.filter(function(t){return t.priority==='urgent';});
+  var dirty = _units.filter(function(u){return u.hk_status==='dirty'||u.hk_status==='cleaning';});
+  var bt = document.getElementById('badge-tasks');
+  var bd = document.getElementById('badge-dirty');
+  if(bt) bt.textContent = active.length;
+  if(bd) { bd.textContent = dirty.length; bd.style.display = dirty.length?'':'none'; }
+}
+</script><script>
+/* ── RENDER DASHBOARD ── */
+function renderDash() {
+  var active = _tasks.filter(isActive);
+  var pending = _tasks.filter(function(t){return t.status==='pending';});
+  var inProg  = _tasks.filter(function(t){return t.status==='in_progress';});
+  var done    = _tasks.filter(function(t){return t.status==='done'||t.status==='completed';});
+  var urgent  = active.filter(function(t){return t.priority==='urgent';});
+  var maint   = _units.filter(function(u){return u.hk_status==='maintenance';});
+  var dirty   = _units.filter(function(u){return u.hk_status==='dirty';});
+  var avail   = _units.filter(function(u){return u.hk_status==='available';});
+  var cleaning= _units.filter(function(u){return u.hk_status==='cleaning';});
+
+  var sg = document.getElementById('dash-stats');
+  if(sg) sg.innerHTML =
+    '<div class="stat-card green" data-tab="rooms" onclick="goTab(this.dataset.tab)"><div class="stat-label">Disponibles</div><div class="stat-val">'+avail.length+'</div><div class="stat-sub">prêtes</div></div>'+
+    '<div class="stat-card orange" data-tab="rooms" onclick="goTab(this.dataset.tab)"><div class="stat-label">Sales</div><div class="stat-val">'+dirty.length+'</div><div class="stat-sub">à nettoyer</div></div>'+
+    '<div class="stat-card blue" data-tab="tasks" onclick="goTab(this.dataset.tab)"><div class="stat-label">En nettoyage</div><div class="stat-val">'+cleaning.length+'</div><div class="stat-sub">en cours</div></div>'+
+    '<div class="stat-card red" data-tab="tasks" onclick="goTab(this.dataset.tab)"><div class="stat-label">Urgences</div><div class="stat-val">'+urgent.length+'</div><div class="stat-sub">maintenant</div></div>'+
+    '<div class="stat-card gray" data-tab="rooms" onclick="goTab(this.dataset.tab)"><div class="stat-label">Maintenance</div><div class="stat-val">'+maint.length+'</div><div class="stat-sub">bloquées</div></div>'+
+    '<div class="stat-card purple" data-tab="history" onclick="goTab(this.dataset.tab)"><div class="stat-label">Terminées</div><div class="stat-val">'+done.length+'</div><div class="stat-sub">aujourd\'hui</div></div>';
+
+  // Room grid
+  var rg = document.getElementById('dash-rooms');
+  if(rg) {
+    rg.innerHTML = _units.map(function(u) {
+      var taskCount = _tasks.filter(function(t){return t.unit_id===u.id && isActive(t);}).length;
+      var st = u.hk_status || 'available';
+      var typeMap = {chambre:'Chambre',studio:'Studio',appartement:'Appt',suite:'Suite'};
+      return '<div class="room-tile rt-'+st+'" data-uid="'+esc(u.id)+'" onclick="openRoomModal(this.dataset.uid)">'+
+        (taskCount ? '<span class="rt-tasks">'+taskCount+'</span>' : '')+
+        '<div class="rt-name">'+esc(u.name)+'</div>'+
+        '<div class="rt-type">'+esc(typeMap[u.type]||u.type||'')+'</div>'+
+        '<div class="rt-status">'+esc(hkStatusLabel(st))+'</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  // Active tasks
+  var at = document.getElementById('dash-active-tasks');
+  if(at) {
+    var activeSorted = _tasks.filter(isActive).sort(function(a,b){
+      var po={urgent:0,high:1,normal:2,low:3};
+      return (po[a.priority]||2)-(po[b.priority]||2);
+    }).slice(0,6);
+    if(!activeSorted.length) {
+      at.innerHTML = '<div class="all-done"><div class="check">✓</div><h3>Tout est propre !</h3><p>Aucune tâche active en ce moment.</p></div>';
+    } else {
+      at.innerHTML = '<div class="task-list">'+activeSorted.map(function(t){return buildTaskCard(t,true);}).join('')+'</div>';
     }
-    return true;
-  });
-
-  tasks.sort(function(a,b){
-    var pa = PRIO_ORDER[a.priority]||2, pb = PRIO_ORDER[b.priority]||2;
-    if (pa !== pb) return pa-pb;
-    if (a.status==='in_progress' && b.status!=='in_progress') return -1;
-    if (b.status==='in_progress' && a.status!=='in_progress') return  1;
-    return 0;
-  });
-
-  if (!tasks.length) {
-    listEl.innerHTML = '<div class="hk-empty"><div class="hk-empty-icon">✨</div><div class="hk-empty-msg">Aucune tâche active</div></div>';
-    return;
   }
-  listEl.innerHTML = tasks.map(renderCard).join('');
 }
 
-function renderCard(t) {
-  var utCls = uTypeCls(t.unit_id);
-  var sCls  = 's-'+(t.status||'pending');
-  var pCls  = 'p-'+(t.priority||'normal');
-  var tCls  = 't-'+(t.type||'cleaning');
-  var cur   = t.assigned_to || '';
-
-  var assignRow = (t.status!=='done' && t.status!=='cancelled') ?
-    '<div class="hk-assign-row">' +
-      '<span style="font-size:11px;color:var(--text3);white-space:nowrap">👤 Assigné&nbsp;:</span>' +
-      '<input type="text" value="'+esc(cur)+'" placeholder="Nom de l\'agent..." id="assign-'+t.id+'"/>' +
-      '<button class="hk-btn hk-btn-ghost hk-btn-sm" onclick="saveAssign(\''+t.id+'\')">✓</button>' +
-    '</div>' : '';
-
-  var actionRow = '';
-  if (t.status === 'pending') {
-    actionRow = '<div class="hk-action-row">' +
-      '<button class="hk-btn hk-btn-info hk-btn-sm" onclick="startTask(\''+t.id+'\')">▶ Démarrer</button>' +
-      '<button class="hk-btn hk-btn-ghost hk-btn-sm" onclick="cancelTask(\''+t.id+'\')">✕ Annuler</button>' +
-    '</div>';
-  } else if (t.status === 'in_progress') {
-    actionRow = '<div class="hk-action-row">' +
-      '<button class="hk-btn hk-btn-success hk-btn-sm" onclick="doneTask(\''+t.id+'\')">✅ Valider terminé</button>' +
-      '<button class="hk-btn hk-btn-ghost hk-btn-sm" onclick="cancelTask(\''+t.id+'\')">✕ Annuler</button>' +
-    '</div>';
-  }
-
-  var notesHtml = t.notes ? '<div class="hk-notes">'+esc(t.notes)+'</div>' : '';
-  var agentTag  = t.assigned_to ? '<span class="hk-pill" style="background:rgba(108,99,255,.12);color:var(--accent3)">👤 '+esc(t.assigned_to)+'</span>' : '';
-
-  return '<div class="hk-card" id="card-'+t.id+'">' +
-    '<div class="hk-card-head">' +
-      '<div class="hk-card-icon '+utCls+'">'+uEmoji(t.unit_id)+'</div>' +
-      '<div class="hk-card-body">' +
-        '<div class="hk-card-unit">'+esc(uName(t.unit_id))+'</div>' +
-        '<div class="hk-card-sub">'+fmt(t.created_at)+(t.reported_by ? ' · '+esc(t.reported_by) : '')+'</div>' +
-      '</div>' +
-    '</div>' +
-    '<div class="hk-card-meta">' +
-      '<span class="hk-pill '+tCls+'">'+(T_LBL[t.type]||t.type)+'</span>' +
-      '<span class="hk-pill '+sCls+'">'+(S_LBL[t.status]||t.status)+'</span>' +
-      '<span class="hk-pill '+pCls+'">'+(P_LBL[t.priority]||t.priority)+'</span>' +
-      agentTag +
-    '</div>' +
-    notesHtml + assignRow + actionRow +
+/* ── BUILD TASK CARD ── */
+function buildTaskCard(t, compact) {
+  var label = t.task_label || taskTypeLabel(t.type);
+  var room = t.room_name || t.unit_id || '—';
+  var isDone = t.status==='done'||t.status==='completed';
+  return '<div class="task-card priority-'+esc(t.priority||'normal')+' status-'+esc(t.status||'pending')+'">'+
+    '<div class="tk-top">'+
+      '<div>'+
+        '<div class="tk-room-name">'+esc(room)+'</div>'+
+        '<div class="tk-type">'+esc(label)+'</div>'+
+      '</div>'+
+      '<div class="tk-badges">'+
+        priorityBadge(t.priority||'normal')+
+        statusBadge(t.status||'pending')+
+      '</div>'+
+    '</div>'+
+    (t.notes ? '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-style:italic">'+esc(t.notes)+'</div>' : '')+
+    '<div class="tk-bottom">'+
+      '<span class="tk-assign">'+
+        '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'+
+        esc(t.assigned_to||'Non assigné')+
+      '</span>'+
+      '<div style="flex:1"></div>'+
+      (!isDone && !compact ? '<button class="btn btn-ghost btn-sm" data-tid="'+esc(t.id)+'" onclick="openAssignModal(this.dataset.tid)">Assigner</button>' : '')+
+      (!isDone && t.status==='pending' ? '<button class="btn btn-info btn-sm" data-tid="'+esc(t.id)+'" onclick="startTask(this.dataset.tid)">Commencer</button>' : '')+
+      (!isDone && t.status==='in_progress' ? '<button class="btn btn-success btn-sm" data-tid="'+esc(t.id)+'" onclick="completeTask(this.dataset.tid)">Terminé</button>' : '')+
+      (isDone && t.started_at && t.completed_at ? '<span style="font-size:11px;color:var(--text2)">'+calcDuration(t.started_at,t.completed_at)+'</span>' : '')+
+    '</div>'+
   '</div>';
 }
 
-/* ── History ─────────────────────────────────────────────── */
+function calcDuration(start, end) {
+  try {
+    var mins = Math.round((new Date(end)-new Date(start))/60000);
+    if(mins<1) return 'rapide';
+    if(mins<60) return mins+'min';
+    return Math.floor(mins/60)+'h'+(mins%60?String(mins%60).padStart(2,'0'):'');
+  } catch(e){return '';}
+}
+
+/* ── RENDER TASKS ── */
+function renderTasks() {
+  var search = (document.getElementById('task-search')||{}).value||'';
+  var sf = (document.getElementById('task-status-filter')||{}).value||'active';
+  var pf = (document.getElementById('task-priority-filter')||{}).value||'all';
+  var todayStr = today();
+
+  var list = _tasks.filter(function(t) {
+    var q = search.toLowerCase();
+    var matchQ = !q || (t.room_name||'').toLowerCase().includes(q) ||
+                  (t.assigned_to||'').toLowerCase().includes(q) ||
+                  (t.task_label||'').toLowerCase().includes(q);
+    var matchS = sf==='all' || (sf==='active'&&isActive(t)) ||
+                  (sf==='done'&&(t.status==='done'||t.status==='completed')) ||
+                  t.status===sf;
+    var matchP = pf==='all' || t.priority===pf;
+    return matchQ && matchS && matchP;
+  }).sort(function(a,b){
+    var po={urgent:0,high:1,normal:2,low:3};
+    return (po[a.priority]||2)-(po[b.priority]||2);
+  });
+
+  var el = document.getElementById('tasks-list');
+  if(!el) return;
+  if(!list.length) {
+    el.innerHTML = '<div class="empty">'+
+      '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>'+
+      '<p>Aucune tâche trouvée</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(function(t){return buildTaskCard(t,false);}).join('');
+}
+
+/* ── RENDER ROOMS TAB ── */
+function renderRoomsTab() {
+  var sf = (document.getElementById('room-status-filter')||{}).value||'all';
+  var list = sf==='all' ? _units : _units.filter(function(u){return u.hk_status===sf;});
+  var el = document.getElementById('rooms-grid');
+  if(!el) return;
+  if(!list.length){el.innerHTML='<div class="empty"><p>Aucune chambre</p></div>';return;}
+  el.innerHTML = list.map(function(u){
+    var taskCount = _tasks.filter(function(t){return t.unit_id===u.id&&isActive(t);}).length;
+    var st = u.hk_status||'available';
+    var typeMap={chambre:'Chambre',studio:'Studio',appartement:'Appt',suite:'Suite'};
+    return '<div class="room-tile rt-'+st+'" data-uid="'+esc(u.id)+'" onclick="openRoomModal(this.dataset.uid)">'+
+      (taskCount?'<span class="rt-tasks">'+taskCount+'</span>':'')+
+      '<div class="rt-name">'+esc(u.name)+'</div>'+
+      '<div class="rt-type">'+esc(typeMap[u.type]||u.type||'')+'</div>'+
+      '<div class="rt-status">'+esc(hkStatusLabel(st))+'</div>'+
+    '</div>';
+  }).join('');
+}
+
+/* ── RENDER HISTORY ── */
 function renderHistory() {
-  var listEl  = document.getElementById('list-history');
-  var search  = (document.getElementById('search-history')||{value:''}).value.toLowerCase();
-  var tFilter = (document.getElementById('filter-history-type')||{value:''}).value;
-
-  var tasks = TASKS.filter(function(t){
-    if (t.status!=='done' && t.status!=='cancelled') return false;
-    if (tFilter && t.type!==tFilter) return false;
-    if (search) {
-      var hay = (uName(t.unit_id)+' '+(t.notes||'')+' '+(t.assigned_to||'')).toLowerCase();
-      if (!hay.includes(search)) return false;
+  var sf = (document.getElementById('hist-filter')||{}).value||'done';
+  var list = (sf==='all'?_tasks:_tasks.filter(function(t){return t.status==='done'||t.status==='completed';}));
+  list = list.slice().sort(function(a,b){return new Date(b.updated_at||b.created_at)-new Date(a.updated_at||a.created_at);});
+  var el = document.getElementById('history-list');
+  if(!el) return;
+  if(!list.length){el.innerHTML='<div class="empty"><p>Aucun historique</p></div>';return;}
+  el.innerHTML = '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">'+
+    list.map(function(t,i){
+      var dur = t.started_at&&t.completed_at ? calcDuration(t.started_at,t.completed_at) : '—';
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;'+(i>0?'border-top:1px solid var(--border)':'')+'">'+
+        statusBadge(t.status||'pending')+
+        '<div style="flex:1">'+
+          '<div style="font-size:13px;font-weight:600">'+esc(t.room_name||t.unit_id||'—')+'</div>'+
+          '<div style="font-size:11px;color:var(--text2)">'+esc(t.task_label||taskTypeLabel(t.type))+(t.assigned_to?' · '+esc(t.assigned_to):'')+'</div>'+
+        '</div>'+
+        '<div style="text-align:right">'+
+          '<div style="font-size:11px;color:var(--text2)">'+fmtDate(t.updated_at||t.created_at)+'</div>'+
+          (dur!=='—'?'<div style="font-size:11px;color:var(--success);font-weight:600">'+esc(dur)+'</div>':'')+
+        '</div>'+
+      '</div>';
+    }).join('')+
+  '</div>';
+}
+</script><script>
+/* ── TASK ACTIONS ── */
+function startTask(tid) {
+  sbFetch('veraluz_housekeeping?id=eq.'+tid, {
+    method:'PATCH',
+    body:JSON.stringify({status:'in_progress',started_at:new Date().toISOString()})
+  }).then(function(r){
+    if(r.ok){
+      var t=_tasks.find(function(x){return x.id===tid;});
+      if(t){t.status='in_progress';t.started_at=new Date().toISOString();}
+      // Update room hk_status to cleaning
+      var unitId = t ? t.unit_id : null;
+      if(unitId) updateUnitHkStatus(unitId,'cleaning');
+      showToast('Nettoyage démarré','ok');
+      refresh();
     }
-    return true;
+  });
+}
+
+function completeTask(tid) {
+  var now = new Date().toISOString();
+  sbFetch('veraluz_housekeeping?id=eq.'+tid, {
+    method:'PATCH',
+    body:JSON.stringify({status:'done',completed_at:now,updated_at:now})
+  }).then(function(r){
+    if(r.ok){
+      var t=_tasks.find(function(x){return x.id===tid;});
+      if(t){t.status='done';t.completed_at=now;}
+      // Compute duration
+      if(t&&t.started_at){
+        var mins=Math.round((new Date(now)-new Date(t.started_at))/60000);
+        if(mins>0) sbFetch('veraluz_housekeeping?id=eq.'+tid,{method:'PATCH',body:JSON.stringify({duration_minutes:mins})});
+      }
+      // Update room to available
+      if(t&&t.unit_id) updateUnitHkStatus(t.unit_id,'available');
+      showToast('Chambre marquée propre !','ok');
+      refresh();
+    }
+  });
+}
+
+function updateUnitHkStatus(unitId, status) {
+  sbFetch('veraluz_units?id=eq.'+unitId, {
+    method:'PATCH',
+    body:JSON.stringify({hk_status:status})
+  }).then(function(r){
+    if(r.ok){
+      var u=_units.find(function(x){return x.id===unitId;});
+      if(u) u.hk_status=status;
+    }
+  });
+}
+
+/* ── NEW TASK MODAL ── */
+function openNewTaskModal(unitId) {
+  var sel = document.getElementById('nt-unit');
+  if(sel){
+    sel.innerHTML = _units.map(function(u){
+      return '<option value="'+esc(u.id)+'"'+(unitId&&u.id===unitId?' selected':'')+'>'+esc(u.name)+'</option>';
+    }).join('');
+  }
+  document.getElementById('edit-task-id').value='';
+  document.getElementById('nt-notes').value='';
+  document.getElementById('nt-date').value=today();
+  document.getElementById('nt-priority').value='normal';
+  document.getElementById('nt-type').value='cleaning';
+  document.getElementById('nt-assign').value='';
+  document.getElementById('newTaskTitle').textContent='Nouvelle tâche';
+  openModal('newTaskModal');
+}
+
+function saveTask() {
+  var unitId = document.getElementById('nt-unit').value;
+  var type   = document.getElementById('nt-type').value;
+  var prio   = document.getElementById('nt-priority').value;
+  var assign = document.getElementById('nt-assign').value;
+  var date   = document.getElementById('nt-date').value||today();
+  var notes  = document.getElementById('nt-notes').value.trim();
+  if(!unitId){showToast('Sélectionnez une chambre','err');return;}
+  var unit = _units.find(function(u){return u.id===unitId;});
+  var typeLabels={cleaning:'Nettoyage départ',daily_cleaning:'Nettoyage quotidien',preparation:'Préparation arrivée',vip:'Préparation VIP',maintenance:'Maintenance',urgent:'Urgence',inspection:'Inspection'};
+  var body={
+    unit_id:unitId,type:type,status:'pending',priority:prio,
+    notes:notes||null,scheduled_for:date,
+    task_label:typeLabels[type]||type,
+    room_name:unit?unit.name:unitId,
+    reported_by:'Admin',created_at:new Date().toISOString(),updated_at:new Date().toISOString()
+  };
+  if(assign) body.assigned_to=assign;
+  // Mark room as dirty if cleaning task
+  if(type==='cleaning'||type==='daily_cleaning') {
+    updateUnitHkStatus(unitId,'dirty');
+  } else if(type==='maintenance'||type==='urgent') {
+    updateUnitHkStatus(unitId,'maintenance');
+  }
+  var btn=document.querySelector('#newTaskModal .btn-primary');
+  if(btn) btn.textContent='Création...';
+  sbFetch('veraluz_housekeeping',{method:'POST',body:JSON.stringify(body)})
+    .then(function(r){
+      if(r.ok||r.status===201){
+        closeModal('newTaskModal');
+        showToast('Tâche créée','ok');
+        loadAll(refresh);
+      } else {showToast('Erreur création','err');if(btn)btn.textContent='Créer la tâche';}
+    }).catch(function(){showToast('Erreur réseau','err');if(btn)btn.textContent='Créer la tâche';});
+}
+
+/* ── ASSIGN MODAL ── */
+function openAssignModal(tid) {
+  var t=_tasks.find(function(x){return x.id===tid;});
+  if(!t) return;
+  document.getElementById('assign-task-id').value=tid;
+  var info=document.getElementById('assign-task-info');
+  if(info) info.textContent=(t.room_name||t.unit_id)+' — '+(t.task_label||taskTypeLabel(t.type));
+  var sel=document.getElementById('assign-to');
+  if(sel) sel.value=t.assigned_to||'';
+  var ps=document.getElementById('assign-priority');
+  if(ps) ps.value=t.priority||'normal';
+  openModal('assignModal');
+}
+
+function saveAssign() {
+  var tid=document.getElementById('assign-task-id').value;
+  var assignTo=document.getElementById('assign-to').value;
+  var prio=document.getElementById('assign-priority').value;
+  sbFetch('veraluz_housekeeping?id=eq.'+tid,{
+    method:'PATCH',
+    body:JSON.stringify({assigned_to:assignTo||null,priority:prio,updated_at:new Date().toISOString()})
+  }).then(function(r){
+    if(r.ok){
+      var t=_tasks.find(function(x){return x.id===tid;});
+      if(t){t.assigned_to=assignTo||null;t.priority=prio;}
+      closeModal('assignModal');
+      showToast('Tâche assignée à '+(assignTo||'personne'),'ok');
+      refresh();
+    }
+  });
+}
+
+/* ── ROOM MODAL ── */
+function openRoomModal(uid) {
+  var u=_units.find(function(x){return x.id===uid;});
+  if(!u) return;
+  document.getElementById('room-modal-id').value=uid;
+  document.getElementById('roomModalTitle').textContent=u.name;
+  var sel=document.getElementById('room-new-status');
+  if(sel) sel.value=u.hk_status||'available';
+  var roomTasks=_tasks.filter(function(t){return t.unit_id===uid&&isActive(t);});
+  var rt=document.getElementById('room-modal-tasks');
+  if(rt){
+    if(roomTasks.length){
+      rt.innerHTML='<div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Tâches actives ('+roomTasks.length+')</div>'+
+        roomTasks.map(function(t){
+          return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border)">'+
+            '<span style="font-size:12px">'+esc(t.task_label||taskTypeLabel(t.type))+'</span>'+
+            statusBadge(t.status)+
+          '</div>';
+        }).join('');
+    } else {
+      rt.innerHTML='<div style="font-size:12px;color:var(--text2)">Aucune tâche active pour cette chambre.</div>';
+    }
+  }
+  openModal('roomModal');
+}
+
+function saveRoomStatus() {
+  var uid=document.getElementById('room-modal-id').value;
+  var st=document.getElementById('room-new-status').value;
+  updateUnitHkStatus(uid,st);
+  closeModal('roomModal');
+  showToast('Statut mis à jour','ok');
+  setTimeout(refresh,500);
+}
+
+function openNewTaskForRoom() {
+  var uid=document.getElementById('room-modal-id').value;
+  closeModal('roomModal');
+  openNewTaskModal(uid);
+}
+
+/* ── EMPLOYEE MODE ── */
+function switchToEmployee() {
+  document.getElementById('hkShell').style.display='none';
+  var es=document.getElementById('empShell');
+  es.style.display='flex';
+  // Update date display
+  var dd=document.getElementById('emp-date-display');
+  if(dd) dd.textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  _empName=localStorage.getItem('vlz_hk_emp_name')||'';
+  if(_empName){
+    showEmployeeTasks();
+  } else {
+    showNamePicker();
+  }
+}
+
+function exitEmployeeMode() {
+  document.getElementById('empShell').style.display='none';
+  document.getElementById('hkShell').style.display='';
+}
+
+function changeEmployee() {
+  localStorage.removeItem('vlz_hk_emp_name');
+  _empName='';
+  showNamePicker();
+}
+
+function showNamePicker() {
+  document.getElementById('namePicker').style.display='flex';
+  document.getElementById('empTasksScreen').style.display='none';
+  var nd=document.getElementById('emp-name-display');
+  if(nd) nd.textContent='Employé';
+  // Build name buttons
+  var ng=document.getElementById('nameGrid');
+  if(ng){
+    ng.innerHTML=STAFF.map(function(n){
+      return '<button class="name-btn" data-name="'+esc(n)+'" onclick="selectEmployee(this.dataset.name)">'+esc(n)+'</button>';
+    }).join('');
+  }
+}
+
+function selectEmployee(name) {
+  if(!name||!name.trim()){showToast('Saisissez votre nom','err');return;}
+  name=name.trim();
+  _empName=name;
+  localStorage.setItem('vlz_hk_emp_name',name);
+  var nd=document.getElementById('emp-name-display');
+  if(nd) nd.textContent=name;
+  showEmployeeTasks();
+}
+
+function showEmployeeTasks() {
+  document.getElementById('namePicker').style.display='none';
+  var ts=document.getElementById('empTasksScreen');
+  ts.style.display='flex';
+  ts.style.flexDirection='column';
+  ts.style.overflow='hidden';
+  var nd=document.getElementById('emp-name-display');
+  if(nd) nd.textContent=_empName;
+  renderEmployeeTasks();
+}
+
+function renderEmployeeTasks() {
+  var todayStr=today();
+  var myTasks=_tasks.filter(function(t){
+    var assignMatch=(t.assigned_to||'').toLowerCase()===_empName.toLowerCase();
+    var todayMatch=!t.scheduled_for||(t.scheduled_for||'').startsWith(todayStr);
+    return assignMatch && todayMatch;
+  }).sort(function(a,b){
+    var po={urgent:0,high:1,normal:2,low:3};
+    return (po[a.priority]||2)-(po[b.priority]||2);
   });
 
-  tasks.sort(function(a,b){
-    return new Date(b.updated_at||b.created_at) - new Date(a.updated_at||a.created_at);
-  });
+  var total=myTasks.length;
+  var done=myTasks.filter(function(t){return t.status==='done'||t.status==='completed';}).length;
+  var prog=document.getElementById('emp-progress-text');
+  var allDoneBadge=document.getElementById('emp-all-done-badge');
+  if(prog) prog.textContent=done+' / '+total+' tâche'+(total!==1?'s':'')+' complétée'+(done!==1?'s':'');
+  if(allDoneBadge) allDoneBadge.style.display=(total>0&&done===total)?'':'none';
 
-  if (!tasks.length) {
-    listEl.innerHTML = '<div class="hk-empty"><div class="hk-empty-icon">📂</div><div class="hk-empty-msg">Aucun historique</div></div>';
+  var ec=document.getElementById('empContent');
+  if(!ec) return;
+  if(!myTasks.length){
+    ec.innerHTML='<div class="empty" style="padding:60px 20px">'+
+      '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>'+
+      '<h3 style="font-size:16px;font-weight:700;margin:10px 0 6px">Aucune tâche</h3>'+
+      '<p>Pas de tâche assignée aujourd\'hui</p>'+
+    '</div>';
     return;
   }
-  listEl.innerHTML = tasks.map(function(t){
-    var utCls = uTypeCls(t.unit_id);
-    var sCls  = 's-'+(t.status||'done');
-    var tCls  = 't-'+(t.type||'cleaning');
-    var agTag = t.assigned_to ? '<span class="hk-pill" style="background:rgba(108,99,255,.12);color:var(--accent3)">👤 '+esc(t.assigned_to)+'</span>' : '';
-    var nHtml = t.notes ? '<div class="hk-notes">'+esc(t.notes)+'</div>' : '';
-    return '<div class="hk-card">' +
-      '<div class="hk-card-head">' +
-        '<div class="hk-card-icon '+utCls+'">'+uEmoji(t.unit_id)+'</div>' +
-        '<div class="hk-card-body">' +
-          '<div class="hk-card-unit">'+esc(uName(t.unit_id))+'</div>' +
-          '<div class="hk-card-sub">Créé '+fmt(t.created_at)+(t.completed_at?' · Terminé '+fmt(t.completed_at):'')+'</div>' +
-        '</div>' +
-      '</div>' +
-      '<div class="hk-card-meta">' +
-        '<span class="hk-pill '+tCls+'">'+(T_LBL[t.type]||t.type)+'</span>' +
-        '<span class="hk-pill '+sCls+'">'+(S_LBL[t.status]||t.status)+'</span>' +
-        agTag +
-      '</div>' + nHtml +
-    '</div>';
-  }).join('');
+
+  var allDone=done===total&&total>0;
+  ec.innerHTML=(allDone?
+    '<div class="all-done"><div class="check">🎉</div><h3>Bravo '+(esc(_empName)||'')+' !</h3><p>Toutes les tâches sont terminées</p></div>':'')+
+    myTasks.map(function(t){
+      var isDone=t.status==='done'||t.status==='completed';
+      var isInProg=t.status==='in_progress';
+      var typeLabels={cleaning:'Nettoyage départ',daily_cleaning:'Nettoyage quotidien',preparation:'Préparation arrivée',vip:'Préparation VIP ★',maintenance:'Maintenance',urgent:'URGENCE',inspection:'Inspection'};
+      var taskLabel=t.task_label||(typeLabels[t.type]||taskTypeLabel(t.type));
+      var roomShort=(t.room_name||'').replace('Chambre ','').replace('Studio Deluxe ','Studio ').replace('Appartement Familial ','Appt ');
+      return '<div class="emp-task prio-'+(t.priority||'normal')+(isDone?' done':'')+'">'+
+        '<div class="emp-task-top">'+
+          '<div class="emp-room-num">'+esc(roomShort)+'</div>'+
+          '<div class="emp-task-info">'+
+            '<div class="emp-task-type">'+esc(taskLabel)+'</div>'+
+            '<div class="emp-task-sub">'+esc(t.room_name||'—')+
+              (isInProg?' · <span style="color:var(--info)">En cours...</span>':'')+
+              (isDone?' · <span style="color:var(--success)">Terminé ✓</span>':'')+
+            '</div>'+
+          '</div>'+
+          '<div class="emp-prio-dot '+(t.priority||'normal')+'"></div>'+
+        '</div>'+
+        (!isDone?
+          '<div class="emp-actions">'+
+            (!isInProg?
+              '<button class="emp-btn start" data-tid="'+esc(t.id)+'" onclick="empStartTask(this.dataset.tid)">'+
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>Commencer'+
+              '</button>' :
+              '<button class="emp-btn start" style="opacity:.3;cursor:default">'+
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>En cours'+
+              '</button>'
+            )+
+            '<button class="emp-btn done" data-tid="'+esc(t.id)+'" onclick="empCompleteTask(this.dataset.tid)">'+
+              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Terminé'+
+            '</button>'+
+            '<button class="emp-btn problem" data-tid="'+esc(t.id)+'" data-room="'+esc(t.room_name||'')+'" onclick="empReportProblem(this.dataset.tid,this.dataset.room)">'+
+              '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><triangle-exclamation/><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Problème'+
+            '</button>'+
+          '</div>' :
+          '<div class="emp-done-overlay" style="display:block">Tâche complétée ✓</div>'
+        )+
+      '</div>';
+    }).join('');
 }
 
-/* ── Units grid ──────────────────────────────────────────── */
-function renderUnits() {
-  var grid    = document.getElementById('unit-grid');
-  var search  = (document.getElementById('search-units')||{value:''}).value.toLowerCase();
-  var stFilt  = (document.getElementById('filter-unit-status')||{value:''}).value;
+function empStartTask(tid) {
+  startTask(tid);
+  setTimeout(renderEmployeeTasks,600);
+}
 
-  var units = UNITS.filter(function(u){
-    if (stFilt && u.status!==stFilt) return false;
-    if (search && !u.name.toLowerCase().includes(search)) return false;
-    return true;
+function empCompleteTask(tid) {
+  completeTask(tid);
+  setTimeout(renderEmployeeTasks,600);
+}
+
+function empReportProblem(tid, roomName) {
+  document.getElementById('prob-task-id').value=tid;
+  var rn=document.getElementById('prob-room-name');
+  if(rn) rn.textContent=roomName||'Chambre';
+  document.getElementById('prob-desc').value='';
+  _selProblem='';
+  document.querySelectorAll('.prob-btn').forEach(function(b){b.classList.remove('selected');});
+  openModal('problemModal');
+}
+
+function selectProblem(btn) {
+  document.querySelectorAll('.prob-btn').forEach(function(b){b.classList.remove('selected');});
+  btn.classList.add('selected');
+  _selProblem=btn.dataset.val||btn.textContent;
+}
+
+function saveProblem() {
+  var tid=document.getElementById('prob-task-id').value;
+  var desc=document.getElementById('prob-desc').value.trim();
+  if(!_selProblem&&!desc){showToast('Décrivez le problème','err');return;}
+  var notes=(_selProblem?_selProblem+': ':'')+desc;
+  var t=_tasks.find(function(x){return x.id===tid;});
+  var unitId=t?t.unit_id:null;
+
+  // Update task status to report problem
+  sbFetch('veraluz_housekeeping?id=eq.'+tid,{
+    method:'PATCH',
+    body:JSON.stringify({status:'in_progress',notes:notes,incident_notes:notes,updated_at:new Date().toISOString()})
+  }).then(function(r){
+    if(r.ok){
+      if(t) t.notes=notes;
+      // Create a maintenance task
+      if(unitId){
+        var u=_units.find(function(x){return x.id===unitId;});
+        sbFetch('veraluz_housekeeping',{method:'POST',body:JSON.stringify({
+          unit_id:unitId,type:'maintenance',status:'pending',priority:'high',
+          notes:notes,room_name:u?u.name:unitId,
+          task_label:'Problème signalé: '+(_selProblem||'voir notes'),
+          reported_by:_empName,scheduled_for:today(),
+          created_at:new Date().toISOString(),updated_at:new Date().toISOString()
+        })});
+        updateUnitHkStatus(unitId,'maintenance');
+      }
+      closeModal('problemModal');
+      showToast('Problème signalé à l\'admin','ok');
+      loadAll(renderEmployeeTasks);
+    }
   });
-
-  if (!units.length) {
-    grid.innerHTML = '<div class="hk-empty" style="grid-column:1/-1"><div class="hk-empty-icon">🏨</div><div class="hk-empty-msg">Aucune chambre</div></div>';
-    return;
-  }
-
-  var TC = { chambre:'var(--chambre)', studio:'var(--studio)', suite:'var(--suite)', appartement:'var(--appartement)' };
-
-  grid.innerHTML = units.map(function(u){
-    var stCls  = 'us-'+(u.status||'available');
-    var stLbl  = US_LBL[u.status] || u.status || '?';
-    var border = TC[u.type] || 'var(--border2)';
-    var active = TASKS.filter(function(t){
-      return t.unit_id===u.id && (t.status==='pending'||t.status==='in_progress');
-    }).length;
-    var badge = active ? '<div class="unit-task-badge">'+active+' tâche'+(active>1?'s':'')+'</div>' : '';
-    return '<div class="unit-card" style="border-color:'+border+'40;" onclick="newTaskForUnit(\''+u.id+'\')">'+
-      '<div class="unit-card-emoji">'+(u.emoji||'🛏️')+'</div>'+
-      '<div class="unit-card-name">'+esc(u.name)+'</div>'+
-      '<div class="unit-card-type">'+(u.type||'')+'</div>'+
-      '<div class="unit-card-status '+stCls+'">'+stLbl+'</div>'+
-      badge+
-    '</div>';
-  }).join('');
 }
 
-/* ── Actions ─────────────────────────────────────────────── */
-function saveAssign(id) {
-  var inp = document.getElementById('assign-'+id);
-  if (!inp) return;
-  var name = inp.value.trim();
-  sbPatch('veraluz_housekeeping', id, { assigned_to: name||null, updated_at: new Date().toISOString() })
-    .then(function(){
-      var t = TASKS.find(function(x){ return x.id===id; });
-      if (t) t.assigned_to = name||null;
-      toast('✓ Assigné à '+(name||'personne'));
-      renderAll(); updateStats();
-    }).catch(function(){ toast('Erreur assignation', false); });
-}
-
-function startTask(id) {
-  var now = new Date().toISOString();
-  sbPatch('veraluz_housekeeping', id, { status:'in_progress', started_at:now, updated_at:now })
-    .then(function(){
-      var t = TASKS.find(function(x){ return x.id===id; });
-      if (t) { t.status='in_progress'; t.started_at=now; }
-      toast('▶ Tâche démarrée');
-      renderAll(); updateStats();
-    }).catch(function(){ toast('Erreur', false); });
-}
-
-
-/* ── Event Bus emit ──────────────────────────────────────────── */
-function emitHK(type, data) {
-  try { window.parent.postMessage({ source:'veraluz-housekeeping', type:type, data:data||{} }, '*'); }
-  catch(e) {}
-}
-
-function doneTask(id) {
-  emitHK('cleaning-completed', { taskId:id });
-  var now = new Date().toISOString();
-  sbPatch('veraluz_housekeeping', id, { status:'done', completed_at:now, updated_at:now })
-    .then(function(){
-      var t = TASKS.find(function(x){ return x.id===id; });
-      if (t) { t.status='done'; t.completed_at=now; }
-      toast('✅ Tâche validée !');
-      renderAll(); updateStats();
-    }).catch(function(){ toast('Erreur', false); });
-}
-
-function cancelTask(id) {
-  if (!confirm('Annuler cette tâche ?')) return;
-  sbPatch('veraluz_housekeeping', id, { status:'cancelled', updated_at:new Date().toISOString() })
-    .then(function(){
-      var t = TASKS.find(function(x){ return x.id===id; });
-      if (t) t.status = 'cancelled';
-      toast('Tâche annulée');
-      renderAll(); updateStats();
-    }).catch(function(){ toast('Erreur', false); });
-}
-
-/* ── Modal ───────────────────────────────────────────────── */
-function populateUnitSelect() {
-  document.getElementById('new-unit').innerHTML = UNITS.map(function(u){
-    return '<option value="'+u.id+'">'+(u.emoji||'🛏️')+' '+esc(u.name)+'</option>';
-  }).join('');
-}
-
-function openNewTask() {
-  document.getElementById('new-assigned').value = '';
-  document.getElementById('new-notes').value    = '';
-  document.getElementById('new-priority').value = 'normal';
-  document.getElementById('new-type').value = (currentTab==='maintenance')?'maintenance':
-                                               (currentTab==='report')?'report':'cleaning';
-  document.getElementById('modal-overlay').classList.add('show');
-}
-
-function newTaskForUnit(uid) {
-  openNewTask();
-  document.getElementById('new-unit').value = uid;
-}
-
-function closeModal() { document.getElementById('modal-overlay').classList.remove('show'); }
-
-document.getElementById('modal-overlay').addEventListener('click', function(e){
-  if (e.target === this) closeModal();
+/* ── MODAL OVERLAY CLOSE ── */
+document.querySelectorAll('.modal-overlay').forEach(function(o){
+  o.addEventListener('click',function(e){if(e.target===o)o.classList.remove('open');});
 });
 
-function saveNewTask() {
-  var uid  = document.getElementById('new-unit').value;
-  var type = document.getElementById('new-type').value;
-  var prio = document.getElementById('new-priority').value;
-  var asn  = document.getElementById('new-assigned').value.trim();
-  var nts  = document.getElementById('new-notes').value.trim();
-
-  if (!uid) { toast('Sélectionnez une chambre', false); return; }
-
-  var newTask = {
-    id:          genId(),
-    unit_id:     uid,
-    type:        type,
-    status:      'pending',
-    priority:    prio,
-    assigned_to: asn  || null,
-    notes:       nts  || null,
-    reported_by: 'Réception',
-    created_at:  new Date().toISOString(),
-    updated_at:  new Date().toISOString()
-  };
-
-  sbPost('veraluz_housekeeping', newTask)
-    .then(function(){
-      TASKS.unshift(newTask);
-      closeModal();
-      toast('✅ Tâche créée !');
-      renderAll(); updateStats();
-      switchTab(type==='maintenance'?'maintenance':type==='report'?'report':'cleaning');
-    }).catch(function(e){
-      console.error(e);
-      toast('Erreur création tâche', false);
-    });
-}
-
-/* ── Init ────────────────────────────────────────────────── */
-loadAll();
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded',function(){
+  goTab('dash');
+  loadAll(refresh);
+});
 </script>
 </body>
 </html>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  

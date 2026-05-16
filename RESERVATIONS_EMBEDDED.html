@@ -5,1548 +5,893 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Réservations — Veraluz OS</title>
 <style>
-
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  /* Statuts réservation */
-  --sp:#f59e0b; --sc:#3b82f6; --si:#10b981; --so:#6b7280; --sx:#ef4444; --sn:#991b1b;
-  /* Statuts chambre */
-  --ra:#10b981; --rr:#3b82f6; --ro:#f59e0b; --rcl:#8b5cf6; --rd:#f97316; --rm:#6366f1; --ros:#64748b;
-  /* UI */
-  --bg:#0f172a; --bg2:#1e293b; --bg3:#293548; --bg4:#334155;
-  --text:#f1f5f9; --text2:#94a3b8; --text3:#64748b;
-  --border:rgba(255,255,255,.08); --border2:rgba(255,255,255,.13);
-  --accent:#06b6d4; --accent2:#22d3ee; --gold:#f59e0b;
-  --success:#10b981; --warning:#f59e0b; --danger:#ef4444;
-  --radius:12px; --radius-sm:8px;
-  --shadow:0 4px 20px rgba(0,0,0,.4);
+  --bg:#0f172a;--bg2:#1e293b;--bg3:#293548;--bg4:#334155;
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#64748b;
+  --border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.13);
+  --accent:#06b6d4;--accent2:#22d3ee;--gold:#f59e0b;
+  --success:#10b981;--warning:#f59e0b;--danger:#ef4444;
+  --sp:#f59e0b;--sc:#3b82f6;--si:#10b981;--so:#6b7280;--sx:#ef4444;--sn:#991b1b;
+  --ra:#10b981;--rr:#3b82f6;--ro:#f59e0b;--rcl:#8b5cf6;--rd:#f97316;--rm:#6366f1;--ros:#64748b;
+  --radius:12px;--radius-sm:8px;--shadow:0 4px 20px rgba(0,0,0,.4);
 }
 html,body{height:100%;overflow:hidden}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
 button{cursor:pointer;border:none;font-family:inherit;font-size:14px}
 input,select,textarea{font-family:inherit;font-size:14px}
-a{text-decoration:none;color:inherit}
 
-/* ── MODULE LAYOUT ── */
+/* Layout */
 .mod-wrap{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-
-/* ── HEADER ── */
 .mod-hdr{flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px 0}
 .hdr-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.hdr-title{font-size:16px;font-weight:800;color:var(--text);letter-spacing:.01em;flex:1}
+.hdr-title{font-size:16px;font-weight:800;color:var(--text);flex:1}
 .hdr-title span{color:var(--accent);font-size:11px;font-weight:600;display:block;letter-spacing:.05em;text-transform:uppercase}
-.hdr-sync-badge{font-size:11px;background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.3);
-  padding:3px 10px;border-radius:20px;cursor:pointer;transition:.2s}
-.hdr-sync-badge:hover{background:rgba(245,158,11,.25)}
-.btn-new{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;
-  padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;display:flex;align-items:center;gap:6px;flex-shrink:0}
+.sync-badge{font-size:11px;background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.3);padding:3px 10px;border-radius:20px;cursor:pointer;display:none}
+.btn-new{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;padding:8px 16px;border-radius:var(--radius-sm);font-size:12px;display:flex;align-items:center;gap:6px;flex-shrink:0}
 .btn-new svg{width:14px;height:14px;stroke:currentColor;fill:none}
 
-/* ── TABS ── */
-.tabs-bar{display:flex;gap:2px;overflow-x:auto;padding-bottom:0;scrollbar-width:none}
+/* Tabs */
+.tabs-bar{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
 .tabs-bar::-webkit-scrollbar{display:none}
-.tab-btn{flex-shrink:0;background:none;color:var(--text2);padding:8px 14px;font-size:12px;font-weight:600;
-  border-bottom:2px solid transparent;border-radius:0;transition:.2s;white-space:nowrap;display:flex;align-items:center;gap:5px}
-.tab-btn:hover{color:var(--text);background:rgba(255,255,255,.04)}
-.tab-btn.active{color:var(--accent2);border-bottom-color:var(--accent)}
-.tbadge{background:var(--accent);color:#fff;border-radius:20px;font-size:10px;font-weight:700;padding:1px 6px;min-width:18px;text-align:center}
-.tbadge.warn{background:var(--warning);color:#000}
-.tbadge.danger{background:var(--danger)}
+.tab-btn{flex-shrink:0;background:none;color:var(--text2);padding:8px 14px;font-size:12px;font-weight:600;border-bottom:2px solid transparent;transition:.2s;white-space:nowrap;display:flex;align-items:center;gap:5px}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tbadge{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--bg4);color:var(--text2);min-width:18px;text-align:center}
+.tbadge.ok{background:rgba(16,185,129,.2);color:var(--success)}
+.tbadge.warn{background:rgba(245,158,11,.2);color:var(--gold)}
 
-/* ── PANES ── */
-.tab-pane{display:none;flex:1;overflow-y:auto;overflow-x:hidden}
-.tab-pane.active{display:flex;flex-direction:column}
+/* Content */
+.mod-body{flex:1;overflow:hidden;position:relative}
+.tab-pane{display:none;height:100%;overflow-y:auto;padding:16px}
+.tab-pane.active{display:block}
 
-/* ── DASHBOARD STATS ── */
-.stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:14px}
-@media(min-width:600px){.stats-row{grid-template-columns:repeat(4,1fr)}}
-.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 12px;
-  display:flex;flex-direction:column;gap:4px}
-.stat-num{font-size:28px;font-weight:800;line-height:1}
-.stat-lbl{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
-.stat-sub{font-size:10px;color:var(--text3)}
-.stat-card.arrivals .stat-num{color:var(--accent)}
-.stat-card.departures .stat-num{color:var(--gold)}
-.stat-card.occupied .stat-num{color:var(--success)}
-.stat-card.pending .stat-num{color:var(--warning)}
+/* Cards */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center}
+.stat-num{font-size:28px;font-weight:800;color:var(--accent)}
+.stat-lbl{font-size:11px;color:var(--text2);margin-top:2px}
+@media(max-width:600px){.stat-row{grid-template-columns:repeat(2,1fr)}}
 
-/* ── ACTIVITY FEED ── */
-.activity-wrap{padding:0 14px 14px}
-.activity-hdr{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
-.act-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+/* Activity feed */
+.section-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.act-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
 .act-item:last-child{border-bottom:none}
-.act-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
-.act-text{font-size:13px;color:var(--text2)}
-.act-text strong{color:var(--text)}
-.act-time{font-size:11px;color:var(--text3);margin-top:2px}
+.act-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.act-text{font-size:13px;color:var(--text);margin-bottom:2px}
+.act-time{font-size:11px;color:var(--text3)}
 
-/* ── PLANNING GANTT ── */
-.plan-wrap{flex:1;overflow:auto;padding:0}
-.plan-ctrl{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg2);
-  border-bottom:1px solid var(--border);flex-wrap:wrap;gap:6px}
-.plan-nav-btn{background:var(--bg3);color:var(--text);padding:6px 12px;border-radius:var(--radius-sm);font-size:12px;font-weight:600}
-.plan-nav-btn:hover{background:var(--bg4)}
-.plan-period{font-size:13px;font-weight:700;color:var(--text);flex:1;text-align:center}
-.plan-legend{display:flex;gap:10px;flex-wrap:wrap}
-.leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
-.leg-dot{width:10px;height:10px;border-radius:3px}
-.gantt-container{overflow:auto;position:relative}
-.gantt-table{border-collapse:collapse;width:max-content;min-width:100%}
-.gantt-table th,.gantt-table td{border:1px solid var(--border);padding:0}
-.gantt-th-room{background:var(--bg2);position:sticky;left:0;z-index:10;width:130px;min-width:130px;
-  padding:8px 10px;font-size:12px;font-weight:700;color:var(--text2);text-align:left;white-space:nowrap}
-.gantt-th-day{background:var(--bg2);min-width:52px;text-align:center;padding:4px 2px;font-size:11px;color:var(--text2)}
-.gantt-th-day.today{background:rgba(6,182,212,.15);color:var(--accent2);font-weight:700}
-.gantt-th-date{font-size:9px;display:block;color:var(--text3)}
-.gantt-room-label{background:var(--bg2);position:sticky;left:0;z-index:5;padding:6px 10px;
-  font-size:12px;white-space:nowrap;vertical-align:middle}
-.gantt-room-name{font-weight:700;color:var(--text);font-size:12px}
-.gantt-room-type{font-size:10px;color:var(--text3)}
-.gantt-cell{min-width:52px;height:40px;position:relative;vertical-align:middle;cursor:default}
-.gantt-cell.today-col{background:rgba(6,182,212,.06)}
-.gantt-bar{position:absolute;top:6px;bottom:6px;left:2px;right:2px;border-radius:4px;
-  display:flex;align-items:center;padding:0 6px;font-size:10px;font-weight:700;
-  color:#fff;overflow:hidden;white-space:nowrap;cursor:pointer;z-index:2;
-  box-shadow:0 2px 6px rgba(0,0,0,.3)}
-.gantt-bar:hover{filter:brightness(1.15);z-index:3}
-.gantt-bar.bar-pending{background:var(--sp)}
-.gantt-bar.bar-confirmed{background:var(--sc)}
-.gantt-bar.bar-checked_in{background:var(--si)}
-.gantt-bar.bar-checked_out{background:var(--so)}
-.gantt-bar.bar-cancelled{background:var(--sx);opacity:.6}
-.gantt-bar.bar-no_show{background:var(--sn)}
-.gantt-cell-blocked{background:rgba(100,116,139,.08)}
+/* Planning / Gantt */
+.plan-nav{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.plan-nav button{background:var(--bg3);color:var(--text);border:1px solid var(--border);padding:6px 14px;border-radius:var(--radius-sm);font-weight:600}
+.plan-period{flex:1;font-size:13px;font-weight:700;color:var(--accent);text-align:center}
+.gantt-wrap{overflow-x:auto}
+.gantt-table{border-collapse:collapse;min-width:100%;font-size:12px}
+.gantt-table th,.gantt-table td{border:1px solid var(--border);padding:6px 4px;white-space:nowrap}
+.gantt-table th{background:var(--bg3);color:var(--text2);font-weight:600;text-align:center}
+.gantt-room{background:var(--bg2);color:var(--text);font-weight:600;min-width:120px;text-align:left;padding-left:10px}
+.gantt-cell{position:relative;min-width:32px;height:34px;vertical-align:middle}
+.gantt-bar{position:absolute;inset:3px 1px;border-radius:4px;display:flex;align-items:center;padding:0 4px;font-size:10px;font-weight:700;color:#fff;cursor:pointer;overflow:hidden;white-space:nowrap}
+.bar-pending{background:var(--sp)}
+.bar-confirmed{background:var(--sc)}
+.bar-checked_in,.bar-checkedin{background:var(--si)}
+.bar-checked_out,.bar-checkedout{background:var(--so)}
+.bar-cancelled{background:var(--sx)}
+.today-col{background:rgba(6,182,212,.07)}
 
-/* ── ROOM CARDS ── */
-.rooms-ctrl{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border)}
-.rooms-filter-select{background:var(--bg3);color:var(--text);border:1px solid var(--border2);
-  border-radius:var(--radius-sm);padding:6px 10px;font-size:12px}
-.rooms-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:14px}
-@media(min-width:600px){.rooms-grid{grid-template-columns:repeat(3,1fr)}}
-@media(min-width:900px){.rooms-grid{grid-template-columns:repeat(4,1fr)}}
-.room-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
-  overflow:hidden;cursor:pointer;transition:.2s}
-.room-card:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:var(--shadow)}
-.room-img{width:100%;height:110px;object-fit:cover;display:block;background:var(--bg3)}
-.room-img-placeholder{width:100%;height:110px;background:linear-gradient(135deg,var(--bg3),var(--bg4));
-  display:flex;align-items:center;justify-content:center;font-size:32px}
+/* Chambres */
+.rooms-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.rooms-filter-select{background:var(--bg3);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px}
+.rooms-count{font-size:12px;color:var(--text2);margin-left:auto}
+.rooms-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.room-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:.2s}
+.room-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.room-img{width:100%;height:110px;object-fit:cover;display:block}
+.room-img-placeholder{height:110px;display:flex;align-items:center;justify-content:center;font-size:36px;background:var(--bg3)}
 .room-body{padding:10px}
 .room-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
-.room-meta{font-size:11px;color:var(--text3);margin-bottom:8px}
-.room-status-bar{display:flex;align-items:center;gap:6px}
-.room-sbadge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;color:#fff;flex-shrink:0}
-.rs-available{background:var(--ra)} .rs-reserved{background:var(--rr)} .rs-occupied{background:var(--ro)}
-.rs-cleaning{background:var(--rcl)} .rs-dirty{background:var(--rd)} .rs-maintenance{background:var(--rm)} .rs-out_of_service{background:var(--ros)}
-.room-quick-btns{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
-.rq-btn{font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;color:var(--text);
-  background:var(--bg3);border:1px solid var(--border2);transition:.15s}
-.rq-btn:hover{background:var(--bg4);color:var(--accent2)}
-.rq-btn.danger{border-color:rgba(239,68,68,.3);color:var(--danger)}
+.room-meta{font-size:11px;color:var(--text2);margin-bottom:6px}
+.room-sbadge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block}
+.rs-available{background:rgba(16,185,129,.15);color:var(--success)}
+.rs-occupied{background:rgba(245,158,11,.15);color:var(--warning)}
+.rs-reserved{background:rgba(59,130,246,.15);color:#60a5fa}
+.rs-cleaning,.rs-dirty{background:rgba(139,92,246,.15);color:#a78bfa}
+.rs-maintenance{background:rgba(99,102,241,.15);color:#818cf8}
+.rs-out_of_service{background:rgba(100,116,139,.15);color:var(--text3)}
+.room-quick-btns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.rq-btn{font-size:10px;padding:3px 8px;border-radius:6px;background:var(--bg4);color:var(--text2);border:1px solid var(--border)}
 
-/* ── RESERVATION LIST ── */
-.rez-ctrl{display:flex;flex-direction:column;gap:8px;padding:10px 14px;
-  background:var(--bg2);border-bottom:1px solid var(--border)}
-.rez-search{background:var(--bg3);color:var(--text);border:1px solid var(--border2);
-  border-radius:var(--radius-sm);padding:8px 12px;width:100%;outline:none}
-.rez-search:focus{border-color:var(--accent)}
-.rez-filters{display:flex;gap:6px;flex-wrap:wrap}
-.rez-filter-btn{font-size:11px;font-weight:600;padding:5px 12px;border-radius:20px;
-  background:var(--bg3);color:var(--text2);border:1px solid var(--border2);transition:.2s}
-.rez-filter-btn.active{color:#fff;border-color:transparent}
-.rez-filter-btn.f-all.active{background:var(--accent)}
-.rez-filter-btn.f-pending.active{background:var(--sp)}
-.rez-filter-btn.f-confirmed.active{background:var(--sc)}
-.rez-filter-btn.f-checked_in.active{background:var(--si)}
-.rez-filter-btn.f-checked_out.active{background:var(--so)}
-.rez-filter-btn.f-cancelled.active{background:var(--sx)}
-.rez-list{padding:10px 14px;display:flex;flex-direction:column;gap:8px}
-.rez-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
-  padding:12px 14px;transition:.2s;cursor:pointer}
-.rez-card:hover{border-color:var(--border2);background:var(--bg3)}
-.rez-card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
-.rez-status-stripe{width:4px;border-radius:2px;align-self:stretch;flex-shrink:0}
-.rez-main{flex:1;min-width:0}
-.rez-ref{font-size:11px;color:var(--text3);font-family:monospace;margin-bottom:2px}
-.rez-guest{font-size:15px;font-weight:800;color:var(--text);margin-bottom:2px}
-.rez-room-info{font-size:12px;color:var(--text2)}
-.rez-badge{font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;color:#fff;flex-shrink:0;white-space:nowrap}
-.rb-pending{background:var(--sp)} .rb-confirmed{background:var(--sc)} .rb-checked_in{background:var(--si)}
-.rb-checked_out{background:var(--so)} .rb-cancelled{background:var(--sx)} .rb-no_show{background:var(--sn)}
-.rez-dates{display:flex;gap:16px;font-size:12px;color:var(--text2);margin-bottom:8px}
-.rez-dates span{display:flex;align-items:center;gap:4px}
-.rez-dates svg{width:12px;height:12px;stroke:currentColor;fill:none;flex-shrink:0}
-.rez-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.rez-amount{font-size:14px;font-weight:800;color:var(--accent2)}
-.rez-nights{font-size:11px;color:var(--text3)}
-.rez-actions{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
-.act-btn{font-size:11px;font-weight:700;padding:6px 12px;border-radius:var(--radius-sm);transition:.15s;display:flex;align-items:center;gap:4px}
+/* Reservations list */
+.rez-toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.rez-search{flex:1;min-width:160px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:7px 12px}
+.rez-filter-btn{background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;transition:.15s}
+.rez-filter-btn.active{color:#fff}
+.f-all.active{background:var(--accent)}
+.f-pending.active{background:var(--sp);border-color:var(--sp)}
+.f-confirmed.active{background:var(--sc);border-color:var(--sc)}
+.f-checked_in.active,.f-checkedin.active{background:var(--si);border-color:var(--si)}
+.f-checked_out.active,.f-checkedout.active{background:var(--so);border-color:var(--so)}
+.rez-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:.15s}
+.rez-card:hover{border-color:var(--border2)}
+.rez-sbadge{font-size:10px;font-weight:800;padding:3px 9px;border-radius:10px;flex-shrink:0}
+.rb-pending{background:rgba(245,158,11,.2);color:var(--sp)}
+.rb-confirmed{background:rgba(59,130,246,.2);color:#60a5fa}
+.rb-checked_in,.rb-checkedin{background:rgba(16,185,129,.2);color:var(--success)}
+.rb-checked_out,.rb-checkedout{background:rgba(107,114,128,.2);color:var(--so)}
+.rb-cancelled{background:rgba(239,68,68,.2);color:var(--danger)}
+.rb-no_show{background:rgba(153,27,27,.3);color:#fca5a5}
+.rez-info{flex:1;min-width:0}
+.rez-guest{font-size:13px;font-weight:700;color:var(--text)}
+.rez-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.rez-price{font-size:13px;font-weight:700;color:var(--gold);flex-shrink:0}
+.rez-actions{display:flex;gap:6px;flex-shrink:0}
+.act-btn{padding:5px 10px;border-radius:var(--radius-sm);font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px}
 .act-btn svg{width:12px;height:12px;stroke:currentColor;fill:none}
-.btn-checkin{background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)}
-.btn-checkin:hover{background:rgba(16,185,129,.25)}
-.btn-checkout{background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.3)}
-.btn-checkout:hover{background:rgba(245,158,11,.25)}
-.btn-view{background:var(--bg3);color:var(--text2);border:1px solid var(--border2)}
-.btn-view:hover{background:var(--bg4);color:var(--text)}
 .btn-confirm{background:rgba(59,130,246,.15);color:#60a5fa;border:1px solid rgba(59,130,246,.3)}
-.btn-confirm:hover{background:rgba(59,130,246,.25)}
-.btn-cancel{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
-.btn-cancel:hover{background:rgba(239,68,68,.2)}
-.rez-source-chip{font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(255,255,255,.07);color:var(--text3)}
+.btn-checkin{background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)}
+.btn-checkout{background:rgba(107,114,128,.2);color:var(--text2);border:1px solid var(--border)}
+.btn-cancel{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2)}
 
-/* ── NEW RESERVATION FORM ── */
-.nform-wrap{padding:16px;max-width:680px;margin:0 auto;width:100%}
-.step-indicator{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:24px}
-.step-dot{width:28px;height:28px;border-radius:50%;background:var(--bg3);border:2px solid var(--border2);
-  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);
-  transition:.3s;flex-shrink:0}
-.step-dot.done{background:var(--accent);border-color:var(--accent);color:#fff}
-.step-dot.active{background:var(--bg4);border-color:var(--accent2);color:var(--accent2)}
-.step-line{flex:1;height:2px;background:var(--border2);max-width:48px}
-.step-line.done{background:var(--accent)}
-.form-step{display:none;flex-direction:column;gap:14px}
-.form-step.active{display:flex}
-.form-step-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px}
-.form-step-sub{font-size:13px;color:var(--text2);margin-bottom:4px}
-.form-group{display:flex;flex-direction:column;gap:4px}
-.form-group label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
-.form-input,.form-select,.form-textarea{background:var(--bg3);color:var(--text);border:1px solid var(--border2);
-  border-radius:var(--radius-sm);padding:10px 12px;outline:none;transition:.2s;width:100%}
-.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);background:var(--bg4)}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.room-picker-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-@media(min-width:500px){.room-picker-grid{grid-template-columns:repeat(3,1fr)}}
-.rp-card{border:2px solid var(--border2);border-radius:var(--radius);padding:10px;cursor:pointer;
-  background:var(--bg3);transition:.2s;text-align:center}
-.rp-card:hover{border-color:var(--accent);background:var(--bg4)}
-.rp-card.selected{border-color:var(--accent);background:rgba(6,182,212,.1)}
-.rp-card.unavailable{opacity:.4;cursor:not-allowed;border-color:var(--border)}
-.rp-img{width:100%;height:60px;object-fit:cover;border-radius:6px;margin-bottom:6px;background:var(--bg4)}
-.rp-name{font-size:12px;font-weight:700;color:var(--text)}
-.rp-price{font-size:11px;color:var(--accent2);font-weight:600}
-.rp-status{font-size:10px;color:var(--text3);margin-top:2px}
-.form-btns{display:flex;gap:10px;justify-content:flex-end;margin-top:8px;flex-wrap:wrap}
-.btn-back{background:var(--bg3);color:var(--text2);border:1px solid var(--border2);padding:10px 20px;border-radius:var(--radius-sm);font-weight:600}
-.btn-next{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:10px 24px;border-radius:var(--radius-sm);font-weight:700}
-.btn-submit{background:linear-gradient(135deg,var(--success),#059669);color:#fff;padding:10px 24px;border-radius:var(--radius-sm);font-weight:700}
-.form-summary-box{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:14px}
-.summary-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
-.summary-row:last-child{border-bottom:none;font-weight:700;color:var(--accent2)}
+/* New form */
+.form-steps{padding:4px 0}
+.step-indicator{display:flex;gap:6px;margin-bottom:20px}
+.step-dot{flex:1;height:3px;border-radius:3px;background:var(--bg4);transition:.3s}
+.step-dot.done{background:var(--accent)}
+.form-section{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+.form-label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:block}
+.form-input,.form-select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:9px 12px}
+.form-input:focus,.form-select:focus{outline:none;border-color:var(--accent)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.room-option{background:var(--bg3);border:2px solid var(--border);border-radius:var(--radius);padding:12px;cursor:pointer;transition:.2s;margin-bottom:8px}
+.room-option:hover,.room-option.selected{border-color:var(--accent);background:rgba(6,182,212,.05)}
+.room-option-name{font-weight:700;color:var(--text)}
+.room-option-meta{font-size:12px;color:var(--text2);margin-top:3px}
+.room-option-price{font-weight:700;color:var(--gold);float:right}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;padding:12px 24px;border-radius:var(--radius-sm);width:100%;font-size:14px;margin-top:12px}
+.btn-secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border);font-weight:600;padding:10px 20px;border-radius:var(--radius-sm)}
+.form-nav{display:flex;gap:8px;margin-top:12px}
 
-/* ── BOOKING ENGINE SYNC BADGE ── */
-.sync-alert{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);
-  border-radius:var(--radius);padding:12px 14px;margin:14px;display:flex;align-items:center;gap:10px;cursor:pointer}
-.sync-alert-text{flex:1;font-size:13px;color:var(--gold)}
-.sync-alert-count{background:var(--gold);color:#000;border-radius:20px;padding:2px 8px;font-size:12px;font-weight:700}
-
-/* ── MODALS ── */
-.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:flex-end;justify-content:center}
-@media(min-width:600px){.modal-ov{align-items:center}}
-.modal-ov.open{display:flex}
-.modal-box{background:var(--bg2);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;
-  padding:20px;position:relative;box-shadow:0 -8px 40px rgba(0,0,0,.5)}
-@media(min-width:600px){.modal-box{border-radius:var(--radius);max-height:88vh}}
-.modal-close{position:absolute;top:14px;right:14px;background:var(--bg3);border:none;color:var(--text2);
-  width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px}
-.modal-close:hover{background:var(--bg4);color:var(--text)}
-.modal-title{font-size:17px;font-weight:800;color:var(--text);margin-bottom:4px}
+/* Modals */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:20px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:800;color:var(--text);margin-bottom:4px}
 .modal-sub{font-size:12px;color:var(--text2);margin-bottom:16px}
 .modal-section{margin-bottom:16px}
-.modal-section-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
-.modal-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.modal-info-item{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px}
-.modal-info-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
-.modal-info-value{font-size:14px;font-weight:700;color:var(--text)}
-.modal-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
-.modal-action-btn{flex:1;padding:10px 16px;border-radius:var(--radius-sm);font-weight:700;font-size:13px;
-  min-width:100px;display:flex;align-items:center;justify-content:center;gap:6px;transition:.2s}
-.modal-action-btn svg{width:14px;height:14px;stroke:currentColor;fill:none}
-/* Status timeline */
-.timeline{display:flex;flex-direction:column;gap:0}
-.tl-item{display:flex;gap:12px;align-items:flex-start}
-.tl-dot-wrap{display:flex;flex-direction:column;align-items:center;width:16px}
-.tl-dot{width:12px;height:12px;border-radius:50%;background:var(--border2);flex-shrink:0;margin-top:2px}
-.tl-dot.done{background:var(--success)}
-.tl-dot.current{background:var(--accent);box-shadow:0 0 0 3px rgba(6,182,212,.2)}
-.tl-line{flex:1;width:2px;background:var(--border2);min-height:20px}
-.tl-line.done{background:var(--success)}
-.tl-content{padding-bottom:16px;flex:1}
-.tl-label{font-size:13px;font-weight:600;color:var(--text2)}
-.tl-label.done{color:var(--text)}
-.tl-label.current{color:var(--accent2);font-weight:700}
-.tl-time{font-size:11px;color:var(--text3)}
+.modal-section-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.modal-close{float:right;background:var(--bg4);border:none;color:var(--text2);width:28px;height:28px;border-radius:50%;font-size:16px;cursor:pointer;line-height:28px;text-align:center}
+
 /* Image manager */
-.img-manager{display:flex;flex-direction:column;gap:8px}
-.img-list{display:flex;flex-wrap:wrap;gap:8px}
+.img-list{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .img-thumb{position:relative;width:80px;height:60px;border-radius:8px;overflow:hidden;flex-shrink:0}
 .img-thumb img{width:100%;height:100%;object-fit:cover}
-.img-thumb-del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;
-  background:rgba(0,0,0,.7);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer;border:none;line-height:1}
+.img-thumb-del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .img-add-row{display:flex;gap:8px}
-.img-url-input{flex:1;background:var(--bg3);color:var(--text);border:1px solid var(--border2);
-  border-radius:var(--radius-sm);padding:8px 10px;font-size:12px;outline:none}
-.img-url-input:focus{border-color:var(--accent)}
-.img-add-btn{background:var(--accent);color:#fff;padding:8px 14px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;flex-shrink:0}
-/* Empty state */
-.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;color:var(--text3);gap:12px}
-.empty-state svg{width:48px;height:48px;stroke:currentColor;fill:none;opacity:.4}
-.empty-state p{font-size:14px;text-align:center}
-/* Toast */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-  background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);
-  padding:12px 20px;font-size:13px;font-weight:600;color:var(--text);z-index:2000;
-  box-shadow:var(--shadow);transition:opacity .3s;white-space:nowrap}
-.toast.success{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.4);color:var(--success)}
-.toast.error{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.4);color:var(--danger)}
-/* Scrollbar */
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.img-url-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:7px 10px;font-size:12px}
+.img-add-btn{background:var(--accent);color:#fff;padding:7px 14px;border-radius:var(--radius-sm);font-weight:700;font-size:12px}
 
+/* Sync modal */
+.sync-item{background:var(--bg3);border-radius:var(--radius);padding:14px;margin-bottom:10px}
+.sync-item-name{font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px}
+.sync-item-sub{font-size:13px;color:var(--text2)}
+.sync-item-price{font-size:13px;color:var(--accent2);font-weight:700;margin:4px 0}
+.sync-item-btns{display:flex;gap:8px;margin-top:10px}
+.btn-import{flex:1;background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);padding:8px;border-radius:8px;font-weight:700}
+.btn-dismiss{flex:1;background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2);padding:8px;border-radius:8px;font-weight:700}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:2000;transition:.3s;box-shadow:var(--shadow)}
+.toast.success{border-color:var(--success);color:var(--success)}
+.toast.danger{border-color:var(--danger);color:var(--danger)}
+
+/* Empty state */
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-state svg{width:40px;height:40px;stroke:var(--text3);fill:none;margin:0 auto 12px;display:block}
+
+/* Form select */
+form-select{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:7px 10px;width:100%}
 </style>
 </head>
 <body>
 <div class="mod-wrap">
 
-<!-- HEADER -->
-<div class="mod-hdr">
-  <div class="hdr-top">
-    <div class="hdr-title">
-      <span>Veraluz OS</span>
-      Réservations
+  <!-- Header -->
+  <div class="mod-hdr">
+    <div class="hdr-top">
+      <div class="hdr-title">Réservations <span>VERALUZ OS</span></div>
+      <button class="sync-badge" id="syncBadge" onclick="openSyncModal()">
+        ⚡ <span id="syncCount">0</span> depuis site
+      </button>
+      <button class="btn-new" onclick="goTab('nouvelle')">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nouvelle
+      </button>
     </div>
-    <div class="hdr-sync-badge" id="syncBadge" onclick="openSyncModal()" style="display:none">
-      🔗 <span id="syncCount">0</span> nouvelles
-    </div>
-    <button class="btn-new" onclick="goTab('nouvelle');resetNewForm()">
-      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Nouvelle
-    </button>
-  </div>
-  <div class="tabs-bar" role="tablist">
-    <button class="tab-btn active" id="tab-dash" onclick="goTab('dash')">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-      Dashboard
-    </button>
-    <button class="tab-btn" id="tab-planning" onclick="goTab('planning')">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      Planning
-    </button>
-    <button class="tab-btn" id="tab-chambres" onclick="goTab('chambres')">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
-      Chambres
-      <span class="tbadge" id="avail-badge">0</span>
-    </button>
-    <button class="tab-btn" id="tab-liste" onclick="goTab('liste')">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="1"/><circle cx="3" cy="12" r="1"/><circle cx="3" cy="18" r="1"/></svg>
-      Réservations
-      <span class="tbadge warn" id="rez-badge" style="display:none">0</span>
-    </button>
-    <button class="tab-btn" id="tab-nouvelle" onclick="goTab('nouvelle');resetNewForm()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      Nouvelle réservation
-    </button>
-  </div>
-</div>
-
-<!-- PANE: DASHBOARD -->
-<div class="tab-pane active" id="pane-dash">
-  <div class="stats-row" id="statsRow">
-    <div class="stat-card arrivals"><div class="stat-num" id="st-arrivals">0</div><div class="stat-lbl">Arrivées</div><div class="stat-sub">aujourd'hui</div></div>
-    <div class="stat-card departures"><div class="stat-num" id="st-departures">0</div><div class="stat-lbl">Départs</div><div class="stat-sub">aujourd'hui</div></div>
-    <div class="stat-card occupied"><div class="stat-num" id="st-occ">0%</div><div class="stat-lbl">Occupation</div><div class="stat-sub">chambres actives</div></div>
-    <div class="stat-card pending"><div class="stat-num" id="st-pending">0</div><div class="stat-lbl">En attente</div><div class="stat-sub">confirmation requise</div></div>
-  </div>
-  <div class="activity-wrap">
-    <div class="activity-hdr">Activité récente</div>
-    <div id="activityFeed"></div>
-  </div>
-</div>
-
-<!-- PANE: PLANNING -->
-<div class="tab-pane" id="pane-planning">
-  <div class="plan-ctrl">
-    <button class="plan-nav-btn" onclick="shiftPlan(-7)">&#8592; 7j</button>
-    <div class="plan-period" id="planPeriodLabel"></div>
-    <button class="plan-nav-btn" onclick="shiftPlan(7)">7j &#8594;</button>
-  </div>
-  <div class="plan-legend" style="padding:8px 14px">
-    <div class="leg-item"><div class="leg-dot" style="background:var(--sp)"></div>En attente</div>
-    <div class="leg-item"><div class="leg-dot" style="background:var(--sc)"></div>Confirmée</div>
-    <div class="leg-item"><div class="leg-dot" style="background:var(--si)"></div>En cours</div>
-    <div class="leg-item"><div class="leg-dot" style="background:var(--so)"></div>Terminée</div>
-    <div class="leg-item"><div class="leg-dot" style="background:var(--sx)"></div>Annulée</div>
-  </div>
-  <div class="gantt-container">
-    <div id="ganttWrap"></div>
-  </div>
-</div>
-
-<!-- PANE: CHAMBRES -->
-<div class="tab-pane" id="pane-chambres">
-  <div class="rooms-ctrl">
-    <select class="rooms-filter-select" id="roomFilter" onchange="renderRooms()">
-      <option value="all">Tous les statuts</option>
-      <option value="available">Disponibles</option>
-      <option value="reserved">Réservées</option>
-      <option value="occupied">Occupées</option>
-      <option value="cleaning">Nettoyage</option>
-      <option value="dirty">Sales</option>
-      <option value="maintenance">Maintenance</option>
-      <option value="out_of_service">Hors service</option>
-    </select>
-    <div style="flex:1"></div>
-    <div style="font-size:12px;color:var(--text2)" id="roomCount"></div>
-  </div>
-  <div class="rooms-grid" id="roomsGrid"></div>
-</div>
-
-<!-- PANE: LISTE -->
-<div class="tab-pane" id="pane-liste">
-  <div class="rez-ctrl">
-    <input class="rez-search" id="rezSearch" placeholder="Chercher un client, référence, chambre..." oninput="renderRezList()">
-    <div class="rez-filters" id="rezFilters">
-      <button class="rez-filter-btn f-all active" onclick="setRezFilter('all',this)">Tous</button>
-      <button class="rez-filter-btn f-pending" onclick="setRezFilter('pending',this)">En attente</button>
-      <button class="rez-filter-btn f-confirmed" onclick="setRezFilter('confirmed',this)">Confirmées</button>
-      <button class="rez-filter-btn f-checked_in" onclick="setRezFilter('checked_in',this)">En cours</button>
-      <button class="rez-filter-btn f-checked_out" onclick="setRezFilter('checked_out',this)">Terminées</button>
-      <button class="rez-filter-btn f-cancelled" onclick="setRezFilter('cancelled',this)">Annulées</button>
+    <div class="tabs-bar">
+      <button class="tab-btn" id="tab-dash" onclick="goTab('dash')">📊 Dashboard</button>
+      <button class="tab-btn" id="tab-planning" onclick="goTab('planning')">📅 Planning</button>
+      <button class="tab-btn" id="tab-chambres" onclick="goTab('chambres')">
+        🛏 Chambres <span class="tbadge" id="avail-badge">0</span>
+      </button>
+      <button class="tab-btn" id="tab-liste" onclick="goTab('liste')">
+        📋 Réservations <span class="tbadge warn" id="rez-badge" style="display:none">0</span>
+      </button>
+      <button class="tab-btn" id="tab-nouvelle" onclick="goTab('nouvelle')">✏️ Nouvelle</button>
     </div>
   </div>
-  <div class="rez-list" id="rezList"></div>
-</div>
 
-<!-- PANE: NOUVELLE -->
-<div class="tab-pane" id="pane-nouvelle">
-  <div class="nform-wrap">
-    <div class="step-indicator" id="stepIndicator"></div>
-    <div id="formSteps"></div>
-  </div>
-</div>
+  <!-- Body -->
+  <div class="mod-body">
 
+    <!-- DASHBOARD -->
+    <div class="tab-pane" id="pane-dash">
+      <div class="stat-row">
+        <div class="stat-card"><div class="stat-num" id="st-arrivals">—</div><div class="stat-lbl">Arrivées aujourd'hui</div></div>
+        <div class="stat-card"><div class="stat-num" id="st-departures">—</div><div class="stat-lbl">Départs aujourd'hui</div></div>
+        <div class="stat-card"><div class="stat-num" id="st-occ">—</div><div class="stat-lbl">Taux d'occupation</div></div>
+        <div class="stat-card"><div class="stat-num" id="st-pending">—</div><div class="stat-lbl">En attente</div></div>
+      </div>
+      <div class="section-title">Activité récente</div>
+      <div id="activityFeed"><div class="empty-state"><p>Chargement…</p></div></div>
+    </div>
+
+    <!-- PLANNING -->
+    <div class="tab-pane" id="pane-planning">
+      <div class="plan-nav">
+        <button onclick="shiftPlan(-7)">◀ -7j</button>
+        <div class="plan-period" id="planPeriodLabel">Chargement…</div>
+        <button onclick="shiftPlan(7)">+7j ▶</button>
+      </div>
+      <div class="gantt-wrap"><div id="ganttWrap">Chargement…</div></div>
+    </div>
+
+    <!-- CHAMBRES -->
+    <div class="tab-pane" id="pane-chambres">
+      <div class="rooms-toolbar">
+        <select class="rooms-filter-select" id="roomFilter" onchange="renderRooms()">
+          <option value="all">Tous les statuts</option>
+          <option value="available">Disponible</option>
+          <option value="occupied">Occupée</option>
+          <option value="reserved">Réservée</option>
+          <option value="cleaning">Nettoyage</option>
+          <option value="maintenance">Maintenance</option>
+        </select>
+        <span class="rooms-count" id="roomCount"></span>
+      </div>
+      <div class="rooms-grid" id="roomsGrid"><div class="empty-state"><p>Chargement…</p></div></div>
+    </div>
+
+    <!-- LISTE -->
+    <div class="tab-pane" id="pane-liste">
+      <div class="rez-toolbar">
+        <input class="rez-search" id="rezSearch" placeholder="Rechercher client, unité…" oninput="renderRezList()">
+        <button class="rez-filter-btn f-all active" onclick="setFilter('all',this)">Tout</button>
+        <button class="rez-filter-btn f-pending" onclick="setFilter('pending',this)">En attente</button>
+        <button class="rez-filter-btn f-confirmed" onclick="setFilter('confirmed',this)">Confirmées</button>
+        <button class="rez-filter-btn f-checkedin" onclick="setFilter('checkedin',this)">En cours</button>
+        <button class="rez-filter-btn f-checkedout" onclick="setFilter('checkedout',this)">Terminées</button>
+      </div>
+      <div id="rezList"><div class="empty-state"><p>Chargement…</p></div></div>
+    </div>
+
+    <!-- NOUVELLE RESERVATION -->
+    <div class="tab-pane" id="pane-nouvelle">
+      <div class="step-indicator" id="stepIndicator">
+        <div class="step-dot" id="sdot-1"></div>
+        <div class="step-dot" id="sdot-2"></div>
+        <div class="step-dot" id="sdot-3"></div>
+        <div class="step-dot" id="sdot-4"></div>
+      </div>
+      <div id="formSteps"></div>
+    </div>
+
+  </div><!-- /mod-body -->
 </div><!-- /mod-wrap -->
 
-<!-- MODAL: RESERVATION DETAIL -->
-<div class="modal-ov" id="rezModal">
+<!-- Room modal -->
+<div class="modal-overlay" id="roomModal">
   <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('rezModal')">&#x2715;</button>
-    <div id="rezModalContent"></div>
-  </div>
-</div>
-
-<!-- MODAL: ROOM EDIT -->
-<div class="modal-ov" id="roomModal">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('roomModal')">&#x2715;</button>
+    <button class="modal-close" onclick="closeModal('roomModal')">×</button>
     <div id="roomModalContent"></div>
   </div>
 </div>
 
-<!-- MODAL: SYNC BOOKING ENGINE -->
-<div class="modal-ov" id="syncModal">
+<!-- Rez modal -->
+<div class="modal-overlay" id="rezModal">
   <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('syncModal')">&#x2715;</button>
-    <h2 class="modal-title">🔗 Réservations Booking Engine</h2>
-    <p class="modal-sub">Réservations en attente depuis le site public</p>
+    <button class="modal-close" onclick="closeModal('rezModal')">×</button>
+    <div id="rezModalContent"></div>
+  </div>
+</div>
+
+<!-- Sync modal -->
+<div class="modal-overlay" id="syncModal">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('syncModal')">×</button>
+    <div class="modal-title">Sync Booking Engine</div>
+    <div class="modal-sub">Réservations en attente depuis le site public</div>
     <div id="syncModalList"></div>
   </div>
 </div>
 
-<!-- TOAST -->
+<!-- Toast -->
 <div class="toast" id="toastEl" style="display:none"></div>
-</body>
+
 <script>
+/* ============================================================
+   VERALUZ OS — RESERVATIONS v3 (JS validé, champ Supabase OK)
+   ============================================================ */
 
-/* =====================================================
-   VERALUZ OS — RESERVATIONS MODULE v2
-   Workflow PMS hôtelier complet
-   ===================================================== */
+var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
-var SB_URL = (window.__SUPABASE_URL__||'https://dfdmasejsoibxrvubegu.supabase.co');
-var SB_KEY = (window.__SUPABASE_KEY__||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY');
-/* ── SUPABASE FIELD MAPPING ── */
-// Normalize Supabase row → internal format
-function normalizeRes(r) {
-  if(r._normalized) return r;
-  r.guest_name     = r.guest_name     || r.client_name  || '';
-  r.guest_email    = r.guest_email    || r.client_email  || '';
-  r.guest_phone    = r.guest_phone    || r.client_phone  || '';
-  r.guest_count    = r.guest_count    || r.guests        || 1;
-  r.total_amount   = r.total_amount   || r.total         || 0;
-  r.amount_paid    = r.amount_paid    || r.paid          || 0;
-  r.special_requests = r.special_requests || r.notes     || '';
-  r.unit_name      = r.unit_name      || '';
-  var smap = {checkedin:'checked_in', checkedout:'checked_out', confirmed:'confirmed', pending:'pending', cancelled:'cancelled', no_show:'no_show'};
-  r.status = smap[r.status] || r.status || 'pending';
-  r._normalized = true;
+/* ── Utilitaires ── */
+function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function addDays(d,n){ var x=new Date(d+'T12:00:00'); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); }
+function diffDays(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+function fmtDate(s){ if(!s)return '—'; try{return new Date(s+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}); }catch(e){return s;} }
+function fmtFull(s){ if(!s)return '—'; try{return new Date(s+'T12:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}); }catch(e){return s;} }
+function fmtDay(s){ if(!s)return ''; try{return new Date(s+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric'}); }catch(e){return s;} }
+function fmtMoney(n){ return Number(n||0).toLocaleString('fr-FR')+' FCFA'; }
+function toast(msg,type){
+  var el=document.getElementById('toastEl');
+  if(!el)return;
+  el.textContent=msg; el.className='toast'+(type?' '+type:''); el.style.display='block';
+  clearTimeout(el._t); el._t=setTimeout(function(){el.style.display='none';},2800);
+}
+function openModal(id){ var m=document.getElementById(id); if(m) m.classList.add('open'); }
+function closeModal(id){ var m=document.getElementById(id); if(m) m.classList.remove('open'); }
+
+/* ── Supabase ── */
+function sbGet(path){
+  return fetch(SB+'/rest/v1/'+path,{headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}})
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return []; });
+}
+function sbPatch(path,data){
+  return fetch(SB+'/rest/v1/'+path,{method:'PATCH',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(data)})
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return null; });
+}
+function sbPost(path,data){
+  return fetch(SB+'/rest/v1/'+path,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(data)})
+    .then(function(r){ return r.json(); })
+    .catch(function(){ return null; });
+}
+
+/* ── Normalisation champs Supabase → interne ── */
+/* Supabase: client_name, client_email, client_phone, guests, total, paid, status(checkedin/checkedout) */
+/* Interne:  guest_name,  guest_email,  guest_phone,  guests, total, paid, status(checkedin/checkedout) */
+function norm(r){
+  r.guest_name  = r.guest_name  || r.client_name  || '';
+  r.guest_email = r.guest_email || r.client_email || '';
+  r.guest_phone = r.guest_phone || r.client_phone || '';
+  r.unit_name   = r.unit_name   || '';
+  r.total       = r.total       || r.total_amount  || 0;
+  r.paid        = r.paid        || r.amount_paid   || 0;
+  r.notes       = r.notes       || r.special_requests || '';
   return r;
 }
-
-function escHtml(s) {
-  if(s==null) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
-// Map internal format → Supabase columns for POST/PATCH
-function toSbRes(r) {
-  var statusOut = {checked_in:'checkedin', checked_out:'checkedout'}[r.status] || r.status || 'pending';
-  var notes = [r.special_requests, r.payment_method?'Pmt:'+r.payment_method:''].filter(Boolean).join(' | ');
+function toSb(r){
+  var st = r.status||'pending';
   return {
     unit_id:      r.unit_id,
-    client_name:  r.guest_name,
-    client_email: r.guest_email,
-    client_phone: r.guest_phone,
-    guests:       r.guest_count || 1,
+    client_name:  r.guest_name  || '',
+    client_email: r.guest_email || '',
+    client_phone: r.guest_phone || '',
+    guests:       r.guests      || 1,
     check_in:     r.check_in,
     check_out:    r.check_out,
-    nights:       r.nights,
-    total:        r.total_amount || 0,
-    paid:         r.amount_paid  || 0,
-    status:       statusOut,
-    source:       r.source || 'reception',
-    notes:        notes || null
+    nights:       r.nights      || 0,
+    total:        r.total       || 0,
+    paid:         r.paid        || 0,
+    status:       st,
+    source:       r.source      || 'reception',
+    notes:        r.notes       || null
   };
 }
 
+/* ── État ── */
+var _rooms = [], _rez = [], _filter = 'all', _planOffset = 0, _nf = {step:1};
 
-/* ── CONSTANTS ── */
-var RES_STATUS = {
-  pending:    {label:'En attente',   color:'var(--sp)', badge:'rb-pending'},
-  confirmed:  {label:'Confirmée',    color:'var(--sc)', badge:'rb-confirmed'},
-  checked_in: {label:'En cours',     color:'var(--si)', badge:'rb-checked_in'},
-  checked_out:{label:'Terminée',     color:'var(--so)', badge:'rb-checked_out'},
-  cancelled:  {label:'Annulée',      color:'var(--sx)', badge:'rb-cancelled'},
-  no_show:    {label:'No-show',      color:'var(--sn)', badge:'rb-no_show'}
-};
-var ROOM_STATUS = {
-  available:    {label:'Disponible',  css:'rs-available'},
-  reserved:     {label:'Réservée',    css:'rs-reserved'},
-  occupied:     {label:'Occupée',     css:'rs-occupied'},
-  cleaning:     {label:'Nettoyage',   css:'rs-cleaning'},
-  dirty:        {label:'Sale',        css:'rs-dirty'},
-  maintenance:  {label:'Maintenance', css:'rs-maintenance'},
-  out_of_service:{label:'Hors service',css:'rs-out_of_service'}
-};
-var SOURCES = {
-  direct_website:'Site web',reception:'Réception',
-  whatsapp:'WhatsApp',booking_future:'Booking.com',airbnb_future:'Airbnb'
-};
-var ROOM_ICONS = {
-  std:'🛏', sea:'🌊', apt:'🏠', suite:'👑', villa:'🌴', studio:'🏡'
-};
+/* ── Chargement ── */
+function loadAll(cb){
+  var done = 2;
+  function check(){ if(--done===0 && cb) cb(); }
 
-/* ── STATE ── */
-var _rooms = [];
-var _reservations = [];
-var _currentFilter = 'all';
-var _planOffset = 0;   // days from today
-var _planDays = 14;
-var _formData = {step:1,room:null,dates:{},guest:{},payment:{}};
-var _roomImages = {};  // {roomId: [url,url,...]}
-var _activity = [];
+  sbGet('veraluz_units?select=*&order=name.asc').then(function(data){
+    _rooms = Array.isArray(data) ? data : [];
+    _rooms.forEach(function(r){
+      r._dynStatus = r.status==='active'?'available':r.status;
+      r._images = [];
+      try{
+        var imgs = localStorage.getItem('vlz_room_images_'+r.id);
+        if(imgs) r._images = JSON.parse(imgs);
+      }catch(e){}
+      if(!r._images.length) seedRoomImages(r);
+    });
+    try{ localStorage.setItem('vlz_cache_rooms', JSON.stringify(_rooms.map(function(r){
+      return {id:r.id,name:r.name,type:r.type,capacity:r.capacity,price:r.price,status:r.status,description:r.description};
+    }))); }catch(e){}
+    check();
+  }).catch(function(){
+    try{
+      var c=localStorage.getItem('vlz_cache_rooms');
+      if(c){ _rooms=JSON.parse(c); _rooms.forEach(function(r){ r._images=[]; seedRoomImages(r); }); }
+    }catch(e){}
+    check();
+  });
 
-/* ── SUPABASE HELPER ── */
-function sbFetch(path, opts) {
-  var url = SB_URL + '/rest/v1/' + path;
-  var headers = {
-    'apikey': SB_KEY,
-    'Authorization': 'Bearer ' + SB_KEY,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation'
-  };
-  if (opts && opts.headers) Object.assign(headers, opts.headers);
-  return fetch(url, Object.assign({headers:headers}, opts||{}));
+  sbGet('veraluz_reservations?select=*&order=created_at.desc&limit=200').then(function(data){
+    _rez = Array.isArray(data) ? data.map(norm) : [];
+    try{ localStorage.setItem('vlz_cache_rez', JSON.stringify(_rez)); }catch(e){}
+    check();
+  }).catch(function(){
+    try{ var c=localStorage.getItem('vlz_cache_rez'); if(c) _rez=JSON.parse(c).map(norm); }catch(e){}
+    check();
+  });
 }
 
-/* ── UNIT IMAGE PRELOADING ── */
-var UNIT_IMG_BASE = 'https://ngams237.github.io/veraluz-os/assets/unites/';
-// Keyword → images mapping (ordre : du plus spécifique au plus générique)
-var UNIT_IMG_MAP = [
-  {kw:'studio',      imgs:['studio_salon.jpg','studio_alt.jpg']},
-  {kw:'villa',       imgs:['villa_piscine.jpg','villa_loft.jpg']},
-  {kw:'suite',       imgs:['suite_salon.jpg','suite_art.jpg','suite_royal.jpg','suite_luxe.jpg']},
-  {kw:'appartement', imgs:['apt_salon.jpg','apt_mezzanine.jpg']},
-  {kw:'familial',    imgs:['apt_salon.jpg','apt_mezzanine.jpg']},
-  {kw:'vue mer',     imgs:['mer_salon.jpg','mer_entree.jpg']},
-  {kw:'mer',         imgs:['mer_salon.jpg','mer_entree.jpg']},
-  {kw:'standard',    imgs:['std_salon.jpg','std_duplex.jpg']},
-  {kw:'deluxe',      imgs:['studio_salon.jpg','studio_alt.jpg']},
-  {kw:'chambre',     imgs:['std_salon.jpg','std_duplex.jpg']},  // Chambre 101, 102...
-  {kw:'décor',       imgs:['decor_sofa.jpg','decor_buffet.jpg']}
+/* ── Images par défaut selon nom chambre ── */
+var IMG = 'https://ngams237.github.io/veraluz-os/assets/unites/';
+var IMG_MAP = [
+  {k:'studio',imgs:['studio_salon.jpg','studio_alt.jpg']},
+  {k:'suite',imgs:['suite_salon.jpg','suite_art.jpg','suite_royal.jpg']},
+  {k:'appartement',imgs:['apt_salon.jpg','apt_mezzanine.jpg']},
+  {k:'familial',imgs:['apt_salon.jpg','apt_mezzanine.jpg']},
+  {k:'villa',imgs:['villa_piscine.jpg','villa_loft.jpg']},
+  {k:'mer',imgs:['mer_salon.jpg','mer_entree.jpg']},
+  {k:'chambre',imgs:['std_salon.jpg','std_duplex.jpg']}
 ];
-function preloadRoomImages() {
-  _rooms.forEach(function(r) {
-    // Derive ikey from name if missing
-    if(!r.ikey) {
-      var n = (r.name||'').toLowerCase();
-      r.ikey = n.indexOf('studio')>=0?'studio'
-              :n.indexOf('villa')>=0?'villa'
-              :n.indexOf('suite')>=0?'suite'
-              :n.indexOf('appartement')>=0||n.indexOf('familial')>=0?'apt'
-              :n.indexOf('mer')>=0?'sea'
-              :'std';
+function seedRoomImages(r){
+  if(r._images && r._images.length) return;
+  var n=(r.name||'').toLowerCase();
+  for(var i=0;i<IMG_MAP.length;i++){
+    if(n.indexOf(IMG_MAP[i].k)>=0){
+      r._images = IMG_MAP[i].imgs.map(function(f){return IMG+f;});
+      try{ localStorage.setItem('vlz_room_images_'+r.id, JSON.stringify(r._images)); }catch(e){}
+      return;
     }
-    // Only seed if room has no images yet
-    if(r._images && r._images.length) return;
-    var n2 = (r.name||' ').toLowerCase() + ' ' + (r.type||'').toLowerCase();
-    for(var i=0;i<UNIT_IMG_MAP.length;i++){
-      if(n2.indexOf(UNIT_IMG_MAP[i].kw)>=0){
-        r._images = UNIT_IMG_MAP[i].imgs.map(function(f){return UNIT_IMG_BASE+f;});
-        localStorage.setItem('vlz_room_images_'+r.id, JSON.stringify(r._images));
-        break;
-      }
-    }
-    // Fallback absolu : images de chambre standard
-    if(!r._images || !r._images.length) {
-      r._images = [UNIT_IMG_BASE+'std_salon.jpg', UNIT_IMG_BASE+'std_duplex.jpg'];
-      localStorage.setItem('vlz_room_images_'+r.id, JSON.stringify(r._images));
-    }
-  });
+  }
+  r._images=[IMG+'std_salon.jpg'];
+  try{ localStorage.setItem('vlz_room_images_'+r.id, JSON.stringify(r._images)); }catch(e){}
 }
 
-/* ── DATA LOADING ── */
-function loadAll(cb) {
-  var pending = 2;
-  function done() { if(--pending===0 && cb) cb(); }
-  sbFetch('veraluz_units?select=*&order=name.asc')
-    .then(function(r){return r.json()})
-    .then(function(data){
-      _rooms = Array.isArray(data) ? data : [];
-      // Load saved images from localStorage
-      _rooms.forEach(function(r){
-        var saved = localStorage.getItem('vlz_room_images_'+r.id);
-        if(saved) try{ r._images = JSON.parse(saved); }catch(e){}
-        if(!r._images) r._images = [];
-        // Use existing image if available
-        if(!r._images.length && r.image_url) r._images = [r.image_url];
-      });
-      preloadRoomImages(); // seed default unit photos if room has no images yet
-      try{localStorage.setItem('vlz_cache_rooms', JSON.stringify(_rooms.map(function(r){return {id:r.id,name:r.name,status:r.status,price:r.price,capacity:r.capacity,type:r.type,description:r.description,amenities:r.amenities,image_url:r.image_url};})));}catch(e){}
-      done();
-    })
-    .catch(function(){
-      try{var c=localStorage.getItem('vlz_cache_rooms');if(c){_rooms=JSON.parse(c);_rooms.forEach(function(r){var saved=localStorage.getItem('vlz_room_images_'+r.id);if(saved)try{r._images=JSON.parse(saved);}catch(e){}if(!r._images)r._images=[];});preloadRoomImages();}}catch(e){_rooms=[];}
-      if(!_rooms.length)_rooms=[];
-      done();
-    });
-  sbFetch('veraluz_reservations?select=*&order=created_at.desc&limit=200')
-    .then(function(r){return r.json()})
-    .then(function(data){
-      var rawRes = Array.isArray(data) ? data : [];
-      _reservations = rawRes.map(normalizeRes);
-      // Cache pour persistance offline
-      try{localStorage.setItem('vlz_cache_res', JSON.stringify(_reservations));}catch(e){}
-      done();
-    })
-    .catch(function(){
-      // Fallback cache localStorage
-      try{var c=localStorage.getItem('vlz_cache_res');if(c)_reservations=JSON.parse(c).map(normalizeRes);}catch(e){_reservations=[];}
-      if(!_reservations.length)_reservations=[];
-      done();
-    });
-}
-
-function enrichRoomStatuses() {
+/* ── Enrichissement statuts chambre ── */
+function enrichStatuses(){
   var today = todayStr();
-  _rooms.forEach(function(room) {
-    var activeRes = _reservations.find(function(r){
-      return r.unit_id===room.id &&
-             (r.status==='checked_in' || (r.status==='confirmed' && r.check_in===today));
+  _rooms.forEach(function(room){
+    if(room.status==='maintenance'||room.status==='out_of_service'){ room._dynStatus=room.status; return; }
+    var active = _rez.find(function(r){
+      return r.unit_id===room.id && (r.status==='checkedin'||r.status==='checked_in'||(r.status==='confirmed'&&r.check_in===today));
     });
-    if(activeRes) {
-      room._dynStatus = activeRes.status==='checked_in' ? 'occupied' : 'reserved';
-    } else if(!room.status || room.status==='active') {
-      room._dynStatus = 'available';
-    } else {
-      room._dynStatus = room.status;
-    }
+    room._dynStatus = active ? (active.status==='checkedin'||active.status==='checked_in'?'occupied':'reserved') : 'available';
   });
 }
 
-/* ── DATE HELPERS ── */
-function todayStr() {
-  return new Date().toISOString().split('T')[0];
-}
-function addDays(dateStr, n) {
-  var d = new Date(dateStr+'T12:00:00');
-  d.setDate(d.getDate()+n);
-  return d.toISOString().split('T')[0];
-}
-function diffDays(a, b) {
-  return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/(86400000));
-}
-function fmtDate(dateStr) {
-  if(!dateStr) return '—';
-  var d = new Date(dateStr+'T12:00:00');
-  return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
-}
-function fmtDayName(dateStr) {
-  var d = new Date(dateStr+'T12:00:00');
-  return d.toLocaleDateString('fr-FR',{weekday:'short'}).replace('.','');
-}
-function fmtDayNum(dateStr) {
-  return new Date(dateStr+'T12:00:00').getDate();
-}
-
-/* ── TOAST ── */
-var _toastTimer = null;
-function showToast(msg, type) {
-  var el = document.getElementById('toastEl');
-  el.textContent = msg;
-  el.className = 'toast'+(type?' '+type:'');
-  el.style.display = 'block';
-  if(_toastTimer) clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(function(){ el.style.opacity='0'; setTimeout(function(){el.style.display='none';el.style.opacity='1';},300); }, 2800);
-}
-
-/* ── TABS ── */
-function goTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
-  document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active')});
-  var btn = document.getElementById('tab-'+name);
-  var pane = document.getElementById('pane-'+name);
-  if(btn) btn.classList.add('active');
-  if(pane) pane.classList.add('active');
-  if(name==='planning') renderPlanning();
-  if(name==='chambres') renderRooms();
-  if(name==='liste') renderRezList();
-  if(name==='dash') renderDashboard();
-  if(name==='nouvelle') renderNewForm();
-}
-
-/* ── MODALS ── */
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-/* ── EVENT BUS ── */
-function publishEvent(type, data) {
-  try {
-    var log = JSON.parse(localStorage.getItem('veraluz_event_log')||'[]');
-    log.unshift({id:'evt-'+Date.now(),type:type,from:'reservations-module',data:data,ts:new Date().toISOString()});
-    if(log.length>100) log = log.slice(0,100);
-    localStorage.setItem('veraluz_event_log', JSON.stringify(log));
-    // Also dispatch for same-page listeners
-    window.dispatchEvent(new CustomEvent('vlz:event', {detail:{type:type,data:data}}));
-  } catch(e){}
-}
-
-function listenEvents() {
-  window.addEventListener('vlz:event', function(e) {
-    var ev = e.detail;
-    if(ev && ev.type === 'housekeeping-done' && ev.data && ev.data.room_id) {
-      updateRoomStatusLocal(ev.data.room_id, 'available');
-      showToast('Chambre nettoyée — disponible', 'success');
-      renderRooms();
-    }
-    if(ev && ev.type === 'payment-validated' && ev.data && ev.data.reservation_id) {
-      var res = _reservations.find(function(r){return r.id===ev.data.reservation_id});
-      if(res && res.status==='pending') doConfirm(res.id);
-    }
-  });
-}
-
-/* ── WORKFLOW ENGINE ── */
-function doConfirm(resId) {
-  var res = _reservations.find(function(r){return r.id===resId});
-  if(!res) return;
-  sbFetch('veraluz_reservations?id=eq.'+resId, {
-    method:'PATCH',
-    body:JSON.stringify({status:'confirmed'})
-  }).then(function(){
-    res.status='confirmed';
-    updateRoomStatusLocal(res.unit_id, 'reserved');
-    addActivity('Réservation confirmée', res.guest_name, res.id, 'confirmed');
-    publishEvent('reservation-confirmed', {reservation_id:resId, unit_id:res.unit_id, guest:res.guest_name});
-    showToast('Réservation confirmée', 'success');
-    refresh();
-  }).catch(function(){
-    // Fallback: update locally
-    res.status='confirmed';
-    updateRoomStatusLocal(res.unit_id, 'reserved');
-    showToast('Confirmée (hors ligne)', 'success');
-    refresh();
-  });
-}
-
-function doCheckIn(resId) {
-  var res = _reservations.find(function(r){return r.id===resId});
-  if(!res) return;
-  if(!confirm('Check-in pour '+res.guest_name+' ?')) return;
-  sbFetch('veraluz_reservations?id=eq.'+resId, {
-    method:'PATCH',
-    body:JSON.stringify({status:'checkedin'})
-  }).then(function(){
-    res.status='checked_in';
-    updateRoomStatusLocal(res.unit_id, 'occupied');
-    addActivity('Check-in effectué', res.guest_name, res.id, 'checked_in');
-    publishEvent('checkin-done', {reservation_id:resId, unit_id:res.unit_id, guest:res.guest_name, room:res.unit_name});
-    showToast('Check-in — '+res.guest_name, 'success');
-    refresh();
-  }).catch(function(){
-    res.status='checked_in';
-    updateRoomStatusLocal(res.unit_id, 'occupied');
-    showToast('Check-in enregistré (hors ligne)', 'success');
-    refresh();
-  });
-}
-
-function doCheckOut(resId) {
-  var res = _reservations.find(function(r){return r.id===resId});
-  if(!res) return;
-  if(!confirm('Check-out pour '+res.guest_name+' — créer tâche ménage ?')) return;
-  sbFetch('veraluz_reservations?id=eq.'+resId, {
-    method:'PATCH',
-    body:JSON.stringify({status:'checkedout'})
-  }).then(function(){
-    res.status='checked_out';
-    updateRoomStatusLocal(res.unit_id, 'cleaning');
-    addActivity('Check-out + ménage créé', res.guest_name, res.id, 'checked_out');
-    // Create housekeeping task
-    publishEvent('checkout-done', {
-      reservation_id:resId, unit_id:res.unit_id,
-      guest:res.guest_name, room:res.unit_name,
-      task:'cleaning', priority:'high'
-    });
-    publishEvent('housekeeping-task-created', {
-      room_id:res.unit_id, room_name:res.unit_name,
-      task_type:'checkout_cleaning', created_from:'reservation'
-    });
-    showToast('Check-out — Tâche ménage créée', 'success');
-    refresh();
-  }).catch(function(){
-    res.status='checked_out';
-    updateRoomStatusLocal(res.unit_id, 'cleaning');
-    showToast('Check-out enregistré (hors ligne)', 'success');
-    refresh();
-  });
-}
-
-function doCancel(resId) {
-  var res = _reservations.find(function(r){return r.id===resId});
-  if(!res) return;
-  if(!confirm('Annuler la réservation de '+res.guest_name+' ?')) return;
-  sbFetch('veraluz_reservations?id=eq.'+resId, {
-    method:'PATCH',
-    body:JSON.stringify({status:'cancelled'})
-  }).then(function(){
-    res.status='cancelled';
-    updateRoomStatusLocal(res.unit_id, 'available');
-    addActivity('Réservation annulée', res.guest_name, res.id, 'cancelled');
-    publishEvent('reservation-cancelled', {reservation_id:resId, unit_id:res.unit_id});
-    showToast('Réservation annulée', '');
-    refresh();
-  }).catch(function(){
-    res.status='cancelled';
-    showToast('Annulation enregistrée (hors ligne)', '');
-    refresh();
-  });
-}
-
-function doMarkNoShow(resId) {
-  var res = _reservations.find(function(r){return r.id===resId});
-  if(!res) return;
-  if(!confirm('Marquer '+res.guest_name+' comme no-show ?')) return;
-  sbFetch('veraluz_reservations?id=eq.'+resId, {method:'PATCH',body:JSON.stringify({status:'no_show'})})
-    .then(function(){
-      res.status='no_show';
-      updateRoomStatusLocal(res.unit_id, 'available');
-      publishEvent('reservation-noshow', {reservation_id:resId, unit_id:res.unit_id});
-      showToast('No-show enregistré', '');
-      refresh();
-    }).catch(function(){res.status='no_show';refresh();});
-}
-
-function updateRoomStatusLocal(roomId, newStatus) {
-  var room = _rooms.find(function(r){return r.id===roomId});
-  if(room) {
-    room._dynStatus = newStatus;
-    room.status = newStatus;
-    // Persist to Supabase
-    sbFetch('veraluz_units?id=eq.'+roomId, {method:'PATCH', body:JSON.stringify({status:newStatus})})
-      .catch(function(){});
-    publishEvent('room-status-changed', {room_id:roomId, status:newStatus});
-  }
-}
-
-function setRoomStatus(roomId, status) {
-  updateRoomStatusLocal(roomId, status);
-  showToast('Statut mis à jour: '+(ROOM_STATUS[status]||{label:status}).label, 'success');
-  refresh();
-  closeModal('roomModal');
-}
-
-function addActivity(action, name, id, status) {
-  _activity.unshift({action:action, name:name, id:id, status:status, time:new Date()});
-  if(_activity.length>20) _activity.pop();
-}
-
-function refresh() {
-  enrichRoomStatuses();
+/* ── Refresh global ── */
+function refresh(){
+  enrichStatuses();
   var active = document.querySelector('.tab-btn.active');
-  if(active) {
-    var id = active.id.replace('tab-','');
-    if(id==='planning') renderPlanning();
-    else if(id==='chambres') renderRooms();
-    else if(id==='liste') renderRezList();
-    else if(id==='dash') renderDashboard();
-  }
+  if(active){ var id=active.id.replace('tab-',''); renderTab(id); }
   updateBadges();
 }
+function renderTab(id){
+  if(id==='dash') renderDash();
+  else if(id==='planning') renderPlanning();
+  else if(id==='chambres') renderRooms();
+  else if(id==='liste') renderRezList();
+  else if(id==='nouvelle') renderNewForm();
+}
+function updateBadges(){
+  var avail = _rooms.filter(function(r){return r._dynStatus==='available';}).length;
+  var el=document.getElementById('avail-badge');
+  if(el){el.textContent=avail; el.className='tbadge'+(avail>0?' ok':'');}
+  var pending = _rez.filter(function(r){return r.status==='pending';}).length;
+  var rb=document.getElementById('rez-badge');
+  if(rb){rb.textContent=pending; rb.style.display=pending>0?'':'none';}
+}
 
-function updateBadges() {
-  var avail = _rooms.filter(function(r){return r._dynStatus==='available'}).length;
-  var pending = _reservations.filter(function(r){return r.status==='pending'}).length;
-  var el = document.getElementById('avail-badge');
-  if(el) { el.textContent=avail; el.className='tbadge'+(avail>0?' ok':''); }
-  var rb = document.getElementById('rez-badge');
-  if(rb) { rb.textContent=pending; rb.style.display=pending>0?'':'none'; }
+/* ── Navigation tabs ── */
+function goTab(name){
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');});
+  var btn=document.getElementById('tab-'+name), pane=document.getElementById('pane-'+name);
+  if(btn) btn.classList.add('active');
+  if(pane) pane.classList.add('active');
+  renderTab(name);
 }
 
 /* ── DASHBOARD ── */
-function renderDashboard() {
-  var today = todayStr();
-  var arrivals = _reservations.filter(function(r){return r.check_in===today && (r.status==='confirmed'||r.status==='pending')}).length;
-  var departures = _reservations.filter(function(r){return r.check_out===today && r.status==='checked_in'}).length;
-  var occupied = _rooms.filter(function(r){return r._dynStatus==='occupied'}).length;
-  var total = _rooms.length || 1;
-  var pending = _reservations.filter(function(r){return r.status==='pending'}).length;
-  var el = function(id){return document.getElementById(id)};
-  if(el('st-arrivals')) el('st-arrivals').textContent = arrivals;
-  if(el('st-departures')) el('st-departures').textContent = departures;
-  if(el('st-occ')) el('st-occ').textContent = Math.round(occupied/total*100)+'%';
-  if(el('st-pending')) el('st-pending').textContent = pending;
-  // Activity feed
-  var feed = document.getElementById('activityFeed');
+function renderDash(){
+  var today=todayStr();
+  var arr=_rez.filter(function(r){return r.check_in===today&&(r.status==='confirmed'||r.status==='pending');}).length;
+  var dep=_rez.filter(function(r){return r.check_out===today&&(r.status==='checkedin'||r.status==='checked_in');}).length;
+  var occ=_rooms.filter(function(r){return r._dynStatus==='occupied';}).length;
+  var tot=_rooms.length||1;
+  var pend=_rez.filter(function(r){return r.status==='pending';}).length;
+  function se(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+  se('st-arrivals',arr); se('st-departures',dep);
+  se('st-occ',Math.round(occ/tot*100)+'%'); se('st-pending',pend);
+  var feed=document.getElementById('activityFeed');
   if(!feed) return;
-  if(!_activity.length) {
-    // Show recent reservations as activity
-    var recent = _reservations.slice(0,6);
-    feed.innerHTML = recent.map(function(r){
-      var s = RES_STATUS[r.status]||{label:r.status,color:'var(--text3)'};
-      return '<div class="act-item"><div class="act-dot" style="background:'+s.color+'"></div>'+
-        '<div><div class="act-text"><strong>'+escHtml(r.guest_name||'Inconnu')+'</strong> — '+(r.unit_name||'')+'</div>'+
-        '<div class="act-time">'+fmtDate(r.check_in)+' → '+fmtDate(r.check_out)+' · <span style="color:'+s.color+'">'+s.label+'</span></div></div></div>';
-    }).join('') || '<div class="empty-state"><p>Aucune réservation récente</p></div>';
-    return;
-  }
-  feed.innerHTML = _activity.map(function(a){
-    var s = RES_STATUS[a.status]||{label:a.status,color:'var(--text3)'};
+  var recent=_rez.slice(0,8);
+  if(!recent.length){feed.innerHTML='<div class="empty-state"><p>Aucune réservation</p></div>';return;}
+  feed.innerHTML=recent.map(function(r){
+    var s=statusInfo(r.status);
     return '<div class="act-item"><div class="act-dot" style="background:'+s.color+'"></div>'+
-      '<div><div class="act-text"><strong>'+escHtml(a.name)+'</strong> — '+a.action+'</div>'+
-      '<div class="act-time">'+timeAgo(a.time)+'</div></div></div>';
+      '<div><div class="act-text"><strong>'+esc(r.guest_name||'—')+'</strong> · '+esc(r.unit_name||unitName(r.unit_id))+'</div>'+
+      '<div class="act-time">'+fmtDate(r.check_in)+' → '+fmtDate(r.check_out)+' · <span style="color:'+s.color+'">'+s.label+'</span></div></div></div>';
   }).join('');
 }
 
-function timeAgo(date) {
-  var diff = Math.floor((Date.now()-date)/1000);
-  if(diff<60) return 'à l\'instant';
-  if(diff<3600) return 'il y a '+Math.floor(diff/60)+'min';
-  return 'il y a '+Math.floor(diff/3600)+'h';
-}
-
-/* ── PLANNING GANTT ── */
-function renderPlanning() {
-  var start = addDays(todayStr(), _planOffset);
-  var days = [];
-  for(var i=0;i<_planDays;i++) days.push(addDays(start,i));
-  var today = todayStr();
-  var label = fmtDate(days[0])+' → '+fmtDate(days[days.length-1]);
-  var pl = document.getElementById('planPeriodLabel');
-  if(pl) pl.textContent = label;
-
-  // Build lookup: {roomId: {date: [res,...]}}
-  var lookup = {};
-  _rooms.forEach(function(room){ lookup[room.id]={}; });
-  _reservations.forEach(function(res) {
-    if(!res.unit_id || !res.check_in || !res.check_out) return;
-    if(res.status==='cancelled') return;
-    var cur = res.check_in;
-    while(cur < res.check_out) {
-      if(lookup[res.unit_id]) {
-        if(!lookup[res.unit_id][cur]) lookup[res.unit_id][cur]=[];
-        lookup[res.unit_id][cur].push(res);
-      }
-      cur = addDays(cur,1);
-    }
-  });
-
-  var html = '<table class="gantt-table"><thead><tr>';
-  html += '<th class="gantt-th-room">Chambre</th>';
-  days.forEach(function(d){
-    var isToday = d===today;
-    html += '<th class="gantt-th-day'+(isToday?' today':'')+'">'+
-      '<span>'+fmtDayName(d)+'</span><span class="gantt-th-date">'+fmtDayNum(d)+'</span></th>';
-  });
-  html += '</tr></thead><tbody>';
-
-  _rooms.forEach(function(room) {
-    html += '<tr>';
-    html += '<td class="gantt-room-label"><div class="gantt-room-name">'+escHtml(room.name||'—')+'</div>'+
-      '<div class="gantt-room-type">'+(room.type||'Chambre')+'</div></td>';
-    days.forEach(function(d) {
-      var isToday = d===today;
-      var cellRez = lookup[room.id] && lookup[room.id][d] ? lookup[room.id][d][0] : null;
-      html += '<td class="gantt-cell'+(isToday?' today-col':'')+(cellRez?' gantt-cell-blocked':'')+'">';
-      if(cellRez) {
-        // Only show name on check_in day
-        var showName = cellRez.check_in===d;
-        html += '<div class="gantt-bar bar-'+cellRez.status+'" onclick="openRezModal(\''+cellRez.id+'\')" title="'+escHtml(cellRez.guest_name||'')+'">'+
-          (showName ? escHtml((cellRez.guest_name||'').split(' ')[0]) : '')+'</div>';
-      }
-      html += '</td>';
+/* ── PLANNING Gantt ── */
+function shiftPlan(n){ _planOffset+=n; renderPlanning(); }
+function renderPlanning(){
+  var DAYS=14, base=addDays(todayStr(),_planOffset), today=todayStr();
+  var days=[]; for(var d=0;d<DAYS;d++) days.push(addDays(base,d));
+  var lbl=document.getElementById('planPeriodLabel');
+  if(lbl) lbl.textContent=fmtDate(days[0])+' – '+fmtDate(days[DAYS-1]);
+  var wrap=document.getElementById('ganttWrap'); if(!wrap) return;
+  var h='<table class="gantt-table"><thead><tr><th class="gantt-room">Logement</th>';
+  days.forEach(function(d){ h+='<th class="gantt-cell'+(d===today?' today-col':'')+'">'+fmtDay(d)+'</th>'; });
+  h+='</tr></thead><tbody>';
+  _rooms.forEach(function(room){
+    h+='<tr><td class="gantt-room">'+esc(room.name||'?')+'</td>';
+    days.forEach(function(d){
+      var rz=_rez.find(function(r){return r.unit_id===room.id&&r.check_in<=d&&r.check_out>d;});
+      h+='<td class="gantt-cell'+(d===today?' today-col':'')+'">';
+      if(rz){ var s=statusInfo(rz.status); h+='<div class="gantt-bar" style="background:'+s.color+'" onclick="openRezModal(\''+rz.id+'\')" title="'+esc(rz.guest_name)+'">'+esc((rz.guest_name||'').split(' ')[0])+'</div>'; }
+      h+='</td>';
     });
-    html += '</tr>';
+    h+='</tr>';
   });
-  html += '</tbody></table>';
-  var wrap = document.getElementById('ganttWrap');
-  if(wrap) wrap.innerHTML = html;
+  h+='</tbody></table>';
+  wrap.innerHTML=h;
 }
 
-function shiftPlan(n) {
-  _planOffset += n;
-  renderPlanning();
-}
-
-/* ── ROOMS GRID ── */
-function renderRooms() {
-  var filter = document.getElementById('roomFilter');
-  var fval = filter ? filter.value : 'all';
-  var filtered = fval==='all' ? _rooms : _rooms.filter(function(r){return (r._dynStatus||'available')===fval});
-  var cnt = document.getElementById('roomCount');
-  if(cnt) cnt.textContent = filtered.length+' chambre'+(filtered.length!==1?'s':'');
-  var grid = document.getElementById('roomsGrid');
-  if(!grid) return;
-  if(!filtered.length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><p>Aucune chambre pour ce filtre</p></div>';
-    return;
-  }
-  grid.innerHTML = filtered.map(function(room) {
-    var st = room._dynStatus || 'available';
-    var stInfo = ROOM_STATUS[st] || {label:st, css:'rs-available'};
-    var imgs = room._images || [];
-    var imgHtml = imgs.length > 0
-      ? '<img class="room-img" src="'+escHtml(imgs[0])+'" alt="" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">'
-        +'<div class="room-img-placeholder" style="display:none">'+(ROOM_ICONS[room.ikey||'std']||'🏠')+'</div>'
-      : '<div class="room-img-placeholder">'+(ROOM_ICONS[room.ikey||'std']||'🏠')+'</div>';
-    var price = room.price ? (room.price).toLocaleString('fr-FR')+' FCFA/nuit' : '';
-    // Quick actions based on current status
-    var qbtns = '';
-    if(st==='available') qbtns += '<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'maintenance\')">🔧 Maintenance</button>';
-    if(st==='cleaning'||st==='dirty') qbtns += '<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'available\')">✓ Propre</button>';
-    if(st==='maintenance') qbtns += '<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'available\')">✓ Disponible</button>';
-    return '<div class="room-card" onclick="openRoomModal(\''+room.id+'\')">'+
-      imgHtml+
-      '<div class="room-body">'+
-        '<div class="room-name">'+escHtml(room.name||'Chambre')+'</div>'+
-        '<div class="room-meta">'+(room.type||'Chambre')+' · '+(room.capacity||2)+' pers. · '+price+'</div>'+
-        '<div class="room-status-bar">'+
-          '<span class="room-sbadge '+stInfo.css+'">'+stInfo.label+'</span>'+
-        '</div>'+
-        (qbtns?'<div class="room-quick-btns">'+qbtns+'</div>':'')+
-      '</div>'+
-    '</div>';
+/* ── CHAMBRES ── */
+function renderRooms(){
+  var fval=(document.getElementById('roomFilter')||{}).value||'all';
+  var list=fval==='all'?_rooms:_rooms.filter(function(r){return r._dynStatus===fval;});
+  var cnt=document.getElementById('roomCount'); if(cnt) cnt.textContent=list.length+' chambre'+(list.length!==1?'s':'');
+  var grid=document.getElementById('roomsGrid'); if(!grid) return;
+  if(!list.length){grid.innerHTML='<div class="empty-state"><p>Aucune chambre</p></div>';return;}
+  grid.innerHTML=list.map(function(room){
+    var st=room._dynStatus||'available', stI=ROOM_STATUS[st]||{label:st,css:'rs-available'};
+    var img=room._images&&room._images.length?'<img class="room-img" src="'+esc(room._images[0])+'" alt="" onerror="this.style.display=\'none\'">':'<div class="room-img-placeholder">🛏</div>';
+    var price=room.price?fmtMoney(room.price):'';
+    var qbtns='';
+    if(st==='available') qbtns+='<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'maintenance\')">🔧</button>';
+    if(st==='cleaning'||st==='dirty') qbtns+='<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'available\')">✓ Propre</button>';
+    if(st==='maintenance') qbtns+='<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'available\')">✓ Disponible</button>';
+    return '<div class="room-card" onclick="openRoomModal(\''+room.id+'\')">'
+      +img+'<div class="room-body"><div class="room-name">'+esc(room.name||'Chambre')+'</div>'
+      +'<div class="room-meta">'+(room.type||'Chambre')+' · '+(room.capacity||2)+' pers. · '+price+'</div>'
+      +'<div><span class="room-sbadge '+stI.css+'">'+stI.label+'</span></div>'
+      +(qbtns?'<div class="room-quick-btns">'+qbtns+'</div>':'')
+      +'</div></div>';
   }).join('');
 }
+var ROOM_STATUS={
+  available:{label:'Disponible',css:'rs-available'},
+  reserved:{label:'Réservée',css:'rs-reserved'},
+  occupied:{label:'Occupée',css:'rs-occupied'},
+  cleaning:{label:'Nettoyage',css:'rs-cleaning'},
+  dirty:{label:'Sale',css:'rs-cleaning'},
+  maintenance:{label:'Maintenance',css:'rs-maintenance'},
+  out_of_service:{label:'Hors service',css:'rs-out_of_service'}
+};
 
-/* ── ROOM MODAL ── */
-function openRoomModal(roomId) {
-  var room = _rooms.find(function(r){return r.id===roomId});
-  if(!room) return;
-  var st = room._dynStatus||'available';
-  var stInfo = ROOM_STATUS[st]||{label:st,css:'rs-available'};
-  var imgs = room._images||[];
-  var statusOptions = Object.keys(ROOM_STATUS).map(function(k){
-    return '<option value="'+k+'"'+(k===st?' selected':'')+'>'+ROOM_STATUS[k].label+'</option>';
-  }).join('');
-  var thumbs = imgs.map(function(url,i){
-    return '<div class="img-thumb"><img src="'+escHtml(url)+'" onerror="this.src=\'\'"><button class="img-thumb-del" onclick="removeRoomImg(\''+roomId+'\','+i+')">&#x2715;</button></div>';
-  }).join('');
-  document.getElementById('roomModalContent').innerHTML =
-    '<h2 class="modal-title">'+escHtml(room.name||'Chambre')+'</h2>'+
-    '<p class="modal-sub">'+(room.type||'Chambre')+' · '+(room.capacity||2)+' personnes · '+((room.price||0).toLocaleString('fr-FR'))+' FCFA/nuit</p>'+
-    '<div class="modal-section">'+
-      '<div class="modal-section-title">Statut</div>'+
-      '<select class="form-select" id="roomStatusSelect" onchange="setRoomStatus(\''+roomId+'\',this.value)">'+statusOptions+'</select>'+
-    '</div>'+
-    '<div class="modal-section">'+
-      '<div class="modal-section-title">Photos</div>'+
-      '<div class="img-manager">'+
-        '<div class="img-list" id="imgList-'+roomId+'">'+(thumbs||'<span style="color:var(--text3);font-size:12px">Aucune photo</span>')+'</div>'+
-        '<div class="img-add-row">'+
-          '<input class="img-url-input" id="imgUrlInput-'+roomId+'" placeholder="URL de la photo (https://...)">'+
-          '<button class="img-add-btn" onclick="addRoomImg(\''+roomId+'\')">Ajouter</button>'+
-        '</div>'+
-      '</div>'+
-    '</div>'+
-    '<div class="modal-section">'+
-      '<div class="modal-section-title">Réservations actives</div>'+
-      (function(){
-        var roomRez = _reservations.filter(function(r){return r.unit_id===roomId && ['pending','confirmed','checked_in'].includes(r.status)});
-        if(!roomRez.length) return '<p style="color:var(--text3);font-size:12px">Aucune réservation active</p>';
-        return roomRez.map(function(r){
-          var s = RES_STATUS[r.status]||{label:r.status,color:'var(--text3)'};
-          return '<div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:6px">'+
-            '<div style="font-weight:700;color:var(--text)">'+escHtml(r.guest_name||'—')+'</div>'+
-            '<div style="font-size:12px;color:var(--text2)">'+fmtDate(r.check_in)+' → '+fmtDate(r.check_out)+'</div>'+
-            '<div style="font-size:11px;color:'+s.color+'">'+s.label+'</div></div>';
-        }).join('');
-      })()+
-    '</div>';
-  openModal('roomModal');
-}
-
-function addRoomImg(roomId) {
-  var input = document.getElementById('imgUrlInput-'+roomId);
-  if(!input || !input.value.trim()) return;
-  var url = input.value.trim();
-  var room = _rooms.find(function(r){return r.id===roomId});
-  if(!room) return;
-  if(!room._images) room._images=[];
-  room._images.push(url);
-  localStorage.setItem('vlz_room_images_'+roomId, JSON.stringify(room._images));
-  // Also update Supabase image_url
-  sbFetch('veraluz_units?id=eq.'+roomId, {method:'PATCH', body:JSON.stringify({image_url:room._images[0]})}).catch(function(){});
-  input.value='';
-  showToast('Photo ajoutée', 'success');
-  openRoomModal(roomId); // refresh modal
-}
-
-function removeRoomImg(roomId, idx) {
-  var room = _rooms.find(function(r){return r.id===roomId});
-  if(!room||!room._images) return;
-  room._images.splice(idx,1);
-  localStorage.setItem('vlz_room_images_'+roomId, JSON.stringify(room._images));
-  if(room._images.length>0) {
-    sbFetch('veraluz_units?id=eq.'+roomId, {method:'PATCH', body:JSON.stringify({image_url:room._images[0]})}).catch(function(){});
-  }
-  showToast('Photo retirée', '');
-  openRoomModal(roomId);
-}
-
-/* ── RESERVATION LIST ── */
-function setRezFilter(f, btn) {
-  _currentFilter = f;
-  document.querySelectorAll('.rez-filter-btn').forEach(function(b){b.classList.remove('active')});
+/* ── LISTE RÉSERVATIONS ── */
+function setFilter(f,btn){
+  _filter=f;
+  document.querySelectorAll('.rez-filter-btn').forEach(function(b){b.classList.remove('active');});
   if(btn) btn.classList.add('active');
   renderRezList();
 }
-
-function renderRezList() {
-  var search = (document.getElementById('rezSearch')||{}).value || '';
-  var q = search.toLowerCase();
-  var filtered = _reservations.filter(function(r) {
-    if(_currentFilter!=='all' && r.status!==_currentFilter) return false;
-    if(!q) return true;
-    return (r.guest_name||'').toLowerCase().includes(q) ||
-           (r.reference||'').toLowerCase().includes(q) ||
-           (r.unit_name||'').toLowerCase().includes(q) ||
-           (r.guest_email||'').toLowerCase().includes(q);
+function renderRezList(){
+  var q=(document.getElementById('rezSearch')||{}).value||'';
+  q=q.toLowerCase();
+  var list=_rez.filter(function(r){
+    if(_filter!=='all'&&r.status!==_filter) return false;
+    if(q&&!(r.guest_name||'').toLowerCase().includes(q)&&!(r.guest_phone||'').toLowerCase().includes(q)&&!(r.unit_name||unitName(r.unit_id)||'').toLowerCase().includes(q)) return false;
+    return true;
   });
-  var list = document.getElementById('rezList');
-  if(!list) return;
-  if(!filtered.length) {
-    list.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Aucune réservation trouvée</p></div>';
-    return;
-  }
-  list.innerHTML = filtered.map(function(res) {
-    var s = RES_STATUS[res.status]||{label:res.status,badge:'rb-pending'};
-    var nights = diffDays(res.check_in||'',res.check_out||'');
-    var amount = (res.total_amount||0).toLocaleString('fr-FR');
-    var src = SOURCES[res.source]||res.source||'Réception';
-    // Action buttons
-    var actions = '';
-    if(res.status==='pending') actions += '<button class="act-btn btn-confirm" onclick="event.stopPropagation();doConfirm(\''+res.id+'\')"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Confirmer</button>';
-    if(res.status==='confirmed') {
-      actions += '<button class="act-btn btn-checkin" onclick="event.stopPropagation();doCheckIn(\''+res.id+'\')"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Check-in</button>';
-      actions += '<button class="act-btn btn-cancel" onclick="event.stopPropagation();doMarkNoShow(\''+res.id+'\')">No-show</button>';
-    }
-    if(res.status==='checked_in') actions += '<button class="act-btn btn-checkout" onclick="event.stopPropagation();doCheckOut(\''+res.id+'\')"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Check-out</button>';
-    if(['pending','confirmed'].includes(res.status)) actions += '<button class="act-btn btn-cancel" onclick="event.stopPropagation();doCancel(\''+res.id+'\')">Annuler</button>';
-    actions += '<button class="act-btn btn-view" onclick="event.stopPropagation();openRezModal(\''+res.id+'\')">Voir</button>';
-
-    return '<div class="rez-card" onclick="openRezModal(\''+res.id+'\')">'+
-      '<div class="rez-card-top">'+
-        '<div class="rez-status-stripe" style="background:'+s.color+'"></div>'+
-        '<div class="rez-main">'+
-          '<div class="rez-ref">'+(res.reference||'REZ-'+res.id.slice(-6))+'</div>'+
-          '<div class="rez-guest">'+escHtml(res.guest_name||'Inconnu')+'</div>'+
-          '<div class="rez-room-info">'+escHtml(res.unit_name||'—')+
-            (res.guest_count?' · '+res.guest_count+' pers.':'')+
-            ' <span class="rez-source-chip">'+src+'</span></div>'+
-        '</div>'+
-        '<span class="rez-badge '+s.badge+'">'+s.label+'</span>'+
-      '</div>'+
-      '<div class="rez-dates">'+
-        '<span><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'+fmtDate(res.check_in)+'</span>'+
-        '<span>→ '+fmtDate(res.check_out)+'</span>'+
-      '</div>'+
-      '<div class="rez-footer">'+
-        '<span class="rez-amount">'+amount+' FCFA</span>'+
-        '<span class="rez-nights">'+nights+' nuit'+(nights>1?'s':'')+'</span>'+
-        '<div class="rez-actions">'+actions+'</div>'+
-      '</div>'+
-    '</div>';
+  var el=document.getElementById('rezList'); if(!el) return;
+  if(!list.length){el.innerHTML='<div class="empty-state"><p>Aucune réservation</p></div>';return;}
+  el.innerHTML=list.map(function(r){
+    var s=statusInfo(r.status);
+    var actions='';
+    if(r.status==='pending') actions+='<button class="act-btn btn-confirm" onclick="event.stopPropagation();doConfirm(\''+r.id+'\')">Confirmer</button>';
+    if(r.status==='confirmed') actions+='<button class="act-btn btn-checkin" onclick="event.stopPropagation();doCheckIn(\''+r.id+'\')">Check-in</button>';
+    if(r.status==='checkedin'||r.status==='checked_in') actions+='<button class="act-btn btn-checkout" onclick="event.stopPropagation();doCheckOut(\''+r.id+'\')">Check-out</button>';
+    return '<div class="rez-card" onclick="openRezModal(\''+r.id+'\')">'+
+      '<span class="rez-sbadge '+s.badge+'">'+s.label+'</span>'+
+      '<div class="rez-info"><div class="rez-guest">'+esc(r.guest_name||'—')+'</div>'+
+      '<div class="rez-sub">'+esc(r.unit_name||unitName(r.unit_id)||'—')+' · '+fmtDate(r.check_in)+' → '+fmtDate(r.check_out)+(r.nights?' ('+r.nights+'n)':'')+'</div></div>'+
+      '<div class="rez-price">'+fmtMoney(r.total)+'</div>'+
+      '<div class="rez-actions">'+actions+'</div></div>';
   }).join('');
 }
 
-/* ── RESERVATION DETAIL MODAL ── */
-function openRezModal(resId) {
-  var res = _reservations.find(function(r){return r.id===resId});
-  if(!res) return;
-  var s = RES_STATUS[res.status]||{label:res.status,color:'var(--text3)'};
-  var nights = diffDays(res.check_in||'',res.check_out||'');
-  var timeline = buildTimeline(res.status);
-  var content =
-    '<h2 class="modal-title">'+escHtml(res.guest_name||'Inconnu')+'</h2>'+
-    '<p class="modal-sub">'+(res.reference||'REZ-'+res.id.slice(-6))+' · <span style="color:'+s.color+'">'+s.label+'</span></p>'+
-    '<div class="modal-section">'+
-      '<div class="modal-section-title">Détails du séjour</div>'+
-      '<div class="modal-info-grid">'+
-        '<div class="modal-info-item"><div class="modal-info-label">Chambre</div><div class="modal-info-value">'+escHtml(res.unit_name||'—')+'</div></div>'+
-        '<div class="modal-info-item"><div class="modal-info-label">Arrivée</div><div class="modal-info-value">'+fmtDate(res.check_in)+'</div></div>'+
-        '<div class="modal-info-item"><div class="modal-info-label">Départ</div><div class="modal-info-value">'+fmtDate(res.check_out)+'</div></div>'+
-        '<div class="modal-info-item"><div class="modal-info-label">Nuits</div><div class="modal-info-value">'+nights+'</div></div>'+
-        '<div class="modal-info-item"><div class="modal-info-label">Personnes</div><div class="modal-info-value">'+(res.guest_count||1)+'</div></div>'+
-        '<div class="modal-info-item"><div class="modal-info-label">Montant total</div><div class="modal-info-value" style="color:var(--accent2)">'+((res.total_amount||0).toLocaleString('fr-FR'))+' FCFA</div></div>'+
-        '<div class="modal-info-item"><div class="modal-info-label">Acompte</div><div class="modal-info-value">'+((res.deposit_amount||0).toLocaleString('fr-FR'))+' FCFA</div></div>'+
-        '<div class="modal-info-item"><div class="modal-info-label">Source</div><div class="modal-info-value">'+(SOURCES[res.source]||res.source||'Réception')+'</div></div>'+
-      '</div>'+
-    '</div>'+
-    '<div class="modal-section">'+
-      '<div class="modal-section-title">Contact</div>'+
-      '<div style="font-size:13px;color:var(--text2);display:flex;flex-direction:column;gap:4px">'+
-        (res.guest_email?'<a href="mailto:'+escHtml(res.guest_email)+'" style="color:var(--accent2)">'+escHtml(res.guest_email)+'</a>':'')+
-        (res.guest_phone?'<a href="tel:'+escHtml(res.guest_phone)+'" style="color:var(--accent2)">'+escHtml(res.guest_phone)+'</a>':'')+
-      '</div>'+
-    '</div>'+
-    '<div class="modal-section"><div class="modal-section-title">Progression</div>'+timeline+'</div>'+
-    '<div class="modal-actions">'+buildModalActions(res)+'</div>';
-  document.getElementById('rezModalContent').innerHTML = content;
+/* ── Statuts info ── */
+var STATUS_MAP={
+  pending:{label:'En attente',color:'var(--sp)',badge:'rb-pending'},
+  confirmed:{label:'Confirmée',color:'var(--sc)',badge:'rb-confirmed'},
+  checkedin:{label:'En cours',color:'var(--si)',badge:'rb-checkedin'},
+  checked_in:{label:'En cours',color:'var(--si)',badge:'rb-checkedin'},
+  checkedout:{label:'Terminée',color:'var(--so)',badge:'rb-checkedout'},
+  checked_out:{label:'Terminée',color:'var(--so)',badge:'rb-checkedout'},
+  cancelled:{label:'Annulée',color:'var(--sx)',badge:'rb-cancelled'},
+  no_show:{label:'No-show',color:'var(--sn)',badge:'rb-no_show'}
+};
+function statusInfo(s){ return STATUS_MAP[s]||{label:s||'?',color:'var(--text3)',badge:''}; }
+function unitName(id){ var r=_rooms.find(function(r){return r.id===id;}); return r?r.name:''; }
+
+/* ── Workflow ── */
+function doConfirm(id){
+  var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
+  sbPatch('veraluz_reservations?id=eq.'+id,{status:'confirmed'}).then(function(){
+    r.status='confirmed'; refresh(); toast('Réservation confirmée','success');
+  }).catch(function(){ r.status='confirmed'; refresh(); toast('Confirmée (hors ligne)'); });
+}
+function doCheckIn(id){
+  var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
+  if(!confirm('Check-in pour '+r.guest_name+' ?')) return;
+  sbPatch('veraluz_reservations?id=eq.'+id,{status:'checkedin'}).then(function(){
+    r.status='checkedin'; refresh(); toast('Check-in effectué','success');
+  }).catch(function(){ r.status='checkedin'; refresh(); toast('Check-in (hors ligne)'); });
+}
+function doCheckOut(id){
+  var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
+  if(!confirm('Check-out pour '+r.guest_name+' ?')) return;
+  sbPatch('veraluz_reservations?id=eq.'+id,{status:'checkedout'}).then(function(){
+    r.status='checkedout';
+    var room=_rooms.find(function(x){return x.id===r.unit_id;});
+    if(room) room._dynStatus='cleaning';
+    refresh(); toast('Check-out — ménage requis','success');
+  }).catch(function(){ r.status='checkedout'; refresh(); toast('Check-out (hors ligne)'); });
+}
+function doCancel(id){
+  var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
+  if(!confirm('Annuler la réservation ?')) return;
+  sbPatch('veraluz_reservations?id=eq.'+id,{status:'cancelled'}).then(function(){
+    r.status='cancelled'; closeModal('rezModal'); refresh(); toast('Réservation annulée');
+  }).catch(function(){ r.status='cancelled'; closeModal('rezModal'); refresh(); });
+}
+
+/* ── Statut chambre ── */
+function setRoomStatus(roomId,status){
+  var room=_rooms.find(function(r){return r.id===roomId;}); if(!room) return;
+  sbPatch('veraluz_units?id=eq.'+roomId,{status:status}).then(function(){
+    room._dynStatus=status; room.status=status;
+    closeModal('roomModal'); renderRooms(); toast('Statut mis à jour','success');
+  }).catch(function(){ room._dynStatus=status; closeModal('roomModal'); renderRooms(); });
+}
+
+/* ── Modals ── */
+function openRoomModal(roomId){
+  var room=_rooms.find(function(r){return r.id===roomId;}); if(!room) return;
+  var imgs=room._images||[];
+  var thumbs=imgs.map(function(url,i){
+    return '<div class="img-thumb"><img src="'+esc(url)+'" onerror="this.style.display=\'none\'"><button class="img-thumb-del" onclick="removeImg(\''+roomId+'\','+i+')">×</button></div>';
+  }).join('');
+  var statusOpts=Object.keys(ROOM_STATUS).map(function(k){
+    return '<option value="'+k+'"'+(room._dynStatus===k?' selected':'')+'>'+ROOM_STATUS[k].label+'</option>';
+  }).join('');
+  var roomRez=_rez.filter(function(r){return r.unit_id===roomId&&['pending','confirmed','checkedin','checked_in'].includes(r.status);});
+  var rezHtml=roomRez.length?roomRez.map(function(r){
+    var s=statusInfo(r.status);
+    return '<div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:6px"><div style="font-weight:700">'+esc(r.guest_name||'—')+'</div><div style="font-size:12px;color:var(--text2)">'+fmtFull(r.check_in)+' → '+fmtFull(r.check_out)+'</div><div style="font-size:11px;color:'+s.color+'">'+s.label+'</div></div>';
+  }).join(''):'<p style="color:var(--text3);font-size:12px">Aucune réservation active</p>';
+  document.getElementById('roomModalContent').innerHTML=
+    '<div class="modal-title">'+esc(room.name||'Chambre')+'</div>'+
+    '<div class="modal-sub">'+(room.type||'Chambre')+' · '+(room.capacity||2)+' pers. · '+fmtMoney(room.price)+'</div>'+
+    '<div class="modal-section"><div class="modal-section-title">Statut</div><select class="form-select" onchange="setRoomStatus(\''+roomId+'\',this.value)" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:7px 10px;width:100%">'+statusOpts+'</select></div>'+
+    '<div class="modal-section"><div class="modal-section-title">Photos</div><div class="img-list">'+
+    (thumbs||'<span style="color:var(--text3);font-size:12px">Aucune photo</span>')+
+    '</div><div class="img-add-row"><input class="img-url-input" id="imgInput-'+roomId+'" placeholder="URL photo…"><button class="img-add-btn" onclick="addImg(\''+roomId+'\')">+</button></div></div>'+
+    '<div class="modal-section"><div class="modal-section-title">Réservations actives</div>'+rezHtml+'</div>';
+  openModal('roomModal');
+}
+function addImg(roomId){
+  var inp=document.getElementById('imgInput-'+roomId); if(!inp||!inp.value.trim()) return;
+  var room=_rooms.find(function(r){return r.id===roomId;}); if(!room) return;
+  room._images.push(inp.value.trim());
+  try{localStorage.setItem('vlz_room_images_'+roomId,JSON.stringify(room._images));}catch(e){}
+  inp.value=''; toast('Photo ajoutée','success'); openRoomModal(roomId);
+}
+function removeImg(roomId,idx){
+  var room=_rooms.find(function(r){return r.id===roomId;}); if(!room) return;
+  room._images.splice(idx,1);
+  try{localStorage.setItem('vlz_room_images_'+roomId,JSON.stringify(room._images));}catch(e){}
+  toast('Photo retirée'); openRoomModal(roomId);
+}
+function openRezModal(rezId){
+  var r=_rez.find(function(x){return x.id===rezId;}); if(!r) return;
+  var s=statusInfo(r.status);
+  var actions='';
+  if(r.status==='pending') actions+='<button class="act-btn btn-confirm" onclick="doConfirm(\''+r.id+'\')">Confirmer</button>';
+  if(r.status==='confirmed') actions+='<button class="act-btn btn-checkin" onclick="doCheckIn(\''+r.id+'\')">Check-in</button>';
+  if(r.status==='checkedin'||r.status==='checked_in') actions+='<button class="act-btn btn-checkout" onclick="doCheckOut(\''+r.id+'\')">Check-out</button>';
+  if(['pending','confirmed'].includes(r.status)) actions+='<button class="act-btn btn-cancel" onclick="doCancel(\''+r.id+'\')">Annuler</button>';
+  document.getElementById('rezModalContent').innerHTML=
+    '<div class="modal-title">'+esc(r.guest_name||'—')+'</div>'+
+    '<div class="modal-sub"><span class="rez-sbadge '+s.badge+'" style="display:inline-block">'+s.label+'</span></div>'+
+    '<div class="modal-section"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px">'+
+    '<div><div style="color:var(--text2);font-size:11px">Logement</div><div style="font-weight:600">'+esc(r.unit_name||unitName(r.unit_id)||'—')+'</div></div>'+
+    '<div><div style="color:var(--text2);font-size:11px">Clients</div><div style="font-weight:600">'+(r.guests||1)+' pers.</div></div>'+
+    '<div><div style="color:var(--text2);font-size:11px">Arrivée</div><div style="font-weight:600">'+fmtFull(r.check_in)+'</div></div>'+
+    '<div><div style="color:var(--text2);font-size:11px">Départ</div><div style="font-weight:600">'+fmtFull(r.check_out)+'</div></div>'+
+    '<div><div style="color:var(--text2);font-size:11px">Total</div><div style="font-weight:700;color:var(--gold)">'+fmtMoney(r.total)+'</div></div>'+
+    '<div><div style="color:var(--text2);font-size:11px">Payé</div><div style="font-weight:700;color:var(--success)">'+fmtMoney(r.paid)+'</div></div>'+
+    '</div></div>'+
+    (r.guest_phone||r.guest_email?'<div class="modal-section"><div style="font-size:12px;color:var(--text2)">📞 '+esc(r.guest_phone||'—')+'  ✉ '+esc(r.guest_email||'—')+'</div></div>':'')+
+    (r.notes?'<div class="modal-section"><div class="modal-section-title">Notes</div><div style="font-size:13px;color:var(--text2)">'+esc(r.notes)+'</div></div>':'')+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">'+actions+'</div>';
   openModal('rezModal');
 }
 
-function buildTimeline(status) {
-  var steps = [
-    {key:'pending',    label:'En attente'},
-    {key:'confirmed',  label:'Confirmée'},
-    {key:'checked_in', label:'Check-in effectué'},
-    {key:'checked_out',label:'Check-out / Terminée'}
-  ];
-  var order = {pending:0,confirmed:1,checked_in:2,checked_out:3,cancelled:-1,no_show:-1};
-  var cur = order[status]||0;
-  var html = '<div class="timeline">';
-  steps.forEach(function(step, i) {
-    var stepOrder = order[step.key];
-    var isDone = cur > stepOrder;
-    var isCurrent = cur === stepOrder;
-    var isLast = i===steps.length-1;
-    html += '<div class="tl-item">'+
-      '<div class="tl-dot-wrap">'+
-        '<div class="tl-dot'+(isDone?' done':'')+(isCurrent?' current':'')+'"></div>'+
-        (!isLast?'<div class="tl-line'+(isDone?' done':'')+'"></div>':'')+
-      '</div>'+
-      '<div class="tl-content">'+
-        '<div class="tl-label'+(isDone?' done':'')+(isCurrent?' current':'')+'">'+step.label+'</div>'+
-        (isCurrent?'<div class="tl-time">Statut actuel</div>':'')+
-      '</div>'+
-    '</div>';
+/* ── NOUVELLE RÉSERVATION ── */
+function renderNewForm(){
+  var step=_nf.step||1;
+  var dots=['sdot-1','sdot-2','sdot-3','sdot-4'];
+  dots.forEach(function(id,i){
+    var el=document.getElementById(id);
+    if(el) el.className='step-dot'+(i<step?' done':'');
   });
-  if(status==='cancelled') html += '<div style="color:var(--danger);font-size:13px;padding:8px 0">✗ Réservation annulée</div>';
-  if(status==='no_show') html += '<div style="color:var(--sn);font-size:13px;padding:8px 0">✗ No-show enregistré</div>';
-  html += '</div>';
-  return html;
+  var el=document.getElementById('formSteps'); if(!el) return;
+  if(step===1) el.innerHTML=buildStep1();
+  else if(step===2) el.innerHTML=buildStep2();
+  else if(step===3) el.innerHTML=buildStep3();
+  else if(step===4) el.innerHTML=buildStep4();
 }
-
-function buildModalActions(res) {
-  var btns = '';
-  if(res.status==='pending') {
-    btns += '<button class="modal-action-btn btn-confirm" onclick="doConfirm(\''+res.id+'\');closeModal(\'rezModal\')"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Confirmer</button>';
-    btns += '<button class="modal-action-btn btn-cancel" onclick="doCancel(\''+res.id+'\');closeModal(\'rezModal\')">Annuler</button>';
-  }
-  if(res.status==='confirmed') {
-    btns += '<button class="modal-action-btn btn-checkin" onclick="doCheckIn(\''+res.id+'\');closeModal(\'rezModal\')"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>Check-in</button>';
-    btns += '<button class="modal-action-btn btn-cancel" onclick="doMarkNoShow(\''+res.id+'\');closeModal(\'rezModal\')">No-show</button>';
-    btns += '<button class="modal-action-btn btn-cancel" onclick="doCancel(\''+res.id+'\');closeModal(\'rezModal\')">Annuler</button>';
-  }
-  if(res.status==='checked_in') {
-    btns += '<button class="modal-action-btn btn-checkout" onclick="doCheckOut(\''+res.id+'\');closeModal(\'rezModal\')"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Check-out</button>';
-  }
-  if(res.status==='checked_out') {
-    btns += '<button class="modal-action-btn btn-view" style="background:var(--bg3);color:var(--text2);border:1px solid var(--border2)">Séjour terminé</button>';
-  }
-  return btns;
+function buildStep1(){
+  return '<div class="form-section"><p class="section-title">Étape 1 — Dates</p>'+
+    '<label class="form-label">Arrivée</label><input class="form-input" type="date" id="nf-ci" value="'+((_nf.check_in)||'')+'">'+
+    '<label class="form-label" style="margin-top:10px">Départ</label><input class="form-input" type="date" id="nf-co" value="'+((_nf.check_out)||'')+'">'+
+    '<label class="form-label" style="margin-top:10px">Voyageurs</label><input class="form-input" type="number" id="nf-guests" min="1" max="12" value="'+(_nf.guests||2)+'">'+
+    '</div><button class="btn-primary" onclick="nfNext1()">Suivant →</button>';
 }
-
-/* ── NEW RESERVATION FORM ── */
-var _nfStep = 1;
-var _nfData = {room_id:null,room:null,check_in:'',check_out:'',guests:2,
-  guest_name:'',guest_email:'',guest_phone:'',
-  payment_method:'cash',deposit:0,source:'reception',notes:''};
-
-function resetNewForm() {
-  _nfStep = 1;
-  _nfData = {room_id:null,room:null,check_in:'',check_out:'',guests:2,
-    guest_name:'',guest_email:'',guest_phone:'',
-    payment_method:'cash',deposit:0,source:'reception',notes:''};
+function nfNext1(){
+  var ci=document.getElementById('nf-ci').value, co=document.getElementById('nf-co').value, g=Number(document.getElementById('nf-guests').value)||1;
+  if(!ci||!co||ci>=co){toast('Dates invalides','danger');return;}
+  _nf.check_in=ci; _nf.check_out=co; _nf.guests=g; _nf.step=2; renderNewForm();
+}
+function buildStep2(){
+  var avail=_rooms.filter(function(r){return r._dynStatus==='available';});
+  if(!avail.length) return '<div class="form-section"><p style="color:var(--text2);text-align:center;padding:20px">Aucun logement disponible pour ces dates.</p></div><button class="btn-secondary" onclick="_nf.step=1;renderNewForm()">← Retour</button>';
+  var n=diffDays(_nf.check_in,_nf.check_out);
+  return '<div class="form-section"><p class="section-title">Étape 2 — Choisir le logement ('+n+' nuit'+(n>1?'s':'')+')</p>'+
+    avail.map(function(r){
+      var total=r.price*n;
+      return '<div class="room-option'+((_nf.unit_id===r.id)?' selected':'')+'" onclick="nfSelectRoom(\''+r.id+'\','+r.price+',\''+esc(r.name||'')+'\')">'
+        +'<span class="room-option-price">'+fmtMoney(total)+'</span>'
+        +'<div class="room-option-name">'+esc(r.name||'Chambre')+'</div>'
+        +'<div class="room-option-meta">'+(r.type||'')+(r.capacity?' · '+r.capacity+' pers.':'')+'</div>'
+        +'</div>';
+    }).join('')+'</div>'+
+    '<div class="form-nav"><button class="btn-secondary" onclick="_nf.step=1;renderNewForm()">← Retour</button>'+
+    (_nf.unit_id?'<button class="btn-primary" style="flex:1" onclick="_nf.step=3;renderNewForm()">Suivant →</button>':'')+'</div>';
+}
+function nfSelectRoom(id,price,name){
+  _nf.unit_id=id; _nf.price=price; _nf.unit_name=name;
+  _nf.nights=diffDays(_nf.check_in,_nf.check_out);
+  _nf.total=price*_nf.nights;
   renderNewForm();
 }
-
-function renderNewForm() {
-  var steps = ['Dates','Chambre','Client','Confirmation'];
-  var indHtml = '';
-  steps.forEach(function(s,i){
-    var n = i+1;
-    var cls = n<_nfStep?'done':n===_nfStep?'active':'';
-    indHtml += '<div class="step-dot '+cls+'">'+n+'</div>';
-    if(i<steps.length-1) indHtml += '<div class="step-line'+(n<_nfStep?' done':'')+'"></div>';
+function buildStep3(){
+  return '<div class="form-section"><p class="section-title">Étape 3 — Client</p>'+
+    '<label class="form-label">Nom complet *</label><input class="form-input" id="nf-name" value="'+esc(_nf.guest_name||'')+'" placeholder="Prénom Nom">'+
+    '<label class="form-label" style="margin-top:10px">Téléphone</label><input class="form-input" id="nf-phone" value="'+esc(_nf.guest_phone||'')+'" placeholder="+237 6XX XXX XXX">'+
+    '<label class="form-label" style="margin-top:10px">Email</label><input class="form-input" id="nf-email" value="'+esc(_nf.guest_email||'')+'" placeholder="email@exemple.com">'+
+    '</div><div class="form-nav"><button class="btn-secondary" onclick="_nf.step=2;renderNewForm()">← Retour</button><button class="btn-primary" style="flex:1" onclick="nfNext3()">Suivant →</button></div>';
+}
+function nfNext3(){
+  var name=document.getElementById('nf-name').value.trim();
+  if(!name){toast('Nom requis','danger');return;}
+  _nf.guest_name=name;
+  _nf.guest_phone=(document.getElementById('nf-phone').value||'').trim();
+  _nf.guest_email=(document.getElementById('nf-email').value||'').trim();
+  _nf.step=4; renderNewForm();
+}
+function buildStep4(){
+  return '<div class="form-section"><p class="section-title">Étape 4 — Confirmation</p>'+
+    '<div style="display:grid;gap:8px;font-size:13px">'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Logement</span><strong>'+esc(_nf.unit_name)+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Client</span><strong>'+esc(_nf.guest_name)+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Arrivée</span><strong>'+fmtFull(_nf.check_in)+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Départ</span><strong>'+fmtFull(_nf.check_out)+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:var(--text2)">Durée</span><strong>'+_nf.nights+' nuit'+(_nf.nights>1?'s':'')+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:8px"><span style="color:var(--text2)">Total</span><strong style="color:var(--gold)">'+fmtMoney(_nf.total)+'</strong></div>'+
+    '</div>'+
+    '<label class="form-label" style="margin-top:14px">Source</label><select class="form-input" id="nf-source"><option value="reception">Réception</option><option value="whatsapp">WhatsApp</option><option value="site">Site web</option><option value="phone">Téléphone</option></select>'+
+    '<label class="form-label" style="margin-top:10px">Notes</label><textarea class="form-input" id="nf-notes" rows="2" placeholder="Demandes spéciales…">'+esc(_nf.notes||'')+'</textarea>'+
+    '</div><div class="form-nav"><button class="btn-secondary" onclick="_nf.step=3;renderNewForm()">← Retour</button><button class="btn-primary" style="flex:1" onclick="nfSubmit()">✓ Enregistrer</button></div>';
+}
+function nfSubmit(){
+  _nf.source=(document.getElementById('nf-source')||{}).value||'reception';
+  _nf.notes=(document.getElementById('nf-notes')||{}).value||'';
+  var sbData=toSb({
+    unit_id:_nf.unit_id, guest_name:_nf.guest_name, guest_email:_nf.guest_email, guest_phone:_nf.guest_phone,
+    guests:_nf.guests, check_in:_nf.check_in, check_out:_nf.check_out, nights:_nf.nights,
+    total:_nf.total, paid:0, status:'pending', source:_nf.source, notes:_nf.notes
   });
-  var si = document.getElementById('stepIndicator');
-  if(si) si.innerHTML = indHtml;
-  var fs = document.getElementById('formSteps');
-  if(!fs) return;
-  if(_nfStep===1) {
-    var today = todayStr();
-    var tomorrow = addDays(today,1);
-    fs.innerHTML = '<div class="form-step active">'+
-      '<div class="form-step-title">Dates et voyageurs</div>'+
-      '<div class="form-step-sub">Sélectionnez la période de séjour</div>'+
-      '<div class="form-row">'+
-        '<div class="form-group"><label>Arrivée</label>'+
-          '<input class="form-input" type="date" id="nf-ci" value="'+(_nfData.check_in||today)+'" min="'+today+'"></div>'+
-        '<div class="form-group"><label>Départ</label>'+
-          '<input class="form-input" type="date" id="nf-co" value="'+(_nfData.check_out||tomorrow)+'" min="'+tomorrow+'"></div>'+
-      '</div>'+
-      '<div class="form-group"><label>Nombre de voyageurs</label>'+
-        '<input class="form-input" type="number" id="nf-guests" value="'+_nfData.guests+'" min="1" max="10"></div>'+
-      '<div class="form-group"><label>Source de réservation</label>'+
-        '<select class="form-select" id="nf-source">'+
-          Object.keys(SOURCES).map(function(k){return '<option value="'+k+'"'+(k===_nfData.source?' selected':'')+'>'+SOURCES[k]+'</option>'}).join('')+
-        '</select></div>'+
-      '<div class="form-btns"><button class="btn-next" onclick="nfStep1()">Choisir la chambre →</button></div>'+
-    '</div>';
-  } else if(_nfStep===2) {
-    var nights = diffDays(_nfData.check_in, _nfData.check_out);
-    // Filter available rooms for selected dates
-    var avail = _rooms.filter(function(r){
-      var busy = _reservations.some(function(res){
-        if(res.unit_id!==r.id) return false;
-        if(['cancelled','checked_out'].includes(res.status)) return false;
-        return res.check_in < _nfData.check_out && res.check_out > _nfData.check_in;
-      });
-      return !busy;
-    });
-    var cardsHtml = avail.map(function(r){
-      var imgs = r._images||[];
-      var imgSrc = imgs.length>0 ? 'src="'+escHtml(imgs[0])+'"' : '';
-      return '<div class="rp-card" data-rid="'+r.id+'" onclick="nfSelectRoom(\''+r.id+'\')">'+
-        (imgSrc?'<img class="rp-img" '+imgSrc+' onerror="this.style.display=\'none\'">':'<div class="rp-img" style="display:flex;align-items:center;justify-content:center;font-size:24px">'+(ROOM_ICONS[r.ikey||'std']||'🏠')+'</div>')+
-        '<div class="rp-name">'+escHtml(r.name)+'</div>'+
-        '<div class="rp-price">'+((r.price||0).toLocaleString('fr-FR'))+' FCFA/nuit</div>'+
-        '<div class="rp-status">'+((r.price||0)*nights).toLocaleString('fr-FR')+' FCFA · '+nights+'n</div>'+
-      '</div>';
-    }).join('') || '<div class="empty-state"><p>Aucune chambre disponible pour ces dates</p></div>';
-    fs.innerHTML = '<div class="form-step active">'+
-      '<div class="form-step-title">Choisir une chambre</div>'+
-      '<div class="form-step-sub">'+fmtDate(_nfData.check_in)+' → '+fmtDate(_nfData.check_out)+' · '+nights+' nuit'+(nights>1?'s':'')+'</div>'+
-      '<div class="room-picker-grid">'+cardsHtml+'</div>'+
-      '<div class="form-btns">'+
-        '<button class="btn-back" onclick="_nfStep=1;renderNewForm()">← Retour</button>'+
-      '</div>'+
-    '</div>';
-  } else if(_nfStep===3) {
-    fs.innerHTML = '<div class="form-step active">'+
-      '<div class="form-step-title">Informations client</div>'+
-      '<div class="form-group"><label>Nom complet *</label>'+
-        '<input class="form-input" id="nf-name" value="'+escHtml(_nfData.guest_name)+'" placeholder="Prénom Nom"></div>'+
-      '<div class="form-row">'+
-        '<div class="form-group"><label>Email</label>'+
-          '<input class="form-input" type="email" id="nf-email" value="'+escHtml(_nfData.guest_email)+'" placeholder="email@exemple.com"></div>'+
-        '<div class="form-group"><label>Téléphone</label>'+
-          '<input class="form-input" type="tel" id="nf-phone" value="'+escHtml(_nfData.guest_phone)+'" placeholder="+237 6XX XXX XXX"></div>'+
-      '</div>'+
-      '<div class="form-row">'+
-        '<div class="form-group"><label>Mode de paiement</label>'+
-          '<select class="form-select" id="nf-pm">'+
-            '<option value="cash"'+(''==='cash'?' selected':'')+'>Espèces</option>'+
-            '<option value="orange_money">Orange Money</option>'+
-            '<option value="mtn_momo">MTN MoMo</option>'+
-            '<option value="virement">Virement</option>'+
-            '<option value="card">Carte bancaire</option>'+
-          '</select></div>'+
-        '<div class="form-group"><label>Acompte (FCFA)</label>'+
-          '<input class="form-input" type="number" id="nf-deposit" value="'+(_nfData.deposit||'')+'" placeholder="0"></div>'+
-      '</div>'+
-      '<div class="form-group"><label>Demandes particulières</label>'+
-        '<textarea class="form-textarea" id="nf-notes" rows="2" placeholder="Lit bébé, arrivée tardive...">'+escHtml(_nfData.notes)+'</textarea></div>'+
-      '<div class="form-btns">'+
-        '<button class="btn-back" onclick="_nfStep=2;renderNewForm()">← Retour</button>'+
-        '<button class="btn-next" onclick="nfStep3()">Récapitulatif →</button>'+
-      '</div>'+
-    '</div>';
-  } else if(_nfStep===4) {
-    var nights2 = diffDays(_nfData.check_in, _nfData.check_out);
-    var total = (_nfData.room?(_nfData.room.price||0):0)*nights2;
-    fs.innerHTML = '<div class="form-step active">'+
-      '<div class="form-step-title">Récapitulatif</div>'+
-      '<div class="form-summary-box">'+
-        '<div class="summary-row"><span>Client</span><span>'+escHtml(_nfData.guest_name)+'</span></div>'+
-        '<div class="summary-row"><span>Chambre</span><span>'+escHtml(_nfData.room?_nfData.room.name:'—')+'</span></div>'+
-        '<div class="summary-row"><span>Arrivée</span><span>'+fmtDate(_nfData.check_in)+'</span></div>'+
-        '<div class="summary-row"><span>Départ</span><span>'+fmtDate(_nfData.check_out)+'</span></div>'+
-        '<div class="summary-row"><span>Nuits</span><span>'+nights2+'</span></div>'+
-        '<div class="summary-row"><span>Voyageurs</span><span>'+_nfData.guests+'</span></div>'+
-        '<div class="summary-row"><span>Source</span><span>'+(SOURCES[_nfData.source]||_nfData.source)+'</span></div>'+
-        '<div class="summary-row"><span>Paiement</span><span>'+_nfData.payment_method+'</span></div>'+
-        '<div class="summary-row"><span>Acompte</span><span>'+(_nfData.deposit||0).toLocaleString('fr-FR')+' FCFA</span></div>'+
-        '<div class="summary-row"><span>TOTAL</span><span>'+total.toLocaleString('fr-FR')+' FCFA</span></div>'+
-      '</div>'+
-      '<div class="form-btns">'+
-        '<button class="btn-back" onclick="_nfStep=3;renderNewForm()">← Retour</button>'+
-        '<button class="btn-submit" onclick="nfSubmit()">✓ Enregistrer la réservation</button>'+
-      '</div>'+
-    '</div>';
-  }
+  sbPost('veraluz_reservations',sbData).then(function(data){
+    var saved=Array.isArray(data)?data[0]:data;
+    var newR=Object.assign({},sbData,{id:(saved&&saved.id)||'local-'+Date.now()});
+    newR=norm(newR); newR.unit_name=_nf.unit_name;
+    _rez.unshift(newR);
+    try{localStorage.setItem('vlz_cache_rez',JSON.stringify(_rez));}catch(e){}
+    toast('Réservation créée !','success');
+    _nf={step:1}; refresh(); goTab('liste');
+  }).catch(function(){
+    var newR=norm(Object.assign({},sbData,{id:'local-'+Date.now(),unit_name:_nf.unit_name}));
+    _rez.unshift(newR);
+    toast('Enregistré localement','success');
+    _nf={step:1}; refresh(); goTab('liste');
+  });
 }
 
-function nfStep1() {
-  var ci = document.getElementById('nf-ci');
-  var co = document.getElementById('nf-co');
-  var g = document.getElementById('nf-guests');
-  var src = document.getElementById('nf-source');
-  if(!ci||!co||!ci.value||!co.value) { showToast('Sélectionnez les dates','error'); return; }
-  if(ci.value>=co.value) { showToast('La date de départ doit être après l\'arrivée','error'); return; }
-  _nfData.check_in = ci.value;
-  _nfData.check_out = co.value;
-  _nfData.guests = parseInt(g?g.value:2)||2;
-  _nfData.source = src?src.value:'reception';
-  _nfStep=2; renderNewForm();
+/* ── Sync Booking Engine ── */
+function checkBkSync(){
+  try{
+    var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
+    var badge=document.getElementById('syncBadge');
+    var cnt=document.getElementById('syncCount');
+    if(badge) badge.style.display=sync.length?'':'none';
+    if(cnt) cnt.textContent=sync.length;
+  }catch(e){}
 }
-
-function nfSelectRoom(roomId) {
-  var room = _rooms.find(function(r){return r.id===roomId});
-  if(!room) return;
-  _nfData.room_id = roomId;
-  _nfData.room = room;
-  // Highlight selection
-  document.querySelectorAll('.rp-card').forEach(function(c){c.classList.remove('selected')});
-  var card = document.querySelector('[data-rid="'+roomId+'"]');
-  if(card) card.classList.add('selected');
-  setTimeout(function(){ _nfStep=3; renderNewForm(); }, 250);
-}
-
-function nfStep3() {
-  var name = document.getElementById('nf-name');
-  if(!name||!name.value.trim()) { showToast('Le nom du client est requis','error'); return; }
-  _nfData.guest_name = name.value.trim();
-  var email = document.getElementById('nf-email');
-  var phone = document.getElementById('nf-phone');
-  var pm = document.getElementById('nf-pm');
-  var dep = document.getElementById('nf-deposit');
-  var notes = document.getElementById('nf-notes');
-  if(email) _nfData.guest_email = email.value.trim();
-  if(phone) _nfData.guest_phone = phone.value.trim();
-  if(pm) _nfData.payment_method = pm.value;
-  if(dep) _nfData.deposit = parseFloat(dep.value)||0;
-  if(notes) _nfData.notes = notes.value.trim();
-  _nfStep=4; renderNewForm();
-}
-
-function nfSubmit() {
-  var nights = diffDays(_nfData.check_in, _nfData.check_out);
-  var total = (_nfData.room?(_nfData.room.price||0):0)*nights;
-  var ref = 'VLZ-'+Date.now().toString(36).toUpperCase().slice(-6);
-  var newRes = {
-    reference: ref,
-    unit_id: _nfData.room_id,
-    unit_name: _nfData.room ? _nfData.room.name : '',
-    guest_name: _nfData.guest_name,
-    guest_email: _nfData.guest_email,
-    guest_phone: _nfData.guest_phone,
-    guest_count: _nfData.guests,
-    check_in: _nfData.check_in,
-    check_out: _nfData.check_out,
-    nights: nights,
-    total_amount: total,
-    deposit_amount: _nfData.deposit,
-    amount_paid: _nfData.deposit,
-    payment_method: _nfData.payment_method,
-    status: 'pending',
-    source: _nfData.source,
-    special_requests: _nfData.notes,
-    created_at: new Date().toISOString()
-  };
-  sbFetch('veraluz_reservations', {method:'POST', body:JSON.stringify(toSbRes(newRes))})
-    .then(function(r){return r.json()})
-    .then(function(data){
-      var saved = Array.isArray(data)?data[0]:data;
-      if(saved && saved.id) newRes.id = saved.id;
-      else newRes.id = 'local-'+Date.now();
-      _reservations.unshift(newRes);
-      updateRoomStatusLocal(_nfData.room_id, 'reserved');
-      addActivity('Nouvelle réservation', newRes.guest_name, newRes.id, 'pending');
-      publishEvent('reservation-created', {reservation_id:newRes.id, guest:newRes.guest_name, room:newRes.unit_name, check_in:newRes.check_in, check_out:newRes.check_out});
-      showToast('Réservation créée — '+ref, 'success');
-      resetNewForm();
-      refresh();
-      goTab('liste');
-    })
-    .catch(function(){
-      // Save locally anyway
-      newRes.id = 'local-'+Date.now();
-      _reservations.unshift(newRes);
-      addActivity('Nouvelle réservation (hors ligne)', newRes.guest_name, newRes.id, 'pending');
-      publishEvent('reservation-created', {reservation_id:newRes.id, guest:newRes.guest_name, room:newRes.unit_name});
-      showToast('Réservation enregistrée localement', 'success');
-      resetNewForm();
-      refresh();
-      goTab('liste');
-    });
-}
-
-/* ── BOOKING ENGINE SYNC ── */
-function checkBookingEngineSync() {
-  try {
-    var sync = JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
-    if(!sync.length) return;
-    var badge = document.getElementById('syncBadge');
-    var cnt = document.getElementById('syncCount');
-    if(badge) badge.style.display='';
-    if(cnt) cnt.textContent = sync.length;
-  } catch(e) {}
-}
-
-function openSyncModal() {
-  try {
-    var sync = JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
-    var list = document.getElementById('syncModalList');
-    if(!list) return;
-    if(!sync.length) {
-      list.innerHTML = '<p style="color:var(--text2);font-size:13px;text-align:center;padding:20px">Aucune réservation en attente depuis le site web</p>';
+function openSyncModal(){
+  try{
+    var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
+    var list=document.getElementById('syncModalList'); if(!list) return;
+    if(!sync.length){
+      list.innerHTML='<p style="color:var(--text2);text-align:center;padding:20px">Aucune réservation en attente</p>';
       openModal('syncModal'); return;
     }
-    list.innerHTML = sync.map(function(s,i){
-      return '<div style="background:var(--bg3);border-radius:var(--radius);padding:14px;margin-bottom:10px">'+
-        '<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:4px">'+escHtml(s.guest_name||'Inconnu')+'</div>'+
-        '<div style="font-size:13px;color:var(--text2)">'+escHtml(s.unit_name||'—')+' · '+fmtDate(s.check_in)+' → '+fmtDate(s.check_out)+'</div>'+
-        '<div style="font-size:13px;color:var(--accent2);font-weight:700;margin:4px 0">'+((s.total_amount||0).toLocaleString('fr-FR'))+' FCFA</div>'+
-        '<div style="display:flex;gap:8px;margin-top:10px">'+
-          '<button style="flex:1;background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3);padding:8px;border-radius:8px;font-weight:700;cursor:pointer" onclick="importSyncRez('+i+')">✓ Importer</button>'+
-          '<button style="flex:1;background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2);padding:8px;border-radius:8px;font-weight:700;cursor:pointer" onclick="dismissSync('+i+')">✗ Ignorer</button>'+
-        '</div>'+
-      '</div>';
+    list.innerHTML=sync.map(function(s,i){
+      return '<div class="sync-item"><div class="sync-item-name">'+esc(s.guest_name||'—')+'</div>'+
+        '<div class="sync-item-sub">'+esc(s.unit_name||'—')+' · '+fmtDate(s.check_in)+' → '+fmtDate(s.check_out)+'</div>'+
+        '<div class="sync-item-price">'+fmtMoney(s.total_amount||0)+'</div>'+
+        '<div class="sync-item-btns"><button class="btn-import" onclick="importSync('+i+')">✓ Importer</button>'+
+        '<button class="btn-dismiss" onclick="dismissSync('+i+')">✗ Ignorer</button></div></div>';
     }).join('');
     openModal('syncModal');
-  } catch(e) {}
+  }catch(e){}
+}
+function importSync(i){
+  try{
+    var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
+    var s=sync[i]; if(!s) return;
+    _nf={step:1,check_in:s.check_in,check_out:s.check_out,guests:s.guests||1,
+         unit_id:s.unit_id,unit_name:s.unit_name,price:s.price||0,
+         guest_name:s.guest_name,guest_email:s.guest_email,guest_phone:s.guest_phone,
+         nights:diffDays(s.check_in,s.check_out),total:s.total_amount||0,step:4};
+    sync.splice(i,1);
+    localStorage.setItem('vlz_booking_sync',JSON.stringify(sync));
+    closeModal('syncModal'); goTab('nouvelle'); checkBkSync();
+  }catch(e){}
+}
+function dismissSync(i){
+  try{
+    var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
+    sync.splice(i,1);
+    localStorage.setItem('vlz_booking_sync',JSON.stringify(sync));
+    openSyncModal(); checkBkSync();
+  }catch(e){}
 }
 
 /* ── INIT ── */
-document.addEventListener('DOMContentLoaded', function() {
-  // Onglet par défaut
+document.addEventListener('DOMContentLoaded', function(){
   goTab('dash');
-  // Charger toutes les données Supabase
-  loadAll(function() {
+  loadAll(function(){
+    enrichStatuses();
     refresh();
-    checkBookingEngineSync();
+    checkBkSync();
   });
 });
 </script>

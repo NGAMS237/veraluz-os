@@ -1282,8 +1282,11 @@ function renderUnitForm(u, selectedAmens){
 
     '<div class="form-group"><label class="form-label-p">Photos</label>'+
     '<div class="photos-grid" id="edit-photos-grid">'+photosHtml+'</div>'+
-    '<div class="photo-add-row"><input class="photo-url-inp" id="edit-photo-url" placeholder="URL de la photo…">'+
-    '<button class="btn-add-photo" onclick="addEditPhoto()">+ Ajouter</button></div></div>'+
+    '<div class="photo-add-row">'+
+    '<input class="photo-url-inp" id="edit-photo-url" placeholder="Coller une URL de photo…">'+
+    '<button class="btn-add-photo" onclick="addEditPhoto()">+ URL</button>'+
+    '<label class="btn-add-photo" style="cursor:pointer;background:#5a6474;margin-left:4px">📁 Fichier<input type="file" accept="image/*" style="display:none" onchange="addEditPhotoFile(this)"></label>'+
+    '</div></div>'+
 
     '<div style="display:flex;gap:8px;margin-top:14px">'+
     '<button class="btn-save-p" style="flex:1;margin-top:0" onclick="saveUnitFull()">'+(_editUnitId?'✓ Enregistrer les modifications':'✓ Créer l\'unité')+'</button>'+
@@ -1295,6 +1298,12 @@ function addEditPhoto(){
   var inp = document.getElementById('edit-photo-url'); if(!inp||!inp.value.trim()) return;
   _editPhotos.push(inp.value.trim()); inp.value='';
   refreshEditPhotosGrid();
+}
+function addEditPhotoFile(inp){
+  if(!inp||!inp.files||!inp.files[0]) return;
+  var reader=new FileReader();
+  reader.onload=function(e){ _editPhotos.push(e.target.result); refreshEditPhotosGrid(); inp.value=''; };
+  reader.readAsDataURL(inp.files[0]);
 }
 function removeEditPhoto(i){
   _editPhotos.splice(i,1);
@@ -1392,10 +1401,10 @@ function saveSettings(){
   _settings.currency     =(document.getElementById('p-currency')||{}).value||'FCFA';
   _settings.whatsapp     =(document.getElementById('p-wa')||{}).value||'';
   _settings.breakfast_price=parseFloat((document.getElementById('p-bkf')||{}).value||0);
-  _settings.transfer_price =parseFloat((document.getElementById('p-trf')||{}).value||0);
+  _settings.transfer_price =parseFloat((documument.getElementById('p-trf')||{}).value||0);
   _settings.tax_pct        =parseFloat((document.getElementById('p-tax')||{}).value||0);
   try{localStorage.setItem('vlz_settings',JSON.stringify(_settings));}catch(e){}
-  toast('Paramètres sauvegardés ✓','success');
+  toast('Param\u00e8tres sauvegard\u00e9s \u2713','success');
 }
 
 /* ── INIT ── */

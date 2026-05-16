@@ -233,6 +233,8 @@ a{text-decoration:none;color:inherit}
 .rbadge svg{width:10px;height:10px}
 .rbadge.ok{background:rgba(16,185,129,.88);color:#fff}
 .rbadge.na{background:rgba(239,68,68,.82);color:#fff}
+.rbadge-info{position:absolute;bottom:10px;left:10px;right:10px;z-index:2;font-size:10px;font-weight:600;
+  background:rgba(0,0,0,.6);color:#fde68a;padding:4px 8px;border-radius:8px;text-align:center;backdrop-filter:blur(4px)}
 .rbody{padding:20px}
 .rrow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
 .rname{font-size:17px;font-weight:700;color:var(--navy)}
@@ -788,8 +790,34 @@ var _conf = {};
 function sbGet(t,q){ return fetch(SB+'/rest/v1/'+t+'?'+q,{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.ok?r.json():[];}).catch(function(){return [];}); }
 function sbPost(t,d){ return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(d)}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;}); }
 
+var _activeRez = []; // réservations actives chargées au démarrage
+
+function unavailInfo(room) {
+  // Cherche une réservation active sur cette unité
+  var today = new Date().toISOString().slice(0,10);
+  var future = _activeRez.filter(function(rz){
+    return rz.unit_id === room.id && rz.check_out >= today;
+  }).sort(function(a,b){return a.check_out > b.check_out ? 1 : -1;});
+  if(future.length) {
+    var lastOut = future[future.length-1].check_out;
+    var d = new Date(lastOut+'T12:00:00');
+    var label = d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+    return 'Disponible à partir du '+label;
+  }
+  if(room._rawStatus==='maintenance') return 'En maintenance — contactez-nous';
+  if(room._rawStatus==='out_of_service') return 'Hors service temporairement';
+  return 'Indisponible — contactez-nous';
+}
+
+
 function loadRooms() {
-  sbGet('veraluz_units','select=*&order=price.asc').then(function(data) {
+  // Charger unités ET réservations actives en parallèle
+  Promise.all([
+    sbGet('veraluz_units','select=*&order=price.asc'),
+    sbGet('veraluz_reservations','select=unit_id,check_in,check_out,status&status=in.(pending,confirmed,checkedin)&order=check_in.asc')
+  ]).then(function(results) {
+    var data = results[0];
+    _activeRez = Array.isArray(results[1]) ? results[1] : [];
     var rooms = (data && data.length > 0) ? data.map(function(u) {
       var ikeys = ['std','sea','apt','suite','villa','studio'];
       var n = (u.name||'').toLowerCase();
@@ -803,10 +831,14 @@ function loadRooms() {
       var cat = CATALOG.find(function(c){return c.ikey===ik;});
       return {id:u.id,name:u.name||'Logement',ikey:ik,type:u.type||'chambre',price:u.price||0,capacity:u.capacity||2,
               img:cat?cat.img:'', gradient:cat?cat.gradient:'linear-gradient(135deg,#023047,#0a3d5c)',
-              desc:u.description||'',amenities:Array.isArray(u.amenities)?u.amenities:[],avail:avail};
+              desc:u.description||u.description||'',amenities:Array.isArray(u.amenities)?u.amenities:[],
+              avail:avail, _rawStatus:u.status};
     }) : CATALOG;
     _map = {}; rooms.forEach(function(r){_map[r.id]=r;});
     renderRooms(rooms);
+  }).catch(function(){
+    _map = {}; CATALOG.forEach(function(r){_map[r.id]=r;});
+    renderRooms(CATALOG);
   });
 }
 
@@ -825,7 +857,9 @@ function renderRooms(rooms) {
     else{h+='<div class="rthumb-icon">'+icon+'</div>';}
     h+='<span class="rbadge '+(r.avail?'ok':'na')+'">';
     h+='<svg viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>';
-    h+=(r.avail?'Disponible':'Indisponible')+'</span></div>';
+    h+=(r.avail?'Disponible':'Indisponible')+'</span>';
+    if(!r.avail){h+='<span class="rbadge-info">'+unavailInfo(r)+'</span>';}
+    h+='</div>';
     h+='<div class="rbody"><div class="rrow"><div><div class="rname">'+r.name+'</div>';
     h+='<div class="rcap"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>';
     h+=r.type+' · max '+r.capacity+'</div></div>';

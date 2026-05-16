@@ -793,7 +793,12 @@ function loadRooms() {
     var rooms = (data && data.length > 0) ? data.map(function(u) {
       var ikeys = ['std','sea','apt','suite','villa','studio'];
       var n = (u.name||'').toLowerCase();
-      var ik = n.indexOf('mer')>=0?'sea':n.indexOf('suite')>=0?'suite':n.indexOf('villa')>=0?'villa':n.indexOf('apt')>=0?'apt':n.indexOf('studio')>=0?'studio':'std';
+      var ik = n.indexOf('studio')>=0||n.indexOf('deluxe')>=0?'studio'
+              :n.indexOf('villa')>=0?'villa'
+              :n.indexOf('suite')>=0||n.indexOf('présidentielle')>=0||n.indexOf('presidentielle')>=0?'suite'
+              :n.indexOf('appartement')>=0||n.indexOf('apt')>=0||n.indexOf('familial')>=0?'apt'
+              :n.indexOf('mer')>=0?'sea'
+              :'std';
       var avail = u.status==='available'||u.status==='active';
       var cat = CATALOG.find(function(c){return c.ikey===ik;});
       return {id:u.id,name:u.name||'Logement',ikey:ik,type:u.type||'chambre',price:u.price||0,capacity:u.capacity||2,
@@ -1092,5 +1097,10 @@ function toggleMob(){document.getElementById('navmob').classList.toggle('open');
 function closeMob(){document.getElementById('navmob').classList.remove('open');document.getElementById('burger').classList.remove('open');}
 window.addEventListener('scroll',function(){document.getElementById('nav').classList.toggle('stuck',window.scrollY>50);},{passive:true});
 
-// ── Hero: stars ──
-// ── I
+// ── Init ──
+document.addEventListener('DOMContentLoaded', function() {
+  loadRooms();
+});
+</script>
+</body>
+</html>

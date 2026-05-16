@@ -2,1016 +2,1654 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Paiements — Veraluz OS</title>
 <style>
-/* ── Hérite des variables CSS du Core ─────────────────────────── */
 :root {
-  --bg:      #0d0d1a; --bg2: #11112a; --bg3: #181830; --bg4: #1e1e3a;
-  --bg-hover:#252546;
-  --border:  rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
-  --accent:  #6c63ff; --accent2: #8b7fff; --accent3: #a89dff;
-  --success: #22d3a5; --warning: #f59e0b; --danger: #f43f5e; --info: #38bdf8;
-  --text:    #e8e6ff; --text2: #9990cc; --text3: #5a5580;
-  --radius:  10px;
+  --bg:#0d0d1a;--bg2:#11112a;--bg3:#181830;--bg4:#1e1e3a;--bg-hover:#252546;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --accent:#6c63ff;--accent2:#8b7fff;--accent3:#a89dff;
+  --success:#22d3a5;--warning:#f59e0b;--danger:#f43f5e;--info:#38bdf8;
+  --gold:#d4af37;
+  --text:#e8e6ff;--text2:#9990cc;--text3:#5a5580;
+  --radius:10px;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;height:100%;overflow:hidden}
 
-html, body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  font-size: 14px;
-  height: 100%;
-  overflow: hidden;
-}
+/* ── Shell ── */
+.pay-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.pay-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;gap:10px}
+.pay-header h1{font-size:16px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.pay-header h1 svg{opacity:.7}
+.hdr-actions{display:flex;gap:8px;align-items:center}
 
-/* ── Layout principal ──────────────────────────────────────────── */
-.pm-shell {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
-}
+/* ── Tabs ── */
+.pay-tabs{display:flex;gap:2px;padding:10px 12px 0;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none}
+.pay-tabs::-webkit-scrollbar{display:none}
+.pay-tab{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:8px 8px 0 0;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);border:none;background:none;white-space:nowrap;transition:all .15s;border-bottom:2px solid transparent}
+.pay-tab:hover{color:var(--text);background:var(--bg3)}
+.pay-tab.active{color:var(--accent2);border-bottom-color:var(--accent);background:var(--bg3)}
+.pay-tab .tbadge{background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:20px;min-width:16px;text-align:center}
+.pay-tab .tbadge.warn{background:var(--warning)}
 
-/* ── Tabs ──────────────────────────────────────────────────────── */
-.pm-tabs {
-  display: flex;
-  gap: 2px;
-  padding: 10px 12px 0;
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  overflow-x: auto;
-  flex-shrink: 0;
-  scrollbar-width: none;
-}
-.pm-tabs::-webkit-scrollbar { display: none; }
-.pm-tab {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 14px;
-  border-radius: 8px 8px 0 0;
-  font-size: 12px; font-weight: 600;
-  cursor: pointer; color: var(--text2);
-  border: none; background: none;
-  white-space: nowrap;
-  transition: all .18s;
-  border-bottom: 2px solid transparent;
-}
-.pm-tab:hover { color: var(--text); background: var(--bg3); }
-.pm-tab.active { color: var(--accent2); border-bottom-color: var(--accent); background: var(--bg3); }
-.pm-tab .badge {
-  background: var(--accent); color: #fff;
-  font-size: 10px; font-weight: 700;
-  padding: 1px 5px; border-radius: 20px;
-}
+/* ── Content ── */
+.pay-content{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 12px}
+.pay-pane{display:none}.pay-pane.active{display:block}
 
-/* ── Contenu ────────────────────────────────────────────────────── */
-.pm-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; }
-.pm-pane { display: none; }
-.pm-pane.active { display: block; }
+/* ── Toolbar ── */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.search-wrap{flex:1;min-width:180px;display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px}
+.search-wrap svg{color:var(--text3);flex-shrink:0}
+.search-wrap input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:100%}
+.search-wrap input::placeholder{color:var(--text3)}
+.filter-sel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:12px;padding:7px 10px;cursor:pointer;outline:none}
+.filter-sel:focus{border-color:var(--accent)}
 
-/* ── Barre filtres / recherche ─────────────────────────────────── */
-.pm-toolbar {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  align-items: center; margin-bottom: 14px;
-}
-.pm-search {
-  flex: 1; min-width: 180px;
-  display: flex; align-items: center; gap: 8px;
-  background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: var(--radius); padding: 7px 12px;
-}
-.pm-search input {
-  background: none; border: none; outline: none;
-  color: var(--text); font-size: 13px; width: 100%;
-}
-.pm-search input::placeholder { color: var(--text3); }
-.pm-filter {
-  background: var(--bg3); border: 1px solid var(--border2);
-  color: var(--text2); border-radius: var(--radius);
-  padding: 7px 12px; font-size: 12px; cursor: pointer;
-  outline: none;
-}
-.pm-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 7px 14px; border-radius: var(--radius);
-  font-size: 12px; font-weight: 600; cursor: pointer; border: none;
-  transition: all .15s; white-space: nowrap;
-}
-.pm-btn-primary { background: var(--accent); color: #fff; }
-.pm-btn-primary:hover { background: var(--accent2); }
-.pm-btn-ghost { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
-.pm-btn-ghost:hover { background: var(--bg4); color: var(--text); }
-.pm-btn-success { background: rgba(34,211,165,.15); color: var(--success); border: 1px solid rgba(34,211,165,.3); }
-.pm-btn-danger  { background: rgba(244,63,94,.12); color: var(--danger); border: 1px solid rgba(244,63,94,.3); }
-.pm-btn-warning { background: rgba(245,158,11,.12); color: var(--warning); border: 1px solid rgba(245,158,11,.3); }
-.pm-btn-sm { padding: 5px 10px; font-size: 11px; }
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}.btn-ghost:hover{color:var(--text);border-color:var(--border2);background:var(--bg3)}
+.btn-success{background:var(--success);color:#000}.btn-success:hover{opacity:.85}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{opacity:.85}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:7px}
+.btn-icon{padding:6px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}
+.btn-icon:hover{color:var(--text);border-color:var(--border2)}
 
-/* ── KPI Cards ─────────────────────────────────────────────────── */
-.pm-kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px; margin-bottom: 14px;
-}
-.pm-kpi {
-  background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 12px; padding: 14px;
-}
-.pm-kpi-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
-.pm-kpi-val   { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
-.pm-kpi-sub   { font-size: 11px; color: var(--text2); margin-top: 4px; }
-.pm-kpi.success .pm-kpi-val { color: var(--success); }
-.pm-kpi.warning .pm-kpi-val { color: var(--warning); }
-.pm-kpi.danger  .pm-kpi-val { color: var(--danger); }
-.pm-kpi.accent  .pm-kpi-val { color: var(--accent2); }
+/* ── Stat Cards ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.stat-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.green::before{background:var(--success)}
+.stat-card.yellow::before{background:var(--warning)}
+.stat-card.red::before{background:var(--danger)}
+.stat-card.blue::before{background:var(--info)}
+.stat-card.purple::before{background:var(--accent)}
+.stat-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.stat-val{font-size:20px;font-weight:800;color:var(--text)}
+.stat-sub{font-size:10px;color:var(--text2)}
+.stat-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);opacity:.08;font-size:36px}
 
-/* ── Table ─────────────────────────────────────────────────────── */
-.pm-card {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 12px; overflow: hidden; margin-bottom: 14px;
-}
-.pm-card-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px; border-bottom: 1px solid var(--border);
-}
-.pm-card-title { font-size: 13px; font-weight: 700; color: var(--text); }
-.pm-table-wrap { overflow-x: auto; }
-table.pm-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.pm-table th {
-  text-align: left; padding: 10px 14px;
-  color: var(--text3); font-size: 10px; text-transform: uppercase;
-  letter-spacing: .06em; font-weight: 600;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg3); white-space: nowrap;
-}
-.pm-table td {
-  padding: 10px 14px; border-bottom: 1px solid var(--border);
-  color: var(--text2); vertical-align: middle;
-}
-.pm-table tr:last-child td { border-bottom: none; }
-.pm-table tr:hover td { background: var(--bg-hover); color: var(--text); }
-.pm-table td:first-child { color: var(--text); font-weight: 600; }
+/* ── Cards & Lists ── */
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;transition:border-color .15s;cursor:default}
+.card:hover{border-color:var(--border2)}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.card-title{font-size:14px;font-weight:600;color:var(--text)}
+.card-sub{font-size:11px;color:var(--text2);margin-top:2px}
+.card-body{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.card-actions{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.card-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.card-row:last-child{border:none}
+.card-row .label{color:var(--text2)}
+.card-row .value{font-weight:600;color:var(--text)}
 
-/* ── Badges statut ─────────────────────────────────────────────── */
-.pm-badge {
-  display:inline-flex; align-items:center; gap:3px;
-  padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700;
-}
-.pm-badge.ok      { background:rgba(34,211,165,.15); color:#22d3a5; border:1px solid rgba(34,211,165,.3); }
-.pm-badge.pending { background:rgba(245,158,11,.15); color:#f59e0b; border:1px solid rgba(245,158,11,.3); }
-.pm-badge.failed  { background:rgba(244,63,94,.12);  color:#f43f5e; border:1px solid rgba(244,63,94,.25); }
-.pm-badge.refund  { background:rgba(129,140,248,.15);color:#818cf8; border:1px solid rgba(129,140,248,.3); }
-.pm-badge.review  { background:rgba(56,189,248,.12); color:#38bdf8; border:1px solid rgba(56,189,248,.25); }
+/* ── Badges ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge-green{background:rgba(34,211,165,.15);color:var(--success)}
+.badge-yellow{background:rgba(245,158,11,.15);color:var(--warning)}
+.badge-red{background:rgba(244,63,94,.15);color:var(--danger)}
+.badge-blue{background:rgba(56,189,248,.15);color:var(--info)}
+.badge-purple{background:rgba(108,99,255,.15);color:var(--accent2)}
+.badge-gray{background:rgba(255,255,255,.07);color:var(--text2)}
 
-/* ── Méthode paiement ──────────────────────────────────────────── */
-.pm-method {
-  display:inline-flex; align-items:center; gap:5px; font-size:11px;
-  font-weight:600; padding:2px 8px; border-radius:20px;
-}
-.pm-method.m-orange  { background:rgba(249,115,22,.15); color:#f97316; }
-.pm-method.m-yellow  { background:rgba(234,179,8,.15);  color:#ca8a04; }
-.pm-method.m-green   { background:rgba(34,197,94,.15);  color:#16a34a; }
-.pm-method.m-blue    { background:rgba(59,130,246,.15); color:#2563eb; }
-.pm-method.m-purple  { background:rgba(168,85,247,.15); color:#9333ea; }
-.pm-method .dot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-}
-.dot-orange { background: #f97316; }
-.dot-yellow { background: #eab308; }
-.dot-green  { background: var(--success); }
-.dot-blue   { background: var(--info); }
-.dot-purple { background: var(--accent); }
+/* ── Amount display ── */
+.amount{font-size:16px;font-weight:800;color:var(--text)}
+.amount.positive{color:var(--success)}
+.amount.negative{color:var(--danger)}
+.amount-sm{font-size:13px;font-weight:700}
 
-/* ── Actions rapides (boutons ligne table) ─────────────────────── */
-.pm-row-actions { display: flex; gap: 5px; }
+/* ── Progress bar ── */
+.progress-wrap{background:var(--bg4);border-radius:20px;height:6px;overflow:hidden;margin-top:6px}
+.progress-bar{height:100%;border-radius:20px;background:var(--accent);transition:width .4s}
+.progress-bar.full{background:var(--success)}
+.progress-bar.low{background:var(--danger)}
 
-/* ── Formulaire modal ──────────────────────────────────────────── */
-.pm-modal-overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.6); z-index: 100;
-  align-items: center; justify-content: center; padding: 16px;
-}
-.pm-modal-overlay.open { display: flex; }
-.pm-modal {
-  background: var(--bg2); border: 1px solid var(--border2);
-  border-radius: 16px; width: 100%; max-width: 480px;
-  max-height: 90vh; overflow-y: auto;
-}
-.pm-modal-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid var(--border);
-}
-.pm-modal-title { font-size: 15px; font-weight: 700; }
-.pm-modal-close {
-  background: none; border: none; cursor: pointer;
-  color: var(--text3); font-size: 20px; line-height: 1; padding: 4px;
-}
-.pm-modal-body { padding: 20px; }
-.pm-modal-footer {
-  display: flex; gap: 8px; justify-content: flex-end;
-  padding: 14px 20px; border-top: 1px solid var(--border);
-}
-.pm-field { margin-bottom: 14px; }
-.pm-label { font-size: 11px; color: var(--text2); margin-bottom: 5px; display: block; font-weight: 600; }
-.pm-input, .pm-select, .pm-textarea {
-  width: 100%; background: var(--bg3); border: 1px solid var(--border2);
-  color: var(--text); border-radius: var(--radius); padding: 9px 12px;
-  font-size: 13px; outline: none;
-}
-.pm-input:focus, .pm-select:focus, .pm-textarea:focus { border-color: var(--accent); }
-.pm-textarea { resize: vertical; min-height: 80px; }
-.pm-row-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* ── Table ── */
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{background:var(--bg4);color:var(--text2);font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+.data-table tr:last-child td{border:none}
+.data-table tr:hover td{background:var(--bg-hover)}
+.table-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;overflow-x:auto}
 
-/* ── Workflow ───────────────────────────────────────────────────── */
-.pm-workflow {
-  display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
-}
-.pm-wf-step {
-  flex: 1; min-width: 120px;
-  background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 12px; padding: 14px; text-align: center;
-  position: relative;
-}
-.pm-wf-step.active { border-color: var(--accent); background: rgba(108,99,255,.08); }
-.pm-wf-step.done   { border-color: var(--success); background: rgba(34,211,165,.06); }
-.pm-wf-icon { font-size: 22px; margin-bottom: 6px; }
-.pm-wf-label { font-size: 11px; font-weight: 700; color: var(--text); }
-.pm-wf-sub   { font-size: 10px; color: var(--text3); margin-top: 2px; }
+/* ── Method icons ── */
+.method-icon{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--bg4);flex-shrink:0}
 
-/* ── Journal audit ─────────────────────────────────────────────── */
-.pm-log-entry {
-  display: flex; gap: 12px; align-items: flex-start;
-  padding: 10px 0; border-bottom: 1px solid var(--border);
-}
-.pm-log-entry:last-child { border-bottom: none; }
-.pm-log-icon {
-  width: 30px; height: 30px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; flex-shrink: 0; margin-top: 2px;
-}
-.pm-log-icon.ok     { background: rgba(34,211,165,.15); }
-.pm-log-icon.warn   { background: rgba(245,158,11,.15); }
-.pm-log-icon.err    { background: rgba(244,63,94,.12); }
-.pm-log-icon.info   { background: rgba(56,189,248,.12); }
-.pm-log-text { flex: 1; }
-.pm-log-msg  { font-size: 12px; color: var(--text); font-weight: 600; }
-.pm-log-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
-.pm-log-time { font-size: 10px; color: var(--text3); white-space: nowrap; }
+/* ── Caisse ── */
+.caisse-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.caisse-box{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.caisse-box .label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.caisse-box .val{font-size:22px;font-weight:800}
+.caisse-box.in .val{color:var(--success)}
+.caisse-box.out .val{color:var(--danger)}
+.caisse-box.total .val{color:var(--accent2)}
 
-/* ── Responsive mobile ─────────────────────────────────────────── */
-@media (max-width: 600px) {
-  .pm-content { padding: 10px; }
-  .pm-kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .pm-table th, .pm-table td { padding: 8px 10px; }
-  .pm-row-fields { grid-template-columns: 1fr; }
-  .pm-hide-mobile { display: none !important; }
-}
+/* ── Methods config ── */
+.method-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.method-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;align-items:center;gap:12px}
+.method-card .minfo{flex:1}
+.method-card .mname{font-size:13px;font-weight:600;color:var(--text)}
+.method-card .mdesc{font-size:11px;color:var(--text2);margin-top:2px}
+.method-card .toggle{width:36px;height:20px;border-radius:10px;background:var(--bg4);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;border:none}
+.method-card .toggle.on{background:var(--success)}
+.method-card .toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s}
+.method-card .toggle.on::after{left:18px}
 
-/* ── Toast local ───────────────────────────────────────────────── */
-.pm-toast {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  background: var(--bg4); border: 1px solid var(--border2);
-  color: var(--text); padding: 10px 20px; border-radius: 30px;
-  font-size: 13px; font-weight: 600; z-index: 999;
-  opacity: 0; transition: opacity .25s; pointer-events: none;
+/* ── Reports ── */
+.report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.report-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:16px}
+.report-title{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.chart-bar-wrap{display:flex;flex-direction:column;gap:8px}
+.chart-bar-row{display:flex;align-items:center;gap:10px;font-size:12px}
+.chart-bar-label{width:90px;color:var(--text2);font-size:11px;text-align:right;flex-shrink:0}
+.chart-bar-track{flex:1;background:var(--bg4);border-radius:4px;height:10px;overflow:hidden}
+.chart-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .5s}
+.chart-bar-val{width:70px;font-size:11px;font-weight:600;color:var(--text);text-align:right}
+
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;z-index:1000;padding:0;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px 16px 0 0;width:100%;max-width:520px;max-height:85vh;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s cubic-bezier(.32,1,.1,1)}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-header h3{font-size:15px;font-weight:700;color:var(--text)}
+.modal-close{background:none;border:none;color:var(--text2);cursor:pointer;padding:4px;border-radius:6px}
+.modal-close:hover{color:var(--text);background:var(--bg3)}
+.modal-body{flex:1;overflow-y:auto;padding:18px}
+.modal-footer{padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0}
+
+/* ── Form ── */
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.form-control{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;padding:9px 12px;outline:none;transition:border-color .15s}
+.form-control:focus{border-color:var(--accent)}
+.form-control::placeholder{color:var(--text3)}
+select.form-control option{background:var(--bg2)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-hint{font-size:10px;color:var(--text3);margin-top:4px}
+
+/* ── Empty state ── */
+.empty{text-align:center;padding:48px 20px;color:var(--text3)}
+.empty svg{margin-bottom:12px;opacity:.3}
+.empty p{font-size:13px;margin-top:6px}
+
+/* ── Loading ── */
+.loading{text-align:center;padding:40px;color:var(--text2);font-size:13px}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:10px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--bg4);border:1px solid var(--border2);color:var(--text);padding:10px 18px;border-radius:10px;font-size:13px;z-index:9999;transition:transform .3s;white-space:nowrap;max-width:90vw;text-align:center}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{border-color:var(--success);color:var(--success)}
+.toast.error{border-color:var(--danger);color:var(--danger)}
+
+/* ── Responsive ── */
+@media(max-width:480px){
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .form-row{grid-template-columns:1fr}
+  .caisse-summary{grid-template-columns:1fr 1fr}
+  .report-grid{grid-template-columns:1fr}
 }
-.pm-toast.show { opacity: 1; }
 </style>
 </head>
 <body>
+<div class="pay-shell">
 
-<!-- ═══ EMBEDDED BRIDGE ═══ -->
-<script data-injected="embedded-bridge">
-(function() {
-  'use strict';
-  window.__MODULE_NAME__ = 'paiements';
-  window.toast = function(msg, type) {
-    try {
-      if (window.parent && window.parent !== window)
-        window.parent.showToast(msg, '', type || 'info');
-      else showLocalToast(msg, type);
-    } catch(e) { showLocalToast(msg, type); }
-  };
-  window.showToast = window.toast;
-  window.emitToCore = function(type, data) {
-    try { window.parent.postMessage({ veraluzEvent: true, type, data, source: 'veraluz-paiements' }, '*'); }
-    catch(e) {}
-  };
-  window.addEventListener('message', function(e) {
-    if (!e.data || !e.data.veraluzEvent) return;
-    if (e.data.type === 'auth.context') window.__AUTH__ = e.data.data;
-    window.dispatchEvent(new CustomEvent('veraluz:' + e.data.type, { detail: e.data.data }));
-  });
-  window.addEventListener('DOMContentLoaded', function() {
-    window.emitToCore('module:ready', { module: 'paiements' });
-  });
-})();
-</script>
+  <!-- Header -->
+  <div class="pay-header">
+    <h1>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+      </svg>
+      Paiements
+    </h1>
+    <div class="hdr-actions">
+      <button class="btn btn-primary btn-sm" onclick="openPayModal()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Nouveau
+      </button>
+      <button class="btn-icon btn-sm" onclick="loadAll(refresh)" title="Actualiser">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+      </button>
+    </div>
+  </div>
 
-<!-- ═══ MODULE WRAP ═══ -->
-<div class="pm-shell">
-
-  <!-- Tabs navigation -->
-  <div class="pm-tabs">
-    <button class="pm-tab active" onclick="pmTab('transactions')" id="tab-transactions">
-      💳 Transactions <span class="badge">12</span>
+  <!-- Tabs -->
+  <div class="pay-tabs">
+    <button class="pay-tab active" id="tab-transactions" onclick="goTab('transactions')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
+      Transactions<span class="tbadge" id="badge-tx">0</span>
     </button>
-    <button class="pm-tab" onclick="pmTab('validation')" id="tab-validation">
-      ✅ Validations <span class="badge" style="background:var(--warning)">3</span>
+    <button class="pay-tab" id="tab-reservations" onclick="goTab('reservations')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Réservations<span class="tbadge warn" id="badge-rez">0</span>
     </button>
-    <button class="pm-tab" onclick="pmTab('remboursements')" id="tab-remboursements">
-      ↩️ Remboursements
+    <button class="pay-tab" id="tab-restaurant" onclick="goTab('restaurant')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2M7 2v20M21 15V2v0a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
+      Restaurant<span class="tbadge" id="badge-resto">0</span>
     </button>
-    <button class="pm-tab" onclick="pmTab('workflow')" id="tab-workflow">
-      🔄 Workflow
+    <button class="pay-tab" id="tab-factures" onclick="goTab('factures')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Factures<span class="tbadge" id="badge-inv">0</span>
     </button>
-    <button class="pm-tab" onclick="pmTab('journal')" id="tab-journal">
-      📋 Journal audit
+    <button class="pay-tab" id="tab-remboursements" onclick="goTab('remboursements')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+      Remboursements<span class="tbadge warn" id="badge-ref">0</span>
+    </button>
+    <button class="pay-tab" id="tab-caisse" onclick="goTab('caisse')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Caisse
+    </button>
+    <button class="pay-tab" id="tab-methodes" onclick="goTab('methodes')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 19.07l1.41-1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M12 2v2M12 20v2M2 12H4M20 12h2"/></svg>
+      Méthodes
+    </button>
+    <button class="pay-tab" id="tab-rapports" onclick="goTab('rapports')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Rapports
     </button>
   </div>
 
-  <!-- Contenu principal -->
-  <div class="pm-content">
+  <!-- Content -->
+  <div class="pay-content">
 
-    <!-- ══ TRANSACTIONS ══ -->
-    <div class="pm-pane active" id="pane-transactions">
-
-      <!-- KPIs -->
-      <div class="pm-kpi-grid">
-        <div class="pm-kpi success">
-          <div class="pm-kpi-label">Encaissé ce mois</div>
-          <div class="pm-kpi-val">4 280 000</div>
-          <div class="pm-kpi-sub">FCFA · 38 transactions</div>
+    <!-- ── TRANSACTIONS ── -->
+    <div class="pay-pane active" id="pane-transactions">
+      <div class="stat-grid" id="tx-stats"></div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="tx-search" placeholder="Client, référence, montant..." oninput="renderTransactions()"/>
         </div>
-        <div class="pm-kpi warning">
-          <div class="pm-kpi-label">En attente</div>
-          <div class="pm-kpi-val">620 000</div>
-          <div class="pm-kpi-sub">FCFA · 3 transactions</div>
-        </div>
-        <div class="pm-kpi danger">
-          <div class="pm-kpi-label">Échoués</div>
-          <div class="pm-kpi-val">85 000</div>
-          <div class="pm-kpi-sub">FCFA · 2 transactions</div>
-        </div>
-        <div class="pm-kpi accent">
-          <div class="pm-kpi-label">Remboursés</div>
-          <div class="pm-kpi-val">130 000</div>
-          <div class="pm-kpi-sub">FCFA · 1 transaction</div>
-        </div>
-      </div>
-
-      <!-- Toolbar -->
-      <div class="pm-toolbar">
-        <div class="pm-search">
-          <span>🔍</span>
-          <input type="text" placeholder="Rechercher par nom, montant, méthode..." oninput="pmSearch(this.value)"/>
-        </div>
-        <select class="pm-filter" onchange="pmFilter('method', this.value)">
-          <option value="">Toutes méthodes</option>
+        <select class="filter-sel" id="tx-status" onchange="renderTransactions()">
+          <option value="all">Tous statuts</option>
+          <option value="validated">Validé</option>
+          <option value="pending">En attente</option>
+          <option value="rejected">Rejeté</option>
+          <option value="refunded">Remboursé</option>
+        </select>
+        <select class="filter-sel" id="tx-method" onchange="renderTransactions()">
+          <option value="all">Toutes méthodes</option>
+          <option value="cash">Espèces</option>
           <option value="orange">Orange Money</option>
           <option value="mtn">MTN MoMo</option>
-          <option value="cash">Cash</option>
-          <option value="carte">Carte bancaire</option>
           <option value="virement">Virement</option>
+          <option value="card">Carte</option>
         </select>
-        <select class="pm-filter" onchange="pmFilter('status', this.value)">
-          <option value="">Tous statuts</option>
-          <option value="ok">Validé</option>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+      </div>
+      <div id="tx-list"></div>
+    </div>
+
+    <!-- ── RESERVATIONS ── -->
+    <div class="pay-pane" id="pane-reservations">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="rez-search" placeholder="Nom du client..." oninput="renderReservationsTab()"/>
+        </div>
+        <select class="filter-sel" id="rez-pay-filter" onchange="renderReservationsTab()">
+          <option value="all">Tous</option>
+          <option value="unpaid">Non payé</option>
+          <option value="partial">Partiel</option>
+          <option value="paid">Payé</option>
+        </select>
+      </div>
+      <div id="rez-list"></div>
+    </div>
+
+    <!-- ── RESTAURANT ── -->
+    <div class="pay-pane" id="pane-restaurant">
+      <div class="stat-grid" id="resto-stats"></div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="resto-search" placeholder="Table, client..." oninput="renderRestaurant()"/>
+        </div>
+        <select class="filter-sel" id="resto-status" onchange="renderRestaurant()">
+          <option value="all">Tous</option>
+          <option value="open">Ouverte</option>
+          <option value="paid">Payée</option>
+          <option value="room_charge">Chambre</option>
+          <option value="cancelled">Annulée</option>
+        </select>
+        <select class="filter-sel" id="resto-type" onchange="renderRestaurant()">
+          <option value="all">Tous types</option>
+          <option value="restaurant">Restaurant</option>
+          <option value="bar">Bar</option>
+          <option value="room_service">Room Service</option>
+        </select>
+      </div>
+      <div id="resto-list"></div>
+    </div>
+
+    <!-- ── FACTURES ── -->
+    <div class="pay-pane" id="pane-factures">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="inv-search" placeholder="N° facture, client..." oninput="renderFactures()"/>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openInvoiceModal()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Créer facture
+        </button>
+      </div>
+      <div id="inv-list"></div>
+    </div>
+
+    <!-- ── REMBOURSEMENTS ── -->
+    <div class="pay-pane" id="pane-remboursements">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="ref-search" placeholder="Client, raison..." oninput="renderRefunds()"/>
+        </div>
+        <select class="filter-sel" id="ref-status" onchange="renderRefunds()">
+          <option value="all">Tous</option>
           <option value="pending">En attente</option>
-          <option value="failed">Échoué</option>
-          <option value="refund">Remboursé</option>
+          <option value="approved">Approuvé</option>
+          <option value="processed">Traité</option>
+          <option value="rejected">Rejeté</option>
         </select>
-        <button class="pm-btn pm-btn-ghost pm-btn-sm" onclick="pmExportCSV()">📥 Export CSV</button>
-        <button class="pm-btn pm-btn-primary pm-btn-sm" onclick="openNewPaiement()">+ Nouveau</button>
+        <button class="btn btn-primary btn-sm" onclick="openRefundModal()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Remboursement
+        </button>
       </div>
-
-      <!-- Table transactions -->
-      <div class="pm-card">
-        <div class="pm-card-header">
-          <span class="pm-card-title">Transactions récentes</span>
-          <span style="font-size:11px;color:var(--text3)" id="tx-count">12 transactions</span>
-        </div>
-        <div class="pm-table-wrap">
-          <table class="pm-table" id="tx-table">
-            <thead>
-              <tr>
-                <th>Réf.</th>
-                <th>Client</th>
-                <th class="pm-hide-mobile">Chambre</th>
-                <th>Méthode</th>
-                <th>Montant</th>
-                <th>Statut</th>
-                <th class="pm-hide-mobile">Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="tx-body"></tbody>
-          </table>
-        </div>
-      </div>
+      <div id="ref-list"></div>
     </div>
 
-    <!-- ══ VALIDATIONS ══ -->
-    <div class="pm-pane" id="pane-validation">
-      <div class="pm-card" style="margin-bottom:14px">
-        <div class="pm-card-header">
-          <span class="pm-card-title">⚠️ Paiements en attente de validation</span>
-          <span class="pm-badge pending">3 en attente</span>
+    <!-- ── CAISSE ── -->
+    <div class="pay-pane" id="pane-caisse">
+      <div class="caisse-summary" id="caisse-summary"></div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          <input type="text" id="caisse-date" type="date" placeholder="Date..." oninput="renderCaisse()"/>
         </div>
-        <div class="pm-table-wrap">
-          <table class="pm-table">
-            <thead>
-              <tr>
-                <th>Réf.</th><th>Client</th><th>Méthode</th>
-                <th>Montant</th><th>Reçu</th><th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="val-body"></tbody>
-          </table>
-        </div>
+        <button class="btn btn-success btn-sm" onclick="openCaisseModal('entree')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Entrée
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="openCaisseModal('sortie')">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Sortie
+        </button>
       </div>
-
-      <div class="pm-card">
-        <div class="pm-card-header">
-          <span class="pm-card-title">Règles de validation automatique</span>
-        </div>
-        <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg3);border-radius:var(--radius)">
-            <div>
-              <div style="font-size:12px;font-weight:700;color:var(--text)">Orange Money / MTN MoMo</div>
-              <div style="font-size:11px;color:var(--text3)">Validation automatique via webhook CinetPay</div>
-            </div>
-            <span class="pm-badge ok">✅ Actif</span>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg3);border-radius:var(--radius)">
-            <div>
-              <div style="font-size:12px;font-weight:700;color:var(--text)">Cash</div>
-              <div style="font-size:11px;color:var(--text3)">Validation manuelle par réceptionniste</div>
-            </div>
-            <span class="pm-badge pending">Manuel</span>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px;background:var(--bg3);border-radius:var(--radius)">
-            <div>
-              <div style="font-size:12px;font-weight:700;color:var(--text)">Virement bancaire</div>
-              <div style="font-size:11px;color:var(--text3)">Validation sous 24-48h après confirmation</div>
-            </div>
-            <span class="pm-badge review">En révision</span>
-          </div>
-        </div>
-      </div>
+      <div id="caisse-list"></div>
     </div>
 
-    <!-- ══ REMBOURSEMENTS ══ -->
-    <div class="pm-pane" id="pane-remboursements">
-      <div class="pm-toolbar">
-        <button class="pm-btn pm-btn-warning" onclick="openRemboursement()">↩️ Nouveau remboursement</button>
-      </div>
-      <div class="pm-card">
-        <div class="pm-card-header">
-          <span class="pm-card-title">Historique des remboursements</span>
-        </div>
-        <div class="pm-table-wrap">
-          <table class="pm-table">
-            <thead>
-              <tr>
-                <th>Réf. original</th><th>Client</th><th>Motif</th>
-                <th>Montant</th><th>Statut</th><th class="pm-hide-mobile">Date</th>
-              </tr>
-            </thead>
-            <tbody id="refund-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ══ WORKFLOW ══ -->
-    <div class="pm-pane" id="pane-workflow">
+    <!-- ── METHODES ── -->
+    <div class="pay-pane" id="pane-methodes">
       <div style="margin-bottom:14px">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:12px">
-          Suivi du cycle de vie d'un paiement de la création à la clôture.
-        </div>
-        <div class="pm-workflow">
-          <div class="pm-wf-step done">
-            <div class="pm-wf-icon">🧾</div>
-            <div class="pm-wf-label">Initiation</div>
-            <div class="pm-wf-sub">Réservation créée</div>
-          </div>
-          <div class="pm-wf-step done">
-            <div class="pm-wf-icon">📱</div>
-            <div class="pm-wf-label">Paiement</div>
-            <div class="pm-wf-sub">Méthode sélectionnée</div>
-          </div>
-          <div class="pm-wf-step active">
-            <div class="pm-wf-icon">⏳</div>
-            <div class="pm-wf-label">Vérification</div>
-            <div class="pm-wf-sub">En cours</div>
-          </div>
-          <div class="pm-wf-step">
-            <div class="pm-wf-icon">✅</div>
-            <div class="pm-wf-label">Validation</div>
-            <div class="pm-wf-sub">Confirmation</div>
-          </div>
-          <div class="pm-wf-step">
-            <div class="pm-wf-icon">🏁</div>
-            <div class="pm-wf-label">Clôture</div>
-            <div class="pm-wf-sub">Reçu émis</div>
-          </div>
-        </div>
+        <h2 style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">Méthodes de paiement actives</h2>
+        <p style="font-size:12px;color:var(--text2)">Configurez les méthodes acceptées par la résidence Veraluz.</p>
       </div>
-
-      <div class="pm-card">
-        <div class="pm-card-header">
-          <span class="pm-card-title">Paiements en cours de traitement</span>
-        </div>
-        <div class="pm-table-wrap">
-          <table class="pm-table">
-            <thead>
-              <tr><th>Réf.</th><th>Client</th><th>Méthode</th><th>Montant</th><th>Étape</th><th>Actions</th></tr>
-            </thead>
-            <tbody id="wf-body"></tbody>
-          </table>
-        </div>
-      </div>
+      <div class="method-grid" id="methods-grid"></div>
     </div>
 
-    <!-- ══ JOURNAL AUDIT ══ -->
-    <div class="pm-pane" id="pane-journal">
-      <div class="pm-toolbar">
-        <div class="pm-search">
-          <span>🔍</span>
-          <input type="text" placeholder="Rechercher dans le journal..."/>
-        </div>
-        <select class="pm-filter">
-          <option>Tous les événements</option>
-          <option>Succès</option>
-          <option>Erreurs</option>
-          <option>Avertissements</option>
+    <!-- ── RAPPORTS ── -->
+    <div class="pay-pane" id="pane-rapports">
+      <div class="toolbar">
+        <select class="filter-sel" id="rpt-period" onchange="renderRapports()">
+          <option value="today">Aujourd'hui</option>
+          <option value="week">7 derniers jours</option>
+          <option value="month" selected>Ce mois</option>
+          <option value="all">Tout</option>
         </select>
-        <button class="pm-btn pm-btn-ghost pm-btn-sm" onclick="pmExportCSV()">📥 Export</button>
       </div>
-      <div class="pm-card">
-        <div class="pm-card-header">
-          <span class="pm-card-title">Journal des événements paiements</span>
-          <span style="font-size:11px;color:var(--text3)">Temps réel</span>
-        </div>
-        <div style="padding:14px" id="journal-list"></div>
-      </div>
+      <div class="stat-grid" id="rpt-stats"></div>
+      <div class="report-grid" id="rpt-charts"></div>
     </div>
 
-  </div><!-- /pm-content -->
-</div><!-- /pm-shell -->
+  </div><!-- pay-content -->
+</div><!-- pay-shell -->
 
-<!-- Modal nouveau paiement -->
-<div class="pm-modal-overlay" id="modal-paiement">
-  <div class="pm-modal">
-    <div class="pm-modal-header">
-      <span class="pm-modal-title">💳 Nouveau paiement</span>
-      <button class="pm-modal-close" onclick="closeModal('modal-paiement')">×</button>
+<!-- ── MODAL PAIEMENT ── -->
+<div class="modal-overlay" id="payModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="payModalTitle">Nouveau paiement</h3>
+      <button class="modal-close" onclick="closeModal('payModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-    <div class="pm-modal-body">
-      <div class="pm-row-fields">
-        <div class="pm-field">
-          <label class="pm-label">Client</label>
-          <input class="pm-input" type="text" placeholder="Nom du client"/>
-        </div>
-        <div class="pm-field">
-          <label class="pm-label">Réservation</label>
-          <input class="pm-input" type="text" placeholder="RES-XXX"/>
-        </div>
+    <div class="modal-body">
+      <input type="hidden" id="pay-rez-id"/>
+      <div class="form-group">
+        <label>Client / Réservation</label>
+        <select class="form-control" id="pay-rez-select">
+          <option value="">— Sans réservation (bar, divers) —</option>
+        </select>
       </div>
-      <div class="pm-row-fields">
-        <div class="pm-field">
-          <label class="pm-label">Montant (FCFA)</label>
-          <input class="pm-input" type="number" placeholder="0"/>
+      <div class="form-group">
+        <label>Nom du client</label>
+        <input class="form-control" id="pay-guest" type="text" placeholder="Nom du client"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Montant (FCFA)</label>
+          <input class="form-control" id="pay-amount" type="number" placeholder="0" min="0"/>
         </div>
-        <div class="pm-field">
-          <label class="pm-label">Méthode</label>
-          <select class="pm-select">
-            <option>Orange Money</option>
-            <option>MTN MoMo</option>
-            <option>Cash</option>
-            <option>Carte bancaire</option>
-            <option>Virement</option>
+        <div class="form-group">
+          <label>Type de paiement</label>
+          <select class="form-control" id="pay-type">
+            <option value="acompte">Acompte</option>
+            <option value="solde">Solde restant</option>
+            <option value="total">Paiement complet</option>
+            <option value="restaurant">Restaurant</option>
+            <option value="bar">Bar</option>
+            <option value="room_service">Room Service</option>
+            <option value="divers">Divers</option>
           </select>
         </div>
       </div>
-      <div class="pm-field">
-        <label class="pm-label">Numéro de téléphone (mobile money)</label>
-        <input class="pm-input" type="tel" placeholder="+237 6XX XXX XXX"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Méthode</label>
+          <select class="form-control" id="pay-method">
+            <option value="cash">Espèces</option>
+            <option value="orange">Orange Money</option>
+            <option value="mtn">MTN MoMo</option>
+            <option value="virement">Virement bancaire</option>
+            <option value="card">Carte bancaire</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Source</label>
+          <select class="form-control" id="pay-source">
+            <option value="reception">Réception</option>
+            <option value="restaurant">Restaurant</option>
+            <option value="bar">Bar</option>
+            <option value="booking_engine">Site web</option>
+            <option value="whatsapp">WhatsApp</option>
+          </select>
+        </div>
       </div>
-      <div class="pm-field">
-        <label class="pm-label">Notes</label>
-        <textarea class="pm-textarea" placeholder="Acompte, solde, autre..."></textarea>
+      <div class="form-group">
+        <label>Référence / N° transaction</label>
+        <input class="form-control" id="pay-ref" type="text" placeholder="Numéro de transaction (Orange, MTN...)"/>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea class="form-control" id="pay-notes" rows="2" placeholder="Notes optionnelles..."></textarea>
       </div>
     </div>
-    <div class="pm-modal-footer">
-      <button class="pm-btn pm-btn-ghost" onclick="closeModal('modal-paiement')">Annuler</button>
-      <button class="pm-btn pm-btn-primary" onclick="submitPaiement()">Enregistrer</button>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('payModal')">Annuler</button>
+      <button class="btn btn-primary" onclick="savePayment()">Enregistrer paiement</button>
     </div>
   </div>
 </div>
 
-<!-- Modal remboursement -->
-<div class="pm-modal-overlay" id="modal-remboursement">
-  <div class="pm-modal">
-    <div class="pm-modal-header">
-      <span class="pm-modal-title">↩️ Remboursement</span>
-      <button class="pm-modal-close" onclick="closeModal('modal-remboursement')">×</button>
+<!-- ── MODAL FACTURE ── -->
+<div class="modal-overlay" id="invoiceModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Créer une facture</h3>
+      <button class="modal-close" onclick="closeModal('invoiceModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
-    <div class="pm-modal-body">
-      <div class="pm-field">
-        <label class="pm-label">Référence paiement original</label>
-        <input class="pm-input" type="text" placeholder="PAY-XXX"/>
-      </div>
-      <div class="pm-field">
-        <label class="pm-label">Montant à rembourser (FCFA)</label>
-        <input class="pm-input" type="number" placeholder="0"/>
-      </div>
-      <div class="pm-field">
-        <label class="pm-label">Motif</label>
-        <select class="pm-select">
-          <option>Annulation réservation</option>
-          <option>Erreur de facturation</option>
-          <option>Double paiement</option>
-          <option>Autre</option>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Réservation liée</label>
+        <select class="form-control" id="inv-rez-select" onchange="prefillInvoice()">
+          <option value="">— Choisir une réservation —</option>
         </select>
       </div>
-      <div class="pm-field">
-        <label class="pm-label">Commentaire</label>
-        <textarea class="pm-textarea" placeholder="Détails du remboursement..."></textarea>
+      <div class="form-group">
+        <label>Nom du client</label>
+        <input class="form-control" id="inv-client" type="text" placeholder="Nom complet"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Montant total (FCFA)</label>
+          <input class="form-control" id="inv-amount" type="number" placeholder="0" min="0"/>
+        </div>
+        <div class="form-group">
+          <label>Déjà payé (FCFA)</label>
+          <input class="form-control" id="inv-paid" type="number" placeholder="0" min="0"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes / Description</label>
+        <textarea class="form-control" id="inv-notes" rows="2" placeholder="Détails de la facture..."></textarea>
       </div>
     </div>
-    <div class="pm-modal-footer">
-      <button class="pm-btn pm-btn-ghost" onclick="closeModal('modal-remboursement')">Annuler</button>
-      <button class="pm-btn pm-btn-warning" onclick="submitRemboursement()">Confirmer</button>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('invoiceModal')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveInvoice()">Créer la facture</button>
     </div>
   </div>
 </div>
 
-<!-- Toast local -->
-<div class="pm-toast" id="pm-toast"></div>
+<!-- ── MODAL REMBOURSEMENT ── -->
+<div class="modal-overlay" id="refundModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Demande de remboursement</h3>
+      <button class="modal-close" onclick="closeModal('refundModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ref-payment-id"/>
+      <div class="form-group">
+        <label>Paiement original</label>
+        <select class="form-control" id="ref-payment-select">
+          <option value="">— Sélectionner un paiement —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Nom du client</label>
+        <input class="form-control" id="ref-guest" type="text" placeholder="Nom du client"/>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Montant à rembourser (FCFA)</label>
+          <input class="form-control" id="ref-amount" type="number" placeholder="0" min="0"/>
+        </div>
+        <div class="form-group">
+          <label>Méthode de remboursement</label>
+          <select class="form-control" id="ref-method">
+            <option value="cash">Espèces</option>
+            <option value="orange">Orange Money</option>
+            <option value="mtn">MTN MoMo</option>
+            <option value="virement">Virement</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Raison du remboursement</label>
+        <textarea class="form-control" id="ref-reason" rows="2" placeholder="Motif du remboursement..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('refundModal')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveRefund()">Soumettre</button>
+    </div>
+  </div>
+</div>
 
+<!-- ── MODAL CAISSE ── -->
+<div class="modal-overlay" id="caisseModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="caisseModalTitle">Entrée de caisse</h3>
+      <button class="modal-close" onclick="closeModal('caisseModal')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="caisse-type"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Montant (FCFA)</label>
+          <input class="form-control" id="caisse-amount" type="number" placeholder="0" min="0"/>
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input class="form-control" id="caisse-entry-date" type="date"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Libellé / Motif</label>
+        <input class="form-control" id="caisse-libelle" type="text" placeholder="Ex: Paiement chambre 101, remise fournisseur..."/>
+      </div>
+      <div class="form-group">
+        <label>Source</label>
+        <select class="form-control" id="caisse-source">
+          <option value="reception">Réception</option>
+          <option value="restaurant">Restaurant</option>
+          <option value="bar">Bar</option>
+          <option value="divers">Divers</option>
+          <option value="depense">Dépense</option>
+          <option value="remboursement">Remboursement</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('caisseModal')">Annuler</button>
+      <button class="btn btn-primary" id="caisse-save-btn" onclick="saveCaisseEntry()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL FACTURE PREVIEW ── -->
+<div class="modal-overlay" id="invoicePreviewModal">
+  <div class="modal" style="max-height:90vh;border-radius:16px 16px 0 0">
+    <div class="modal-header">
+      <h3 id="invPreviewTitle">Facture</h3>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="printInvoice()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimer
+        </button>
+        <button class="modal-close" onclick="closeModal('invoicePreviewModal')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-body" id="inv-preview-body"></div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
 <script>
-'use strict';
+/* ── CONFIG ── */
+var SB_URL = (window.__SUPABASE_URL__||'https://dfdmasejsoibxrvubegu.supabase.co');
+var SB_KEY = (window.__SUPABASE_KEY__||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY');
 
-/* ── Supabase credentials (autonomes — chaque module gère sa DB) ─ */
-window.__SUPABASE_URL__ = window.__SUPABASE_URL__ || 'https://dfdmasejsoibxrvubegu.supabase.co';
-window.__SUPABASE_KEY__ = window.__SUPABASE_KEY__ || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+/* ── STATE ── */
+var _payments = [];
+var _reservations = [];
+var _restaurant = [];
+var _invoices = [];
+var _refunds = [];
+var _caisse = [];
+var _activeTab = 'transactions';
 
-/* ── Config ───────────────────────────────────────────────────── */
-var METHODS = {
-  orange:   { label: 'Orange Money',    dot: 'dot-orange', cls: 'm-orange' },
-  mtn:      { label: 'MTN MoMo',        dot: 'dot-yellow', cls: 'm-yellow' },
-  momo:     { label: 'MTN MoMo',        dot: 'dot-yellow', cls: 'm-yellow' },
-  cash:     { label: 'Cash',            dot: 'dot-green',  cls: 'm-green'  },
-  carte:    { label: 'Carte bancaire',  dot: 'dot-blue',   cls: 'm-blue'   },
-  virement: { label: 'Virement',        dot: 'dot-purple', cls: 'm-purple' },
-};
-
-/* ── Données (chargées depuis Supabase) ───────────────────── */
-var TRANSACTIONS = [];
-var JOURNAL = [];
-var filteredTx = [];
-
-/* ── Supabase helper ──────────────────────────────────────── */
-var _sbUrl = (typeof window !== 'undefined' && window.__SUPABASE_URL__) ? window.__SUPABASE_URL__ : '';
-var _sbKey = (typeof window !== 'undefined' && window.__SUPABASE_KEY__) ? window.__SUPABASE_KEY__ : '';
-
-function sbFetch(path) {
-  return fetch(_sbUrl + path, {
-    headers: {
-      'apikey': _sbKey,
-      'Authorization': 'Bearer ' + _sbKey,
-      'Accept': 'application/json'
-    }
-  }).then(function(r) {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  });
+/* ── UTILITIES ── */
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function sbPatch(table, id, data) {
-  return fetch(_sbUrl + '/rest/v1/' + table + '?id=eq.' + id, {
-    method: 'PATCH',
-    headers: {
-      'apikey': _sbKey,
-      'Authorization': 'Bearer ' + _sbKey,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=minimal'
-    },
-    body: JSON.stringify(data)
-  });
+function fmt(n) {
+  var v = parseInt(n) || 0;
+  return v.toLocaleString('fr-FR') + ' FCFA';
 }
 
-function mapPaymentRow(row) {
-  var statusMap = { pending:'pending', validated:'ok', rejected:'failed', refunded:'refund' };
-  var methodMap = { orange:'orange', momo:'mtn', mtn:'mtn', cash:'cash', carte:'carte', virement:'virement' };
-  var d = new Date(row.created_at);
-  var dateStr = d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  var shortRef = ('PAY-' + row.id.replace(/[^0-9]/g,'').slice(-4)).replace('PAY-', 'PAY-');
-  // Construct a readable ref from the id
-  var idParts = row.id.split('-');
-  var refNum = idParts.length > 1 ? idParts[idParts.length-1].slice(0,5).toUpperCase() : row.id.slice(0,8).toUpperCase();
-  return {
-    _id: row.id,
-    ref: 'PAY-' + refNum,
-    _reservationId: row.reservation_id,
-    client: (row.reservation && row.reservation.client_name) ? row.reservation.client_name : (row.reservation_id || '—').slice(0,8),
-    chambre: (row.reservation && row.reservation.unit_id) ? row.reservation.unit_id.toUpperCase() : '—',
-    method: methodMap[row.method] || row.method || 'cash',
-    montant: row.amount || 0,
-    statut: statusMap[row.status] || 'pending',
-    date: dateStr,
-    notes: row.notes || ''
+function fmtD(d) {
+  if (!d) return '—';
+  try {
+    var dt = new Date(d);
+    return dt.toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'});
+  } catch(e) { return d; }
+}
+
+function fmtDT(d) {
+  if (!d) return '—';
+  try {
+    var dt = new Date(d);
+    return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}) + ' ' +
+           dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) { return d; }
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function methodLabel(m) {
+  var map = {cash:'Espèces',orange:'Orange Money',mtn:'MTN MoMo',virement:'Virement',card:'Carte',mobile:'Mobile Money'};
+  return map[m] || m || '—';
+}
+
+function methodIcon(m) {
+  var icons = {
+    cash:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+    orange:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+    mtn:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',
+    virement:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>',
+    card:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>'
   };
+  return icons[m] || icons['cash'];
 }
 
-function loadFromSupabase() {
-  if (!_sbUrl || !_sbKey) {
-    console.warn('[Paiements] Supabase non disponible — mode démo');
-    showLocalToast('ℹ️ Mode démo — Supabase non connecté', 'info');
-    renderAll();
-    return;
-  }
-
-  sbFetch('/rest/v1/veraluz_payments?select=*,reservation:veraluz_reservations(client_name,unit_id)&order=created_at.desc')
-    .then(function(rows) {
-      TRANSACTIONS = rows.map(mapPaymentRow);
-      filteredTx = TRANSACTIONS.slice();
-      renderAll();
-      return sbFetch('/rest/v1/veraluz_payments?select=id,status,amount,method,created_at&order=created_at.desc&limit=15');
-    })
-    .then(function(events) {
-      JOURNAL = events.map(function(e) {
-        var type = e.status === 'validated' ? 'ok' : e.status === 'rejected' ? 'err' : 'info';
-        var icon = e.status === 'validated' ? '✅' : e.status === 'rejected' ? '❌' : 'ℹ️';
-        var amount = (e.amount || 0).toLocaleString('fr-FR');
-        var d = new Date(e.created_at);
-        var time = d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-        var methodLabels = { orange:'Orange Money', momo:'MTN MoMo', cash:'Cash', carte:'Carte', virement:'Virement' };
-        var methodLabel = methodLabels[e.method] || e.method || '';
-        var msg = e.status === 'validated' ? '✅ Paiement validé — ' + amount + ' FCFA (' + methodLabel + ')' :
-                  e.status === 'rejected'  ? '❌ Paiement rejeté — ' + amount + ' FCFA' :
-                  'ℹ️ Paiement en attente — ' + amount + ' FCFA (' + methodLabel + ')';
-        return { type:type, icon:icon, msg:msg, user:'Système', time:time };
-      });
-      renderJournal();
-    })
-    .catch(function(err) {
-      console.warn('[Paiements] Erreur Supabase:', err);
-      showLocalToast('⚠️ Erreur chargement données', 'error');
-    });
+function typeLabel(t) {
+  var map = {acompte:'Acompte',solde:'Solde',total:'Paiement complet',payment:'Paiement',restaurant:'Restaurant',bar:'Bar',room_service:'Room Service',remboursement:'Remboursement',divers:'Divers'};
+  return map[t] || t || 'Paiement';
 }
 
-function renderAll() {
-  renderTransactions(filteredTx);
-  renderValidations();
-  renderRefunds();
-  renderWorkflow();
-  renderJournal();
-}
-
-/* ── Rendu ────────────────────────────────────────────────────── */
 function statusBadge(s) {
-  var map    = { ok:'ok', pending:'pending', failed:'failed', refund:'refund', review:'review' };
-  var labels = { ok:'Validé', pending:'En attente', failed:'Échoué', refund:'Remboursé', review:'En révision' };
-  return '<span class="pm-badge ' + (map[s]||'') + '">' + (labels[s]||s) + '</span>';
+  if (!s) return '<span class="badge badge-gray">—</span>';
+  var cfg = {
+    validated:['badge-green','Validé'],
+    pending:['badge-yellow','En attente'],
+    rejected:['badge-red','Rejeté'],
+    refunded:['badge-blue','Remboursé'],
+    paid:['badge-green','Payé'],
+    partial:['badge-yellow','Partiel'],
+    unpaid:['badge-red','Impayé'],
+    open:['badge-blue','Ouvert'],
+    room_charge:['badge-purple','Chambre'],
+    cancelled:['badge-red','Annulé'],
+    draft:['badge-gray','Brouillon'],
+    sent:['badge-blue','Envoyée'],
+    overdue:['badge-red','En retard'],
+    approved:['badge-green','Approuvé'],
+    processed:['badge-blue','Traité'],
+    entree:['badge-green','Entrée'],
+    sortie:['badge-red','Sortie']
+  };
+  var c = cfg[s] || ['badge-gray', s];
+  return '<span class="badge '+c[0]+'">'+esc(c[1])+'</span>';
 }
 
-// Montant coloré selon le statut
-function colorMontant(montant, statut) {
-  var colors = { ok:'var(--success)', pending:'var(--warning)', failed:'var(--danger)', refund:'var(--info)' };
-  var color  = colors[statut] || 'var(--text)';
-  return '<span style="font-weight:700;color:' + color + '">' + fmtMontant(montant) + '</span>';
-}
-function methodTag(m) {
-  var info = METHODS[m] || { label: m, dot: 'dot-purple', cls: 'm-purple' };
-  var cls  = info.cls || 'm-purple';
-  return '<span class="pm-method ' + cls + '"><span class="dot ' + info.dot + '"></span>' + info.label + '</span>';
-}
-function fmtMontant(n) {
-  return n.toLocaleString('fr-FR') + ' FCFA';
+/* ── SUPABASE FETCH ── */
+function sbFetch(path, opts) {
+  var url = SB_URL + '/rest/v1/' + path;
+  var headers = {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json'};
+  if (opts && opts.method && opts.method !== 'GET') {
+    headers['Prefer'] = 'return=minimal';
+  }
+  return fetch(url, Object.assign({headers: headers}, opts || {}));
 }
 
-function renderTransactions(list) {
-  var body = document.getElementById('tx-body');
-  if (!body) return;
-  document.getElementById('tx-count').textContent = list.length + ' transaction' + (list.length > 1 ? 's' : '');
-  body.innerHTML = list.map(function(t) {
-    return '<tr>' +
-      '<td>' + t.ref + '</td>' +
-      '<td>' + t.client + '</td>' +
-      '<td class="pm-hide-mobile">' + t.chambre + '</td>' +
-      '<td>' + methodTag(t.method) + '</td>' +
-      '<td>' + colorMontant(t.montant, t.statut) + '</td>' +
-      '<td>' + statusBadge(t.statut) + '</td>' +
-      '<td class="pm-hide-mobile" style="color:var(--text3);font-size:11px">' + t.date + '</td>' +
-      '<td><div class="pm-row-actions">' +
-        '<button class="pm-btn pm-btn-ghost pm-btn-sm" onclick="viewTx(\'' + t.ref + '\')">👁</button>' +
-        (t.statut === 'pending' ? '<button class="pm-btn pm-btn-success pm-btn-sm" onclick="validateTx(\'' + t.ref + '\')">✅</button>' : '') +
-        (t.statut === 'ok' ? '<button class="pm-btn pm-btn-warning pm-btn-sm" onclick="refundTx(\'' + t.ref + '\')">↩️</button>' : '') +
-      '</div></td>' +
-    '</tr>';
-  }).join('');
+/* ── LOAD ALL DATA ── */
+function loadAll(cb) {
+  var done = 0;
+  var total = 5;
+  function checkDone() { done++; if (done >= total && cb) cb(); }
+
+  // Cache restore
+  try { var c = localStorage.getItem('vlz_pay_cache'); if(c) _payments = JSON.parse(c); } catch(e){}
+  try { var c = localStorage.getItem('vlz_cache_rooms'); } catch(e){}
+  try { var c = localStorage.getItem('vlz_cache_rez'); if(c) _reservations = JSON.parse(c); } catch(e){}
+
+  // Payments
+  sbFetch('veraluz_payments?select=*&order=created_at.desc&limit=200')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(Array.isArray(d)) {
+        _payments = d;
+        try{localStorage.setItem('vlz_pay_cache', JSON.stringify(d));}catch(e){}
+      }
+      checkDone();
+    }).catch(function(){checkDone();});
+
+  // Reservations
+  sbFetch('veraluz_reservations?select=id,client_name,client_phone,client_email,check_in,check_out,total,paid,status,unit_id&order=check_in.desc&limit=100')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(Array.isArray(d)) {
+        _reservations = d;
+        try{localStorage.setItem('vlz_cache_rez', JSON.stringify(d));}catch(e){}
+      }
+      checkDone();
+    }).catch(function(){checkDone();});
+
+  // Restaurant orders
+  sbFetch('veraluz_restaurant_orders?select=*&order=created_at.desc&limit=100')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(Array.isArray(d)) _restaurant = d;
+      checkDone();
+    }).catch(function(){checkDone();});
+
+  // Invoices
+  sbFetch('veraluz_invoices?select=*&order=issued_at.desc&limit=100')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(Array.isArray(d)) _invoices = d;
+      checkDone();
+    }).catch(function(){checkDone();});
+
+  // Refunds + Caisse in parallel (count as 1)
+  Promise.all([
+    sbFetch('veraluz_refunds?select=*&order=created_at.desc&limit=100').then(function(r){return r.json();}),
+    sbFetch('veraluz_caisse?select=*&order=created_at.desc&limit=200').then(function(r){return r.json();})
+  ]).then(function(results){
+    if(Array.isArray(results[0])) _refunds = results[0];
+    if(Array.isArray(results[1])) _caisse = results[1];
+    checkDone();
+  }).catch(function(){checkDone();});
 }
 
-function renderValidations() {
-  var pending = TRANSACTIONS.filter(function(t) { return t.statut === 'pending'; });
-  var body = document.getElementById('val-body');
-  if (!body) return;
-  body.innerHTML = pending.map(function(t) {
-    return '<tr>' +
-      '<td>' + t.ref + '</td>' +
-      '<td>' + t.client + '</td>' +
-      '<td>' + methodTag(t.method) + '</td>' +
-      '<td style="font-weight:700;color:var(--text)">' + fmtMontant(t.montant) + '</td>' +
-      '<td>' + t.date + '</td>' +
-      '<td><div class="pm-row-actions">' +
-        '<button class="pm-btn pm-btn-success pm-btn-sm" onclick="validateTx(\'' + t.ref + '\')">✅ Valider</button>' +
-        '<button class="pm-btn pm-btn-danger pm-btn-sm" onclick="rejectTx(\'' + t.ref + '\')">❌</button>' +
-      '</div></td>' +
-    '</tr>';
-  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">Aucun paiement en attente</td></tr>';
+/* ── MODAL HELPERS ── */
+function openModal(id) {
+  var el = document.getElementById(id);
+  if(el) el.classList.add('open');
 }
 
-function renderRefunds() {
-  var refunds = TRANSACTIONS.filter(function(t) { return t.statut === 'refund'; });
-  var body = document.getElementById('refund-body');
-  if (!body) return;
-  body.innerHTML = refunds.map(function(t) {
-    return '<tr>' +
-      '<td>' + t.ref + '</td>' +
-      '<td>' + t.client + '</td>' +
-      '<td>Annulation</td>' +
-      '<td style="color:var(--warning);font-weight:700">' + fmtMontant(t.montant) + '</td>' +
-      '<td>' + statusBadge('refund') + '</td>' +
-      '<td class="pm-hide-mobile" style="font-size:11px;color:var(--text3)">' + t.date + '</td>' +
-    '</tr>';
-  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">Aucun remboursement</td></tr>';
+function closeModal(id) {
+  var el = document.getElementById(id);
+  if(el) el.classList.remove('open');
 }
 
-function renderWorkflow() {
-  var pending = TRANSACTIONS.filter(function(t) { return t.statut === 'pending'; });
-  var body = document.getElementById('wf-body');
-  if (!body) return;
-  body.innerHTML = pending.map(function(t) {
-    var step = t.method === 'virement' ? 'Confirmation bancaire' : 'Vérification opérateur';
-    return '<tr>' +
-      '<td>' + t.ref + '</td>' +
-      '<td>' + t.client + '</td>' +
-      '<td>' + methodTag(t.method) + '</td>' +
-      '<td style="font-weight:700;color:var(--text)">' + fmtMontant(t.montant) + '</td>' +
-      '<td><span class="pm-badge review">' + step + '</span></td>' +
-      '<td><button class="pm-btn pm-btn-success pm-btn-sm" onclick="validateTx(\'' + t.ref + '\')">✅ Valider</button></td>' +
-    '</tr>';
-  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">Aucun paiement en cours</td></tr>';
+function showToast(msg, type) {
+  var t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(function(){ t.className = 'toast'; }, 3000);
 }
 
-function renderJournal() {
-  var list = document.getElementById('journal-list');
-  if (!list) return;
-  list.innerHTML = JOURNAL.map(function(e) {
-    return '<div class="pm-log-entry">' +
-      '<div class="pm-log-icon ' + e.type + '">' + e.icon + '</div>' +
-      '<div class="pm-log-text">' +
-        '<div class="pm-log-msg">' + e.msg + '</div>' +
-        '<div class="pm-log-meta">Par : ' + e.user + '</div>' +
-      '</div>' +
-      '<div class="pm-log-time">' + e.time + '</div>' +
+/* ── TAB NAVIGATION ── */
+function goTab(t) {
+  _activeTab = t;
+  document.querySelectorAll('.pay-tab').forEach(function(btn){
+    btn.classList.toggle('active', btn.id === 'tab-' + t);
+  });
+  document.querySelectorAll('.pay-pane').forEach(function(p){
+    p.classList.toggle('active', p.id === 'pane-' + t);
+  });
+  var renders = {
+    transactions: renderTransactions,
+    reservations: renderReservationsTab,
+    restaurant: renderRestaurant,
+    factures: renderFactures,
+    remboursements: renderRefunds,
+    caisse: renderCaisse,
+    methodes: renderMethods,
+    rapports: renderRapports
+  };
+  if(renders[t]) renders[t]();
+}
+
+/* ── REFRESH ALL ── */
+function refresh() {
+  updateBadges();
+  if(_activeTab) goTab(_activeTab);
+}
+
+function updateBadges() {
+  var pending = _payments.filter(function(p){return p.status==='pending';}).length;
+  var pendingRef = _refunds.filter(function(r){return r.status==='pending';}).length;
+  var unpaidRez = _reservations.filter(function(r){
+    var total = parseInt(r.total)||0, paid = parseInt(r.paid)||0;
+    return paid < total && r.status !== 'checkedout';
+  }).length;
+  var openResto = _restaurant.filter(function(o){return o.status==='open';}).length;
+
+  var bTx = document.getElementById('badge-tx');
+  var bRez = document.getElementById('badge-rez');
+  var bRef = document.getElementById('badge-ref');
+  var bResto = document.getElementById('badge-resto');
+  var bInv = document.getElementById('badge-inv');
+
+  if(bTx) bTx.textContent = _payments.length;
+  if(bRez) { bRez.textContent = unpaidRez; bRez.style.display = unpaidRez ? '' : 'none'; }
+  if(bRef) { bRef.textContent = pendingRef; bRef.style.display = pendingRef ? '' : 'none'; }
+  if(bResto) bResto.textContent = openResto;
+  if(bInv) bInv.textContent = _invoices.length;
+}
+</script><script>
+/* ── RENDER TRANSACTIONS ── */
+function renderTransactions() {
+  var search = (document.getElementById('tx-search')||{}).value || '';
+  var sFilter = (document.getElementById('tx-status')||{}).value || 'all';
+  var mFilter = (document.getElementById('tx-method')||{}).value || 'all';
+  var list = _payments.filter(function(p) {
+    var q = search.toLowerCase();
+    var matchQ = !q || (p.guest_name||'').toLowerCase().includes(q) ||
+                  (p.reference||'').toLowerCase().includes(q) ||
+                  String(p.amount||'').includes(q);
+    return matchQ && (sFilter==='all'||p.status===sFilter) && (mFilter==='all'||p.method===mFilter);
+  });
+  var validated = list.filter(function(p){return p.status==='validated';});
+  var totalV = validated.reduce(function(s,p){return s+(parseInt(p.amount)||0);},0);
+  var pending = list.filter(function(p){return p.status==='pending';}).length;
+  var total = list.reduce(function(s,p){return s+(parseInt(p.amount)||0);},0);
+  var sg = document.getElementById('tx-stats');
+  if(sg) sg.innerHTML =
+    '<div class="stat-card green"><div class="stat-label">Total encaissé</div><div class="stat-val">'+fmtNum(totalV)+'</div><div class="stat-sub">'+validated.length+' transactions</div></div>'+
+    '<div class="stat-card yellow"><div class="stat-label">En attente</div><div class="stat-val">'+pending+'</div><div class="stat-sub">à valider</div></div>'+
+    '<div class="stat-card purple"><div class="stat-label">Volume filtré</div><div class="stat-val">'+fmtNum(total)+'</div><div class="stat-sub">'+list.length+' tx</div></div>';
+  var el = document.getElementById('tx-list');
+  if(!el) return;
+  if(!list.length) { el.innerHTML = '<div class="empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><p>Aucune transaction</p></div>'; return; }
+  el.innerHTML = list.map(function(p) {
+    var rez = _reservations.find(function(r){return r.id===p.reservation_id;});
+    var rezName = rez ? rez.client_name : (p.guest_name || '—');
+    return '<div class="card">'+
+      '<div class="card-header">'+
+        '<div>'+
+          '<div class="card-title">'+esc(rezName)+'</div>'+
+          '<div class="card-sub">'+typeLabel(p.payment_type||'payment')+' · '+fmtDT(p.created_at)+'</div>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+
+          '<span class="amount positive">'+fmtNum(p.amount)+'</span>'+
+          statusBadge(p.status||'pending')+
+        '</div>'+
+      '</div>'+
+      '<div class="card-body">'+
+        '<div class="method-icon">'+methodIcon(p.method)+'</div>'+
+        '<span style="font-size:11px;color:var(--text2)">'+esc(methodLabel(p.method))+'</span>'+
+        (p.reference ? '<span style="font-size:11px;background:var(--bg4);padding:2px 8px;border-radius:6px;color:var(--text2)">'+esc(p.reference)+'</span>' : '')+
+        '<div style="flex:1"></div>'+
+        (p.status==='pending' ? '<button class="btn btn-success btn-sm" data-id="'+esc(p.id)+'" onclick="validatePayment(this.dataset.id)">Valider</button>' : '')+
+        '<button class="btn btn-ghost btn-sm" data-id="'+esc(p.id)+'" onclick="viewPayment(this.dataset.id)">Détail</button>'+
+      '</div>'+
     '</div>';
   }).join('');
 }
 
-/* ── Navigation tabs ──────────────────────────────────────────── */
-function pmTab(name) {
-  document.querySelectorAll('.pm-tab').forEach(function(t) { t.classList.remove('active'); });
-  document.querySelectorAll('.pm-pane').forEach(function(p) { p.classList.remove('active'); });
-  var tab = document.getElementById('tab-' + name);
-  var pane = document.getElementById('pane-' + name);
-  if (tab) tab.classList.add('active');
-  if (pane) pane.classList.add('active');
-  window.emitToCore && window.emitToCore('paiements:tab', { tab: name });
-}
+function fmtNum(n) { return (parseInt(n)||0).toLocaleString('fr-FR') + ' FCFA'; }
 
-/* ── Recherche / filtres ──────────────────────────────────────── */
-var _searchQ = '', _filterMethod = '', _filterStatus = '';
-function pmSearch(q) {
-  _searchQ = q.toLowerCase();
-  applyFilters();
-}
-function pmFilter(type, val) {
-  if (type === 'method') _filterMethod = val;
-  if (type === 'status') _filterStatus = val;
-  applyFilters();
-}
-function applyFilters() {
-  filteredTx = TRANSACTIONS.filter(function(t) {
-    var matchQ = !_searchQ || t.client.toLowerCase().includes(_searchQ) ||
-                 t.ref.toLowerCase().includes(_searchQ) ||
-                 String(t.montant).includes(_searchQ);
-    var matchM = !_filterMethod || t.method === _filterMethod;
-    var matchS = !_filterStatus || t.statut === _filterStatus;
-    return matchQ && matchM && matchS;
+/* ── RENDER RESERVATIONS TAB ── */
+function renderReservationsTab() {
+  var search = (document.getElementById('rez-search')||{}).value || '';
+  var payFilter = (document.getElementById('rez-pay-filter')||{}).value || 'all';
+  var list = _reservations.filter(function(r) {
+    var q = search.toLowerCase();
+    var matchQ = !q || (r.client_name||'').toLowerCase().includes(q);
+    var total=parseInt(r.total)||0, paid=parseInt(r.paid)||0;
+    var ps = paid>=total?'paid':paid>0?'partial':'unpaid';
+    return matchQ && (payFilter==='all'||ps===payFilter);
   });
-  renderTransactions(filteredTx);
+  var el = document.getElementById('rez-list');
+  if(!el) return;
+  if(!list.length) { el.innerHTML = '<div class="empty"><p>Aucune réservation</p></div>'; return; }
+  el.innerHTML = list.map(function(r) {
+    var total=parseInt(r.total)||0, paid=parseInt(r.paid)||0;
+    var balance=total-paid;
+    var pct=total>0?Math.min(100,Math.round(paid/total*100)):0;
+    var payStatus=paid>=total?'paid':paid>0?'partial':'unpaid';
+    var rezPmts=_payments.filter(function(p){return p.reservation_id===r.id;});
+    var safeName = esc(r.client_name||'');
+    return '<div class="card">'+
+      '<div class="card-header">'+
+        '<div>'+
+          '<div class="card-title">'+safeName+'</div>'+
+          '<div class="card-sub">'+fmtD(r.check_in)+' → '+fmtD(r.check_out)+' · '+esc(r.status||'')+'</div>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+
+          statusBadge(payStatus)+
+          '<span style="font-size:11px;color:var(--text2)">'+rezPmts.length+' tx</span>'+
+        '</div>'+
+      '</div>'+
+      '<div style="margin:6px 0 10px">'+
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);margin-bottom:4px">'+
+          '<span>Payé: <strong style="color:var(--success)">'+fmtNum(paid)+'</strong></span>'+
+          '<span>Solde: <strong style="color:'+(balance>0?'var(--danger)':'var(--success)')+'">'+fmtNum(balance)+'</strong></span>'+
+          '<span>Total: <strong>'+fmtNum(total)+'</strong></span>'+
+        '</div>'+
+        '<div class="progress-wrap"><div class="progress-bar'+(pct>=100?' full':pct<30?' low':'')+'" style="width:'+pct+'%"></div></div>'+
+      '</div>'+
+      '<div class="card-body">'+
+        (balance>0 && r.status!=='checkedout' ?
+          '<button class="btn btn-primary btn-sm" data-rid="'+esc(r.id)+'" data-name="'+safeName+'" data-balance="'+balance+'" onclick="openPayModalForRez(this.dataset.rid,this.dataset.name,+this.dataset.balance)">Payer</button>' : '')+
+        '<button class="btn btn-ghost btn-sm" data-rid="'+esc(r.id)+'" onclick="openInvoiceForRez(this.dataset.rid)">Facture</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
 }
 
-/* ── Actions ──────────────────────────────────────────────────── */
-function viewTx(ref) {
-  showLocalToast('Détail ' + ref + ' — à connecter à la base', 'info');
+/* ── RENDER RESTAURANT ── */
+function renderRestaurant() {
+  var search = (document.getElementById('resto-search')||{}).value || '';
+  var sFilter = (document.getElementById('resto-status')||{}).value || 'all';
+  var tFilter = (document.getElementById('resto-type')||{}).value || 'all';
+  var list = _restaurant.filter(function(o) {
+    var q = search.toLowerCase();
+    var matchQ = !q || (o.table_name||'').toLowerCase().includes(q) || (o.room_number||'').toLowerCase().includes(q);
+    return matchQ && (sFilter==='all'||o.status===sFilter) && (tFilter==='all'||o.type===tFilter);
+  });
+  var openO = _restaurant.filter(function(o){return o.status==='open';});
+  var paidO = _restaurant.filter(function(o){return o.status==='paid';});
+  var totalRev = paidO.reduce(function(s,o){return s+(parseFloat(o.total)||parseFloat(o.total_amount)||0);},0);
+  var openAmt = openO.reduce(function(s,o){return s+(parseFloat(o.total)||parseFloat(o.total_amount)||0);},0);
+  var sg = document.getElementById('resto-stats');
+  if(sg) sg.innerHTML =
+    '<div class="stat-card green"><div class="stat-label">Revenus encaissés</div><div class="stat-val">'+fmtNum(totalRev)+'</div><div class="stat-sub">'+paidO.length+' commandes</div></div>'+
+    '<div class="stat-card yellow"><div class="stat-label">En cours</div><div class="stat-val">'+openO.length+'</div><div class="stat-sub">'+fmtNum(openAmt)+' non encaissé</div></div>'+
+    '<div class="stat-card blue"><div class="stat-label">Total</div><div class="stat-val">'+_restaurant.length+'</div><div class="stat-sub">commandes</div></div>';
+  var el = document.getElementById('resto-list');
+  if(!el) return;
+  if(!list.length) { el.innerHTML = '<div class="empty"><p>Aucune commande</p></div>'; return; }
+  var typeMap = {restaurant:'Restaurant',bar:'Bar',room_service:'Room Service',terrasse:'Terrasse'};
+  el.innerHTML = list.map(function(o) {
+    var total = parseFloat(o.total)||parseFloat(o.total_amount)||0;
+    var items = [];
+    try { items = JSON.parse(o.items_json||'[]'); } catch(e){}
+    var itemsHtml = items.slice(0,3).map(function(it){
+      return '<span style="font-size:11px;background:var(--bg4);padding:2px 8px;border-radius:5px;color:var(--text2)">'+esc((it.name||it.product_name||'?'))+' x'+(it.qty||it.quantity||1)+'</span>';
+    }).join('');
+    return '<div class="card">'+
+      '<div class="card-header">'+
+        '<div>'+
+          '<div class="card-title">'+esc(o.table_name||'Table')+(o.room_number?' · Ch.'+esc(o.room_number):'')+
+            ' <span style="font-size:11px;color:var(--text3)">'+esc(typeMap[o.type]||o.type||'')+'</span></div>'+
+          '<div class="card-sub">'+fmtDT(o.created_at)+(o.server?' · '+esc(o.server):'')+'</div>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+
+          '<span class="amount positive">'+fmtNum(total)+'</span>'+
+          statusBadge(o.status||'open')+
+        '</div>'+
+      '</div>'+
+      (itemsHtml ? '<div class="card-body" style="margin-bottom:8px">'+itemsHtml+'</div>' : '')+
+      '<div class="card-body">'+
+        (o.status==='open' ?
+          '<button class="btn btn-success btn-sm" data-id="'+esc(o.id)+'" data-total="'+total+'" onclick="payRestoOrder(this.dataset.id,+this.dataset.total)">Encaisser</button>'+
+          '<button class="btn btn-ghost btn-sm" data-id="'+esc(o.id)+'" onclick="roomChargeOrder(this.dataset.id)">Chambre</button>' : '')+
+        '<span style="font-size:11px;color:var(--text2)">'+esc(methodLabel(o.payment_method))+'</span>'+
+      '</div>'+
+    '</div>';
+  }).join('');
 }
-function validateTx(ref) {
-  var t = TRANSACTIONS.find(function(x) { return x.ref === ref; });
-  if (!t) return;
-  t.statut = 'ok';
-  applyFilters(); renderValidations(); renderWorkflow();
-  showLocalToast('✅ ' + ref + ' validé', 'success');
-  window.emitToCore && window.emitToCore('paiements:validated', { ref: ref });
-  if (_sbUrl && _sbKey && t._id) {
-    sbPatch('veraluz_payments', t._id, { status: 'validated', validated_at: new Date().toISOString() })
-      .catch(function(e) { console.warn('[Paiements] Erreur validation:', e); });
+
+/* ── RENDER FACTURES ── */
+function renderFactures() {
+  var search = (document.getElementById('inv-search')||{}).value || '';
+  var list = _invoices.filter(function(i) {
+    var q = search.toLowerCase();
+    return !q || (i.client_name||'').toLowerCase().includes(q) || (i.number||'').toLowerCase().includes(q);
+  });
+  var el = document.getElementById('inv-list');
+  if(!el) return;
+  if(!list.length) {
+    el.innerHTML = '<div class="empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>Aucune facture</p><p style="margin-top:8px"><button class="btn btn-primary btn-sm" onclick="openInvoiceModal()">Créer la première</button></p></div>';
+    return;
   }
+  el.innerHTML = list.map(function(inv) {
+    var data = {};
+    try { data = typeof inv.data==='string' ? JSON.parse(inv.data||'{}') : (inv.data||{}); } catch(e){}
+    var amount = parseInt(inv.amount)||parseInt(data.total)||0;
+    var paid = parseInt(data.paid)||0;
+    var balance = amount - paid;
+    return '<div class="card">'+
+      '<div class="card-header">'+
+        '<div>'+
+          '<div class="card-title">Facture #'+esc(inv.number||inv.id)+'</div>'+
+          '<div class="card-sub">'+esc(inv.client_name||'—')+' · '+fmtD(inv.issued_at)+'</div>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+
+          '<span class="amount">'+fmtNum(amount)+'</span>'+
+          (balance>0 ? '<span style="font-size:11px;color:var(--danger)">Solde: '+fmtNum(balance)+'</span>' : statusBadge('paid'))+
+        '</div>'+
+      '</div>'+
+      '<div class="card-body">'+
+        '<button class="btn btn-ghost btn-sm" data-id="'+esc(inv.id)+'" onclick="previewInvoice(this.dataset.id)">Aperçu</button>'+
+        '<button class="btn btn-ghost btn-sm" data-id="'+esc(inv.id)+'" onclick="printInvoiceDirect(this.dataset.id)">Imprimer</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
 }
-function rejectTx(ref) {
-  var t = TRANSACTIONS.find(function(x) { return x.ref === ref; });
-  if (!t) return;
-  t.statut = 'failed';
-  applyFilters(); renderValidations();
-  showLocalToast('❌ ' + ref + ' rejeté', 'error');
-  if (_sbUrl && _sbKey && t._id) {
-    sbPatch('veraluz_payments', t._id, { status: 'rejected' })
-      .catch(function(e) { console.warn('[Paiements] Erreur rejet:', e); });
+
+/* ── RENDER REFUNDS ── */
+function renderRefunds() {
+  var search = (document.getElementById('ref-search')||{}).value || '';
+  var sFilter = (document.getElementById('ref-status')||{}).value || 'all';
+  var list = _refunds.filter(function(r) {
+    var q = search.toLowerCase();
+    var matchQ = !q || (r.guest_name||'').toLowerCase().includes(q) || (r.reason||'').toLowerCase().includes(q);
+    return matchQ && (sFilter==='all'||r.status===sFilter);
+  });
+  var el = document.getElementById('ref-list');
+  if(!el) return;
+  if(!list.length) {
+    el.innerHTML = '<div class="empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg><p>Aucun remboursement</p></div>';
+    return;
   }
+  el.innerHTML = list.map(function(r) {
+    return '<div class="card">'+
+      '<div class="card-header">'+
+        '<div>'+
+          '<div class="card-title">'+esc(r.guest_name||'—')+'</div>'+
+          '<div class="card-sub">'+esc(r.reason||'Remboursement')+' · '+fmtD(r.created_at)+'</div>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">'+
+          '<span class="amount negative">−'+fmtNum(r.amount)+'</span>'+
+          statusBadge(r.status||'pending')+
+        '</div>'+
+      '</div>'+
+      '<div class="card-body">'+
+        '<span style="font-size:11px;color:var(--text2)">'+esc(methodLabel(r.method))+'</span>'+
+        '<div style="flex:1"></div>'+
+        (r.status==='pending' ?
+          '<button class="btn btn-success btn-sm" data-id="'+esc(r.id)+'" onclick="approveRefund(this.dataset.id)">Approuver</button>'+
+          '<button class="btn btn-danger btn-sm" data-id="'+esc(r.id)+'" onclick="rejectRefund(this.dataset.id)">Rejeter</button>' : '')+
+      '</div>'+
+    '</div>';
+  }).join('');
 }
-function refundTx(ref) {
-  var t = TRANSACTIONS.find(function(x) { return x.ref === ref; });
-  if (!t) return;
-  t.statut = 'refund';
-  applyFilters(); renderRefunds();
-  showLocalToast('↩️ Remboursement ' + ref + ' initié', 'info');
-  window.emitToCore && window.emitToCore('paiements:refund', { ref: ref });
-  if (_sbUrl && _sbKey && t._id) {
-    sbPatch('veraluz_payments', t._id, { status: 'refunded' })
-      .catch(function(e) { console.warn('[Paiements] Erreur remboursement:', e); });
+
+/* ── RENDER CAISSE ── */
+function renderCaisse() {
+  var dateFilter = (document.getElementById('caisse-date')||{}).value || '';
+  var list = _caisse.filter(function(c) {
+    if(!dateFilter) return true;
+    return (c.date||'').startsWith(dateFilter);
+  });
+  var entrees = _caisse.filter(function(c){return c.type==='entree';});
+  var sorties = _caisse.filter(function(c){return c.type==='sortie';});
+  var totalIn = entrees.reduce(function(s,c){return s+(parseInt(c.montant)||0);},0);
+  var totalOut = sorties.reduce(function(s,c){return s+(parseInt(c.montant)||0);},0);
+  var solde = totalIn - totalOut;
+  var cs = document.getElementById('caisse-summary');
+  if(cs) cs.innerHTML =
+    '<div class="caisse-box in"><div class="label">Entrées</div><div class="val">'+fmtNum(totalIn)+'</div></div>'+
+    '<div class="caisse-box out"><div class="label">Sorties</div><div class="val">'+fmtNum(totalOut)+'</div></div>'+
+    '<div class="caisse-box total" style="grid-column:1/-1"><div class="label">Solde caisse</div><div class="val" style="color:'+(solde>=0?'var(--success)':'var(--danger)')+'">'+fmtNum(solde)+'</div></div>';
+  var el = document.getElementById('caisse-list');
+  if(!el) return;
+  if(!list.length) { el.innerHTML = '<div class="empty"><p>Aucun mouvement'+(dateFilter?' pour cette date':'')+'</p></div>'; return; }
+  el.innerHTML = '<div class="table-wrap"><table class="data-table">'+
+    '<thead><tr><th>Date</th><th>Type</th><th>Libellé</th><th>Source</th><th>Montant</th></tr></thead>'+
+    '<tbody>'+list.map(function(c){
+      var isIn = c.type==='entree';
+      return '<tr><td>'+fmtDT(c.created_at)+'</td><td>'+statusBadge(c.type)+'</td><td>'+esc(c.libelle||'—')+'</td><td><span style="font-size:11px;color:var(--text2)">'+esc(c.source||'—')+'</span></td><td><strong style="color:'+(isIn?'var(--success)':'var(--danger)')+'">'+(isIn?'+':'-')+fmtNum(c.montant)+'</strong></td></tr>';
+    }).join('')+'</tbody></table></div>';
+}
+
+/* ── RENDER METHODS ── */
+function renderMethods() {
+  var methods = [
+    {id:'cash',name:'Espèces',desc:'Paiement physique en FCFA',on:true},
+    {id:'orange',name:'Orange Money',desc:'Paiement mobile Orange CM',on:true},
+    {id:'mtn',name:'MTN MoMo',desc:'Mobile Money MTN Cameroun',on:true},
+    {id:'virement',name:'Virement bancaire',desc:'Virement SEPA ou local',on:true},
+    {id:'card',name:'Carte bancaire',desc:'Visa / Mastercard (bientôt)',on:false},
+    {id:'cinetpay',name:'CinetPay',desc:'Agrégateur paiement Afrique',on:false}
+  ];
+  var icons = {
+    cash:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+    orange:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
+    mtn:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>',
+    virement:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>',
+    card:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>',
+    cinetpay:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'
+  };
+  var el = document.getElementById('methods-grid');
+  if(!el) return;
+  el.innerHTML = methods.map(function(m) {
+    return '<div class="method-card">'+
+      '<div class="method-icon" style="width:40px;height:40px;border-radius:10px">'+(icons[m.id]||icons.cash)+'</div>'+
+      '<div class="minfo"><div class="mname">'+esc(m.name)+'</div><div class="mdesc">'+esc(m.desc)+'</div></div>'+
+      '<button class="toggle '+(m.on?'on':'')+'" id="toggle-'+m.id+'" data-id="'+m.id+'" onclick="toggleMethod(this.dataset.id)"></button>'+
+    '</div>';
+  }).join('');
+}
+
+function toggleMethod(id) {
+  var btn = document.getElementById('toggle-'+id);
+  if(btn) btn.classList.toggle('on');
+}
+
+/* ── RENDER RAPPORTS ── */
+function renderRapports() {
+  var period = (document.getElementById('rpt-period')||{}).value || 'month';
+  var now = new Date();
+  var cutoff = new Date(0);
+  if(period==='today') cutoff = new Date(now.toDateString());
+  else if(period==='week') { cutoff=new Date(now); cutoff.setDate(cutoff.getDate()-7); }
+  else if(period==='month') { cutoff=new Date(now.getFullYear(),now.getMonth(),1); }
+  var list = period==='all' ? _payments : _payments.filter(function(p){return new Date(p.created_at)>=cutoff;});
+  var validated = list.filter(function(p){return p.status==='validated';});
+  var totalRev = validated.reduce(function(s,p){return s+(parseInt(p.amount)||0);},0);
+  var totalPend = list.filter(function(p){return p.status==='pending';}).reduce(function(s,p){return s+(parseInt(p.amount)||0);},0);
+  var avgTx = validated.length>0?Math.round(totalRev/validated.length):0;
+  var sg = document.getElementById('rpt-stats');
+  if(sg) sg.innerHTML =
+    '<div class="stat-card green"><div class="stat-label">Revenus validés</div><div class="stat-val">'+fmtNum(totalRev)+'</div><div class="stat-sub">'+validated.length+' tx</div></div>'+
+    '<div class="stat-card yellow"><div class="stat-label">En attente</div><div class="stat-val">'+fmtNum(totalPend)+'</div><div class="stat-sub">à valider</div></div>'+
+    '<div class="stat-card blue"><div class="stat-label">Ticket moyen</div><div class="stat-val">'+fmtNum(avgTx)+'</div><div class="stat-sub">par transaction</div></div>'+
+    '<div class="stat-card purple"><div class="stat-label">Volume</div><div class="stat-val">'+list.length+'</div><div class="stat-sub">transactions</div></div>';
+  var byMethod = {}, byType = {};
+  validated.forEach(function(p){
+    var m=p.method||'cash', t=p.payment_type||'payment';
+    byMethod[m]=(byMethod[m]||0)+(parseInt(p.amount)||0);
+    byType[t]=(byType[t]||0)+(parseInt(p.amount)||0);
+  });
+  function barRows(obj, labelFn, color) {
+    var maxV = Math.max.apply(null, Object.values(obj).concat([1]));
+    return Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];}).map(function(k){
+      return '<div class="chart-bar-row">'+
+        '<div class="chart-bar-label">'+esc(labelFn(k))+'</div>'+
+        '<div class="chart-bar-track"><div class="chart-bar-fill" style="width:'+Math.round(obj[k]/maxV*100)+'%;'+(color?'background:'+color:'')+'"></div></div>'+
+        '<div class="chart-bar-val">'+fmtNum(obj[k])+'</div>'+
+      '</div>';
+    }).join('');
   }
+  var rezPaid = _reservations.filter(function(r){return parseInt(r.paid)>=parseInt(r.total)&&parseInt(r.total)>0;}).length;
+  var rezPartial = _reservations.filter(function(r){var t=parseInt(r.total)||0,p=parseInt(r.paid)||0;return p>0&&p<t;}).length;
+  var rezUnpaid = _reservations.filter(function(r){return (parseInt(r.paid)||0)===0&&parseInt(r.total)>0;}).length;
+  var N = Math.max(1,_reservations.length);
+  var el = document.getElementById('rpt-charts');
+  if(el) el.innerHTML =
+    '<div class="report-card"><div class="report-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Par méthode</div><div class="chart-bar-wrap">'+(barRows(byMethod,methodLabel,'')||'<p style="color:var(--text3);font-size:12px">Aucune donnée</p>')+'</div></div>'+
+    '<div class="report-card"><div class="report-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Par type</div><div class="chart-bar-wrap">'+(barRows(byType,typeLabel,'var(--success)')||'<p style="color:var(--text3);font-size:12px">Aucune donnée</p>')+'</div></div>'+
+    '<div class="report-card"><div class="report-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>Statut réservations</div>'+
+    '<div class="chart-bar-wrap">'+
+    '<div class="chart-bar-row"><div class="chart-bar-label">Soldé</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:'+Math.round(rezPaid/N*100)+'%;background:var(--success)"></div></div><div class="chart-bar-val">'+rezPaid+'</div></div>'+
+    '<div class="chart-bar-row"><div class="chart-bar-label">Partiel</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:'+Math.round(rezPartial/N*100)+'%;background:var(--warning)"></div></div><div class="chart-bar-val">'+rezPartial+'</div></div>'+
+    '<div class="chart-bar-row"><div class="chart-bar-label">Impayé</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:'+Math.round(rezUnpaid/N*100)+'%;background:var(--danger)"></div></div><div class="chart-bar-val">'+rezUnpaid+'</div></div>'+
+    '</div></div>';
+}
+</script><script>
+/* ── OPEN PAYMENT MODAL ── */
+function openPayModal() {
+  // Populate reservation select
+  var sel = document.getElementById('pay-rez-select');
+  if(sel) {
+    sel.innerHTML = '<option value="">— Sans réservation (bar, divers) —</option>' +
+      _reservations.map(function(r){
+        var total=parseInt(r.total)||0, paid=parseInt(r.paid)||0, bal=total-paid;
+        return '<option value="'+r.id+'">'+r.client_name+(bal>0?' (solde: '+fmtNum(bal)+')':' ✓')+'</option>';
+      }).join('');
+  }
+  document.getElementById('pay-guest').value = '';
+  document.getElementById('pay-amount').value = '';
+  document.getElementById('pay-ref').value = '';
+  document.getElementById('pay-notes').value = '';
+  document.getElementById('payModalTitle').textContent = 'Nouveau paiement';
+  openModal('payModal');
 }
 
-function openNewPaiement()     { document.getElementById('modal-paiement').classList.add('open'); }
-function openRemboursement()   { document.getElementById('modal-remboursement').classList.add('open'); }
-function closeModal(id)        { document.getElementById(id).classList.remove('open'); }
-
-function submitPaiement() {
-  closeModal('modal-paiement');
-  showLocalToast('💳 Paiement enregistré — rechargement...', 'success');
-  window.emitToCore && window.emitToCore('paiements:new', {});
-  // Recharger les données depuis Supabase
-  setTimeout(function() { loadFromSupabase(); }, 800);
-}
-function submitRemboursement() {
-  closeModal('modal-remboursement');
-  showLocalToast('↩️ Remboursement soumis pour approbation', 'info');
+function openPayModalForRez(rezId, rezName, balance) {
+  openPayModal();
+  var sel = document.getElementById('pay-rez-select');
+  if(sel) sel.value = rezId;
+  var gInput = document.getElementById('pay-guest');
+  if(gInput) gInput.value = rezName;
+  var aInput = document.getElementById('pay-amount');
+  if(aInput && balance > 0) aInput.value = balance;
+  var tSel = document.getElementById('pay-type');
+  if(tSel) tSel.value = 'solde';
+  document.getElementById('payModalTitle').textContent = 'Paiement — '+rezName;
 }
 
-/* ── Export CSV ───────────────────────────────────────────────── */
-function pmExportCSV() {
-  var headers = ['Réf.','Client','Chambre','Méthode','Montant FCFA','Statut','Date'];
-  var rows = filteredTx.map(function(t) {
-    return [t.ref, t.client, t.chambre, METHODS[t.method]?.label || t.method, t.montant, t.statut, t.date].join(',');
+/* ── SAVE PAYMENT ── */
+function savePayment() {
+  var rezId = document.getElementById('pay-rez-select').value;
+  var guest = document.getElementById('pay-guest').value.trim();
+  var amount = parseInt(document.getElementById('pay-amount').value)||0;
+  var type = document.getElementById('pay-type').value;
+  var method = document.getElementById('pay-method').value;
+  var source = document.getElementById('pay-source').value;
+  var ref = document.getElementById('pay-ref').value.trim();
+  var notes = document.getElementById('pay-notes').value.trim();
+
+  if(amount <= 0) { showToast('Veuillez saisir un montant valide', 'error'); return; }
+
+  // If no guest name, try to get from reservation
+  if(!guest && rezId) {
+    var rez = _reservations.find(function(r){return r.id===rezId;});
+    if(rez) guest = rez.client_name;
+  }
+
+  var body = {
+    amount: amount,
+    method: method,
+    payment_type: type,
+    source: source,
+    status: 'validated',
+    reference: ref || '',
+    notes: notes || null,
+    guest_name: guest || null,
+    currency: 'XAF'
+  };
+  if(rezId) body.reservation_id = rezId;
+
+  var btn = document.querySelector('#payModal .btn-primary');
+  if(btn) btn.textContent = 'Enregistrement...';
+
+  sbFetch('veraluz_payments', {method:'POST', body:JSON.stringify(body)})
+    .then(function(r) {
+      if(r.ok || r.status === 201) {
+        // Update reservation paid amount if linked
+        if(rezId && (type==='acompte'||type==='solde'||type==='total')) {
+          var rez = _reservations.find(function(r){return r.id===rezId;});
+          if(rez) {
+            var newPaid = (parseInt(rez.paid)||0) + amount;
+            sbFetch('veraluz_reservations?id=eq.'+rezId, {
+              method:'PATCH',
+              body:JSON.stringify({paid: newPaid}),
+              headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=minimal'}
+            });
+            rez.paid = newPaid;
+          }
+        }
+        closeModal('payModal');
+        showToast('Paiement enregistré avec succès', 'success');
+        loadAll(refresh);
+      } else {
+        showToast('Erreur lors de l\'enregistrement', 'error');
+        if(btn) btn.textContent = 'Enregistrer paiement';
+      }
+    }).catch(function(){
+      showToast('Erreur réseau', 'error');
+      if(btn) btn.textContent = 'Enregistrer paiement';
+    });
+}
+
+/* ── VALIDATE PAYMENT ── */
+function validatePayment(id) {
+  sbFetch('veraluz_payments?id=eq.'+id, {
+    method:'PATCH',
+    body:JSON.stringify({status:'validated', validated_at: new Date().toISOString()})
+  }).then(function(r){
+    if(r.ok) {
+      var p = _payments.find(function(p){return p.id===id;});
+      if(p) p.status = 'validated';
+      showToast('Paiement validé', 'success');
+      renderTransactions();
+      updateBadges();
+    }
+  });
+}
+
+/* ── VIEW PAYMENT ── */
+function viewPayment(id) {
+  var p = _payments.find(function(x){return x.id===id;});
+  if(!p) return;
+  var rez = _reservations.find(function(r){return r.id===p.reservation_id;});
+  showToast('Paiement: '+fmtNum(p.amount)+' · '+methodLabel(p.method)+(rez?' · '+rez.client_name:''));
+}
+
+/* ── INVOICE MODAL ── */
+function openInvoiceModal() {
+  var sel = document.getElementById('inv-rez-select');
+  if(sel) {
+    sel.innerHTML = '<option value="">— Choisir une réservation —</option>'+
+      _reservations.map(function(r){
+        return '<option value="'+r.id+'">'+r.client_name+' ('+fmtD(r.check_in)+' → '+fmtD(r.check_out)+')</option>';
+      }).join('');
+  }
+  document.getElementById('inv-client').value = '';
+  document.getElementById('inv-amount').value = '';
+  document.getElementById('inv-paid').value = '';
+  document.getElementById('inv-notes').value = '';
+  openModal('invoiceModal');
+}
+
+function openInvoiceForRez(rezId) {
+  openInvoiceModal();
+  var sel = document.getElementById('inv-rez-select');
+  if(sel) { sel.value = rezId; prefillInvoice(); }
+}
+
+function prefillInvoice() {
+  var rezId = (document.getElementById('inv-rez-select')||{}).value;
+  if(!rezId) return;
+  var rez = _reservations.find(function(r){return r.id===rezId;});
+  if(!rez) return;
+  document.getElementById('inv-client').value = rez.client_name||'';
+  document.getElementById('inv-amount').value = rez.total||0;
+  document.getElementById('inv-paid').value = rez.paid||0;
+}
+
+function saveInvoice() {
+  var rezId = document.getElementById('inv-rez-select').value;
+  var client = document.getElementById('inv-client').value.trim();
+  var amount = parseInt(document.getElementById('inv-amount').value)||0;
+  var paid = parseInt(document.getElementById('inv-paid').value)||0;
+  var notes = document.getElementById('inv-notes').value.trim();
+
+  if(!client) { showToast('Veuillez saisir le nom du client', 'error'); return; }
+  if(amount <= 0) { showToast('Montant invalide', 'error'); return; }
+
+  var invNo = 'VLZ-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5);
+  var body = {
+    number: invNo,
+    client_name: client,
+    amount: amount,
+    data: JSON.stringify({total:amount, paid:paid, balance:amount-paid, notes:notes}),
+    issued_at: new Date().toISOString()
+  };
+  if(rezId) body.reservation_id = rezId;
+
+  sbFetch('veraluz_invoices', {method:'POST', body:JSON.stringify(body)})
+    .then(function(r){
+      if(r.ok || r.status===201) {
+        closeModal('invoiceModal');
+        showToast('Facture '+invNo+' créée', 'success');
+        loadAll(refresh);
+      } else {
+        showToast('Erreur création facture', 'error');
+      }
+    }).catch(function(){ showToast('Erreur réseau', 'error'); });
+}
+
+function previewInvoice(id) {
+  var inv = _invoices.find(function(i){return i.id===id;});
+  if(!inv) return;
+  var data = {};
+  try { data = typeof inv.data==='string' ? JSON.parse(inv.data||'{}') : (inv.data||{}); } catch(e){}
+  var amount = parseInt(inv.amount)||parseInt(data.total)||0;
+  var paid = parseInt(data.paid)||0;
+  var balance = amount - paid;
+
+  document.getElementById('invPreviewTitle').textContent = 'Facture #'+( inv.number||inv.id);
+  document.getElementById('inv-preview-body').innerHTML =
+    '<div style="background:#fff;color:#222;padding:30px;border-radius:12px;font-family:serif">'+
+    '<div style="display:flex;justify-content:space-between;margin-bottom:24px">'+
+      '<div><strong style="font-size:20px">Résidence Veraluz</strong><br/><span style="font-size:12px;color:#666">Kribi, Cameroun · Appartements vue mer</span></div>'+
+      '<div style="text-align:right"><strong>FACTURE</strong><br/>#'+esc(inv.number||inv.id)+'<br/><span style="font-size:12px;color:#666">'+fmtD(inv.issued_at)+'</span></div>'+
+    '</div>'+
+    '<div style="margin-bottom:20px;padding:12px;background:#f5f5f5;border-radius:6px">'+
+      '<strong>Client:</strong> '+esc(inv.client_name||'—')+
+    '</div>'+
+    '<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'+
+      '<thead><tr style="border-bottom:2px solid #222"><th style="text-align:left;padding:8px">Description</th><th style="text-align:right;padding:8px">Montant</th></tr></thead>'+
+      '<tbody>'+
+        '<tr><td style="padding:8px;border-bottom:1px solid #eee">Séjour hôtelier</td><td style="text-align:right;padding:8px;border-bottom:1px solid #eee">'+fmtNum(amount)+'</td></tr>'+
+        (data.notes ? '<tr><td style="padding:8px;color:#666;font-size:12px" colspan="2">'+esc(data.notes)+'</td></tr>' : '')+
+      '</tbody>'+
+    '</table>'+
+    '<div style="text-align:right">'+
+      '<div>Sous-total: <strong>'+fmtNum(amount)+'</strong></div>'+
+      '<div style="color:green">Payé: <strong>'+fmtNum(paid)+'</strong></div>'+
+      '<div style="font-size:16px;border-top:2px solid #222;margin-top:8px;padding-top:8px">'+
+        'Solde: <strong style="color:'+(balance>0?'#c00':'green')+'">'+fmtNum(balance)+'</strong>'+
+      '</div>'+
+    '</div>'+
+    '</div>';
+  openModal('invoicePreviewModal');
+}
+
+function printInvoice() { window.print(); }
+function printInvoiceDirect(id) { previewInvoice(id); setTimeout(function(){ window.print(); },500); }
+
+/* ── REFUND MODAL ── */
+function openRefundModal(payId) {
+  var sel = document.getElementById('ref-payment-select');
+  if(sel) {
+    sel.innerHTML = '<option value="">— Sélectionner un paiement —</option>'+
+      _payments.filter(function(p){return p.status==='validated';}).map(function(p){
+        var rez = _reservations.find(function(r){return r.id===p.reservation_id;});
+        return '<option value="'+p.id+'">'+(rez?rez.client_name:p.guest_name||'—')+' · '+fmtNum(p.amount)+' · '+methodLabel(p.method)+'</option>';
+      }).join('');
+  }
+  if(payId && sel) sel.value = payId;
+  document.getElementById('ref-guest').value = '';
+  document.getElementById('ref-amount').value = '';
+  document.getElementById('ref-reason').value = '';
+  openModal('refundModal');
+}
+
+function saveRefund() {
+  var payId = document.getElementById('ref-payment-select').value;
+  var guest = document.getElementById('ref-guest').value.trim();
+  var amount = parseInt(document.getElementById('ref-amount').value)||0;
+  var method = document.getElementById('ref-method').value;
+  var reason = document.getElementById('ref-reason').value.trim();
+
+  if(amount <= 0) { showToast('Montant invalide', 'error'); return; }
+
+  var pay = payId ? _payments.find(function(p){return p.id===payId;}) : null;
+  var body = {
+    amount: amount,
+    method: method,
+    reason: reason||null,
+    status: 'pending',
+    guest_name: guest||null,
+    created_by: 'Réception'
+  };
+  if(payId) body.payment_id = payId;
+  if(pay && pay.reservation_id) body.reservation_id = pay.reservation_id;
+  if(!guest && pay) {
+    var rez = _reservations.find(function(r){return r.id===pay.reservation_id;});
+    body.guest_name = rez ? rez.client_name : (pay.guest_name||null);
+  }
+
+  sbFetch('veraluz_refunds', {method:'POST', body:JSON.stringify(body)})
+    .then(function(r){
+      if(r.ok || r.status===201) {
+        closeModal('refundModal');
+        showToast('Demande de remboursement soumise', 'success');
+        loadAll(refresh);
+      } else {
+        showToast('Erreur soumission', 'error');
+      }
+    }).catch(function(){ showToast('Erreur réseau', 'error'); });
+}
+
+function approveRefund(id) {
+  sbFetch('veraluz_refunds?id=eq.'+id, {
+    method:'PATCH',
+    body:JSON.stringify({status:'approved', approved_by:'Admin', approved_at:new Date().toISOString()})
+  }).then(function(r){
+    if(r.ok) {
+      var ref = _refunds.find(function(x){return x.id===id;});
+      if(ref) ref.status = 'approved';
+      showToast('Remboursement approuvé', 'success');
+      renderRefunds(); updateBadges();
+    }
+  });
+}
+
+function rejectRefund(id) {
+  sbFetch('veraluz_refunds?id=eq.'+id, {
+    method:'PATCH',
+    body:JSON.stringify({status:'rejected'})
+  }).then(function(r){
+    if(r.ok) {
+      var ref = _refunds.find(function(x){return x.id===id;});
+      if(ref) ref.status = 'rejected';
+      showToast('Remboursement rejeté', 'error');
+      renderRefunds(); updateBadges();
+    }
+  });
+}
+
+/* ── CAISSE MODAL ── */
+function openCaisseModal(type) {
+  var title = type === 'entree' ? 'Entrée de caisse' : 'Sortie de caisse';
+  document.getElementById('caisseModalTitle').textContent = title;
+  document.getElementById('caisse-type').value = type;
+  document.getElementById('caisse-entry-date').value = today();
+  document.getElementById('caisse-amount').value = '';
+  document.getElementById('caisse-libelle').value = '';
+  var btn = document.getElementById('caisse-save-btn');
+  if(btn) btn.style.background = type==='entree' ? 'var(--success)' : 'var(--danger)';
+  openModal('caisseModal');
+}
+
+function saveCaisseEntry() {
+  var type = document.getElementById('caisse-type').value;
+  var amount = parseInt(document.getElementById('caisse-amount').value)||0;
+  var date = document.getElementById('caisse-entry-date').value || today();
+  var libelle = document.getElementById('caisse-libelle').value.trim();
+  var source = document.getElementById('caisse-source').value;
+
+  if(amount <= 0) { showToast('Montant invalide', 'error'); return; }
+  if(!libelle) { showToast('Veuillez saisir un libellé', 'error'); return; }
+
+  // Calculate running balance
+  var lastEntry = _caisse[0];
+  var soldeAvant = lastEntry ? (parseInt(lastEntry.solde_apres)||0) : 50000;
+  var soldeApres = type === 'entree' ? soldeAvant + amount : soldeAvant - amount;
+
+  var body = {
+    date: date,
+    type: type,
+    montant: amount,
+    solde_avant: soldeAvant,
+    solde_apres: soldeApres,
+    libelle: libelle,
+    source: source,
+    created_by: 'Réception'
+  };
+
+  sbFetch('veraluz_caisse', {method:'POST', body:JSON.stringify(body)})
+    .then(function(r){
+      if(r.ok || r.status===201) {
+        closeModal('caisseModal');
+        showToast((type==='entree'?'Entrée':'Sortie')+' de caisse enregistrée', 'success');
+        loadAll(refresh);
+      } else {
+        showToast('Erreur enregistrement caisse', 'error');
+      }
+    }).catch(function(){ showToast('Erreur réseau', 'error'); });
+}
+
+/* ── RESTAURANT ACTIONS ── */
+function payRestoOrder(id, total) {
+  sbFetch('veraluz_restaurant_orders?id=eq.'+id, {
+    method:'PATCH',
+    body:JSON.stringify({status:'paid', paid_at:new Date().toISOString()})
+  }).then(function(r){
+    if(r.ok) {
+      var o = _restaurant.find(function(x){return x.id===id;});
+      if(o) o.status = 'paid';
+      // Also create a payment entry
+      sbFetch('veraluz_payments', {method:'POST', body:JSON.stringify({
+        amount: Math.round(total), method:'cash', payment_type:'restaurant',
+        source:'restaurant', status:'validated', guest_name:'Restaurant',
+        currency:'XAF', notes:'Commande '+id
+      })});
+      showToast('Commande encaissée · '+fmtNum(total), 'success');
+      renderRestaurant(); updateBadges();
+    }
+  });
+}
+
+function roomChargeOrder(id) {
+  sbFetch('veraluz_restaurant_orders?id=eq.'+id, {
+    method:'PATCH',
+    body:JSON.stringify({status:'room_charge'})
+  }).then(function(r){
+    if(r.ok) {
+      var o = _restaurant.find(function(x){return x.id===id;});
+      if(o) o.status = 'room_charge';
+      showToast('Commande imputée à la chambre', 'success');
+      renderRestaurant();
+    }
+  });
+}
+
+/* ── EXPORT CSV ── */
+function exportCSV() {
+  var headers = ['ID','Client','Montant','Méthode','Type','Statut','Référence','Date'];
+  var rows = _payments.map(function(p){
+    var rez = _reservations.find(function(r){return r.id===p.reservation_id;});
+    return [
+      p.id, rez?rez.client_name:(p.guest_name||'—'),
+      p.amount, methodLabel(p.method), typeLabel(p.payment_type||'payment'),
+      p.status, p.reference||'', (p.created_at||'').split('T')[0]
+    ].map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(',');
   });
   var csv = [headers.join(',')].concat(rows).join('\n');
-  var blob = new Blob([csv], { type: 'text/csv' });
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
-  a.href = url; a.download = 'paiements-veraluz.csv'; a.click();
+  a.href = url; a.download = 'veraluz_paiements_'+today()+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  showLocalToast('📥 Export CSV téléchargé', 'success');
+  showToast('Export CSV téléchargé', 'success');
 }
 
-/* ── Toast local ──────────────────────────────────────────────── */
-var _toastTimer = null;
-function showLocalToast(msg, type) {
-  var el = document.getElementById('pm-toast');
-  if (!el) return;
-  el.textContent = msg;
-  el.style.background = type === 'error' ? 'rgba(244,63,94,.2)' :
-                        type === 'success' ? 'rgba(34,211,165,.2)' : 'var(--bg4)';
-  el.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(function() { el.classList.remove('show'); }, 3000);
-}
-
-/* ── Init ─────────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', function() {
-  loadFromSupabase();
-  // Fermer modales en cliquant l'overlay
-  document.querySelectorAll('.pm-modal-overlay').forEach(function(el) {
-    el.addEventListener('click', function(e) {
-      if (e.target === el) el.classList.remove('open');
-    });
+/* ── CLOSE MODALS ON OVERLAY CLICK ── */
+document.querySelectorAll('.modal-overlay').forEach(function(overlay){
+  overlay.addEventListener('click', function(e){
+    if(e.target === overlay) overlay.classList.remove('open');
   });
-  console.log('[Paiements] Module initialisé ✓');
+});
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', function(){
+  // Set today's date in caisse filter
+  var cd = document.getElementById('caisse-date');
+  if(cd) cd.value = today();
+
+  goTab('transactions');
+  loadAll(function(){
+    refresh();
+  });
 });
 </script>
-
 </body>
 </html>

@@ -595,6 +595,7 @@ function openRevMd(){
   openMd('md-rev');
 }
 function saveRev(){
+  emitFin('transaction-recorded',{type:'revenue',ts:new Date().toISOString()});
   var amt=parseInt(document.getElementById('rev-amount').value)||0;
   if(!amt){toast('Montant requis','err');return;}
   var libelle=document.getElementById('rev-desc').value.trim()||'Revenu manuel';
@@ -653,6 +654,7 @@ function openDepMd(){
   openMd('md-dep');
 }
 function saveDep(){
+  emitFin('expense-added',{ts:new Date().toISOString()});
   var amt=parseInt(document.getElementById('dep-amount').value)||0;
   if(!amt){toast('Montant requis','err');return;}
   var data={id:gid(),date:document.getElementById('dep-date').value,
@@ -954,6 +956,8 @@ document.addEventListener('DOMContentLoaded',function(){
 /* GUARD [G016] *//* GUARD [G017] *//* GUARD [G018] *//* GUARD [G019] *//* GUARD [G020] */
 /* GUARD [G021] *//* GUARD [G022] *//* GUARD [G023] *//* GUARD [G024] *//* GUARD [G025] */
 /* GUARD [G026] *//* GUARD [G027] *//* GUARD [G028] *//* GUARD [G029] *//* GUARD [G030] */
+
+function emitFin(type,data){try{window.parent.postMessage({source:'veraluz-finance',type:type,data:data||{}}, '*');}catch(e){}}
 </script>
 </body>
 </html>

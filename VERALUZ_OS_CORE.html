@@ -302,6 +302,8 @@ var MODULES = [
     file:'AUDIT_EMBEDDED.html',         desc:'Logs · Sécurité · Traçabilité' },
   { id:'settings',      label:'Settings',      icon:'⚙️',
     file:'SETTINGS_EMBEDDED.html',      desc:'Config · Tarifs · Permissions' },
+  { id:'eventbus',      label:'Event Bus',     icon:'⚡',
+    file:'EVENTBUS_EMBEDDED.html',      desc:'Pub/Sub · Routage · Monitoring' },
 ];
 
 var COMING = [];
@@ -550,9 +552,13 @@ document.addEventListener('DOMContentLoaded', function(){
    [GUARD-LINE-030] ............................................
    ================================================================ */
 
-/* ── Notifications Badge ─────────────────────────────────── */
-var _notifCount = 0;
+/* ═══════════════════════════════════════════════════════════
+   VERALUZ OS — CENTRAL EVENT BUS ENGINE v2.0
+   Pub/Sub · Routing Rules · Persistence · Error Handling
+   ═════════════════════════════════════════════════════════ */
 
+/* ── Notification Badge ──────────────────────────────────── */
+var _notifCount = 0;
 function updateNotifBadge(count) {
   _notifCount = count || 0;
   var badge = document.getElementById('notif-badge');
@@ -564,31 +570,122 @@ function updateNotifBadge(count) {
     badge.classList.remove('visible');
   }
 }
+function openNotifications() { loadModule('notifications'); }
 
-function openNotifications() {
-  loadModule('notifications');
-}
+/* ── EventBus Engine ─────────────────────────────────────── */
+var EventBus = {
+  LS_KEY : 'veraluz_event_log',
+  MAX_LOG: 300,
+  stats  : { total:0, routed:0, errors:0 },
 
-/* ── Global Event Bus Listener ───────────────────────────── */
+  /* Routing rules: trigger × from → targets[] */
+  RULES: [
+    { trigger:'reservation-created',  from:'veraluz-reservations', targets:['veraluz-notifications','veraluz-audit','veraluz-finance'] },
+    { trigger:'checkout-completed',   from:'veraluz-reservations', targets:['veraluz-housekeeping','veraluz-notifications','veraluz-audit'] },
+    { trigger:'checkin-completed',    from:'veraluz-reservations', targets:['veraluz-notifications','veraluz-audit'] },
+    { trigger:'reservation-cancelled',from:'veraluz-reservations', targets:['veraluz-notifications','veraluz-audit','veraluz-finance'] },
+    { trigger:'payment-validated',    from:'veraluz-paiements',    targets:['veraluz-finance','veraluz-notifications','veraluz-audit'] },
+    { trigger:'payment-failed',       from:'veraluz-paiements',    targets:['veraluz-notifications','veraluz-audit'] },
+    { trigger:'refund-issued',        from:'veraluz-paiements',    targets:['veraluz-finance','veraluz-audit'] },
+    { trigger:'cleaning-completed',   from:'veraluz-housekeeping', targets:['veraluz-reservations','veraluz-notifications','veraluz-audit'] },
+    { trigger:'maintenance-reported', from:'veraluz-housekeeping', targets:['veraluz-notifications','veraluz-audit'] },
+    { trigger:'room-ready',           from:'veraluz-housekeeping', targets:['veraluz-reservations','veraluz-audit'] },
+    { trigger:'order-placed',         from:'veraluz-restaurant',   targets:['veraluz-finance','veraluz-audit'] },
+    { trigger:'stock-alert',          from:'veraluz-restaurant',   targets:['veraluz-notifications','veraluz-audit'] },
+    { trigger:'employee-added',       from:'veraluz-rh',           targets:['veraluz-notifications','veraluz-audit'] },
+    { trigger:'employee-updated',     from:'veraluz-rh',           targets:['veraluz-audit'] },
+    { trigger:'payroll-processed',    from:'veraluz-rh',           targets:['veraluz-finance','veraluz-notifications','veraluz-audit'] },
+    { trigger:'attendance-recorded',  from:'veraluz-rh',           targets:['veraluz-audit'] },
+    { trigger:'settings-updated',     from:'veraluz-settings',     targets:['veraluz-audit','veraluz-notifications'] },
+    { trigger:'settings-reset',       from:'veraluz-settings',     targets:['veraluz-audit','veraluz-notifications'] },
+    { trigger:'analytics-export',     from:'veraluz-analytics',    targets:['veraluz-audit'] },
+    { trigger:'audit-export',         from:'veraluz-audit',        targets:[] },
+    { trigger:'logs-cleared',         from:'veraluz-settings',     targets:['veraluz-audit'] },
+    /* Wildcard: all module-ready events go to audit */
+    { trigger:'module-ready',         from:'*',                    targets:['veraluz-audit','veraluz-eventbus'] },
+    /* Notification badge update */
+    { trigger:'notification-count',   from:'veraluz-notifications',targets:['__core__'] },
+    /* All events → EventBus dashboard for monitoring */
+    { trigger:'*',                    from:'*',                    targets:['veraluz-eventbus'] },
+  ],
+
+  /* Resolve targets for a given source + event type */
+  resolve: function(source, type) {
+    var targets = {};
+    this.RULES.forEach(function(r) {
+      var srcOk  = r.from    === '*' || r.from    === source;
+      var typOk  = r.trigger === '*' || r.trigger === type;
+      if (srcOk && typOk) {
+        r.targets.forEach(function(t){ targets[t] = true; });
+      }
+    });
+    return Object.keys(targets);
+  },
+
+  /* Persist event to localStorage */
+  persist: function(entry) {
+    try {
+      var log = JSON.parse(localStorage.getItem(this.LS_KEY) || '[]');
+      log.unshift(entry);
+      if (log.length > this.MAX_LOG) log.length = this.MAX_LOG;
+      localStorage.setItem(this.LS_KEY, JSON.stringify(log));
+    } catch(e) { this.stats.errors++; }
+  },
+
+  /* Route event to the active iframe */
+  routeToIframe: function(source, type, data) {
+    var frame = document.getElementById('module-frame');
+    if (!frame || !frame.contentWindow) return;
+    try {
+      frame.contentWindow.postMessage({
+        source : 'veraluz-core',
+        type   : 'module-event',
+        data   : { originalSource: source, originalType: type, payload: data }
+      }, '*');
+      this.stats.routed++;
+    } catch(e) { this.stats.errors++; }
+  },
+
+  /* Handle an incoming message from any module */
+  handle: function(msg) {
+    var source = msg.source;
+    var type   = msg.type;
+    var data   = msg.data || {};
+
+    /* ── Core-level side-effects ── */
+    if (source === 'veraluz-notifications' && type === 'notification-count') {
+      updateNotifBadge(data && data.unread ? data.unread : 0);
+    }
+
+    /* ── Log entry ── */
+    this.stats.total++;
+    var entry = {
+      id:     'ev_' + Date.now(),
+      ts:     new Date().toISOString(),
+      source: source,
+      type:   type,
+      data:   data,
+      routes: this.resolve(source, type).filter(function(t){ return t !== '__core__'; })
+    };
+    this.persist(entry);
+
+    /* ── Route to active iframe (for all except pure core events) ── */
+    if (source !== 'veraluz-core') {
+      this.routeToIframe(source, type, data);
+    }
+  }
+};
+
+/* ── Global message listener ─────────────────────────────── */
 window.addEventListener('message', function(ev) {
   if (!ev.data || !ev.data.source) return;
-  var msg = ev.data;
-  // Receive notification count from Notifications module
-  if (msg.source === 'veraluz-notifications' && msg.type === 'notification-count') {
-    updateNotifBadge(msg.data && msg.data.unread ? msg.data.unread : 0);
-  }
-  // Broadcast module events to Notifications module (if loaded)
-  if (msg.source && msg.source !== 'veraluz-core' && msg.type !== 'notification-count') {
-    var iframe = document.getElementById('module-frame');
-    if (iframe && iframe.contentWindow) {
-      try {
-        iframe.contentWindow.postMessage({
-          source: 'veraluz-core',
-          type: 'module-event',
-          data: { originalSource: msg.source, originalType: msg.type, payload: msg.data }
-        }, '*');
-      } catch(e) {}
-    }
+  /* Ignore messages originating from the Core itself */
+  if (ev.data.source === 'veraluz-core') return;
+  try {
+    EventBus.handle(ev.data);
+  } catch(e) {
+    EventBus.stats.errors++;
+    console.warn('[EventBus] Error handling event:', e);
   }
 });
 

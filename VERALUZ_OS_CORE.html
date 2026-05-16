@@ -158,6 +158,67 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   display:flex;align-items:center;justify-content:center;padding:0 3px;
   opacity:0;transition:opacity .2s;}
 .notif-badge.visible{opacity:1;}
+
+/* ── Auth Overlay ────────────────────────────────────────────── */
+#auth-overlay {
+  position:fixed; inset:0; z-index:9999;
+  background:linear-gradient(135deg,#0d1117 0%,#1a1f2e 50%,#0d1117 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Inter',system-ui,sans-serif;
+}
+#auth-overlay.hidden { display:none; }
+.auth-box {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:20px; padding:40px 36px; width:100%; max-width:400px;
+  box-shadow:0 24px 64px rgba(0,0,0,.6);
+  animation:authIn .4s cubic-bezier(.16,1,.3,1);
+}
+@keyframes authIn { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+.auth-logo { text-align:center; margin-bottom:28px; }
+.auth-logo .al-icon { font-size:48px; display:block; margin-bottom:8px; }
+.auth-logo .al-title { font-size:22px; font-weight:700; color:var(--fg); }
+.auth-logo .al-sub   { font-size:13px; color:var(--fg2); margin-top:4px; }
+.auth-field { margin-bottom:16px; }
+.auth-field label { display:block; font-size:12px; font-weight:600;
+  color:var(--fg2); margin-bottom:6px; text-transform:uppercase; letter-spacing:.06em; }
+.auth-field input {
+  width:100%; box-sizing:border-box;
+  background:var(--bg); border:1.5px solid var(--border); border-radius:10px;
+  padding:11px 14px; font-size:15px; color:var(--fg); outline:none;
+  transition:border-color .2s;
+}
+.auth-field input:focus { border-color:var(--acc); }
+.auth-field input::placeholder { color:var(--fg2); }
+.auth-remember { display:flex; align-items:center; gap:8px;
+  font-size:13px; color:var(--fg2); margin-bottom:20px; cursor:pointer; }
+.auth-remember input[type=checkbox] { accent-color:var(--acc); width:15px; height:15px; cursor:pointer; }
+.auth-btn {
+  width:100%; padding:13px; border:none; border-radius:12px;
+  background:var(--acc); color:#fff; font-size:15px; font-weight:600;
+  cursor:pointer; transition:opacity .2s, transform .1s;
+}
+.auth-btn:hover  { opacity:.9; }
+.auth-btn:active { transform:scale(.98); }
+.auth-error {
+  background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3);
+  color:#f87171; border-radius:8px; padding:10px 14px;
+  font-size:13px; margin-bottom:14px; display:none;
+}
+.auth-error.show { display:block; }
+.auth-hint { text-align:center; margin-top:16px; font-size:12px; color:var(--fg2); }
+/* topbar user chip */
+.tb-user { display:flex; align-items:center; gap:8px; }
+.tb-user-name { font-size:13px; font-weight:600; color:var(--fg); max-width:90px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tb-user-role { font-size:10px; color:var(--acc); font-weight:600;
+  background:rgba(99,102,241,.15); padding:2px 7px; border-radius:20px; }
+.tb-logout-btn {
+  background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.25);
+  color:#f87171; border-radius:8px; padding:5px 10px;
+  font-size:12px; font-weight:600; cursor:pointer; transition:background .2s;
+}
+.tb-logout-btn:hover { background:rgba(239,68,68,.22); }
+
 </style>
 </head>
 <body>
@@ -202,6 +263,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
       <div class="tb-sub" id="tb-sub">Résidence Veraluz · Kribi</div>
     </div>
     <div class="tb-actions">
+      <div class="tb-user" id="tb-user-info" style="display:none">
+        <span class="tb-user-name" id="tb-user-name">-</span>
+        <span class="tb-user-role" id="tb-user-role">-</span>
+        <button class="tb-logout-btn" onclick="logout()">⏏ Sortir</button>
+      </div>
       <span class="tb-tag">LIVE</span>
       <button class="notif-badge-btn" id="notif-bell-btn" onclick="openNotifications()" title="Notifications">
         🔔
@@ -304,6 +370,8 @@ var MODULES = [
     file:'SETTINGS_EMBEDDED.html',      desc:'Config · Tarifs · Permissions' },
   { id:'eventbus',      label:'Event Bus',     icon:'⚡',
     file:'EVENTBUS_EMBEDDED.html',      desc:'Pub/Sub · Routage · Monitoring' },
+  { id:'auth',      label:'Auth',      icon:'🔐',
+    file:'AUTH_EMBEDDED.html',      desc:'Utilisateurs · Rôles · Sessions' },
 ];
 
 var COMING = [];
@@ -336,6 +404,7 @@ function loadModuleFrame(mod) {
   var loader = document.getElementById('loader');
   iframe.onload = null;
   iframe.onerror = null;
+  var _authIframe = iframe;
   if (loadTimer){ clearTimeout(loadTimer); loadTimer = null; }
   document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
   document.getElementById('mod-error').classList.remove('show');
@@ -349,6 +418,7 @@ function loadModuleFrame(mod) {
       if(loadTimer){ clearTimeout(loadTimer); loadTimer = null; }
       loader.classList.remove('show');
       showView('module');
+      sendAuthContext(_authIframe);
     }
     iframe.onload  = function(){ onReady(); };
     iframe.onerror = function(){
@@ -401,7 +471,11 @@ function buildNav(){
   var grid     = document.getElementById('dash-grid');
   sbMods.innerHTML = bnMods.innerHTML = sbComing.innerHTML = grid.innerHTML = '';
 
-  MODULES.forEach(function(m){
+  var visibleModules = (currentUser && ROLES[currentUser.role])
+    ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0; })
+    : MODULES;
+
+  visibleModules.forEach(function(m){
     var sb = document.createElement('button');
     sb.className='sb-btn'; sb.id='nav-'+m.id;
     sb.innerHTML='<span class="sb-icon">'+m.icon+'</span> '+m.label;
@@ -507,10 +581,196 @@ function closeMobileSidebar(){
    IMPORTANT : Ce bloc est suivi d'un buffer de sécurité de 60 lignes.
    Ne jamais le déplacer vers la fin du fichier.
    ================================================================ */
-document.addEventListener('DOMContentLoaded', function(){
+
+/* ================================================================
+   AUTH ENGINE — Veraluz OS v2.0
+   ================================================================ */
+var ROLES = {
+  superadmin:  { label:'Super Admin',      icon:'👑', color:'#a855f7',
+    modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
+             'notifications','analytics','audit','settings','eventbus','auth'] },
+  manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6',
+    modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
+             'notifications','analytics','auth'] },
+  reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981',
+    modules:['reservations','paiements','notifications'] },
+  rh:          { label:'RH',              icon:'👥',  color:'#f59e0b',
+    modules:['rh','notifications','analytics'] },
+  comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4',
+    modules:['finance','paiements','analytics','audit','notifications'] },
+  restaurant:  { label:'Restaurant Staff', icon:'🍽️',  color:'#f97316',
+    modules:['restaurant','notifications'] },
+  housekeeping:{ label:'Housekeeping',     icon:'🧹',  color:'#84cc16',
+    modules:['housekeeping','notifications'] }
+};
+
+var DEFAULT_USERS = [
+  { username:'admin',      password:'admin123',    role:'superadmin',  name:'Administrateur',     active:true },
+  { username:'manager',    password:'manager123',  role:'manager',     name:'Chef de Projet',     active:true },
+  { username:'reception',  password:'recep123',    role:'reception',   name:'Agent Réception',    active:true },
+  { username:'rh',         password:'rh123',       role:'rh',          name:'Responsable RH',     active:true },
+  { username:'comptable',  password:'compt123',    role:'comptable',   name:'Comptable',          active:true },
+  { username:'resto',      password:'resto123',    role:'restaurant',  name:'Staff Restaurant',   active:true },
+  { username:'hk',         password:'hk123',       role:'housekeeping',name:'Agent Housekeeping', active:true }
+];
+
+var currentUser = null;
+
+function getUsers() {
+  try {
+    var stored = localStorage.getItem('veraluz_users_v1');
+    if (stored) {
+      var parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch(e){}
+  return DEFAULT_USERS;
+}
+
+function checkAuth() {
+  try {
+    var sessionStr = localStorage.getItem('veraluz_auth_v1');
+    if (!sessionStr) { showAuthOverlay(); return; }
+    var session = JSON.parse(sessionStr);
+    if (session.expires && session.expires < Date.now()) {
+      localStorage.removeItem('veraluz_auth_v1');
+      showAuthOverlay(); return;
+    }
+    var users = getUsers();
+    var user = users.find(function(u){ return u.username === session.username; });
+    if (!user || user.active === false) {
+      localStorage.removeItem('veraluz_auth_v1');
+      showAuthOverlay(); return;
+    }
+    currentUser = { username:user.username, name:user.name, role:user.role };
+    hideAuthOverlay();
+    updateTopbarUser();
+    buildNav();
+    initGreeting();
+    loadDashboardData();
+  } catch(e) {
+    showAuthOverlay();
+  }
+}
+
+function doLogin() {
+  var username = (document.getElementById('auth-username').value || '').trim();
+  var password = (document.getElementById('auth-password').value || '').trim();
+  var remember = document.getElementById('auth-remember').checked;
+  var errEl    = document.getElementById('auth-error');
+  errEl.classList.remove('show');
+
+  if (!username || !password) {
+    errEl.textContent = 'Veuillez saisir votre identifiant et mot de passe.';
+    errEl.classList.add('show'); return;
+  }
+
+  var users = getUsers();
+  var user  = users.find(function(u){
+    return u.username === username && u.password === password && u.active !== false;
+  });
+
+  if (!user) {
+    errEl.textContent = 'Identifiants incorrects. Réessayez.';
+    errEl.classList.add('show');
+    document.getElementById('auth-password').value = '';
+    document.getElementById('auth-password').focus();
+    logAuthEvent('failed', username, '?');
+    return;
+  }
+
+  var expires = remember ? Date.now() + 7*24*60*60*1000 : Date.now() + 8*60*60*1000;
+  var session = { username:user.username, role:user.role, name:user.name,
+                  loginAt:Date.now(), expires:expires };
+  localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+  logAuthEvent('login', user.username, user.role);
+
+  currentUser = { username:user.username, name:user.name, role:user.role };
+  hideAuthOverlay();
+  updateTopbarUser();
   buildNav();
   initGreeting();
   loadDashboardData();
+}
+
+function logout() {
+  if (!confirm('Confirmer la déconnexion ?')) return;
+  logAuthEvent('logout', currentUser ? currentUser.username : '?',
+                         currentUser ? currentUser.role : '?');
+  localStorage.removeItem('veraluz_auth_v1');
+  currentUser = null;
+  updateTopbarUser();
+  // Clear nav
+  var ids = ['sb-modules','sb-coming','bn-modules','dash-grid'];
+  ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.innerHTML=''; });
+  showAuthOverlay();
+  document.getElementById('auth-username').value = '';
+  document.getElementById('auth-password').value = '';
+  document.getElementById('auth-error').classList.remove('show');
+}
+
+function logAuthEvent(type, username, role) {
+  try {
+    var log = JSON.parse(localStorage.getItem('veraluz_auth_log') || '[]');
+    log.unshift({ type:type, username:username, role:role,
+                  ts:new Date().toISOString(), ip:'local', device:'Web App' });
+    if (log.length > 200) log = log.slice(0, 200);
+    localStorage.setItem('veraluz_auth_log', JSON.stringify(log));
+  } catch(e){}
+}
+
+function showAuthOverlay() {
+  var ov = document.getElementById('auth-overlay');
+  if (ov) ov.classList.remove('hidden');
+  setTimeout(function(){
+    var el = document.getElementById('auth-username');
+    if (el) el.focus();
+  }, 150);
+}
+
+function hideAuthOverlay() {
+  var ov = document.getElementById('auth-overlay');
+  if (ov) ov.classList.add('hidden');
+}
+
+function updateTopbarUser() {
+  var info   = document.getElementById('tb-user-info');
+  var nameEl = document.getElementById('tb-user-name');
+  var roleEl = document.getElementById('tb-user-role');
+  if (!info) return;
+  if (currentUser) {
+    info.style.display = 'flex';
+    if (nameEl) nameEl.textContent = currentUser.name || currentUser.username;
+    if (roleEl) {
+      var rd = ROLES[currentUser.role];
+      roleEl.textContent = rd ? rd.label : currentUser.role;
+    }
+  } else {
+    info.style.display = 'none';
+  }
+}
+
+function sendAuthContext(iframe) {
+  if (!currentUser || !iframe) return;
+  try {
+    var rd = ROLES[currentUser.role] || {};
+    iframe.contentWindow.postMessage({
+      source: 'veraluz-core',
+      type:   'auth-context',
+      data: {
+        username:  currentUser.username,
+        name:      currentUser.name,
+        role:      currentUser.role,
+        roleLabel: rd.label || currentUser.role,
+        roleIcon:  rd.icon  || '👤',
+        modules:   rd.modules || []
+      }
+    }, '*');
+  } catch(e){}
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  checkAuth();
 });
 
 /* ================================================================
@@ -690,5 +950,33 @@ window.addEventListener('message', function(ev) {
 });
 
 </script>
+
+<!-- ── Auth Overlay ──────────────────────────────────────────── -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <span class="al-icon">🏖️</span>
+      <div class="al-title">Veraluz OS</div>
+      <div class="al-sub">Residence · Kribi · Cameroun</div>
+    </div>
+    <div class="auth-error" id="auth-error">Identifiants incorrects. Réessayez.</div>
+    <div class="auth-field">
+      <label>Identifiant</label>
+      <input type="text" id="auth-username" placeholder="Votre identifiant"
+             autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+    </div>
+    <div class="auth-field">
+      <label>Mot de passe</label>
+      <input type="password" id="auth-password" placeholder="••••••••"
+             autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <label class="auth-remember">
+      <input type="checkbox" id="auth-remember"> Se souvenir de moi (7 jours)
+    </label>
+    <button class="auth-btn" onclick="doLogin()">🔐 Se connecter</button>
+    <div class="auth-hint">Veraluz Property Management · v2.0</div>
+  </div>
+</div>
+
 </body>
 </html>

@@ -294,7 +294,7 @@ table.pm-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   };
   window.showToast = window.toast;
   window.emitToCore = function(type, data) {
-    try { window.parent.postMessage({ veraluzEvent: true, type, data, source: 'paiements' }, '*'); }
+    try { window.parent.postMessage({ veraluzEvent: true, type, data, source: 'veraluz-paiements' }, '*'); }
     catch(e) {}
   };
   window.addEventListener('message', function(e) {

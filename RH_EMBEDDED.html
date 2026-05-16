@@ -1,1474 +1,1427 @@
 <!DOCTYPE html>
-
 <html lang="fr">
-<head><script>window.__MODULE_NAME__ = 'rh';</script>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Veraluz OS — Module RH &amp; Gestion Employés</title>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>RH &amp; Employés — Veraluz OS</title>
 <style>
-  :root {
-    --bg: #0f1117; --bg2: #1a1d27; --bg3: #242836; --bg4: #2e3347;
-    --border: #3a3f55; --border2: #4a5068;
-    --accent: #6c63ff; --accent2: #8b7fff; --accent-glow: rgba(108,99,255,0.15);
-    --green: #10b981; --red: #ef4444; --yellow: #f59e0b; --blue: #3b82f6; --cyan: #06b6d4; --pink: #ec4899; --orange: #f97316;
-    --text: #e8eaf6; --text2: #9ca3af; --text3: #6b7280;
-    --success-bg: rgba(16,185,129,0.1); --danger-bg: rgba(239,68,68,0.1); --warn-bg: rgba(245,158,11,0.1); --info-bg: rgba(59,130,246,0.1);
-  }
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:var(--bg); color:var(--text); font-family:'Inter','Segoe UI',sans-serif; font-size:14px; min-height:100vh; }
+/* ================================================================
+   VERALUZ OS — MODULE RH v2.0
+   Embedded module — aucun sidebar / topbar / layout autonome
+   Mobile-first · Compatible Event Bus · Compatible Auth
+   ================================================================ */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#0d0d1a;--bg2:#12121f;--bg3:#1a1a2e;--bg4:#22223a;
+  --accent:#22d3a5;--acc2:#818cf8;--warn:#f59e0b;--danger:#f43f5e;--ok:#10b981;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --border:rgba(255,255,255,.08);--bord2:rgba(255,255,255,.14);
+  --sab:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow:hidden;}
 
-  /* Layout */
-  .app { display:flex; height:100vh; overflow:hidden; }
-  .sidebar { width:220px; background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
-  .main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
-  .topbar { background:var(--bg2); border-bottom:1px solid var(--border); padding:12px 20px; display:flex; align-items:center; gap:12px; }
-  .content { flex:1; overflow-y:auto; padding:20px; }
+/* ── Layout principal ────────────────────────────────────────── */
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
 
-  /* Sidebar */
-  .logo { padding:16px; border-bottom:1px solid var(--border); }
-  .logo-title { font-size:16px; font-weight:700; color:var(--accent2); }
-  .logo-sub { font-size:10px; color:var(--text3); }
-  .nav { padding:8px; flex:1; }
-  .nav-item { display:flex; align-items:center; gap:8px; padding:9px 10px; border-radius:8px; cursor:pointer; color:var(--text2); font-size:13px; transition:.15s; margin-bottom:2px; }
-  .nav-item:hover { background:var(--bg3); color:var(--text); }
-  .nav-item.active { background:var(--accent-glow); color:var(--accent2); border:1px solid var(--border); }
-  .nav-icon { font-size:16px; width:20px; text-align:center; }
-  .nav-badge { margin-left:auto; background:var(--red); color:#fff; font-size:10px; padding:1px 6px; border-radius:10px; font-weight:600; }
+/* ── Barre onglets ───────────────────────────────────────────── */
+#tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);
+  overflow-x:auto;flex-shrink:0;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+#tabs::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0;padding:10px 13px;font-size:11px;font-weight:600;color:var(--text3);
+  border:none;background:none;cursor:pointer;white-space:nowrap;
+  border-bottom:2px solid transparent;transition:color .2s,border-color .2s;}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent);}
 
-  /* Header */
-  .page-title { font-size:18px; font-weight:700; }
-  .header-actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
-  .user-chip { display:flex; align-items:center; gap:6px; background:var(--bg3); border:1px solid var(--border); padding:5px 10px; border-radius:20px; font-size:12px; cursor:pointer; }
-  .user-dot { width:7px; height:7px; border-radius:50%; background:var(--green); }
+/* ── Zone contenu ─────────────────────────────────────────────── */
+#content{flex:1;position:relative;overflow:hidden;}
+.pane{position:absolute;inset:0;display:none;overflow-y:auto;overflow-x:hidden;
+  padding:12px;padding-bottom:calc(12px + var(--sab));-webkit-overflow-scrolling:touch;}
+.pane.on{display:block;}
+@media(min-width:768px){.pane{padding:18px 20px;}}
 
-  /* Tabs */
-  .tabs { display:flex; gap:4px; background:var(--bg2); border-bottom:1px solid var(--border); padding:0 20px; }
-  .tab { padding:12px 16px; font-size:13px; color:var(--text2); cursor:pointer; border-bottom:2px solid transparent; transition:.15s; white-space:nowrap; }
-  .tab:hover { color:var(--text); }
-  .tab.active { color:var(--accent2); border-bottom-color:var(--accent); }
-  .tab-badge { background:var(--yellow); color:#000; font-size:10px; padding:1px 5px; border-radius:8px; margin-left:4px; font-weight:600; }
+/* ── Cartes ──────────────────────────────────────────────────── */
+.card{background:var(--bg3);border-radius:14px;padding:14px;margin-bottom:10px;border:1px solid var(--border);}
+.card-row{display:flex;gap:8px;margin-bottom:10px;}
 
-  /* Cards & Grids */
-  .kpi-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
-  .kpi-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px; }
-  .kpi-value { font-size:28px; font-weight:700; margin:4px 0; }
-  .kpi-label { font-size:11px; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; }
-  .kpi-delta { font-size:11px; margin-top:4px; }
-  .kpi-delta.up { color:var(--green); } .kpi-delta.warn { color:var(--yellow); }
+/* ── KPIs ────────────────────────────────────────────────────── */
+.kpi{flex:1;background:var(--bg3);border-radius:12px;padding:12px;text-align:center;border:1px solid var(--border);}
+.kpi-v{font-size:18px;font-weight:800;color:var(--accent);}
+.kpi-l{font-size:10px;color:var(--text3);margin-top:2px;}
+.kpi.warn .kpi-v{color:var(--warn);}
+.kpi.danger .kpi-v{color:var(--danger);}
+.kpi.ok .kpi-v{color:var(--ok);}
 
-  .card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px; }
-  .card-title { font-size:13px; font-weight:600; margin-bottom:12px; color:var(--text2); text-transform:uppercase; letter-spacing:.5px; }
+/* ── Carte employé ───────────────────────────────────────────── */
+.emp-card{background:var(--bg3);border-radius:14px;padding:13px 14px;margin-bottom:8px;
+  border:1px solid var(--border);display:flex;align-items:center;gap:12px;
+  cursor:pointer;transition:background .15s;}
+.emp-card:hover,.emp-card:active{background:var(--bg4);}
+.emp-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;}
+.emp-info{flex:1;min-width:0;}
+.emp-name{font-size:14px;font-weight:700;color:var(--text);}
+.emp-role{font-size:11px;color:var(--text3);margin-top:1px;}
+.emp-team{font-size:10px;margin-top:3px;font-weight:600;}
 
-  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+/* ── Badges ──────────────────────────────────────────────────── */
+.bdg{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;display:inline-block;}
+.bdg.ok{background:rgba(16,185,129,.15);color:var(--ok);}
+.bdg.warn{background:rgba(245,158,11,.15);color:var(--warn);}
+.bdg.danger{background:rgba(244,63,94,.15);color:var(--danger);}
+.bdg.info{background:rgba(129,140,248,.15);color:var(--acc2);}
+.bdg.muted{background:var(--bg4);color:var(--text3);}
 
-  /* Table */
-  .table-wrap { overflow-x:auto; }
-  table { width:100%; border-collapse:collapse; }
-  th { text-align:left; padding:8px 12px; font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid var(--border); }
-  td { padding:10px 12px; border-bottom:1px solid var(--border); font-size:13px; }
-  tr:last-child td { border-bottom:none; }
-  tr:hover td { background:var(--bg3); }
+/* ── Recherche ───────────────────────────────────────────────── */
+.search{width:100%;padding:9px 14px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:13px;margin-bottom:10px;
+  -webkit-appearance:none;}
+.search:focus{outline:none;border-color:var(--accent);}
 
-  /* Badges */
-  .badge { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; font-size:11px; font-weight:600; }
-  .badge-green { background:var(--success-bg); color:var(--green); border:1px solid rgba(16,185,129,.2); }
-  .badge-red { background:var(--danger-bg); color:var(--red); border:1px solid rgba(239,68,68,.2); }
-  .badge-yellow { background:var(--warn-bg); color:var(--yellow); border:1px solid rgba(245,158,11,.2); }
-  .badge-blue { background:var(--info-bg); color:var(--blue); border:1px solid rgba(59,130,246,.2); }
-  .badge-purple { background:rgba(108,99,255,.1); color:var(--accent2); border:1px solid rgba(108,99,255,.2); }
-  .badge-gray { background:var(--bg3); color:var(--text2); border:1px solid var(--border); }
-  .badge-cyan { background:rgba(6,182,212,.1); color:var(--cyan); border:1px solid rgba(6,182,212,.2); }
-  .badge-orange { background:rgba(249,115,22,.1); color:var(--orange); border:1px solid rgba(249,115,22,.2); }
-  .badge-pink { background:rgba(236,72,153,.1); color:var(--pink); border:1px solid rgba(236,72,153,.2); }
+/* ── Filtres chips ───────────────────────────────────────────── */
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.fchip{padding:5px 12px;border-radius:99px;font-size:11px;font-weight:600;
+  background:var(--bg4);color:var(--text3);border:1px solid var(--border);
+  cursor:pointer;white-space:nowrap;-webkit-appearance:none;}
+.fchip.on{background:var(--accent);color:#000;border-color:var(--accent);}
 
-  /* Buttons */
-  .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; border:none; transition:.15s; }
-  .btn-primary { background:var(--accent); color:#fff; }
-  .btn-primary:hover { background:var(--accent2); }
-  .btn-success { background:var(--green); color:#fff; }
-  .btn-success:hover { opacity:.85; }
-  .btn-danger { background:var(--red); color:#fff; }
-  .btn-danger:hover { opacity:.85; }
-  .btn-ghost { background:transparent; color:var(--text2); border:1px solid var(--border); }
-  .btn-ghost:hover { background:var(--bg3); color:var(--text); }
-  .btn-sm { padding:5px 10px; font-size:12px; }
-  .btn-xs { padding:3px 8px; font-size:11px; }
+/* ── Boutons ─────────────────────────────────────────────────── */
+.btn{padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;
+  border:none;cursor:pointer;display:inline-flex;align-items:center;gap:5px;-webkit-appearance:none;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:active{opacity:.85;}
+.btn-sec{background:var(--bg4);color:var(--text);}
+.btn-danger{background:rgba(244,63,94,.15);color:var(--danger);}
+.btn-warn{background:rgba(245,158,11,.15);color:var(--warn);}
+.btn-sm{padding:5px 10px;font-size:11px;border-radius:8px;}
+.btn-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
 
-  /* Forms */
-  .form-group { margin-bottom:12px; }
-  label { display:block; font-size:12px; color:var(--text2); margin-bottom:4px; }
-  input, select, textarea { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:8px 10px; color:var(--text); font-size:13px; outline:none; }
-  input:focus, select:focus, textarea:focus { border-color:var(--accent); }
-  textarea { resize:vertical; min-height:60px; }
+/* ── En-têtes section ────────────────────────────────────────── */
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+.sec-title{font-size:14px;font-weight:700;}
 
-  /* Avatar */
-  .avatar { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; flex-shrink:0; }
+/* ── Entries liste ───────────────────────────────────────────── */
+.entry{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.entry:last-child{border-bottom:none;}
+.entry-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;
+  justify-content:center;font-size:16px;flex-shrink:0;background:var(--bg4);}
+.entry-body{flex:1;min-width:0;}
+.entry-title{font-size:13px;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.entry-sub{font-size:11px;color:var(--text3);margin-top:1px;}
 
-  /* Employee Cards */
-  .emp-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px; }
-  .emp-card { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:14px; cursor:pointer; transition:.15s; }
-  .emp-card:hover { border-color:var(--accent); background:var(--bg3); }
-  .emp-card-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .emp-info { flex:1; min-width:0; }
-  .emp-name { font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .emp-role { font-size:11px; color:var(--text2); }
-  .emp-stats { display:flex; gap:8px; flex-wrap:wrap; }
-  .emp-stat { background:var(--bg3); border-radius:6px; padding:4px 8px; font-size:11px; color:var(--text2); }
+/* ── Dot présence ────────────────────────────────────────────── */
+.att-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.att-dot.present{background:var(--ok);}
+.att-dot.absent{background:var(--danger);}
+.att-dot.retard{background:var(--warn);}
+.att-dot.conge{background:var(--acc2);}
 
-  /* Modal */
-  .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:1000; align-items:center; justify-content:center; padding:16px; }
-  .modal-overlay.show { display:flex; }
-  .modal { background:var(--bg2); border:1px solid var(--border); border-radius:16px; width:100%; max-width:640px; max-height:90vh; overflow-y:auto; }
-  .modal-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-  .modal-title { font-size:16px; font-weight:600; }
-  .modal-close { background:var(--bg3); border:1px solid var(--border); color:var(--text2); border-radius:6px; padding:4px 8px; cursor:pointer; font-size:16px; }
-  .modal-body { padding:20px; }
-  .modal-footer { padding:14px 20px; border-top:1px solid var(--border); display:flex; gap:8px; justify-content:flex-end; }
+/* ── Tâches ──────────────────────────────────────────────────── */
+.task-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.task-item:last-child{border-bottom:none;}
+.task-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);
+  cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  margin-top:1px;transition:all .15s;}
+.task-check.done{background:var(--ok);border-color:var(--ok);}
+.task-pri{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:6px;}
+.task-pri.haute{background:var(--danger);}
+.task-pri.normale{background:var(--warn);}
+.task-pri.basse{background:var(--ok);}
 
-  /* Payroll calc */
-  .payroll-calc { background:var(--bg3); border-radius:10px; padding:14px; font-size:13px; }
-  .calc-row { display:flex; justify-content:space-between; padding:4px 0; }
-  .calc-row.total { border-top:1px solid var(--border); margin-top:6px; padding-top:6px; font-weight:700; font-size:15px; }
-  .calc-row .deduct { color:var(--red); }
-  .calc-row .gain { color:var(--green); }
+/* ── Historique ──────────────────────────────────────────────── */
+.hist-entry{display:grid;grid-template-columns:auto 1fr auto;gap:10px;
+  align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.hist-entry:last-child{border-bottom:none;}
 
-  /* Alert */
-  .alert { padding:10px 14px; border-radius:8px; font-size:13px; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
-  .alert-info { background:var(--info-bg); border:1px solid rgba(59,130,246,.2); color:var(--blue); }
-  .alert-success { background:var(--success-bg); border:1px solid rgba(16,185,129,.2); color:var(--green); }
-  .alert-warn { background:var(--warn-bg); border:1px solid rgba(245,158,11,.2); color:var(--yellow); }
-  .alert-danger { background:var(--danger-bg); border:1px solid rgba(239,68,68,.2); color:var(--red); }
+/* ── Grille horaires ─────────────────────────────────────────── */
+.sched-grid{display:grid;grid-template-columns:80px repeat(7,1fr);gap:1px;
+  font-size:10px;border-radius:10px;overflow:hidden;background:var(--border);min-width:400px;}
+@media(max-width:400px){.sched-grid{grid-template-columns:55px repeat(7,1fr);}}
+.sg-cell{background:var(--bg3);padding:6px 4px;text-align:center;}
+.sg-header{background:var(--bg4);font-weight:700;color:var(--text2);font-size:10px;}
+.sg-name{background:var(--bg3);color:var(--text);font-weight:600;font-size:10px;
+  display:flex;align-items:center;padding:6px 6px;}
+.sg-shift{border-radius:4px;padding:2px 4px;font-size:9px;font-weight:700;cursor:pointer;display:inline-block;}
+.sg-shift.m{background:rgba(34,211,165,.2);color:var(--accent);}
+.sg-shift.s{background:rgba(129,140,248,.2);color:var(--acc2);}
+.sg-shift.n{background:rgba(245,158,11,.15);color:var(--warn);}
+.sg-shift.r{background:rgba(100,116,139,.15);color:var(--text3);}
+.sg-shift.off{color:var(--text3);background:transparent;}
 
-  /* Progress */
-  .progress-bar { background:var(--bg3); border-radius:10px; height:6px; overflow:hidden; margin-top:4px; }
-  .progress-fill { height:100%; border-radius:10px; transition:.3s; }
+/* ── Contrats ────────────────────────────────────────────────── */
+.contract-card{background:var(--bg3);border-radius:12px;padding:13px 14px;
+  margin-bottom:8px;border:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.contract-card:hover{background:var(--bg4);}
+.contract-type{font-size:13px;font-weight:700;}
+.contract-dates{font-size:11px;color:var(--text3);margin-top:2px;}
 
-  /* RBAC Matrix */
-  .matrix-table th, .matrix-table td { text-align:center; padding:8px; }
-  .matrix-table td:first-child { text-align:left; font-weight:500; }
-  .check { color:var(--green); font-size:16px; }
-  .cross { color:var(--red); opacity:.4; font-size:16px; }
-  .partial { color:var(--yellow); font-size:16px; }
+/* ── Rôles & permissions ─────────────────────────────────────── */
+.role-card{background:var(--bg3);border-radius:12px;padding:13px 14px;
+  margin-bottom:8px;border:1px solid var(--border);}
+.role-name{font-size:13px;font-weight:700;margin-bottom:6px;}
+.perm-grid{display:flex;flex-wrap:wrap;gap:5px;}
+.perm-chip{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;
+  background:rgba(34,211,165,.1);color:var(--accent);border:1px solid rgba(34,211,165,.2);}
+.perm-chip.off{background:var(--bg4);color:var(--text3);border-color:transparent;}
 
-  /* Timeline */
-  .timeline { position:relative; padding-left:20px; }
-  .timeline::before { content:''; position:absolute; left:6px; top:0; bottom:0; width:2px; background:var(--border); }
-  .tl-item { position:relative; margin-bottom:14px; }
-  .tl-dot { position:absolute; left:-17px; top:4px; width:10px; height:10px; border-radius:50%; border:2px solid var(--bg2); }
-  .tl-time { font-size:11px; color:var(--text3); }
-  .tl-text { font-size:13px; margin-top:2px; }
+/* ── Documents ───────────────────────────────────────────────── */
+.doc-card{background:var(--bg3);border-radius:12px;padding:12px 14px;
+  margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;gap:12px;}
+.doc-ico{width:38px;height:38px;border-radius:10px;background:rgba(129,140,248,.15);
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
 
-  /* Schedule */
-  .schedule-grid { display:grid; grid-template-columns:80px repeat(7,1fr); gap:4px; }
-  .sch-header { text-align:center; font-size:11px; color:var(--text2); padding:4px; font-weight:600; }
-  .sch-name { font-size:12px; color:var(--text2); padding:4px 6px; align-self:center; }
-  .sch-cell { background:var(--bg3); border-radius:6px; padding:4px 6px; font-size:11px; text-align:center; }
-  .sch-cell.work { background:rgba(108,99,255,.15); color:var(--accent2); border:1px solid rgba(108,99,255,.2); }
-  .sch-cell.off { color:var(--text3); }
-  .sch-cell.leave { background:rgba(245,158,11,.1); color:var(--yellow); border:1px solid rgba(245,158,11,.2); }
+/* ── Formulaires ─────────────────────────────────────────────── */
+.fi{width:100%;padding:9px 12px;background:var(--bg2);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);font-size:13px;margin-bottom:8px;
+  -webkit-appearance:none;appearance:none;}
+.fi:focus{outline:none;border-color:var(--accent);}
+select.fi{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2364748b' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:30px;}
+.fg{display:flex;gap:8px;}
+.fg>div{flex:1;min-width:0;}
+.fl{font-size:11px;color:var(--text3);margin-bottom:3px;display:block;}
 
-  /* Attendance dots */
-  .att-dot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer; transition:.15s; }
-  .att-dot:hover { opacity:.8; }
-  .att-present { background:rgba(16,185,129,.2); color:var(--green); border:2px solid var(--green); }
-  .att-absent { background:rgba(239,68,68,.2); color:var(--red); border:2px solid var(--red); }
-  .att-late { background:rgba(245,158,11,.2); color:var(--yellow); border:2px solid var(--yellow); }
-  .att-leave { background:rgba(6,182,212,.2); color:var(--cyan); border:2px solid var(--cyan); }
-  .att-off { background:var(--bg3); color:var(--text3); border:2px solid var(--border); }
+/* ── Modales ─────────────────────────────────────────────────── */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;
+  align-items:flex-end;justify-content:center;z-index:200;padding:0;}
+.ov.on{display:flex;}
+.md{background:var(--bg3);border-radius:18px 18px 0 0;width:100%;
+  max-width:540px;max-height:92vh;overflow-y:auto;padding:20px;
+  padding-bottom:calc(20px + var(--sab));}
+@media(min-width:540px){.ov{align-items:center;padding:16px;}.md{border-radius:18px;}}
+.mdhdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.mdhdr h3{font-size:15px;font-weight:700;}
+.mdc{background:var(--bg4);border:none;color:var(--text2);border-radius:8px;
+  width:30px;height:30px;cursor:pointer;font-size:16px;flex-shrink:0;}
 
-  /* Scrollbar */
-  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:var(--border2); border-radius:10px; }
+/* ── Profil employé détail ───────────────────────────────────── */
+.det-row{display:flex;justify-content:space-between;padding:8px 0;
+  border-bottom:1px solid var(--border);font-size:13px;}
+.det-row:last-child{border-bottom:none;}
+.det-label{color:var(--text3);}
+.det-val{font-weight:600;text-align:right;}
+.emp-profile-header{display:flex;align-items:center;gap:14px;margin-bottom:16px;
+  padding-bottom:14px;border-bottom:1px solid var(--border);}
+.emp-profile-avatar{width:56px;height:56px;border-radius:50%;display:flex;
+  align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;}
 
-  /* Toast */
-  .toast { position:fixed; bottom:20px; right:20px; background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:12px 16px; font-size:13px; z-index:9999; display:none; box-shadow:0 4px 20px rgba(0,0,0,.4); max-width:280px; }
-  .toast.show { display:flex; align-items:center; gap:8px; }
+/* ── Toast ───────────────────────────────────────────────────── */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--bg4);color:var(--text);padding:10px 20px;border-radius:12px;
+  font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;
+  white-space:nowrap;border:1px solid var(--bord2);}
+#toast.on{opacity:1;}
+#toast.err{background:rgba(244,63,94,.2);color:var(--danger);border-color:rgba(244,63,94,.3);}
 
-  /* Remote badge */
-  .remote-flag { background:rgba(108,99,255,.15); color:var(--accent2); border:1px solid rgba(108,99,255,.2); padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; }
+/* ── Empty state ─────────────────────────────────────────────── */
+.empty{text-align:center;padding:40px 20px;color:var(--text3);}
+.empty-ico{font-size:38px;margin-bottom:8px;}
+.empty-txt{font-size:13px;}
 
-  .section-title { font-size:15px; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:8px; }
-  .separator { height:1px; background:var(--border); margin:14px 0; }
-  .flex { display:flex; align-items:center; gap:8px; }
-  .flex-between { display:flex; align-items:center; justify-content:space-between; }
-  .mt8 { margin-top:8px; } .mt12 { margin-top:12px; } .mb8 { margin-bottom:8px; }
-  .text-sm { font-size:12px; color:var(--text2); }
-  .text-xs { font-size:11px; color:var(--text3); }
-  .font-bold { font-weight:700; }
-  .hidden { display:none; }
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px;}
+
+/* ── Responsive tablet/desktop ───────────────────────────────── */
+@media(min-width:768px){
+  .emp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .emp-grid .emp-card{margin-bottom:0;}
+  .kpi-v{font-size:22px;}
+}
+@media(min-width:1024px){.emp-grid{grid-template-columns:repeat(3,1fr);}}
+
+/* ── Print ───────────────────────────────────────────────────── */
+@media print{
+  #tabs,.btn-row,.btn,.ov,#toast{display:none!important;}
+  .pane.on{position:static!important;overflow:visible!important;}
+}
 </style>
-<style data-injected="embedded-mode">
-/* ═══════════════════════════════════════
-   EMBEDDED MODE — injecté par create_embedded.py
-   Supprime toute interface interne et force le module
-   à occuper 100% du cadre iframe du Core
-═══════════════════════════════════════ */
-html, body {
-  margin: 0 !important;
-  padding: 0 !important;
-  height: 100% !important;
-  overflow: hidden !important;
-  background: var(--bg-main, #0f172a) !important;
-}
+</head>
+<body>
+<div id="app">
 
-/* Supprimer les wrappers inutiles */
-.app {
-  display: block !important;
-  height: 100vh !important;
-  overflow: hidden !important;
-}
+  <!-- ── ONGLETS DE NAVIGATION ─────────────────────────────── -->
+  <div id="tabs">
+    <button class="tab on"  data-p="emp"      onclick="goTab('emp')">&#128100; Employ&#233;s</button>
+    <button class="tab"     data-p="contrats" onclick="goTab('contrats')">&#128203; Contrats</button>
+    <button class="tab"     data-p="roles"    onclick="goTab('roles')">&#128737; R&#244;les</button>
+    <button class="tab"     data-p="sched"    onclick="goTab('sched')">&#128197; Horaires</button>
+    <button class="tab"     data-p="att"      onclick="goTab('att')">&#9200; Pr&#233;sences</button>
+    <button class="tab"     data-p="pay"      onclick="goTab('pay')">&#128176; Paie</button>
+    <button class="tab"     data-p="adv"      onclick="goTab('adv')">&#128180; Avances</button>
+    <button class="tab"     data-p="docs"     onclick="goTab('docs')">&#128196; Documents</button>
+    <button class="tab"     data-p="tasks"    onclick="goTab('tasks')">&#9989; T&#226;ches</button>
+    <button class="tab"     data-p="hist"     onclick="goTab('hist')">&#128218; Historique</button>
+  </div>
 
-/* .main occupe tout l'espace */
-.main {
-  display: flex !important;
-  flex-direction: column !important;
-  height: 100vh !important;
-  width: 100% !important;
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: var(--bg-main, #0f172a) !important;
-}
+  <div id="content">
 
-/* Tabs collés en haut */
-.tabs {
-  flex-shrink: 0 !important;
-}
+    <!-- ════ ONGLET 1 — EMPLOYÉS ════ -->
+    <div class="pane on" id="pane-emp">
+      <div class="card-row">
+        <div class="kpi ok"><div class="kpi-v" id="kpi-actif">&#8212;</div><div class="kpi-l">Actifs</div></div>
+        <div class="kpi warn"><div class="kpi-v" id="kpi-conge">&#8212;</div><div class="kpi-l">Cong&#233;</div></div>
+        <div class="kpi danger"><div class="kpi-v" id="kpi-inactif">&#8212;</div><div class="kpi-l">Inactifs</div></div>
+        <div class="kpi"><div class="kpi-v" id="kpi-total">&#8212;</div><div class="kpi-l">Total</div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openMd('md-add-emp')">&#43; Employ&#233;</button>
+        <button class="btn btn-sec"     onclick="openMd('md-add-team')">&#43; &#201;quipe</button>
+      </div>
+      <input class="search" id="emp-search" placeholder="&#128269; Rechercher un employ&#233;&#8230;" oninput="filterEmps()">
+      <div class="filters">
+        <button class="fchip on" data-f="all"     onclick="setEmpFilter('all',this)">Tous</button>
+        <button class="fchip"    data-f="actif"   onclick="setEmpFilter('actif',this)">Actifs</button>
+        <button class="fchip"    data-f="conge"   onclick="setEmpFilter('conge',this)">Cong&#233;</button>
+        <button class="fchip"    data-f="inactif" onclick="setEmpFilter('inactif',this)">Inactifs</button>
+      </div>
+      <div class="emp-grid" id="emp-list">
+        <div class="empty"><div class="empty-ico">&#128100;</div><div class="empty-txt">Chargement&#8230;</div></div>
+      </div>
+    </div>
 
-/* Content scrollable prend le reste */
-.content {
-  flex: 1 !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding: 20px !important;
-  box-sizing: border-box !important;
-}
+    <!-- ════ ONGLET 2 — CONTRATS ════ -->
+    <div class="pane" id="pane-contrats">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openMd('md-add-contract')">&#43; Contrat</button>
+      </div>
+      <div class="filters">
+        <button class="fchip on" data-c="all"    onclick="setContractFilter('all',this)">Tous</button>
+        <button class="fchip"    data-c="actif"  onclick="setContractFilter('actif',this)">Actifs</button>
+        <button class="fchip"    data-c="expire" onclick="setContractFilter('expire',this)">Expir&#233;s</button>
+        <button class="fchip"    data-c="essai"  onclick="setContractFilter('essai',this)">Essai</button>
+      </div>
+      <div id="contract-list"><div class="empty"><div class="empty-ico">&#128203;</div><div class="empty-txt">Aucun contrat</div></div></div>
+    </div>
 
-/* RESTAURANT: les .view occupent tout le .main */
-.main > .view {
-  display: none;
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  height: 100%;
-  box-sizing: border-box;
-}
-.main > .view.active {
-  display: flex;
-  flex-direction: column;
-}
+    <!-- ════ ONGLET 3 — RÔLES & PERMISSIONS ════ -->
+    <div class="pane" id="pane-roles">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openAddRole()">&#43; R&#244;le</button>
+      </div>
+      <div id="roles-list"></div>
+    </div>
 
-/* Masquer sidebar, topbar, toast internes */
-.sidebar,
-aside.sidebar,
-.topbar,
-#toast,
-.toast,
-.bottom-nav,
-nav.bottom-nav {
-  display: none !important;
-}
-</style></head>
-<body><script data-injected="embedded-bridge">
-/* ═══════════════════════════════════════
-   EMBEDDED BRIDGE — Communication avec Veraluz OS Core
-   Injecté par create_embedded.py
-═══════════════════════════════════════ */
-(function() {
-  'use strict';
+    <!-- ════ ONGLET 4 — HORAIRES ════ -->
+    <div class="pane" id="pane-sched">
+      <div class="sec-hdr">
+        <span class="sec-title" id="sched-week-label">Semaine en cours</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <button class="btn btn-sec btn-sm" onclick="prevWeek()">&#9664;</button>
+          <button class="btn btn-sec btn-sm" onclick="nextWeek()">&#9654;</button>
+          <button class="btn btn-primary btn-sm" onclick="openMd('md-add-sched')">&#43; Shift</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <div class="sched-grid" id="sched-grid"></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;"><span class="sg-shift m">M</span> Matin</span>
+        <span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;"><span class="sg-shift s">S</span> Soir</span>
+        <span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;"><span class="sg-shift n">N</span> Nuit</span>
+        <span style="font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;"><span class="sg-shift r">R</span> Repos</span>
+        <span style="font-size:11px;color:var(--text3);font-style:italic;">Cliquez sur une case pour changer le shift</span>
+      </div>
+    </div>
 
-  /* 1. Toast → déléguer au parent */
-  window.toast = function(msg, type) {
-    try {
-      if (window.parent && window.parent !== window) {
-        window.parent.showToast(msg, type || 'info');
-      }
-    } catch(e) {
-      console.log('[Embedded toast]', msg, type);
-    }
-  };
+    <!-- ════ ONGLET 5 — PRÉSENCES ════ -->
+    <div class="pane" id="pane-att">
+      <div class="sec-hdr">
+        <span class="sec-title" id="att-date-label">Pr&#233;sences</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="date" class="fi" id="att-date" style="width:150px;margin:0;" onchange="loadAtt()">
+          <button class="btn btn-primary btn-sm" onclick="openMd('md-add-att')">&#43; Pointer</button>
+        </div>
+      </div>
+      <div class="card-row">
+        <div class="kpi ok"><div class="kpi-v" id="att-present">&#8212;</div><div class="kpi-l">Pr&#233;sents</div></div>
+        <div class="kpi danger"><div class="kpi-v" id="att-absent">&#8212;</div><div class="kpi-l">Absents</div></div>
+        <div class="kpi warn"><div class="kpi-v" id="att-retard">&#8212;</div><div class="kpi-l">Retards</div></div>
+        <div class="kpi"><div class="kpi-v" id="att-conge">&#8212;</div><div class="kpi-l">Cong&#233;s</div></div>
+      </div>
+      <div id="att-list"><div class="empty"><div class="empty-ico">&#9200;</div><div class="empty-txt">Chargement&#8230;</div></div></div>
+    </div>
 
-  /* Aussi patcher showToast si défini localement */
-  window.showToast = window.toast;
+    <!-- ════ ONGLET 6 — PAIE ════ -->
+    <div class="pane" id="pane-pay">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openMd('md-add-pay')">&#43; Fiche de paie</button>
+        <button class="btn btn-sec"     onclick="printPayroll()">&#128438; Imprimer</button>
+      </div>
+      <div class="filters">
+        <button class="fchip on" data-pm="all"       onclick="setPayFilter('all',this)">Toutes</button>
+        <button class="fchip"    data-pm="en_attente" onclick="setPayFilter('en_attente',this)">En attente</button>
+        <button class="fchip"    data-pm="paye"       onclick="setPayFilter('paye',this)">Pay&#233;es</button>
+      </div>
+      <div class="card-row">
+        <div class="kpi"><div class="kpi-v" id="pay-total">&#8212;</div><div class="kpi-l">Total (FCFA)</div></div>
+        <div class="kpi warn"><div class="kpi-v" id="pay-pending">&#8212;</div><div class="kpi-l">En attente</div></div>
+        <div class="kpi ok"><div class="kpi-v" id="pay-paid">&#8212;</div><div class="kpi-l">Pay&#233;es</div></div>
+      </div>
+      <div id="pay-list"><div class="empty"><div class="empty-ico">&#128176;</div><div class="empty-txt">Chargement&#8230;</div></div></div>
+    </div>
 
-  /* 2. Émettre un événement vers le Core via postMessage */
-  window.emitToCore = function(type, data) {
-    try {
-      window.parent.postMessage({
-        veraluzEvent: true,
-        type: type,
-        data: data,
-        source: window.__MODULE_NAME__ || 'embedded-module'
-      }, '*');
-    } catch(e) {}
-  };
+    <!-- ════ ONGLET 7 — AVANCES ════ -->
+    <div class="pane" id="pane-adv">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openMd('md-add-adv')">&#43; Avance</button>
+      </div>
+      <div class="card-row">
+        <div class="kpi warn"><div class="kpi-v" id="adv-pending-count">&#8212;</div><div class="kpi-l">En attente</div></div>
+        <div class="kpi danger"><div class="kpi-v" id="adv-total-amt">&#8212;</div><div class="kpi-l">Avanc&#233; (F)</div></div>
+        <div class="kpi ok"><div class="kpi-v" id="adv-repaid">&#8212;</div><div class="kpi-l">Rembours&#233;s</div></div>
+      </div>
+      <div id="adv-list"><div class="empty"><div class="empty-ico">&#128180;</div><div class="empty-txt">Chargement&#8230;</div></div></div>
+    </div>
 
-  /* 3. Recevoir des événements du Core */
-  window.addEventListener('message', function(e) {
-    if (!e.data || !e.data.veraluzEvent) return;
-    var evt = new CustomEvent('veraluz:' + e.data.type, { detail: e.data.data });
-    window.dispatchEvent(evt);
-  });
+    <!-- ════ ONGLET 8 — DOCUMENTS ════ -->
+    <div class="pane" id="pane-docs">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openMd('md-add-doc')">&#43; Document</button>
+      </div>
+      <input class="search" id="doc-search" placeholder="&#128269; Rechercher&#8230;" oninput="filterDocs()">
+      <div class="filters">
+        <button class="fchip on" data-d="all"      onclick="setDocFilter('all',this)">Tous</button>
+        <button class="fchip"    data-d="contrat"  onclick="setDocFilter('contrat',this)">Contrats</button>
+        <button class="fchip"    data-d="identite" onclick="setDocFilter('identite',this)">Identit&#233;</button>
+        <button class="fchip"    data-d="diplome"  onclick="setDocFilter('diplome',this)">Dipl&#244;mes</button>
+        <button class="fchip"    data-d="autre"    onclick="setDocFilter('autre',this)">Autres</button>
+      </div>
+      <div id="docs-list"><div class="empty"><div class="empty-ico">&#128196;</div><div class="empty-txt">Aucun document</div></div></div>
+    </div>
 
-  /* 4. Signaler au Core que le module est chargé */
-  window.addEventListener('DOMContentLoaded', function() {
-    window.emitToCore('module:ready', { module: window.__MODULE_NAME__ });
-  });
-})();
-</script>
-<div class="app">
-<!-- SIDEBAR -->
+    <!-- ════ ONGLET 9 — TÂCHES ════ -->
+    <div class="pane" id="pane-tasks">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openMd('md-add-task')">&#43; T&#226;che</button>
+      </div>
+      <div class="filters">
+        <button class="fchip on" data-ts="all"     onclick="setTaskFilter('all',this)">Toutes</button>
+        <button class="fchip"    data-ts="a_faire"  onclick="setTaskFilter('a_faire',this)">&#192; faire</button>
+        <button class="fchip"    data-ts="en_cours" onclick="setTaskFilter('en_cours',this)">En cours</button>
+        <button class="fchip"    data-ts="termine"  onclick="setTaskFilter('termine',this)">Termin&#233;es</button>
+      </div>
+      <div id="task-list"><div class="empty"><div class="empty-ico">&#9989;</div><div class="empty-txt">Chargement&#8230;</div></div></div>
+    </div>
 
-<!-- MAIN -->
-<div class="main">
+    <!-- ════ ONGLET 10 — HISTORIQUE ════ -->
+    <div class="pane" id="pane-hist">
+      <div class="filters">
+        <button class="fchip on" data-ht="all"      onclick="setHistFilter('all',this)">Tout</button>
+        <button class="fchip"    data-ht="payroll"  onclick="setHistFilter('payroll',this)">Paie</button>
+        <button class="fchip"    data-ht="advance"  onclick="setHistFilter('advance',this)">Avances</button>
+        <button class="fchip"    data-ht="task"     onclick="setHistFilter('task',this)">T&#226;ches</button>
+        <button class="fchip"    data-ht="contract" onclick="setHistFilter('contract',this)">Contrats</button>
+      </div>
+      <div id="hist-list"><div class="empty"><div class="empty-ico">&#128218;</div><div class="empty-txt">Chargement&#8230;</div></div></div>
+    </div>
 
-<!-- TABS -->
-<div class="tabs">
-<div class="tab active" id="tab-dashboard" onclick="switchTab('dashboard')">📊 Dashboard</div>
-<div class="tab" id="tab-employees" onclick="switchTab('employees')">👤 Employés</div>
-<div class="tab" id="tab-leaves" onclick="switchTab('leaves')">🌴 Congés<span class="tab-badge" id="tab-leave-badge">2</span></div>
-<div class="tab" id="tab-attendance" onclick="switchTab('attendance')">⏱️ Présences</div>
-<div class="tab" id="tab-payroll" onclick="switchTab('payroll')">💰 Paie</div>
-<div class="tab" id="tab-disciplinary" onclick="switchTab('disciplinary')">⚠️ Disciplinaire</div>
-<div class="tab" id="tab-rbac" onclick="switchTab('rbac')">🔐 Permissions</div>
-</div>
-<!-- CONTENT -->
-<div class="content" id="content">
-<!-- Rendered by JS -->
-</div>
-</div>
-</div>
-<!-- ========== MODALS ========== -->
-<!-- Add Employee -->
-<div class="modal-overlay" id="modal-add-emp">
-<div class="modal">
-<div class="modal-header">
-<span class="modal-title">➕ Nouvel Employé</span>
-<button class="modal-close" onclick="hideModal('modal-add-emp')">✕</button>
-</div>
-<div class="modal-body">
-<div class="alert alert-info">📧 Un email d'invitation sera envoyé automatiquement pour créer le compte.</div>
-<div class="grid2">
-<div class="form-group"><label>Prénom *</label><input id="new-firstname" placeholder="ex: Marie"/></div>
-<div class="form-group"><label>Nom *</label><input id="new-lastname" placeholder="ex: Mbida"/></div>
-</div>
-<div class="grid2">
-<div class="form-group"><label>Email *</label><input id="new-email" placeholder="marie@veraluz.cm" type="email"/></div>
-<div class="form-group"><label>Téléphone</label><input id="new-phone" placeholder="+237 6XX XXX XXX"/></div>
-</div>
-<div class="grid2">
-<div class="form-group"><label>Rôle / Accès *</label>
-<select id="new-role">
-<option value="">-- Choisir --</option>
-<option value="hotel_manager">Hotel Manager</option>
-<option value="reception">Réceptionniste</option>
-<option value="restaurant">Restaurant / Bar</option>
-<option value="housekeeping">Housekeeping</option>
-<option value="accountant">Comptable</option>
-<option value="hr">RH</option>
-<option value="security">Sécurité</option>
-</select>
-</div>
-<div class="form-group"><label>Poste / Titre</label><input id="new-position" placeholder="ex: Chef Réceptionniste"/></div>
-</div>
-<div class="grid2">
-<div class="form-group"><label>Date d'embauche</label><input id="new-hire" type="date"/></div>
-<div class="form-group"><label>Type de contrat</label>
-<select id="new-contract">
-<option value="cdi">CDI</option>
-<option value="cdd">CDD</option>
-<option value="stage">Stage</option>
-<option value="prestataire">Prestataire</option>
-</select>
-</div>
-</div>
-<div class="form-group"><label>Salaire de base (FCFA)</label><input id="new-salary" placeholder="150000" type="number"/></div>
-<div class="separator"></div>
-<div class="form-group"><label>Adresse</label><input id="new-address" placeholder="Kribi, Cameroun"/></div>
-<div class="grid2">
-<div class="form-group"><label>Contact urgence (nom)</label><input placeholder="ex: Jean Mbida"/></div>
-<div class="form-group"><label>Contact urgence (tél)</label><input placeholder="+237 6XX XXX XXX"/></div>
-</div>
-</div>
-<div class="modal-footer">
-<button class="btn btn-ghost" onclick="hideModal('modal-add-emp')">Annuler</button>
-<button class="btn btn-primary" onclick="addEmployee()">📧 Créer &amp; Inviter</button>
-</div>
-</div>
-</div>
-<!-- Employee Detail -->
-<div class="modal-overlay" id="modal-emp-detail">
-<div class="modal" style="max-width:700px;">
-<div class="modal-header">
-<span class="modal-title" id="emp-detail-title">Profil Employé</span>
-<button class="modal-close" onclick="hideModal('modal-emp-detail')">✕</button>
-</div>
-<div class="modal-body" id="emp-detail-body"><!-- JS --></div>
-<div class="modal-footer">
-<button class="btn btn-ghost" onclick="hideModal('modal-emp-detail')">Fermer</button>
-<button class="btn btn-danger btn-sm" onclick="suspendEmployee()">🚫 Suspendre</button>
-<button class="btn btn-primary btn-sm" onclick="toast('✉️ Email envoyé à l\'employé')">✉️ Contacter</button>
-</div>
-</div>
-</div>
-<!-- Leave Detail -->
-<div class="modal-overlay" id="modal-leave-detail">
-<div class="modal" style="max-width:520px;">
-<div class="modal-header">
-<span class="modal-title">🌴 Demande de Congé</span>
-<button class="modal-close" onclick="hideModal('modal-leave-detail')">✕</button>
-</div>
-<div class="modal-body" id="leave-detail-body"><!-- JS --></div>
-<div class="modal-footer" id="leave-detail-footer"><!-- JS --></div>
-</div>
-</div>
-<!-- Payroll Detail -->
-<div class="modal-overlay" id="modal-payroll">
-<div class="modal" style="max-width:500px;">
-<div class="modal-header">
-<span class="modal-title" id="payroll-modal-title">💰 Fiche de Paie</span>
-<button class="modal-close" onclick="hideModal('modal-payroll')">✕</button>
-</div>
-<div class="modal-body" id="payroll-modal-body"><!-- JS --></div>
-<div class="modal-footer">
-<button class="btn btn-ghost" onclick="hideModal('modal-payroll')">Fermer</button>
-<button class="btn btn-success" onclick="validatePayroll()">✅ Valider &amp; Marquer payé</button>
-</div>
-</div>
-</div>
-<!-- Disciplinary -->
-<div class="modal-overlay" id="modal-disciplinary">
-<div class="modal" style="max-width:480px;">
-<div class="modal-header">
-<span class="modal-title">⚠️ Dossier Disciplinaire</span>
-<button class="modal-close" onclick="hideModal('modal-disciplinary')">✕</button>
-</div>
-<div class="modal-body">
-<div class="form-group"><label>Employé *</label>
-<select id="disc-emp">
-<option>Raoul Ondoua — Réception</option>
-<option>Claire Bessong — Restaurant</option>
-<option>Patrick Abomo — Housekeeping</option>
-<option>Judith Biyong — Sécurité</option>
-</select>
-</div>
-<div class="form-group"><label>Type de sanction</label>
-<select id="disc-type">
-<option value="verbal_warning">Avertissement verbal</option>
-<option value="written_warning">Avertissement écrit</option>
-<option value="suspension">Suspension</option>
-<option value="demotion">Rétrogradation</option>
-<option value="termination">Licenciement</option>
-</select>
-</div>
-<div class="form-group"><label>Motif *</label><textarea id="disc-reason" placeholder="Décrivez la raison de la sanction..."></textarea></div>
-<div class="form-group"><label>Date</label><input id="disc-date" type="date"/></div>
-<div class="alert alert-warn" style="margin-top:8px;">⚠️ Cette action sera enregistrée dans le dossier permanent de l'employé.</div>
-</div>
-<div class="modal-footer">
-<button class="btn btn-ghost" onclick="hideModal('modal-disciplinary')">Annuler</button>
-<button class="btn btn-danger" onclick="saveDisciplinary()">Enregistrer la sanction</button>
-</div>
-</div>
-</div>
-<!-- Toast -->
+  </div><!-- /#content -->
+</div><!-- /#app -->
 
+<!-- ════════ MODALES ════════ -->
+
+<!-- Détail employé -->
+<div class="ov" id="md-emp-det">
+  <div class="md">
+    <div class="mdhdr"><h3>Profil employ&#233;</h3><button class="mdc" onclick="closeMd('md-emp-det')">&#10005;</button></div>
+    <div id="det-body"></div>
+    <div class="btn-row" style="margin-top:14px;">
+      <button class="btn btn-sec btn-sm"  onclick="openEditEmp()">&#9998; Modifier</button>
+      <button class="btn btn-warn btn-sm" id="det-toggle-btn" onclick="toggleEmpStatus()">Suspendre</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ajouter / modifier employé -->
+<div class="ov" id="md-add-emp">
+  <div class="md">
+    <div class="mdhdr"><h3 id="emp-modal-title">Nouvel employ&#233;</h3><button class="mdc" onclick="closeMd('md-add-emp')">&#10005;</button></div>
+    <input class="fi" id="emp-name" placeholder="Nom complet *">
+    <div class="fg">
+      <div><label class="fl">T&#233;l&#233;phone</label><input class="fi" id="emp-phone" type="tel" placeholder="+237&#8230;" style="margin-bottom:0"></div>
+      <div><label class="fl">Email</label><input class="fi" id="emp-email" type="email" placeholder="email@&#8230;" style="margin-bottom:0"></div>
+    </div>
+    <div style="height:8px"></div>
+    <div class="fg">
+      <div><label class="fl">R&#244;le</label>
+        <select class="fi" id="emp-role" style="margin-bottom:0">
+          <option value="gerant">G&#233;rant</option>
+          <option value="receptionniste">R&#233;ceptionniste</option>
+          <option value="chef_cuisinier">Chef cuisinier</option>
+          <option value="barman">Barman</option>
+          <option value="femme_chambre">Femme de chambre</option>
+          <option value="agent_securite">Agent s&#233;curit&#233;</option>
+          <option value="comptable">Comptable</option>
+          <option value="technicien">Technicien</option>
+          <option value="staff">Staff</option>
+        </select>
+      </div>
+      <div><label class="fl">&#201;quipe</label><select class="fi" id="emp-team-sel" style="margin-bottom:0"></select></div>
+    </div>
+    <div style="height:8px"></div>
+    <div class="fg">
+      <div><label class="fl">Date embauche</label><input class="fi" id="emp-hire" type="date" style="margin-bottom:0"></div>
+      <div><label class="fl">Salaire base (FCFA)</label><input class="fi" id="emp-salary" type="number" placeholder="0" style="margin-bottom:0"></div>
+    </div>
+    <div style="height:8px"></div>
+    <label class="fl">Statut</label>
+    <select class="fi" id="emp-status">
+      <option value="actif">Actif</option>
+      <option value="conge">En cong&#233;</option>
+      <option value="inactif">Inactif</option>
+    </select>
+    <input type="hidden" id="emp-edit-id">
+    <button class="btn btn-primary" style="width:100%;" onclick="saveEmp()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- Équipe -->
+<div class="ov" id="md-add-team">
+  <div class="md">
+    <div class="mdhdr"><h3>Nouvelle &#233;quipe</h3><button class="mdc" onclick="closeMd('md-add-team')">&#10005;</button></div>
+    <input class="fi" id="team-name" placeholder="Nom de l'&#233;quipe *">
+    <label class="fl">Couleur</label>
+    <input class="fi" id="team-color" type="color" value="#22d3a5" style="height:44px;padding:4px;">
+    <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="saveTeam()">Cr&#233;er l'&#233;quipe</button>
+  </div>
+</div>
+
+<!-- Contrat -->
+<div class="ov" id="md-add-contract">
+  <div class="md">
+    <div class="mdhdr"><h3>Nouveau contrat</h3><button class="mdc" onclick="closeMd('md-add-contract')">&#10005;</button></div>
+    <label class="fl">Employ&#233;</label><select class="fi" id="contract-emp-sel"></select>
+    <div class="fg">
+      <div><label class="fl">Type</label>
+        <select class="fi" id="contract-type" style="margin-bottom:0">
+          <option value="cdi">CDI</option><option value="cdd">CDD</option>
+          <option value="essai">P&#233;riode d'essai</option>
+          <option value="freelance">Freelance</option><option value="stage">Stage</option>
+        </select>
+      </div>
+      <div><label class="fl">Statut</label>
+        <select class="fi" id="contract-status" style="margin-bottom:0">
+          <option value="actif">Actif</option><option value="expire">Expir&#233;</option><option value="resilie">R&#233;sili&#233;</option>
+        </select>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+    <div class="fg">
+      <div><label class="fl">D&#233;but</label><input class="fi" id="contract-start" type="date" style="margin-bottom:0"></div>
+      <div><label class="fl">Fin (CDD)</label><input class="fi" id="contract-end" type="date" style="margin-bottom:0"></div>
+    </div>
+    <div style="height:8px"></div>
+    <textarea class="fi" id="contract-notes" placeholder="Notes optionnelles&#8230;" rows="2" style="resize:none;"></textarea>
+    <button class="btn btn-primary" style="width:100%;" onclick="saveContract()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- Rôle -->
+<div class="ov" id="md-add-role">
+  <div class="md">
+    <div class="mdhdr"><h3 id="role-modal-title">Nouveau r&#244;le</h3><button class="mdc" onclick="closeMd('md-add-role')">&#10005;</button></div>
+    <input class="fi" id="role-name" placeholder="Nom du r&#244;le *">
+    <label class="fl">Permissions</label>
+    <div id="perm-checkboxes" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+    <input type="hidden" id="role-edit-id">
+    <button class="btn btn-primary" style="width:100%;" onclick="saveRole()">Enregistrer le r&#244;le</button>
+  </div>
+</div>
+
+<!-- Shift horaire -->
+<div class="ov" id="md-add-sched">
+  <div class="md">
+    <div class="mdhdr"><h3>Affecter un shift</h3><button class="mdc" onclick="closeMd('md-add-sched')">&#10005;</button></div>
+    <label class="fl">Employ&#233;</label><select class="fi" id="sched-emp-sel"></select>
+    <div class="fg">
+      <div><label class="fl">Jour</label>
+        <select class="fi" id="sched-day" style="margin-bottom:0">
+          <option value="0">Lundi</option><option value="1">Mardi</option><option value="2">Mercredi</option>
+          <option value="3">Jeudi</option><option value="4">Vendredi</option><option value="5">Samedi</option><option value="6">Dimanche</option>
+        </select>
+      </div>
+      <div><label class="fl">Shift</label>
+        <select class="fi" id="sched-shift" style="margin-bottom:0">
+          <option value="m">&#127749; Matin (06h&#8211;14h)</option>
+          <option value="s">&#127747; Soir (14h&#8211;22h)</option>
+          <option value="n">&#127769; Nuit (22h&#8211;06h)</option>
+          <option value="r">&#128716; Repos</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="saveSched()">Affecter</button>
+  </div>
+</div>
+
+<!-- Pointage -->
+<div class="ov" id="md-add-att">
+  <div class="md">
+    <div class="mdhdr"><h3>Pointage</h3><button class="mdc" onclick="closeMd('md-add-att')">&#10005;</button></div>
+    <label class="fl">Employ&#233;</label><select class="fi" id="att-emp-sel"></select>
+    <div class="fg">
+      <div><label class="fl">Date</label><input class="fi" id="att-add-date" type="date" style="margin-bottom:0"></div>
+      <div><label class="fl">Statut</label>
+        <select class="fi" id="att-status-sel" style="margin-bottom:0">
+          <option value="present">Pr&#233;sent</option><option value="absent">Absent</option>
+          <option value="retard">Retard</option><option value="conge">Cong&#233;</option>
+        </select>
+      </div>
+    </div>
+    <div style="height:8px"></div>
+    <div class="fg">
+      <div><label class="fl">Arriv&#233;e</label><input class="fi" id="att-in" type="time" style="margin-bottom:0"></div>
+      <div><label class="fl">D&#233;part</label><input class="fi" id="att-out" type="time" style="margin-bottom:0"></div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="saveAtt()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- Fiche de paie -->
+<div class="ov" id="md-add-pay">
+  <div class="md">
+    <div class="mdhdr"><h3>Fiche de paie</h3><button class="mdc" onclick="closeMd('md-add-pay')">&#10005;</button></div>
+    <label class="fl">Employ&#233;</label><select class="fi" id="pay-emp-sel"></select>
+    <div class="fg">
+      <div><label class="fl">Mois</label>
+        <select class="fi" id="pay-month" style="margin-bottom:0">
+          <option value="1">Janvier</option><option value="2">F&#233;vrier</option><option value="3">Mars</option>
+          <option value="4">Avril</option><option value="5">Mai</option><option value="6">Juin</option>
+          <option value="7">Juillet</option><option value="8">Ao&#251;t</option><option value="9">Septembre</option>
+          <option value="10">Octobre</option><option value="11">Novembre</option><option value="12">D&#233;cembre</option>
+        </select>
+      </div>
+      <div><label class="fl">Ann&#233;e</label><input class="fi" id="pay-year" type="number" value="2026" min="2020" max="2030" style="margin-bottom:0"></div>
+    </div>
+    <div style="height:8px"></div>
+    <div class="fg">
+      <div><label class="fl">Salaire base</label><input class="fi" id="pay-base" type="number" placeholder="0" style="margin-bottom:0"></div>
+      <div><label class="fl">Primes</label><input class="fi" id="pay-bonus" type="number" placeholder="0" style="margin-bottom:0"></div>
+    </div>
+    <div style="height:8px"></div>
+    <div class="fg">
+      <div><label class="fl">Retenues</label><input class="fi" id="pay-ded" type="number" placeholder="0" style="margin-bottom:0"></div>
+      <div><label class="fl">Statut</label>
+        <select class="fi" id="pay-status-sel" style="margin-bottom:0">
+          <option value="en_attente">En attente</option><option value="paye">Pay&#233;</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="savePay()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- Avance -->
+<div class="ov" id="md-add-adv">
+  <div class="md">
+    <div class="mdhdr"><h3>Avance sur salaire</h3><button class="mdc" onclick="closeMd('md-add-adv')">&#10005;</button></div>
+    <label class="fl">Employ&#233;</label><select class="fi" id="adv-emp-sel"></select>
+    <input class="fi" id="adv-amount" type="number" placeholder="Montant (FCFA) *">
+    <textarea class="fi" id="adv-reason" placeholder="Motif de l'avance&#8230;" rows="2" style="resize:none;"></textarea>
+    <select class="fi" id="adv-status-sel">
+      <option value="en_attente">En attente d'approbation</option>
+      <option value="approuve">Approuv&#233;</option>
+      <option value="refuse">Refus&#233;</option>
+    </select>
+    <button class="btn btn-primary" style="width:100%;" onclick="saveAdv()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- Document -->
+<div class="ov" id="md-add-doc">
+  <div class="md">
+    <div class="mdhdr"><h3>Ajouter un document</h3><button class="mdc" onclick="closeMd('md-add-doc')">&#10005;</button></div>
+    <label class="fl">Employ&#233;</label><select class="fi" id="doc-emp-sel"></select>
+    <input class="fi" id="doc-name" placeholder="Nom du document *">
+    <div class="fg">
+      <div><label class="fl">Type</label>
+        <select class="fi" id="doc-type" style="margin-bottom:0">
+          <option value="contrat">Contrat</option><option value="identite">Pi&#232;ce d'identit&#233;</option>
+          <option value="diplome">Dipl&#244;me</option><option value="medical">Certificat m&#233;dical</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+      <div><label class="fl">Date</label><input class="fi" id="doc-date" type="date" style="margin-bottom:0"></div>
+    </div>
+    <div style="height:8px"></div>
+    <textarea class="fi" id="doc-notes" placeholder="Notes&#8230;" rows="2" style="resize:none;"></textarea>
+    <button class="btn btn-primary" style="width:100%;margin-top:4px;" onclick="saveDoc()">Enregistrer</button>
+  </div>
+</div>
+
+<!-- Tâche -->
+<div class="ov" id="md-add-task">
+  <div class="md">
+    <div class="mdhdr"><h3>Nouvelle t&#226;che</h3><button class="mdc" onclick="closeMd('md-add-task')">&#10005;</button></div>
+    <label class="fl">Assigner &#224;</label><select class="fi" id="task-emp-sel"></select>
+    <input class="fi" id="task-title" placeholder="Titre de la t&#226;che *">
+    <textarea class="fi" id="task-desc" placeholder="Description (optionnel)" rows="2" style="resize:none;"></textarea>
+    <div class="fg">
+      <div><label class="fl">&#201;ch&#233;ance</label><input class="fi" id="task-due" type="date" style="margin-bottom:0"></div>
+      <div><label class="fl">Priorit&#233;</label>
+        <select class="fi" id="task-priority" style="margin-bottom:0">
+          <option value="haute">&#128308; Haute</option>
+          <option value="normale" selected>&#128992; Normale</option>
+          <option value="basse">&#128994; Basse</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="saveTask()">Cr&#233;er la t&#226;che</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════════ -->
 <script>
-// ============================================================
-// DATA
-// ============================================================
-const ROLES = {
-  super_admin: { label:'Super Admin', color:'badge-purple' },
-  owner: { label:'Propriétaire', color:'badge-purple' },
-  hotel_manager: { label:'Hotel Manager', color:'badge-blue' },
-  reception: { label:'Réceptionniste', color:'badge-cyan' },
-  restaurant: { label:'Restaurant/Bar', color:'badge-orange' },
-  housekeeping: { label:'Housekeeping', color:'badge-green' },
-  accountant: { label:'Comptable', color:'badge-yellow' },
-  hr: { label:'RH', color:'badge-pink' },
-  security: { label:'Sécurité', color:'badge-gray' },
-};
+'use strict';
 
-const CONTRACT_COLORS = {
-  cdi:'badge-green', cdd:'badge-blue', stage:'badge-yellow', prestataire:'badge-gray', interim:'badge-gray'
-};
+/* ══ ① EVENT BUS — Communication bidirectionnelle avec le Core ══ */
+var MODULE_ID = 'veraluz-rh';
 
-const AVATAR_COLORS = [
-  '#6c63ff','#10b981','#f59e0b','#3b82f6','#ef4444','#06b6d4','#ec4899','#f97316','#8b5cf6'
-];
-
-let employees = [
-  { id:1, code:'VRL-EMP-001', firstname:'Raoul', lastname:'Ondoua', email:'r.ondoua@veraluz.cm', phone:'+237 677 001 001', role:'hotel_manager', position:'Directeur Hôtel', department:'Direction', hire_date:'2024-01-15', contract:'cdi', base_salary:350000, leave_balance:12, status:'active', birth_date:'1988-03-12', national_id:'123456789', address:'Kribi centre', emergency_contact:'Épouse Ondoua', emergency_phone:'+237 677 002 002', notes:'Responsable des opérations sur site.' },
-  { id:2, code:'VRL-EMP-002', firstname:'Claire', lastname:'Bessong', email:'c.bessong@veraluz.cm', phone:'+237 677 001 002', role:'reception', position:'Chef Réceptionniste', department:'Accueil', hire_date:'2024-02-01', contract:'cdi', base_salary:180000, leave_balance:18, status:'active', birth_date:'1995-07-22', national_id:'987654321', address:'Quartier Afan, Kribi', emergency_contact:'Papa Bessong', emergency_phone:'+237 677 003 003', notes:'' },
-  { id:3, code:'VRL-EMP-003', firstname:'Patrick', lastname:'Abomo', email:'p.abomo@veraluz.cm', phone:'+237 677 001 003', role:'reception', position:'Réceptionniste', department:'Accueil', hire_date:'2024-03-01', contract:'cdd', base_salary:150000, leave_balance:9, status:'active', birth_date:'1999-11-05', national_id:'456789123', address:'Lonkolo, Kribi', emergency_contact:'Mère Abomo', emergency_phone:'+237 677 004 004', notes:'' },
-  { id:4, code:'VRL-EMP-004', firstname:'Judith', lastname:'Biyong', email:'j.biyong@veraluz.cm', phone:'+237 677 001 004', role:'restaurant', position:'Chef de Salle', department:'Restaurant', hire_date:'2024-01-20', contract:'cdi', base_salary:200000, leave_balance:15, status:'active', birth_date:'1992-04-18', national_id:'321654987', address:'Cité des Palmiers, Kribi', emergency_contact:'Sœur Biyong', emergency_phone:'+237 677 005 005', notes:'' },
-  { id:5, code:'VRL-EMP-005', firstname:'Théodore', lastname:'Mba', email:'t.mba@veraluz.cm', phone:'+237 677 001 005', role:'housekeeping', position:'Chef Housekeeping', department:'Étages', hire_date:'2024-02-15', contract:'cdi', base_salary:160000, leave_balance:18, status:'on_leave', birth_date:'1990-09-30', national_id:'789123456', address:'New Bell, Kribi', emergency_contact:'Frère Mba', emergency_phone:'+237 677 006 006', notes:'Actuellement en congé annuel jusqu\'au 20 mai.' },
-  { id:6, code:'VRL-EMP-006', firstname:'Andrée', lastname:'Koung', email:'a.koung@veraluz.cm', phone:'+237 677 001 006', role:'accountant', position:'Comptable', department:'Finance', hire_date:'2024-03-10', contract:'cdi', base_salary:220000, leave_balance:18, status:'active', birth_date:'1987-12-01', national_id:'654321789', address:'Kribi plage', emergency_contact:'Mari Koung', emergency_phone:'+237 677 007 007', notes:'' },
-  { id:7, code:'VRL-EMP-007', firstname:'Samuel', lastname:'Ekoto', email:'s.ekoto@veraluz.cm', phone:'+237 677 001 007', role:'security', position:'Agent de Sécurité', department:'Sécurité', hire_date:'2024-04-01', contract:'cdd', base_salary:130000, leave_balance:18, status:'active', birth_date:'1996-06-14', national_id:'147258369', address:'Camp des pêcheurs, Kribi', emergency_contact:'Papa Ekoto', emergency_phone:'+237 677 008 008', notes:'' },
-  { id:8, code:'VRL-EMP-008', firstname:'Nadège', lastname:'Fosso', email:'n.fosso@veraluz.cm', phone:'+237 677 001 008', role:'hr', position:'Responsable RH', department:'RH', hire_date:'2024-01-10', contract:'cdi', base_salary:240000, leave_balance:18, status:'active', birth_date:'1989-08-25', national_id:'369258147', address:'Domaine vert, Kribi', emergency_contact:'Époux Fosso', emergency_phone:'+237 677 009 009', notes:'' },
-];
-
-let leaves = [
-  { id:1, emp_id:3, type:'annual', start:'2026-05-20', end:'2026-05-27', days:7, reason:'Voyage familial à Yaoundé', status:'pending', requested_at:'2026-05-10' },
-  { id:2, emp_id:5, type:'annual', start:'2026-05-14', end:'2026-05-21', days:7, reason:'Congé annuel planifié', status:'approved', requested_at:'2026-05-01', approved_by:'Smith (Owner)', approved_at:'2026-05-02' },
-  { id:3, emp_id:2, type:'sick', start:'2026-04-20', end:'2026-04-22', days:3, reason:'Grippe', status:'approved', requested_at:'2026-04-19', approved_by:'Raoul Ondoua', approved_at:'2026-04-19' },
-  { id:4, emp_id:7, type:'annual', start:'2026-06-01', end:'2026-06-10', days:9, reason:'Vacances en famille', status:'pending', requested_at:'2026-05-12' },
-];
-
-let attendance = [
-  { emp_id:1, date:'2026-05-14', check_in:'07:58', check_out:null, status:'present' },
-  { emp_id:2, date:'2026-05-14', check_in:'08:05', check_out:null, status:'present' },
-  { emp_id:3, date:'2026-05-14', check_in:'08:45', check_out:null, status:'late' },
-  { emp_id:4, date:'2026-05-14', check_in:'09:00', check_out:null, status:'present' },
-  { emp_id:5, date:'2026-05-14', check_in:null, check_out:null, status:'on_leave' },
-  { emp_id:6, date:'2026-05-14', check_in:'08:02', check_out:null, status:'present' },
-  { emp_id:7, date:'2026-05-14', check_in:'20:00', check_out:null, status:'present' },
-  { emp_id:8, date:'2026-05-14', check_in:'08:15', check_out:null, status:'present' },
-];
-
-let payrollData = [
-  { id:1, emp_id:1, year:2026, month:4, gross:350000, cnps_emp:14700, cnps_employer:24500, irpp:0, net:335300, status:'paid', paid_at:'2026-04-30', validated_by:'Smith (Owner)' },
-  { id:2, emp_id:2, year:2026, month:4, gross:180000, cnps_emp:7560, cnps_employer:12600, irpp:0, net:172440, status:'paid', paid_at:'2026-04-30', validated_by:'Smith (Owner)' },
-  { id:3, emp_id:3, year:2026, month:4, gross:150000, cnps_emp:6300, cnps_employer:10500, irpp:0, net:143700, status:'paid', paid_at:'2026-04-30', validated_by:'Smith (Owner)' },
-  { id:4, emp_id:4, year:2026, month:4, gross:200000, cnps_emp:8400, cnps_employer:14000, irpp:0, net:191600, status:'paid', paid_at:'2026-04-30', validated_by:'Smith (Owner)' },
-  { id:5, emp_id:5, year:2026, month:4, gross:160000, cnps_emp:6720, cnps_employer:11200, irpp:0, net:153280, status:'paid', paid_at:'2026-04-30', validated_by:'Smith (Owner)' },
-  { id:6, emp_id:6, year:2026, month:4, gross:220000, cnps_emp:9240, cnps_employer:15400, irpp:0, net:210760, status:'paid', paid_at:'2026-04-30', validated_by:'Smith (Owner)' },
-  { id:7, emp_id:7, year:2026, month:4, gross:130000, cnps_emp:5460, cnps_employer:9100, irpp:0, net:124540, status:'paid', paid_at:'2026-04-30', validated_by:'Smith (Owner)' },
-  { id:8, emp_id:8, year:2026, month:4, gross:240000, cnps_emp:10080, cnps_employer:16800, irpp:0, net:229920, status:'paid', paid_at:'2026-04-30', validated_by:'Smith (Owner)' },
-  // May (pending)
-  { id:9, emp_id:1, year:2026, month:5, gross:350000, cnps_emp:14700, cnps_employer:24500, irpp:0, net:335300, status:'pending' },
-  { id:10, emp_id:2, year:2026, month:5, gross:180000, cnps_emp:7560, cnps_employer:12600, irpp:0, net:172440, status:'pending' },
-  { id:11, emp_id:3, year:2026, month:5, gross:150000, cnps_emp:6300, cnps_employer:10500, irpp:0, net:143700, status:'pending' },
-  { id:12, emp_id:4, year:2026, month:5, gross:200000, cnps_emp:8400, cnps_employer:14000, irpp:0, net:191600, status:'pending' },
-  { id:13, emp_id:5, year:2026, month:5, gross:160000, cnps_emp:6720, cnps_employer:11200, irpp:0, net:153280, status:'pending' },
-  { id:14, emp_id:6, year:2026, month:5, gross:220000, cnps_emp:9240, cnps_employer:15400, irpp:0, net:210760, status:'pending' },
-  { id:15, emp_id:7, year:2026, month:5, gross:130000, cnps_emp:5460, cnps_employer:9100, irpp:0, net:124540, status:'pending' },
-  { id:16, emp_id:8, year:2026, month:5, gross:240000, cnps_emp:10080, cnps_employer:16800, irpp:0, net:229920, status:'pending' },
-];
-
-let disciplinaryRecords = [
-  { id:1, emp_id:3, type:'verbal_warning', reason:'Retard répété — 3 fois en 2 semaines', date:'2026-03-15', issued_by:'Raoul Ondoua', issued_at:'2026-03-15' },
-  { id:2, emp_id:7, type:'written_warning', reason:'Abandon de poste — 45 minutes non justifiées', date:'2026-04-02', issued_by:'Smith (Owner)', issued_at:'2026-04-02' },
-];
-
-let currentTab = 'dashboard';
-let selectedEmpId = null;
-let selectedLeaveId = null;
-let selectedPayrollId = null;
-
-// ============================================================
-// UTILS
-// ============================================================
-function fmt(n) { return new Intl.NumberFormat('fr-FR').format(n)+' FCFA'; }
-function fmtDate(d) { if(!d)return'—'; return new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}); }
-function getEmp(id) { return employees.find(e=>e.id===id); }
-function getAvatar(emp) {
-  const color = AVATAR_COLORS[(emp.id-1)%AVATAR_COLORS.length];
-  return `<div class="avatar" style="background:${color}22;color:${color};border:2px solid ${color}44;">${emp.firstname[0]}${emp.lastname[0]}</div>`;
-}
-function roleBadge(role) {
-  const r = ROLES[role]||{label:role,color:'badge-gray'};
-  return `<span class="badge ${r.color}">${r.label}</span>`;
-}
-function statusBadge(status) {
-  const map = { active:{label:'Actif',cls:'badge-green'}, on_leave:{label:'En congé',cls:'badge-yellow'}, inactive:{label:'Inactif',cls:'badge-gray'}, suspended:{label:'Suspendu',cls:'badge-red'}, terminated:{label:'Résilié',cls:'badge-red'} };
-  const s = map[status]||{label:status,cls:'badge-gray'};
-  return `<span class="badge ${s.cls}">${s.label}</span>`;
-}
-function leaveTypeBadge(t) {
-  const map = { annual:{l:'Annuel',c:'badge-blue'}, sick:{l:'Maladie',c:'badge-red'}, maternity:{l:'Maternité',c:'badge-pink'}, paternity:{l:'Paternité',c:'badge-cyan'}, unpaid:{l:'Sans solde',c:'badge-gray'}, bereavement:{l:'Deuil',c:'badge-gray'} };
-  const m = map[t]||{l:t,c:'badge-gray'};
-  return `<span class="badge ${m.c}">${m.l}</span>`;
-}
-function leaveStatusBadge(s) {
-  const map = { pending:{l:'En attente',c:'badge-yellow'}, approved:{l:'Approuvé',c:'badge-green'}, rejected:{l:'Refusé',c:'badge-red'} };
-  const m = map[s]||{l:s,c:'badge-gray'};
-  return `<span class="badge ${m.c}">${m.l}</span>`;
-}
-function payrollStatusBadge(s) {
-  const map = { pending:{l:'En attente',c:'badge-yellow'}, validated:{l:'Validé',c:'badge-blue'}, paid:{l:'Payé',c:'badge-green'} };
-  const m = map[s]||{l:s,c:'badge-gray'};
-  return `<span class="badge ${m.c}">${m.l}</span>`;
-}
-function discTypeBadge(t) {
-  const map = { verbal_warning:{l:'Avert. verbal',c:'badge-yellow'}, written_warning:{l:'Avert. écrit',c:'badge-orange'}, suspension:{l:'Suspension',c:'badge-red'}, demotion:{l:'Rétrogradation',c:'badge-red'}, termination:{l:'Licenciement',c:'badge-red'} };
-  const m = map[t]||{l:t,c:'badge-gray'};
-  return `<span class="badge ${m.c}">${m.l}</span>`;
-}
-/* toast() delegated to embedded bridge */;
-  t.innerHTML = `${icons[type]||'ℹ️'} ${msg}`;
-  t.className = 'toast show';
-  setTimeout(()=>t.className='toast',2800);
-}
-function showModal(id) { document.getElementById(id).classList.add('show'); }
-function hideModal(id) { document.getElementById(id).classList.remove('show'); }
-function navTo(page) { toast(`Navigation vers ${page} — module simulé`); }
-
-// ============================================================
-// TABS
-// ============================================================
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  renderContent();
+function emit(type, data) {
+  try { window.parent.postMessage({ source: MODULE_ID, type: type, data: data || {} }, '*'); }
+  catch(e) { /* isolation iframe */ }
 }
 
-function renderContent() {
-  switch(currentTab) {
-    case 'dashboard': renderDashboard(); break;
-    case 'employees': renderEmployees(); break;
-    case 'leaves': renderLeaves(); break;
-    case 'attendance': renderAttendance(); break;
-    case 'payroll': renderPayroll(); break;
-    case 'disciplinary': renderDisciplinary(); break;
-    case 'rbac': renderRBAC(); break;
+window.addEventListener('message', function(ev) {
+  if (!ev.data || ev.data.source !== 'veraluz-core') return;
+  var msg = ev.data;
+  switch(msg.type) {
+    case 'auth-context':
+      // Stocker le contexte auth pour usage futur
+      console.log('[RH] Auth context reçu:', msg.data);
+      break;
+    case 'refresh':
+      loadAll(); if(curTab !== 'emp') goTab(curTab);
+      break;
+    case 'navigate-tab':
+      if (msg.data && msg.data.tab) goTab(msg.data.tab);
+      break;
   }
+});
+
+/* Signal module prêt au Core */
+window.addEventListener('load', function() {
+  emit('module-ready', { module: 'rh', version: '2.0',
+    tabs: ['emp','contrats','roles','sched','att','pay','adv','docs','tasks','hist'] });
+});
+
+/* ══ ② SUPABASE ══ */
+var SB = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+
+function H(x) { return Object.assign({apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},x||{}); }
+function GET(p)       { return fetch(SB+p,{headers:H({Accept:'application/json'})}).then(function(r){if(!r.ok)throw r.status;return r.json();}); }
+function POST(t,d)    { return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:H({Prefer:'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(!r.ok)throw r.status;return r.json();}); }
+function PATCH(t,id,d){ return fetch(SB+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:H({Prefer:'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(!r.ok)throw r.status;return r.json();}); }
+
+/* ══ ③ UTILITAIRES ══ */
+function gid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c=='x'?r:(r&0x3|0x8)).toString(16);}); }
+function fmt(n) { return Number(n||0).toLocaleString('fr-FR'); }
+function fmtDate(d) { if(!d) return '—'; return new Date(d).toLocaleDateString('fr-FR'); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function initials(n) { return (n||'?').split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase(); }
+
+var _tt = null;
+function toast(msg, err) {
+  var el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='on'+(err?' err':'');
+  clearTimeout(_tt);
+  _tt=setTimeout(function(){el.className='';},3000);
 }
 
-// ============================================================
-// DASHBOARD
-// ============================================================
-function renderDashboard() {
-  const actifs = employees.filter(e=>e.status==='active').length;
-  const onLeave = employees.filter(e=>e.status==='on_leave').length;
-  const presents = attendance.filter(a=>a.date==='2026-05-14'&&(a.status==='present'||a.status==='late')).length;
-  const pendingLeaves = leaves.filter(l=>l.status==='pending').length;
-  const pendingPay = payrollData.filter(p=>p.month===5&&p.status==='pending').length;
-  const totalMasseSalariale = payrollData.filter(p=>p.month===5).reduce((a,p)=>a+p.net,0);
+function openMd(id) { document.getElementById(id).classList.add('on'); }
+function closeMd(id) { document.getElementById(id).classList.remove('on'); }
+document.addEventListener('click',function(e){ if(e.target.classList.contains('ov')) e.target.classList.remove('on'); });
 
-  const c = document.getElementById('content');
-  c.innerHTML = `
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-label">👤 Employés actifs</div>
-        <div class="kpi-value" style="color:var(--green);">${actifs}</div>
-        <div class="kpi-delta up">↑ 8 au total</div>
-        <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:${actifs/8*100}%;background:var(--green);"></div></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">🌴 En congé aujourd'hui</div>
-        <div class="kpi-value" style="color:var(--yellow);">${onLeave}</div>
-        <div class="kpi-delta warn">Théodore Mba</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">⏱️ Présents aujourd'hui</div>
-        <div class="kpi-value" style="color:var(--blue);">${presents}/7</div>
-        <div class="kpi-delta up">1 en retard</div>
-        <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:${presents/7*100}%;background:var(--blue);"></div></div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">💰 Masse salariale Mai</div>
-        <div class="kpi-value" style="color:var(--accent2);font-size:20px;">${fmt(totalMasseSalariale)}</div>
-        <div class="kpi-delta warn">${pendingPay} fiches en attente</div>
-      </div>
-    </div>
-
-    <div class="grid2">
-      <div>
-        <!-- Pending Leaves -->
-        <div class="card">
-          <div class="card-title">🌴 Congés en attente d'approbation <span class="badge badge-yellow" style="float:right;">${pendingLeaves}</span></div>
-          ${leaves.filter(l=>l.status==='pending').map(l=>{
-            const emp = getEmp(l.emp_id);
-            return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">
-              ${getAvatar(emp)}
-              <div style="flex:1;">
-                <div style="font-weight:600;font-size:13px;">${emp.firstname} ${emp.lastname}</div>
-                <div class="text-sm">${leaveTypeBadge(l.type)} ${fmtDate(l.start)} → ${fmtDate(l.end)} (${l.days}j)</div>
-                <div class="text-xs" style="margin-top:2px;">${l.reason}</div>
-              </div>
-              <div style="display:flex;gap:4px;">
-                <button class="btn btn-success btn-xs" onclick="approveLeaveById(${l.id})">✅</button>
-                <button class="btn btn-danger btn-xs" onclick="rejectLeaveById(${l.id})">✕</button>
-                <button class="btn btn-ghost btn-xs" onclick="viewLeave(${l.id})">👁</button>
-              </div>
-            </div>`;
-          }).join('')}
-          ${pendingLeaves===0?'<div class="text-sm" style="text-align:center;padding:16px;opacity:.5;">Aucune demande en attente</div>':''}
-        </div>
-
-        <!-- Quick attendance -->
-        <div class="card">
-          <div class="card-title">⏱️ Présences — Aujourd'hui 14 Mai</div>
-          ${employees.map(emp=>{
-            const att = attendance.find(a=>a.emp_id===emp.id&&a.date==='2026-05-14');
-            const statusMap = {present:'att-present',late:'att-late',absent:'att-absent',on_leave:'att-leave'};
-            const cls = att ? (statusMap[att.status]||'att-off') : 'att-off';
-            const icon = att ? (att.status==='present'?'✓':att.status==='late'?'⚡':att.status==='on_leave'?'🌴':'✗') : '—';
-            return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;">
-              ${getAvatar(emp)}
-              <div style="flex:1;">
-                <div style="font-size:13px;font-weight:500;">${emp.firstname} ${emp.lastname}</div>
-                <div class="text-xs">${roleBadge(emp.role)}</div>
-              </div>
-              <div class="att-dot ${cls}" title="${att?att.status:'absent'}">${icon}</div>
-              <div class="text-xs" style="width:50px;text-align:right;">${att&&att.check_in?att.check_in:'—'}</div>
-            </div>`;
-          }).join('')}
-        </div>
-      </div>
-
-      <div>
-        <!-- Team overview -->
-        <div class="card">
-          <div class="card-title">👥 Équipe — Vue d'ensemble</div>
-          <div style="margin-bottom:10px;">
-            ${['hotel_manager','reception','restaurant','housekeeping','accountant','hr','security'].map(role=>{
-              const count = employees.filter(e=>e.role===role||e.role===role).length;
-              if(count===0)return'';
-              const r = ROLES[role];
-              return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-                <span class="badge ${r.color}" style="width:130px;justify-content:center;">${r.label}</span>
-                <div class="progress-bar" style="flex:1;"><div class="progress-fill" style="width:${count/employees.length*100}%;background:var(--accent);"></div></div>
-                <span style="font-size:12px;color:var(--text2);width:20px;text-align:right;">${count}</span>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>
-
-        <!-- Payroll summary -->
-        <div class="card">
-          <div class="card-title">💰 Paie Mai 2026 — Résumé</div>
-          ${payrollData.filter(p=>p.month===5).map(p=>{
-            const emp = getEmp(p.emp_id);
-            return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);">
-              ${getAvatar(emp)}
-              <div style="flex:1;">
-                <div style="font-size:13px;font-weight:500;">${emp.firstname} ${emp.lastname}</div>
-                <div class="text-xs">${roleBadge(emp.role)}</div>
-              </div>
-              <div style="text-align:right;">
-                <div style="font-weight:600;font-size:13px;">${fmt(p.net)}</div>
-                ${payrollStatusBadge(p.status)}
-              </div>
-            </div>`;
-          }).join('')}
-          <div style="margin-top:10px;display:flex;gap:8px;">
-            <button class="btn btn-primary btn-sm" style="flex:1;" onclick="switchTab('payroll')">Gérer les paies →</button>
-          </div>
-        </div>
-
-        <!-- Audit log -->
-        <div class="card">
-          <div class="card-title">📋 Activités récentes (depuis Canada)</div>
-          <div class="timeline">
-            <div class="tl-item"><div class="tl-dot" style="background:var(--green);"></div><div class="tl-time">Aujourd'hui 09:12 — Smith (Canada)</div><div class="tl-text">✅ Congé de Théodore Mba approuvé</div></div>
-            <div class="tl-item"><div class="tl-dot" style="background:var(--blue);"></div><div class="tl-time">Hier 22:35 — Smith (Canada)</div><div class="tl-text">📊 Paies Avril validées et payées</div></div>
-            <div class="tl-item"><div class="tl-dot" style="background:var(--yellow);"></div><div class="tl-time">12 Mai — Smith (Canada)</div><div class="tl-text">⚠️ Avertissement écrit à Samuel Ekoto</div></div>
-            <div class="tl-item"><div class="tl-dot" style="background:var(--accent);"></div><div class="tl-time">10 Mai — Nadège Fosso (RH)</div><div class="tl-text">👤 Profil de Judith Biyong mis à jour</div></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
+/* ══ ④ NAVIGATION ONGLETS ══ */
+var curTab = 'emp';
+function goTab(t) {
+  curTab = t;
+  document.querySelectorAll('.tab').forEach(function(b){ b.classList.toggle('on', b.dataset.p===t); });
+  document.querySelectorAll('.pane').forEach(function(p){ p.classList.toggle('on', p.id==='pane-'+t); });
+  if(t==='att')      { initAttDate(); loadAtt(); }
+  if(t==='pay')      loadPay();
+  if(t==='adv')      loadAdv();
+  if(t==='tasks')    loadTasks();
+  if(t==='hist')     loadHist();
+  if(t==='sched')    renderSched();
+  if(t==='contrats') loadContracts();
+  if(t==='docs')     loadDocs();
+  if(t==='roles')    renderRoles();
+  emit('tab-change', {tab:t});
 }
 
-// ============================================================
-// EMPLOYEES
-// ============================================================
-let empSearch = '';
-let empRoleFilter = '';
+/* ══ ⑤ ÉTAT GLOBAL ══ */
+var TEAMS=[],EMPS=[],ATTS=[],PAYS=[],ADVS=[],TASKS=[];
+var CONTRACTS=[],DOCS=[],ROLES_DATA=[];
+var SCHEDULES={};
+var empFilter='all',payFilter='all',taskFilter='all';
+var histFilter='all',contractFilter='all',docFilter='all';
+var curEmpId=null,histData=[];
+var schedWeekOffset=0;
 
-function renderEmployees() {
-  const filtered = employees.filter(e=>{
-    const name = `${e.firstname} ${e.lastname}`.toLowerCase();
-    return (!empSearch||name.includes(empSearch.toLowerCase())) && (!empRoleFilter||e.role===empRoleFilter);
+/* ══ ⑥ RÔLES & PERMISSIONS (localStorage + défauts) ══ */
+var ALL_PERMS = [
+  'Voir réservations','Gérer réservations','Voir paiements','Valider paiements',
+  'Voir RH','Gérer RH','Voir finance','Gérer finance',
+  'Voir restaurant','Gérer restaurant','Housekeeping','Admin système'
+];
+var DEFAULT_ROLES = [
+  {id:'gerant',         name:'Gérant',          perms:ALL_PERMS.slice()},
+  {id:'receptionniste', name:'Réceptionniste',   perms:['Voir réservations','Gérer réservations','Voir paiements']},
+  {id:'chef_cuisinier', name:'Chef cuisinier',   perms:['Voir restaurant','Gérer restaurant']},
+  {id:'barman',         name:'Barman',           perms:['Voir restaurant','Gérer restaurant']},
+  {id:'femme_chambre',  name:'Femme de chambre', perms:['Housekeeping']},
+  {id:'agent_securite', name:'Agent sécurité',   perms:['Voir réservations']},
+  {id:'comptable',      name:'Comptable',        perms:['Voir paiements','Valider paiements','Voir finance','Gérer finance']},
+  {id:'technicien',     name:'Technicien',       perms:['Housekeeping']},
+  {id:'staff',          name:'Staff',            perms:['Voir réservations']},
+];
+
+/* ══ ⑦ CHARGEMENT PRINCIPAL ══ */
+function loadAll() {
+  Promise.all([
+    GET('/rest/v1/veraluz_teams?select=*&order=name'),
+    GET('/rest/v1/veraluz_employees?select=*&order=full_name')
+  ]).then(function(r){
+    TEAMS=r[0]; EMPS=r[1];
+    renderEmps(); populateEmpSelects(); populateTeamSelect(); renderKpis();
+  }).catch(function(e){ console.error('[RH] loadAll:',e); toast('Erreur chargement',true); });
+}
+
+function renderKpis() {
+  document.getElementById('kpi-actif').textContent   = EMPS.filter(function(e){return e.status==='actif';}).length;
+  document.getElementById('kpi-conge').textContent   = EMPS.filter(function(e){return e.status==='conge';}).length;
+  document.getElementById('kpi-inactif').textContent = EMPS.filter(function(e){return e.status==='inactif';}).length;
+  document.getElementById('kpi-total').textContent   = EMPS.length;
+}
+
+/* ══ ⑧ EMPLOYÉS ══ */
+var ROLE_LABELS={gerant:'Gérant',receptionniste:'Réceptionniste',chef_cuisinier:'Chef cuisinier',
+  barman:'Barman',femme_chambre:'Femme de chambre',agent_securite:'Agent sécurité',
+  comptable:'Comptable',technicien:'Technicien',staff:'Staff'};
+var STATUS_COLORS={actif:'ok',conge:'warn',inactif:'danger'};
+var STATUS_LABELS={actif:'Actif',conge:'Congé',inactif:'Inactif'};
+
+function getTeam(id){ return TEAMS.find(function(t){return t.id===id;})||{}; }
+
+function setEmpFilter(f,el){
+  empFilter=f;
+  document.querySelectorAll('#pane-emp .fchip').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on'); renderEmps();
+}
+function filterEmps(){ renderEmps(); }
+
+function renderEmps(){
+  var q=(document.getElementById('emp-search').value||'').toLowerCase();
+  var list=EMPS.filter(function(e){
+    if(empFilter!=='all'&&e.status!==empFilter) return false;
+    if(q&&(e.full_name||'').toLowerCase().indexOf(q)<0) return false;
+    return true;
   });
-
-  const c = document.getElementById('content');
-  c.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-      <input placeholder="🔍 Rechercher un employé..." style="width:240px;" oninput="empSearch=this.value;renderEmployees()" value="${empSearch}" />
-      <select onchange="empRoleFilter=this.value;renderEmployees()">
-        <option value="">Tous les rôles</option>
-        ${Object.entries(ROLES).filter(([k])=>k!=='super_admin'&&k!=='owner').map(([k,v])=>`<option value="${k}" ${empRoleFilter===k?'selected':''}>${v.label}</option>`).join('')}
-      </select>
-      <span class="text-sm">${filtered.length} employé(s)</span>
-      <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="showModal('modal-add-emp')">➕ Nouvel employé</button>
-    </div>
-
-    <div class="emp-grid">
-      ${filtered.map(emp=>`
-        <div class="emp-card" onclick="viewEmployee(${emp.id})">
-          <div class="emp-card-header">
-            ${getAvatar(emp)}
-            <div class="emp-info">
-              <div class="emp-name">${emp.firstname} ${emp.lastname}</div>
-              <div class="emp-role">${emp.code} — ${emp.position||emp.role}</div>
-            </div>
-            ${statusBadge(emp.status)}
-          </div>
-          <div class="emp-stats">
-            ${roleBadge(emp.role)}
-            <span class="badge ${CONTRACT_COLORS[emp.contract]||'badge-gray'}">${emp.contract.toUpperCase()}</span>
-            <span class="emp-stat">🌴 ${emp.leave_balance}j</span>
-            <span class="emp-stat">💰 ${fmt(emp.base_salary)}</span>
-          </div>
-          <div class="text-xs" style="margin-top:8px;">📅 Embauché le ${fmtDate(emp.hire_date)}</div>
-        </div>
-      `).join('')}
-    </div>
-  `;
+  var el=document.getElementById('emp-list');
+  if(!list.length){ el.innerHTML='<div class="empty"><div class="empty-ico">&#128100;</div><div class="empty-txt">Aucun employé trouvé</div></div>'; return; }
+  el.innerHTML=list.map(function(e){
+    var team=getTeam(e.team_id);
+    var sc=STATUS_COLORS[e.status]||'info';
+    var bg=team.color||'#22d3a5';
+    return '<div class="emp-card" data-id="'+esc(e.id)+'" onclick="showEmpDet(this.dataset.id)">'
+      +'<div class="emp-avatar" style="background:'+esc(bg)+'">'+esc(initials(e.full_name))+'</div>'
+      +'<div class="emp-info"><div class="emp-name">'+esc(e.full_name)+'</div>'
+      +'<div class="emp-role">'+esc(ROLE_LABELS[e.role]||e.role)+'</div>'
+      +(team.name?'<div class="emp-team" style="color:'+esc(bg)+'">'+esc(team.name)+'</div>':'')
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0;">'
+      +'<div class="bdg '+sc+'">'+esc(STATUS_LABELS[e.status]||e.status)+'</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-top:4px;">'+fmt(e.base_salary)+' F</div>'
+      +'</div></div>';
+  }).join('');
 }
 
-function viewEmployee(id) {
-  selectedEmpId = id;
-  const emp = getEmp(id);
-  const cont = payrollData.filter(p=>p.emp_id===id&&p.month===5)[0];
-  const disc = disciplinaryRecords.filter(d=>d.emp_id===id);
-  const empLeaves = leaves.filter(l=>l.emp_id===id);
-  const att = attendance.find(a=>a.emp_id===id&&a.date==='2026-05-14');
-
-  document.getElementById('emp-detail-title').innerHTML = `${getAvatar(emp)} ${emp.firstname} ${emp.lastname}`;
-  document.getElementById('emp-detail-body').innerHTML = `
-    <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <div style="flex:2;min-width:240px;">
-        <div class="card-title">Informations personnelles</div>
-        <div class="grid2" style="gap:8px;font-size:13px;">
-          <div><div class="text-xs">Code employé</div><div class="font-bold">${emp.code}</div></div>
-          <div><div class="text-xs">Statut</div>${statusBadge(emp.status)}</div>
-          <div><div class="text-xs">Email</div><div>${emp.email}</div></div>
-          <div><div class="text-xs">Téléphone</div><div>${emp.phone||'—'}</div></div>
-          <div><div class="text-xs">Date de naissance</div><div>${fmtDate(emp.birth_date)}</div></div>
-          <div><div class="text-xs">N° CNI</div><div>${emp.national_id||'—'}</div></div>
-          <div><div class="text-xs">Adresse</div><div>${emp.address||'—'}</div></div>
-          <div><div class="text-xs">Contact urgence</div><div>${emp.emergency_contact||'—'} <span class="text-xs">${emp.emergency_phone||''}</span></div></div>
-        </div>
-        <div class="separator"></div>
-        <div class="card-title">Contrat & Rémunération</div>
-        <div class="grid2" style="gap:8px;font-size:13px;">
-          <div><div class="text-xs">Rôle système</div>${roleBadge(emp.role)}</div>
-          <div><div class="text-xs">Type contrat</div><span class="badge ${CONTRACT_COLORS[emp.contract]}">${emp.contract.toUpperCase()}</span></div>
-          <div><div class="text-xs">Poste</div><div>${emp.position||'—'}</div></div>
-          <div><div class="text-xs">Département</div><div>${emp.department||'—'}</div></div>
-          <div><div class="text-xs">Date d'embauche</div><div>${fmtDate(emp.hire_date)}</div></div>
-          <div><div class="text-xs">Salaire de base</div><div class="font-bold" style="color:var(--green);">${fmt(emp.base_salary)}</div></div>
-          <div><div class="text-xs">Solde congés</div><div>${emp.leave_balance} jours</div></div>
-          <div><div class="text-xs">Présence aujourd'hui</div><div>${att?(att.status==='present'?'✅ Présent':att.status==='late'?'⚡ En retard':att.status==='on_leave'?'🌴 Congé':'—'):'—'}</div></div>
-        </div>
-        ${emp.notes?`<div class="alert alert-info" style="margin-top:10px;">📝 ${emp.notes}</div>`:''}
-      </div>
-      <div style="flex:1;min-width:200px;">
-        <div class="card-title">Paie Mai 2026</div>
-        ${cont?`<div class="payroll-calc">
-          <div class="calc-row"><span>Salaire brut</span><span>${fmt(cont.gross)}</span></div>
-          <div class="calc-row"><span>CNPS employé (4.2%)</span><span class="deduct">-${fmt(cont.cnps_emp)}</span></div>
-          <div class="calc-row"><span>IRPP</span><span class="deduct">-${fmt(cont.irpp)}</span></div>
-          <div class="calc-row total"><span>Net à payer</span><span class="gain">${fmt(cont.net)}</span></div>
-        </div>
-        <div style="margin-top:8px;">${payrollStatusBadge(cont.status)}</div>`:'<div class="text-sm">Aucune fiche pour ce mois.</div>'}
-
-        <div class="separator"></div>
-        <div class="card-title">Dossier disciplinaire</div>
-        ${disc.length===0?'<div class="text-sm">Aucun antécédent. ✅</div>':disc.map(d=>`
-          <div style="padding:6px 0;border-bottom:1px solid var(--border);">
-            ${discTypeBadge(d.type)}
-            <div class="text-xs" style="margin-top:4px;">${fmtDate(d.date)} — ${d.reason}</div>
-          </div>`).join('')}
-
-        <div class="separator"></div>
-        <div class="card-title">Historique congés</div>
-        ${empLeaves.length===0?'<div class="text-sm">Aucun congé.</div>':empLeaves.map(l=>`
-          <div style="padding:6px 0;border-bottom:1px solid var(--border);">
-            ${leaveTypeBadge(l.type)} ${leaveStatusBadge(l.status)}
-            <div class="text-xs">${fmtDate(l.start)} → ${fmtDate(l.end)} (${l.days}j)</div>
-          </div>`).join('')}
-      </div>
-    </div>
-  `;
-  showModal('modal-emp-detail');
+function showEmpDet(id){
+  curEmpId=id;
+  var e=EMPS.find(function(x){return x.id===id;}); if(!e) return;
+  var team=getTeam(e.team_id);
+  var sc=STATUS_COLORS[e.status]||'info';
+  var bg=team.color||'#22d3a5';
+  document.getElementById('det-body').innerHTML=
+    '<div class="emp-profile-header">'
+    +'<div class="emp-profile-avatar" style="background:'+esc(bg)+'">'+esc(initials(e.full_name))+'</div>'
+    +'<div><div style="font-size:16px;font-weight:700;">'+esc(e.full_name)+'</div>'
+    +'<div style="font-size:12px;color:var(--text3);">'+esc(ROLE_LABELS[e.role]||e.role)+'</div>'
+    +'<div class="bdg '+sc+'" style="margin-top:4px;">'+esc(STATUS_LABELS[e.status]||e.status)+'</div></div>'
+    +'</div>'
+    +'<div class="det-row"><span class="det-label">Équipe</span><span class="det-val">'+esc(team.name||'—')+'</span></div>'
+    +'<div class="det-row"><span class="det-label">Téléphone</span><span class="det-val">'+esc(e.phone||'—')+'</span></div>'
+    +'<div class="det-row"><span class="det-label">Email</span><span class="det-val">'+esc(e.email||'—')+'</span></div>'
+    +'<div class="det-row"><span class="det-label">Embauche</span><span class="det-val">'+fmtDate(e.hire_date)+'</span></div>'
+    +'<div class="det-row"><span class="det-label">Salaire base</span><span class="det-val">'+fmt(e.base_salary)+' FCFA</span></div>';
+  var btn=document.getElementById('det-toggle-btn');
+  if(e.status==='actif'){btn.textContent='Suspendre';btn.className='btn btn-danger btn-sm';}
+  else{btn.textContent='Réactiver';btn.className='btn btn-primary btn-sm';}
+  openMd('md-emp-det');
 }
 
-function addEmployee() {
-  const fn = document.getElementById('new-firstname').value.trim();
-  const ln = document.getElementById('new-lastname').value.trim();
-  const email = document.getElementById('new-email').value.trim();
-  const role = document.getElementById('new-role').value;
-  const position = document.getElementById('new-position').value.trim();
-  const salary = parseInt(document.getElementById('new-salary').value)||120000;
-  const contract = document.getElementById('new-contract').value;
-  const hire = document.getElementById('new-hire').value||'2026-05-14';
-
-  if(!fn||!ln||!email||!role) { toast('Remplissez tous les champs obligatoires','warn'); return; }
-
-  const newId = employees.length+1;
-  const code = `VRL-EMP-00${newId}`;
-  const colors = AVATAR_COLORS;
-
-  employees.push({ id:newId, code, firstname:fn, lastname:ln, email, phone:'', role, position, department:'', hire_date:hire, contract, base_salary:salary, leave_balance:18, status:'active', birth_date:'', national_id:'', address:'Kribi, Cameroun', emergency_contact:'', emergency_phone:'', notes:'Nouvel employé — compte en attente d\'activation.' });
-
-  // Payroll record for this month
-  const gross = salary;
-  const cnps = Math.round(gross*0.042);
-  const irpp = gross>500000?Math.round((gross-500000)*0.1):0;
-  payrollData.push({ id:payrollData.length+1, emp_id:newId, year:2026, month:5, gross, cnps_emp:cnps, cnps_employer:Math.round(gross*0.07), irpp, net:gross-cnps-irpp, status:'pending' });
-
-  hideModal('modal-add-emp');
-  toast(`✅ ${fn} ${ln} créé — email d'invitation envoyé à ${email}`,'success');
-  renderEmployees();
-  document.getElementById('nav-leave-count').textContent = leaves.filter(l=>l.status==='pending').length;
+function toggleEmpStatus(){
+  var e=EMPS.find(function(x){return x.id===curEmpId;}); if(!e) return;
+  PATCH('veraluz_employees',curEmpId,{status:e.status==='actif'?'inactif':'actif'})
+    .then(function(){toast('Statut mis à jour');closeMd('md-emp-det');loadAll();})
+    .catch(function(){toast('Erreur',true);});
 }
 
-function suspendEmployee() {
-  if(!selectedEmpId) return;
-  const emp = getEmp(selectedEmpId);
-  emp.status = emp.status==='suspended'?'active':'suspended';
-  hideModal('modal-emp-detail');
-  toast(`${emp.status==='suspended'?'🚫 Suspendu':'✅ Réactivé'}: ${emp.firstname} ${emp.lastname}`);
-  renderEmployees();
+function openEditEmp(){
+  var e=EMPS.find(function(x){return x.id===curEmpId;}); if(!e) return;
+  closeMd('md-emp-det');
+  document.getElementById('emp-modal-title').textContent='Modifier employé';
+  document.getElementById('emp-name').value=e.full_name;
+  document.getElementById('emp-phone').value=e.phone||'';
+  document.getElementById('emp-email').value=e.email||'';
+  document.getElementById('emp-role').value=e.role;
+  document.getElementById('emp-team-sel').value=e.team_id||'';
+  document.getElementById('emp-hire').value=e.hire_date||'';
+  document.getElementById('emp-salary').value=e.base_salary||0;
+  document.getElementById('emp-status').value=e.status;
+  document.getElementById('emp-edit-id').value=e.id;
+  openMd('md-add-emp');
 }
 
-// ============================================================
-// LEAVES
-// ============================================================
-function renderLeaves() {
-  const pending = leaves.filter(l=>l.status==='pending');
-  const approved = leaves.filter(l=>l.status==='approved');
-  const rejected = leaves.filter(l=>l.status==='rejected');
-
-  const c = document.getElementById('content');
-  c.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      <div class="section-title" style="margin:0;">🌴 Gestion des Congés</div>
-      <div style="margin-left:auto;display:flex;gap:8px;">
-        <button class="btn btn-ghost btn-sm" onclick="toast('Formulaire de demande — ouvert pour l\'employé connecté')">+ Ma demande</button>
-        <button class="btn btn-primary btn-sm" onclick="toast('Export CSV — téléchargement...')">📥 Exporter</button>
-      </div>
-    </div>
-
-    ${pending.length>0?`<div class="alert alert-warn">🔔 ${pending.length} demande(s) en attente de votre approbation depuis le Canada.</div>`:''}
-
-    <div class="card">
-      <div class="card-title">En attente d'approbation <span class="badge badge-yellow">${pending.length}</span></div>
-      ${pending.length===0?'<div class="text-sm" style="text-align:center;padding:20px;opacity:.5;">Aucune demande en attente ✅</div>':''}
-      <div class="table-wrap">
-        ${pending.length>0?`<table>
-          <tr><th>Employé</th><th>Type</th><th>Période</th><th>Durée</th><th>Motif</th><th>Demandé le</th><th>Actions</th></tr>
-          ${pending.map(l=>{
-            const emp = getEmp(l.emp_id);
-            return `<tr>
-              <td><div style="display:flex;align-items:center;gap:8px;">${getAvatar(emp)}<div><div style="font-weight:500;">${emp.firstname} ${emp.lastname}</div><div class="text-xs">${roleBadge(emp.role)}</div></div></div></td>
-              <td>${leaveTypeBadge(l.type)}</td>
-              <td>${fmtDate(l.start)} → ${fmtDate(l.end)}</td>
-              <td><span style="font-weight:600;">${l.days}j</span></td>
-              <td class="text-sm">${l.reason}</td>
-              <td class="text-xs">${fmtDate(l.requested_at)}</td>
-              <td><div style="display:flex;gap:4px;">
-                <button class="btn btn-success btn-xs" onclick="approveLeaveById(${l.id})">✅ Approuver</button>
-                <button class="btn btn-danger btn-xs" onclick="rejectLeaveById(${l.id})">✕ Refuser</button>
-                <button class="btn btn-ghost btn-xs" onclick="viewLeave(${l.id})">👁</button>
-              </div></td>
-            </tr>`;
-          }).join('')}
-        </table>`:''}
-      </div>
-    </div>
-
-    <div class="grid2">
-      <div class="card">
-        <div class="card-title">Congés approuvés <span class="badge badge-green">${approved.length}</span></div>
-        ${approved.map(l=>{
-          const emp = getEmp(l.emp_id);
-          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);">
-            ${getAvatar(emp)}
-            <div style="flex:1;">
-              <div style="font-weight:500;font-size:13px;">${emp.firstname} ${emp.lastname}</div>
-              <div class="text-xs">${leaveTypeBadge(l.type)} — ${l.days}j — ${fmtDate(l.start)} → ${fmtDate(l.end)}</div>
-              <div class="text-xs" style="color:var(--green);">Approuvé par ${l.approved_by||'—'}</div>
-            </div>
-          </div>`;
-        }).join('')}
-        ${approved.length===0?'<div class="text-sm" style="text-align:center;padding:16px;opacity:.5;">Aucun congé approuvé</div>':''}
-      </div>
-      <div class="card">
-        <div class="card-title">Soldes de congés</div>
-        ${employees.map(emp=>`
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-            ${getAvatar(emp)}
-            <div style="flex:1;">
-              <div style="font-size:12px;font-weight:500;">${emp.firstname} ${emp.lastname}</div>
-              <div class="progress-bar" style="margin-top:3px;"><div class="progress-fill" style="width:${emp.leave_balance/18*100}%;background:${emp.leave_balance<5?'var(--red)':emp.leave_balance<10?'var(--yellow)':'var(--green)'};"></div></div>
-            </div>
-            <span style="font-size:12px;font-weight:600;color:${emp.leave_balance<5?'var(--red)':emp.leave_balance<10?'var(--yellow)':'var(--green)'};">${emp.leave_balance}j</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
+function saveEmp(){
+  var id=document.getElementById('emp-edit-id').value;
+  var d={
+    full_name:document.getElementById('emp-name').value.trim(),
+    phone:document.getElementById('emp-phone').value.trim(),
+    email:document.getElementById('emp-email').value.trim(),
+    role:document.getElementById('emp-role').value,
+    team_id:document.getElementById('emp-team-sel').value||null,
+    hire_date:document.getElementById('emp-hire').value||null,
+    base_salary:parseFloat(document.getElementById('emp-salary').value)||0,
+    status:document.getElementById('emp-status').value
+  };
+  if(!d.full_name){toast('Nom requis',true);return;}
+  var p=id?PATCH('veraluz_employees',id,d):POST('veraluz_employees',[Object.assign({id:gid()},d)]);
+  p.then(function(){
+    toast(id?'Employé modifié ✓':'Employé ajouté ✓');
+    closeMd('md-add-emp');
+    document.getElementById('emp-edit-id').value='';
+    document.getElementById('emp-modal-title').textContent='Nouvel employé';
+    emit('employee-saved',{action:id?'update':'create'});
+    loadAll();
+  }).catch(function(){toast('Erreur enregistrement',true);});
 }
 
-function viewLeave(id) {
-  selectedLeaveId = id;
-  const l = leaves.find(x=>x.id===id);
-  const emp = getEmp(l.emp_id);
-  document.getElementById('leave-detail-body').innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      ${getAvatar(emp)}
-      <div>
-        <div style="font-weight:600;font-size:16px;">${emp.firstname} ${emp.lastname}</div>
-        <div class="text-sm">${roleBadge(emp.role)} — ${emp.position||emp.role}</div>
-      </div>
-    </div>
-    <div class="grid2" style="gap:8px;font-size:13px;margin-bottom:12px;">
-      <div><div class="text-xs">Type</div>${leaveTypeBadge(l.type)}</div>
-      <div><div class="text-xs">Statut</div>${leaveStatusBadge(l.status)}</div>
-      <div><div class="text-xs">Début</div><div class="font-bold">${fmtDate(l.start)}</div></div>
-      <div><div class="text-xs">Fin</div><div class="font-bold">${fmtDate(l.end)}</div></div>
-      <div><div class="text-xs">Durée</div><div class="font-bold">${l.days} jours</div></div>
-      <div><div class="text-xs">Solde restant après</div><div style="color:${emp.leave_balance-l.days<3?'var(--red)':'var(--green)'};">${emp.leave_balance-l.days}j</div></div>
-    </div>
-    <div class="form-group"><label>Motif</label><div style="background:var(--bg3);padding:10px;border-radius:8px;font-size:13px;">${l.reason}</div></div>
-    ${l.approved_by?`<div class="alert alert-success">Approuvé par ${l.approved_by} le ${fmtDate(l.approved_at)}</div>`:''}
-    ${l.status==='pending'?`<div class="form-group" style="margin-top:10px;"><label>Commentaire (optionnel)</label><textarea id="leave-comment" placeholder="Ajoutez un commentaire..."></textarea></div>`:''}
-  `;
-  document.getElementById('leave-detail-footer').innerHTML = l.status==='pending'?`
-    <button class="btn btn-ghost" onclick="hideModal('modal-leave-detail')">Fermer</button>
-    <button class="btn btn-danger" onclick="rejectLeaveById(${l.id})">✕ Refuser</button>
-    <button class="btn btn-success" onclick="approveLeaveById(${l.id})">✅ Approuver</button>
-  `:`<button class="btn btn-ghost" onclick="hideModal('modal-leave-detail')">Fermer</button>`;
-  showModal('modal-leave-detail');
+/* ══ ÉQUIPES ══ */
+function saveTeam(){
+  var n=document.getElementById('team-name').value.trim();
+  if(!n){toast('Nom requis',true);return;}
+  POST('veraluz_teams',[{id:gid(),name:n,color:document.getElementById('team-color').value}])
+    .then(function(){toast('Équipe créée ✓');closeMd('md-add-team');loadAll();})
+    .catch(function(){toast('Erreur',true);});
 }
 
-function approveLeaveById(id) {
-  const l = leaves.find(x=>x.id===id);
-  const emp = getEmp(l.emp_id);
-  l.status='approved'; l.approved_by='Smith (Owner — Canada)'; l.approved_at='2026-05-14';
-  if(l.type==='annual') { emp.leave_balance = Math.max(0, emp.leave_balance-l.days); }
-  if(l.type==='annual'&&emp.leave_balance===0) emp.status='on_leave';
-  hideModal('modal-leave-detail');
-  const pending = leaves.filter(l=>l.status==='pending').length;
-  document.getElementById('nav-leave-count').textContent = pending;
-  document.getElementById('tab-leave-badge').textContent = pending;
-  toast(`✅ Congé de ${emp.firstname} ${emp.lastname} approuvé — solde: ${emp.leave_balance}j`,'success');
-  renderContent();
+function populateTeamSelect(){
+  document.getElementById('emp-team-sel').innerHTML=
+    '<option value="">— Aucune équipe —</option>'
+    +TEAMS.map(function(t){return '<option value="'+esc(t.id)+'">'+esc(t.name)+'</option>';}).join('');
 }
 
-function rejectLeaveById(id) {
-  const l = leaves.find(x=>x.id===id);
-  const emp = getEmp(l.emp_id);
-  l.status='rejected';
-  hideModal('modal-leave-detail');
-  const pending = leaves.filter(l=>l.status==='pending').length;
-  document.getElementById('nav-leave-count').textContent = pending;
-  document.getElementById('tab-leave-badge').textContent = pending;
-  toast(`✕ Congé de ${emp.firstname} ${emp.lastname} refusé`,'warn');
-  renderContent();
-}
-
-// ============================================================
-// ATTENDANCE
-// ============================================================
-function renderAttendance() {
-  const today = attendance.filter(a=>a.date==='2026-05-14');
-  const presents = today.filter(a=>a.status==='present').length;
-  const late = today.filter(a=>a.status==='late').length;
-  const absent = today.filter(a=>a.status==='absent').length;
-  const onLeave = today.filter(a=>a.status==='on_leave').length;
-
-  const c = document.getElementById('content');
-  c.innerHTML = `
-    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);">
-      <div class="kpi-card"><div class="kpi-label">✅ Présents</div><div class="kpi-value" style="color:var(--green);">${presents}</div></div>
-      <div class="kpi-card"><div class="kpi-label">⚡ En retard</div><div class="kpi-value" style="color:var(--yellow);">${late}</div></div>
-      <div class="kpi-card"><div class="kpi-label">❌ Absents</div><div class="kpi-value" style="color:var(--red);">${absent}</div></div>
-      <div class="kpi-card"><div class="kpi-label">🌴 En congé</div><div class="kpi-value" style="color:var(--cyan);">${onLeave}</div></div>
-    </div>
-
-    <div class="card">
-      <div class="flex-between mb8">
-        <div class="card-title" style="margin:0;">⏱️ Pointage — Jeudi 14 Mai 2026</div>
-        <div style="display:flex;gap:8px;">
-          <input type="date" value="2026-05-14" style="width:160px;" />
-          <button class="btn btn-primary btn-sm" onclick="toast('Export du rapport de présence téléchargé')">📥 Exporter</button>
-        </div>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Employé</th><th>Rôle</th><th>Statut</th><th>Arrivée</th><th>Départ</th><th>Heures</th><th>Action</th></tr>
-          ${employees.map(emp=>{
-            const att = today.find(a=>a.emp_id===emp.id)||{ emp_id:emp.id, status:'absent', check_in:null, check_out:null };
-            const statusIcons = {present:'🟢 Présent', late:'🟡 En retard', absent:'🔴 Absent', on_leave:'🔵 Congé'};
-            const hours = att.check_in&&att.check_out ? '8h00' : att.check_in ? 'En cours...' : '—';
-            return `<tr>
-              <td><div style="display:flex;align-items:center;gap:8px;">${getAvatar(emp)}<div style="font-weight:500;">${emp.firstname} ${emp.lastname}</div></div></td>
-              <td>${roleBadge(emp.role)}</td>
-              <td>${statusIcons[att.status]||'—'}</td>
-              <td style="font-weight:500;">${att.check_in||'—'}</td>
-              <td class="text-sm">${att.check_out||'—'}</td>
-              <td class="text-sm">${hours}</td>
-              <td>
-                ${att.status!=='on_leave'?`<div style="display:flex;gap:4px;">
-                  ${!att.check_in?`<button class="btn btn-success btn-xs" onclick="checkIn(${emp.id})">✅ Arrivée</button>`:''}
-                  ${att.check_in&&!att.check_out?`<button class="btn btn-ghost btn-xs" onclick="checkOut(${emp.id})">⏹️ Départ</button>`:''}
-                  <button class="btn btn-ghost btn-xs" onclick="markAbsent(${emp.id})">❌</button>
-                </div>`:'<span class="text-xs" style="color:var(--cyan);">🌴 Congé</span>'}
-              </td>
-            </tr>`;
-          }).join('')}
-        </table>
-      </div>
-    </div>
-
-    <!-- Planning semaine -->
-    <div class="card">
-      <div class="card-title">📅 Planning — Semaine 14-20 Mai 2026</div>
-      <div class="schedule-grid">
-        <div class="sch-header"></div>
-        ${['Lun 13','Mar 14','Mer 15','Jeu 16','Ven 17','Sam 18','Dim 19'].map(d=>`<div class="sch-header">${d}</div>`).join('')}
-        ${employees.map(emp=>`
-          <div class="sch-name">${emp.firstname}</div>
-          ${[0,1,2,3,4,5,6].map(d=>{
-            if(emp.status==='on_leave') return `<div class="sch-cell leave">🌴</div>`;
-            const off = d===6||(emp.id%3===0&&d===5);
-            return off?`<div class="sch-cell off">—</div>`:`<div class="sch-cell work">08-16</div>`;
-          }).join('')}
-        `).join('')}
-      </div>
-    </div>
-  `;
-}
-
-function checkIn(empId) {
-  const now = new Date();
-  const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const att = attendance.find(a=>a.emp_id===empId&&a.date==='2026-05-14');
-  if(att) { att.check_in=time; att.status=now.getHours()>=8&&now.getMinutes()>15?'late':'present'; }
-  else attendance.push({ emp_id:empId, date:'2026-05-14', check_in:time, check_out:null, status:'present' });
-  const emp = getEmp(empId);
-  toast(`✅ Arrivée enregistrée: ${emp.firstname} à ${time}`,'success');
-  renderAttendance();
-}
-
-function checkOut(empId) {
-  const now = new Date();
-  const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-  const att = attendance.find(a=>a.emp_id===empId&&a.date==='2026-05-14');
-  if(att) att.check_out=time;
-  const emp = getEmp(empId);
-  toast(`⏹️ Départ enregistré: ${emp.firstname} à ${time}`,'success');
-  renderAttendance();
-}
-
-function markAbsent(empId) {
-  const att = attendance.find(a=>a.emp_id===empId&&a.date==='2026-05-14');
-  if(att) { att.status='absent'; att.check_in=null; att.check_out=null; }
-  else attendance.push({ emp_id:empId, date:'2026-05-14', check_in:null, check_out:null, status:'absent' });
-  const emp = getEmp(empId);
-  toast(`❌ Absence marquée: ${emp.firstname}`,'warn');
-  renderAttendance();
-}
-
-// ============================================================
-// PAYROLL
-// ============================================================
-let payrollMonth = 5;
-
-function calcPayroll(gross) {
-  const cnps_emp = Math.round(gross*0.042);
-  const cnps_employer = Math.round(gross*0.07);
-  const irpp = gross>500000?Math.round((gross-500000)*0.1):0;
-  const net = gross-cnps_emp-irpp;
-  return { cnps_emp, cnps_employer, irpp, net };
-}
-
-function renderPayroll() {
-  const monthData = payrollData.filter(p=>p.month===payrollMonth);
-  const totalGross = monthData.reduce((a,p)=>a+p.gross,0);
-  const totalNet = monthData.reduce((a,p)=>a+p.net,0);
-  const totalCnps = monthData.reduce((a,p)=>a+p.cnps_employer,0);
-  const pendingCount = monthData.filter(p=>p.status==='pending').length;
-
-  const months = {1:'Janvier',2:'Février',3:'Mars',4:'Avril',5:'Mai',6:'Juin'};
-
-  const c = document.getElementById('content');
-  c.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-      <div class="section-title" style="margin:0;">💰 Paie — ${months[payrollMonth]} 2026</div>
-      <select onchange="payrollMonth=parseInt(this.value);renderPayroll()" style="width:140px;">
-        ${[4,5].map(m=>`<option value="${m}" ${payrollMonth===m?'selected':''}>${months[m]} 2026</option>`).join('')}
-      </select>
-      <div style="margin-left:auto;display:flex;gap:8px;">
-        ${pendingCount>0?`<button class="btn btn-success btn-sm" onclick="validateAllPayroll()">✅ Valider tout (${pendingCount})</button>`:''}
-        <button class="btn btn-ghost btn-sm" onclick="toast('Génération des bulletins PDF...')">📄 Bulletins PDF</button>
-        <button class="btn btn-ghost btn-sm" onclick="toast('Export CNPS — téléchargement...')">📊 Export CNPS</button>
-      </div>
-    </div>
-
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-label">💰 Masse salariale brute</div>
-        <div class="kpi-value" style="color:var(--accent2);font-size:20px;">${fmt(totalGross)}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">✅ Net total à payer</div>
-        <div class="kpi-value" style="color:var(--green);font-size:20px;">${fmt(totalNet)}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">🏛️ CNPS Employeur (7%)</div>
-        <div class="kpi-value" style="color:var(--yellow);font-size:20px;">${fmt(totalCnps)}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">⏳ Fiches en attente</div>
-        <div class="kpi-value" style="color:${pendingCount>0?'var(--red)':'var(--green)'};">${pendingCount}</div>
-      </div>
-    </div>
-
-    <div class="alert alert-info">🏛️ Calcul automatique: CNPS employé = 4.2% du brut | CNPS employeur = 7% du brut | IRPP = 10% sur brut > 500 000 FCFA</div>
-
-    <div class="card">
-      <div class="card-title">Fiches de paie — ${months[payrollMonth]} 2026</div>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Employé</th><th>Rôle</th><th>Brut</th><th>CNPS (4.2%)</th><th>IRPP</th><th>Net</th><th>Statut</th><th>Action</th></tr>
-          ${monthData.map(p=>{
-            const emp = getEmp(p.emp_id);
-            return `<tr>
-              <td><div style="display:flex;align-items:center;gap:8px;">${getAvatar(emp)}<div style="font-weight:500;">${emp.firstname} ${emp.lastname}</div></div></td>
-              <td>${roleBadge(emp.role)}</td>
-              <td>${fmt(p.gross)}</td>
-              <td style="color:var(--red);">-${fmt(p.cnps_emp)}</td>
-              <td style="color:${p.irpp>0?'var(--red)':'var(--text3)'};">${p.irpp>0?'-'+fmt(p.irpp):'—'}</td>
-              <td style="font-weight:700;color:var(--green);">${fmt(p.net)}</td>
-              <td>${payrollStatusBadge(p.status)}</td>
-              <td><div style="display:flex;gap:4px;">
-                <button class="btn btn-ghost btn-xs" onclick="viewPayroll(${p.id})">👁 Voir</button>
-                ${p.status==='pending'?`<button class="btn btn-success btn-xs" onclick="markPayrollPaid(${p.id})">✅ Payer</button>`:''}
-              </div></td>
-            </tr>`;
-          }).join('')}
-        </table>
-      </div>
-    </div>
-  `;
-}
-
-function viewPayroll(id) {
-  selectedPayrollId = id;
-  const p = payrollData.find(x=>x.id===id);
-  const emp = getEmp(p.emp_id);
-  const months={1:'Janvier',2:'Février',3:'Mars',4:'Avril',5:'Mai',6:'Juin'};
-
-  document.getElementById('payroll-modal-title').textContent = `💰 ${emp.firstname} ${emp.lastname} — ${months[p.month]} ${p.year}`;
-  document.getElementById('payroll-modal-body').innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      ${getAvatar(emp)}
-      <div>
-        <div style="font-weight:600;">${emp.firstname} ${emp.lastname}</div>
-        <div class="text-sm">${emp.code} — ${emp.position||roleBadge(emp.role)}</div>
-        <div class="text-sm">${emp.contract.toUpperCase()} — Kribi, Cameroun</div>
-      </div>
-      <div style="margin-left:auto;text-align:right;">
-        ${payrollStatusBadge(p.status)}
-        ${p.paid_at?`<div class="text-xs" style="margin-top:4px;">Payé le ${fmtDate(p.paid_at)}</div>`:''}
-      </div>
-    </div>
-    <div class="payroll-calc">
-      <div class="calc-row"><span>🟢 Salaire de base</span><span>${fmt(p.gross)}</span></div>
-      <div class="calc-row"><span>🏛️ CNPS employé (4.2%)</span><span class="deduct">-${fmt(p.cnps_emp)}</span></div>
-      <div class="calc-row"><span>📊 IRPP</span><span class="deduct">${p.irpp>0?'-'+fmt(p.irpp):'Exonéré (< 500k)'}</span></div>
-      <div style="height:1px;background:var(--border);margin:8px 0;"></div>
-      <div class="calc-row total"><span>💰 NET À PAYER</span><span class="gain">${fmt(p.net)}</span></div>
-    </div>
-    <div style="margin-top:12px;background:var(--bg3);border-radius:8px;padding:12px;">
-      <div class="calc-row"><span class="text-sm">CNPS employeur (7%)</span><span class="text-sm" style="color:var(--yellow);">${fmt(p.cnps_employer)}</span></div>
-      <div class="calc-row"><span class="text-sm">Coût total employeur</span><span class="text-sm" style="font-weight:600;">${fmt(p.gross+p.cnps_employer)}</span></div>
-    </div>
-    ${p.validated_by?`<div class="alert alert-success" style="margin-top:10px;">✅ Validé par ${p.validated_by}</div>`:''}
-    <div class="form-group" style="margin-top:12px;"><label>Mode de paiement</label>
-      <select><option>Virement bancaire</option><option>Orange Money</option><option>MTN Mobile Money</option><option>Cash</option></select>
-    </div>
-  `;
-  showModal('modal-payroll');
-}
-
-function validatePayroll() {
-  if(!selectedPayrollId) return;
-  markPayrollPaid(selectedPayrollId);
-  hideModal('modal-payroll');
-}
-
-function markPayrollPaid(id) {
-  const p = payrollData.find(x=>x.id===id);
-  const emp = getEmp(p.emp_id);
-  p.status='paid'; p.paid_at='2026-05-14'; p.validated_by='Smith (Owner — Canada)';
-  toast(`✅ Paie de ${emp.firstname} marquée payée — ${fmt(p.net)}`,'success');
-  renderPayroll();
-}
-
-function validateAllPayroll() {
-  const pending = payrollData.filter(p=>p.month===payrollMonth&&p.status==='pending');
-  pending.forEach(p=>{ p.status='paid'; p.paid_at='2026-05-14'; p.validated_by='Smith (Owner — Canada)'; });
-  toast(`✅ ${pending.length} fiches validées et marquées payées`,'success');
-  renderPayroll();
-}
-
-// ============================================================
-// DISCIPLINARY
-// ============================================================
-function renderDisciplinary() {
-  const c = document.getElementById('content');
-  c.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-      <div class="section-title" style="margin:0;">⚠️ Dossiers Disciplinaires</div>
-      <button class="btn btn-danger btn-sm" style="margin-left:auto;" onclick="showModal('modal-disciplinary');document.getElementById('disc-date').value='2026-05-14'">+ Nouvelle sanction</button>
-    </div>
-
-    <div class="alert alert-warn">⚠️ Les sanctions sont enregistrées dans le dossier permanent de l'employé et ne peuvent être supprimées. Toute sanction grave peut être contestée dans un délai de 30 jours.</div>
-
-    <div class="card">
-      <div class="card-title">Historique des sanctions</div>
-      <div class="table-wrap">
-        <table>
-          <tr><th>Date</th><th>Employé</th><th>Type</th><th>Motif</th><th>Émis par</th></tr>
-          ${disciplinaryRecords.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(d=>{
-            const emp = getEmp(d.emp_id);
-            return `<tr>
-              <td class="text-sm">${fmtDate(d.date)}</td>
-              <td><div style="display:flex;align-items:center;gap:8px;">${getAvatar(emp)}<div>
-                <div style="font-weight:500;">${emp.firstname} ${emp.lastname}</div>
-                <div class="text-xs">${roleBadge(emp.role)}</div>
-              </div></div></td>
-              <td>${discTypeBadge(d.type)}</td>
-              <td class="text-sm" style="max-width:240px;">${d.reason}</td>
-              <td class="text-xs">${d.issued_by}</td>
-            </tr>`;
-          }).join('')}
-        </table>
-      </div>
-    </div>
-
-    <div class="grid2">
-      <div class="card">
-        <div class="card-title">Par employé — Nombre de sanctions</div>
-        ${employees.map(emp=>{
-          const count = disciplinaryRecords.filter(d=>d.emp_id===emp.id).length;
-          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-            ${getAvatar(emp)}
-            <div style="flex:1;">
-              <div style="font-size:12px;font-weight:500;">${emp.firstname} ${emp.lastname}</div>
-              <div class="progress-bar" style="margin-top:3px;"><div class="progress-fill" style="width:${count===0?0:count/disciplinaryRecords.length*100}%;background:${count===0?'var(--green)':count===1?'var(--yellow)':'var(--red)'};"></div></div>
-            </div>
-            <span style="font-size:13px;font-weight:700;color:${count===0?'var(--green)':count>1?'var(--red)':'var(--yellow)'};">${count}</span>
-          </div>`;
-        }).join('')}
-      </div>
-      <div class="card">
-        <div class="card-title">Procédure disciplinaire Veraluz</div>
-        <div class="timeline">
-          <div class="tl-item"><div class="tl-dot" style="background:var(--yellow);"></div><div class="tl-time">Étape 1</div><div class="tl-text font-bold">Avertissement verbal</div><div class="text-xs">Premier manquement — conservé 6 mois</div></div>
-          <div class="tl-item"><div class="tl-dot" style="background:var(--orange);"></div><div class="tl-time">Étape 2</div><div class="tl-text font-bold">Avertissement écrit</div><div class="text-xs">Récidive ou faute grave — conservé 2 ans</div></div>
-          <div class="tl-item"><div class="tl-dot" style="background:var(--red);"></div><div class="tl-time">Étape 3</div><div class="tl-text font-bold">Suspension</div><div class="text-xs">Faute sérieuse — 1 à 5 jours sans rémunération</div></div>
-          <div class="tl-item"><div class="tl-dot" style="background:#7f1d1d;"></div><div class="tl-time">Étape 4</div><div class="tl-text font-bold">Licenciement</div><div class="text-xs">Faute lourde — Code du travail camerounais</div></div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function saveDisciplinary() {
-  const reason = document.getElementById('disc-reason').value.trim();
-  if(!reason) { toast('Le motif est obligatoire','warn'); return; }
-  const empName = document.getElementById('disc-emp').value.split('—')[0].trim();
-  const emp = employees.find(e=>`${e.firstname} ${e.lastname}`===empName)||employees[0];
-  disciplinaryRecords.push({
-    id: disciplinaryRecords.length+1,
-    emp_id: emp.id,
-    type: document.getElementById('disc-type').value,
-    reason,
-    date: document.getElementById('disc-date').value||'2026-05-14',
-    issued_by: 'Smith (Owner — Canada)',
-    issued_at: '2026-05-14'
+function populateEmpSelects(){
+  var opts='<option value="">— Choisir —</option>'
+    +EMPS.map(function(e){return '<option value="'+esc(e.id)+'">'+esc(e.full_name)+'</option>';}).join('');
+  ['att-emp-sel','pay-emp-sel','adv-emp-sel','task-emp-sel',
+   'contract-emp-sel','doc-emp-sel','sched-emp-sel'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.innerHTML=opts;
   });
-  hideModal('modal-disciplinary');
-  toast(`⚠️ Sanction enregistrée pour ${emp.firstname} ${emp.lastname}`,'warn');
-  renderDisciplinary();
 }
 
-// ============================================================
-// RBAC MATRIX
-// ============================================================
-function renderRBAC() {
-  const modules = [
-    { label:'🛎️ Réception / Réservations', access:{ hotel_manager:true, reception:true, restaurant:false, housekeeping:false, accountant:'partial', hr:false, security:false } },
-    { label:'🍽️ Restaurant & Bar', access:{ hotel_manager:true, reception:'partial', restaurant:true, housekeeping:false, accountant:false, hr:false, security:false } },
-    { label:'🧹 Housekeeping', access:{ hotel_manager:true, reception:'partial', restaurant:false, housekeeping:true, accountant:false, hr:false, security:false } },
-    { label:'💳 Paiements', access:{ hotel_manager:true, reception:'partial', restaurant:'partial', housekeeping:false, accountant:true, hr:false, security:false } },
-    { label:'👥 RH & Employés', access:{ hotel_manager:'partial', reception:false, restaurant:false, housekeeping:false, accountant:false, hr:true, security:false } },
-    { label:'📊 Rapports & Analytics', access:{ hotel_manager:true, reception:false, restaurant:false, housekeeping:false, accountant:true, hr:'partial', security:false } },
-    { label:'🔒 Sécurité & Accès', access:{ hotel_manager:'partial', reception:false, restaurant:false, housekeeping:false, accountant:false, hr:false, security:true } },
-    { label:'⚙️ Paramètres', access:{ hotel_manager:'partial', reception:false, restaurant:false, housekeeping:false, accountant:false, hr:false, security:false } },
-  ];
+/* ══ ⑨ CONTRATS ══ */
+var CONTRACT_TYPES={cdi:'CDI',cdd:'CDD',essai:"Période d'essai",freelance:'Freelance',stage:'Stage'};
+var CONTRACT_SC={actif:'ok',expire:'danger',resilie:'muted'};
 
-  const roles = ['hotel_manager','reception','restaurant','housekeeping','accountant','hr','security'];
-
-  const c = document.getElementById('content');
-  c.innerHTML = `
-    <div class="section-title">🔐 Matrice des Permissions — RBAC Veraluz OS</div>
-    <div class="alert alert-info" style="margin-bottom:16px;">Les rôles <strong>super_admin</strong> et <strong>owner (Smith)</strong> ont un accès total à tous les modules. La matrice ci-dessous montre les rôles opérationnels.</div>
-
-    <div class="card">
-      <div class="table-wrap">
-        <table class="matrix-table">
-          <tr>
-            <th style="text-align:left;min-width:200px;">Module</th>
-            ${roles.map(r=>`<th><div style="writing-mode:initial;">${roleBadge(r)}</div></th>`).join('')}
-          </tr>
-          ${modules.map(m=>`
-            <tr>
-              <td style="font-weight:500;">${m.label}</td>
-              ${roles.map(r=>{
-                const a = m.access[r];
-                return `<td>${a===true?'<span class="check">✓</span>':a==='partial'?'<span class="partial">◐</span>':'<span class="cross">✗</span>'}</td>`;
-              }).join('')}
-            </tr>
-          `).join('')}
-        </table>
-      </div>
-      <div style="margin-top:14px;display:flex;gap:16px;font-size:12px;color:var(--text2);">
-        <span><span class="check">✓</span> Accès complet</span>
-        <span><span class="partial">◐</span> Accès partiel (lecture seule ou actions limitées)</span>
-        <span><span class="cross">✗</span> Aucun accès</span>
-      </div>
-    </div>
-
-    <div class="grid2">
-      <div class="card">
-        <div class="card-title">🔐 Règles de sécurité</div>
-        <div class="timeline">
-          <div class="tl-item"><div class="tl-dot" style="background:var(--green);"></div><div class="tl-text">Row Level Security (RLS) activé sur toutes les tables</div></div>
-          <div class="tl-item"><div class="tl-dot" style="background:var(--blue);"></div><div class="tl-text">Isolation par property_id — multi-établissement</div></div>
-          <div class="tl-item"><div class="tl-dot" style="background:var(--accent);"></div><div class="tl-text">Sessions httpOnly via Supabase Auth</div></div>
-          <div class="tl-item"><div class="tl-dot" style="background:var(--yellow);"></div><div class="tl-text">Audit log de toutes les actions sensibles</div></div>
-          <div class="tl-item"><div class="tl-dot" style="background:var(--cyan);"></div><div class="tl-text">Validation serveur via getUser() sur chaque route API</div></div>
-          <div class="tl-item"><div class="tl-dot" style="background:var(--red);"></div><div class="tl-text">Tokens d'invitation email à usage unique (24h)</div></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">👤 Employés actifs par rôle</div>
-        ${roles.map(r=>{
-          const emps = employees.filter(e=>e.role===r);
-          const role = ROLES[r];
-          return `<div style="margin-bottom:10px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-              <span class="badge ${role.color}">${role.label}</span>
-              <span class="text-xs">${emps.length} employé(s)</span>
-            </div>
-            ${emps.map(emp=>`<div style="display:flex;align-items:center;gap:6px;margin-left:8px;margin-bottom:3px;">
-              ${getAvatar(emp)}
-              <span style="font-size:12px;">${emp.firstname} ${emp.lastname}</span>
-              ${statusBadge(emp.status)}
-            </div>`).join('')}
-          </div>`;
-        }).join('')}
-      </div>
-    </div>
-  `;
+function loadContracts(){
+  GET('/rest/v1/veraluz_contracts?select=*,veraluz_employees(full_name)&order=created_at.desc')
+    .then(function(r){CONTRACTS=r;renderContracts();})
+    .catch(function(){CONTRACTS=[];renderContracts();});
 }
 
-// ============================================================
-// INIT
-// ============================================================
-renderDashboard();
+function setContractFilter(f,el){
+  contractFilter=f;
+  document.querySelectorAll('#pane-contrats .fchip').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on'); renderContracts();
+}
+
+function renderContracts(){
+  var list=CONTRACTS.filter(function(c){
+    if(contractFilter==='all') return true;
+    return c.type===contractFilter||c.status===contractFilter;
+  });
+  var el=document.getElementById('contract-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128203;</div><div class="empty-txt">Aucun contrat</div></div>';return;}
+  el.innerHTML=list.map(function(c){
+    var emp=c.veraluz_employees||{};
+    var sc=CONTRACT_SC[c.status]||'info';
+    return '<div class="contract-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+      +'<div><div class="contract-type">'+esc(emp.full_name||'—')+'</div>'
+      +'<div class="contract-dates">'+esc(CONTRACT_TYPES[c.type]||c.type)
+      +' · '+fmtDate(c.start_date)+(c.end_date?' → '+fmtDate(c.end_date):'')+' </div>'
+      +(c.notes?'<div style="font-size:11px;color:var(--text3);margin-top:4px;">'+esc(c.notes)+'</div>':'')
+      +'</div><span class="bdg '+sc+'">'+esc(c.status||'—')+'</span></div></div>';
+  }).join('');
+}
+
+function saveContract(){
+  var eid=document.getElementById('contract-emp-sel').value;
+  if(!eid){toast('Choisir un employé',true);return;}
+  var d={id:gid(),employee_id:eid,
+    type:document.getElementById('contract-type').value,
+    status:document.getElementById('contract-status').value,
+    start_date:document.getElementById('contract-start').value||null,
+    end_date:document.getElementById('contract-end').value||null,
+    notes:document.getElementById('contract-notes').value.trim()};
+  POST('veraluz_contracts',[d])
+    .then(function(){toast('Contrat enregistré ✓');closeMd('md-add-contract');loadContracts();})
+    .catch(function(){toast('Erreur (table veraluz_contracts absente?)',true);});
+}
+
+/* ══ ⑩ RÔLES & PERMISSIONS ══ */
+function loadRolesData(){
+  try{var s=localStorage.getItem('veraluz_roles');ROLES_DATA=s?JSON.parse(s):DEFAULT_ROLES.slice();}
+  catch(e){ROLES_DATA=DEFAULT_ROLES.slice();}
+}
+function saveRolesData(){try{localStorage.setItem('veraluz_roles',JSON.stringify(ROLES_DATA));}catch(e){}}
+
+function renderRoles(){
+  loadRolesData();
+  document.getElementById('roles-list').innerHTML=ROLES_DATA.map(function(r){
+    return '<div class="role-card">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+      +'<div class="role-name">'+esc(r.name)+'</div>'
+      +'<button class="btn btn-sec btn-sm" onclick="editRole(\''+esc(r.id)+'\')">&#9998;</button>'
+      +'</div><div class="perm-grid">'
+      +ALL_PERMS.map(function(p){
+        var has=(r.perms||[]).indexOf(p)>=0;
+        return '<span class="perm-chip'+(has?'':' off')+'">'+(has?'✓ ':'')+esc(p)+'</span>';
+      }).join('')
+      +'</div></div>';
+  }).join('');
+}
+
+function buildPermCheckboxes(preChecked){
+  document.getElementById('perm-checkboxes').innerHTML=ALL_PERMS.map(function(p){
+    var chk=preChecked&&preChecked.indexOf(p)>=0?' checked':'';
+    return '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;">'
+      +'<input type="checkbox" data-perm="'+esc(p)+'"'+chk+' style="accent-color:var(--accent);width:16px;height:16px;"> '+esc(p)+'</label>';
+  }).join('');
+}
+
+function openAddRole(){
+  document.getElementById('role-modal-title').textContent='Nouveau rôle';
+  document.getElementById('role-name').value='';
+  document.getElementById('role-edit-id').value='';
+  buildPermCheckboxes([]);
+  openMd('md-add-role');
+}
+
+function editRole(id){
+  var r=ROLES_DATA.find(function(x){return x.id===id;}); if(!r) return;
+  document.getElementById('role-modal-title').textContent='Modifier rôle';
+  document.getElementById('role-name').value=r.name;
+  document.getElementById('role-edit-id').value=id;
+  buildPermCheckboxes(r.perms||[]);
+  openMd('md-add-role');
+}
+
+function saveRole(){
+  var name=document.getElementById('role-name').value.trim();
+  if(!name){toast('Nom requis',true);return;}
+  var perms=[];
+  document.querySelectorAll('#perm-checkboxes input:checked').forEach(function(cb){perms.push(cb.dataset.perm);});
+  var eid=document.getElementById('role-edit-id').value;
+  if(eid){
+    var r=ROLES_DATA.find(function(x){return x.id===eid;});
+    if(r){r.name=name;r.perms=perms;}
+  } else {
+    ROLES_DATA.push({id:gid(),name:name,perms:perms});
+  }
+  saveRolesData();
+  toast('Rôle enregistré ✓');
+  closeMd('md-add-role');
+  renderRoles();
+  emit('role-saved',{});
+}
+
+/* ══ ⑪ HORAIRES ══ */
+var DAYS_SHORT=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+var SHIFT_META={m:{cls:'m',lbl:'M'},s:{cls:'s',lbl:'S'},n:{cls:'n',lbl:'N'},r:{cls:'r',lbl:'R'},'':{cls:'off',lbl:'·'}};
+
+function getWeekStart(offset){
+  var d=new Date();
+  var day=d.getDay();
+  var diff=(day===0?-6:1-day);
+  d.setDate(d.getDate()+diff+offset*7);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function renderSched(){
+  var ws=getWeekStart(schedWeekOffset);
+  var we=new Date(ws); we.setDate(we.getDate()+6);
+  document.getElementById('sched-week-label').textContent=
+    'Semaine du '+ws.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})
+    +' au '+we.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+  try{var s=localStorage.getItem('veraluz_sched_'+schedWeekOffset);SCHEDULES=s?JSON.parse(s):{};}
+  catch(e){SCHEDULES={};}
+  var activeEmps=EMPS.filter(function(e){return e.status==='actif';});
+  var grid=document.getElementById('sched-grid');
+  if(!activeEmps.length){
+    grid.innerHTML='<div style="padding:16px;color:var(--text3);font-size:12px;grid-column:1/-1;text-align:center;">Aucun employé actif</div>';
+    return;
+  }
+  var html='<div class="sg-cell sg-header">Employé</div>';
+  DAYS_SHORT.forEach(function(d){html+='<div class="sg-cell sg-header">'+d+'</div>';});
+  activeEmps.forEach(function(e){
+    html+='<div class="sg-name">'+esc((e.full_name||'').split(' ')[0])+'</div>';
+    for(var day=0;day<7;day++){
+      var shift=((SCHEDULES[e.id]||{})[day]||'');
+      var meta=SHIFT_META[shift]||SHIFT_META[''];
+      html+='<div class="sg-cell" onclick="cycleShift(\''+esc(e.id)+'\','+day+')" style="cursor:pointer;">'
+        +'<span class="sg-shift '+meta.cls+'">'+meta.lbl+'</span></div>';
+    }
+  });
+  grid.innerHTML=html;
+}
+
+function cycleShift(empId,day){
+  var order=['','m','s','n','r'];
+  var cur=((SCHEDULES[empId]||{})[day]||'');
+  var next=order[(order.indexOf(cur)+1)%order.length];
+  if(!SCHEDULES[empId]) SCHEDULES[empId]={};
+  SCHEDULES[empId][day]=next;
+  try{localStorage.setItem('veraluz_sched_'+schedWeekOffset,JSON.stringify(SCHEDULES));}catch(e){}
+  renderSched();
+  emit('schedule-updated',{empId:empId,day:day,shift:next});
+}
+
+function saveSched(){
+  var eid=document.getElementById('sched-emp-sel').value;
+  if(!eid){toast('Choisir un employé',true);return;}
+  var day=parseInt(document.getElementById('sched-day').value);
+  var shift=document.getElementById('sched-shift').value;
+  if(!SCHEDULES[eid]) SCHEDULES[eid]={};
+  SCHEDULES[eid][day]=shift;
+  try{localStorage.setItem('veraluz_sched_'+schedWeekOffset,JSON.stringify(SCHEDULES));}catch(e){}
+  toast('Shift affecté ✓'); closeMd('md-add-sched'); renderSched();
+}
+function prevWeek(){schedWeekOffset--;renderSched();}
+function nextWeek(){schedWeekOffset++;renderSched();}
+
+/* ══ ⑫ PRÉSENCES ══ */
+var STATUS_ATT={present:{label:'Présent',cls:'ok'},absent:{label:'Absent',cls:'danger'},retard:{label:'Retard',cls:'warn'},conge:{label:'Congé',cls:'info'}};
+
+function initAttDate(){
+  var el=document.getElementById('att-date');
+  if(!el.value) el.value=new Date().toISOString().slice(0,10);
+}
+
+function loadAtt(){
+  initAttDate();
+  var d=document.getElementById('att-date').value;
+  var lab=new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('att-date-label').textContent='Présences — '+lab;
+  GET('/rest/v1/veraluz_attendance?date=eq.'+d+'&select=*,veraluz_employees(full_name,role)&order=created_at')
+    .then(function(r){ATTS=r;renderAtt();}).catch(function(){toast('Erreur pointages',true);});
+}
+
+function renderAtt(){
+  document.getElementById('att-present').textContent=ATTS.filter(function(x){return x.status==='present';}).length;
+  document.getElementById('att-absent').textContent =ATTS.filter(function(x){return x.status==='absent';}).length;
+  document.getElementById('att-retard').textContent =ATTS.filter(function(x){return x.status==='retard';}).length;
+  document.getElementById('att-conge').textContent  =ATTS.filter(function(x){return x.status==='conge';}).length;
+  var el=document.getElementById('att-list');
+  if(!ATTS.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#9200;</div><div class="empty-txt">Aucun pointage pour cette date</div></div>';return;}
+  el.innerHTML='<div class="card">'+ATTS.map(function(x){
+    var emp=x.veraluz_employees||{};var st=STATUS_ATT[x.status]||{label:x.status,cls:'info'};
+    return '<div class="entry"><div class="att-dot '+x.status+'"></div>'
+      +'<div class="entry-body"><div class="entry-title">'+esc(emp.full_name||'?')+'</div>'
+      +'<div class="entry-sub">'+(x.check_in||'—')+' → '+(x.check_out||'en cours')+'</div></div>'
+      +'<span class="bdg '+st.cls+'">'+st.label+'</span></div>';
+  }).join('')+'</div>';
+}
+
+function saveAtt(){
+  var eid=document.getElementById('att-emp-sel').value;if(!eid){toast('Choisir un employé',true);return;}
+  var d={id:gid(),employee_id:eid,date:document.getElementById('att-add-date').value,
+    check_in:document.getElementById('att-in').value||null,
+    check_out:document.getElementById('att-out').value||null,
+    status:document.getElementById('att-status-sel').value};
+  if(!d.date){toast('Date requise',true);return;}
+  POST('veraluz_attendance',[d])
+    .then(function(){toast('Pointage enregistré ✓');closeMd('md-add-att');loadAtt();emit('attendance-saved',{});})
+    .catch(function(){toast('Erreur pointage',true);});
+}
+
+/* ══ ⑬ PAIE ══ */
+var MONTHS=['','Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+
+function setPayFilter(f,el){
+  payFilter=f;
+  document.querySelectorAll('#pane-pay .fchip').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on'); renderPay();
+}
+
+function loadPay(){
+  GET('/rest/v1/veraluz_payroll?select=*,veraluz_employees(full_name)&order=period_year.desc,period_month.desc')
+    .then(function(r){PAYS=r;renderPay();}).catch(function(){toast('Erreur paie',true);});
+}
+
+function renderPay(){
+  var list=PAYS.filter(function(x){return payFilter==='all'||x.status===payFilter;});
+  document.getElementById('pay-total').textContent=fmt(PAYS.reduce(function(s,x){return s+parseFloat(x.net_salary||0);},0));
+  document.getElementById('pay-pending').textContent=fmt(PAYS.filter(function(x){return x.status==='en_attente';}).reduce(function(s,x){return s+parseFloat(x.net_salary||0);},0));
+  document.getElementById('pay-paid').textContent=fmt(PAYS.filter(function(x){return x.status==='paye';}).reduce(function(s,x){return s+parseFloat(x.net_salary||0);},0));
+  var el=document.getElementById('pay-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128176;</div><div class="empty-txt">Aucune fiche</div></div>';return;}
+  el.innerHTML='<div class="card">'+list.map(function(x){
+    var emp=x.veraluz_employees||{};var sc=x.status==='paye'?'ok':'warn';
+    return '<div class="entry"><div class="entry-ico">&#128176;</div>'
+      +'<div class="entry-body"><div class="entry-title">'+esc(emp.full_name||'?')+'</div>'
+      +'<div class="entry-sub">'+MONTHS[x.period_month]+' '+x.period_year
+      +(x.paid_at?' · Payé le '+fmtDate(x.paid_at):'')+' </div></div>'
+      +'<div style="text-align:right;"><div style="font-size:13px;font-weight:700;">'+fmt(x.net_salary)+' F</div>'
+      +'<span class="bdg '+sc+'" style="margin-top:3px;">'+(x.status==='paye'?'Payé':'Attente')+'</span></div></div>';
+  }).join('')+'</div>';
+}
+
+function savePay(){
+  var eid=document.getElementById('pay-emp-sel').value;if(!eid){toast('Choisir un employé',true);return;}
+  var emp=EMPS.find(function(e){return e.id===eid;})||{};
+  var st=document.getElementById('pay-status-sel').value;
+  var base=parseFloat(document.getElementById('pay-base').value)||emp.base_salary||0;
+  var bonus=parseFloat(document.getElementById('pay-bonus').value)||0;
+  var ded=parseFloat(document.getElementById('pay-ded').value)||0;
+  var d={id:gid(),employee_id:eid,
+    period_month:parseInt(document.getElementById('pay-month').value),
+    period_year:parseInt(document.getElementById('pay-year').value),
+    base_salary:base,bonus:bonus,deductions:ded,net_salary:base+bonus-ded,
+    status:st,paid_at:st==='paye'?new Date().toISOString().slice(0,10):null};
+  POST('veraluz_payroll',[d])
+    .then(function(){toast('Fiche créée ✓');closeMd('md-add-pay');loadPay();emit('payroll-saved',{});})
+    .catch(function(){toast('Erreur',true);});
+}
+
+function printPayroll(){
+  var w=window.open('','_blank');
+  var rows=PAYS.map(function(x){
+    var e=x.veraluz_employees||{};
+    return '<tr><td>'+esc(e.full_name||'?')+'</td><td>'+MONTHS[x.period_month]+' '+x.period_year+'</td>'
+      +'<td>'+fmt(x.base_salary)+'</td><td>'+fmt(x.bonus)+'</td><td>'+fmt(x.deductions)+'</td>'
+      +'<td><strong>'+fmt(x.net_salary)+'</strong></td>'
+      +'<td>'+(x.status==='paye'?'✓ Payé':'En attente')+'</td></tr>';
+  }).join('');
+  w.document.write('<html><head><title>Paie Veraluz</title>'
+    +'<style>body{font-family:Arial;font-size:12px;}table{width:100%;border-collapse:collapse;}'
+    +'th,td{border:1px solid #ccc;padding:7px;}th{background:#22d3a5;color:#000;}'
+    +'@page{margin:1.5cm;}</style></head><body>'
+    +'<h2>🌊 Veraluz — Fiches de paie</h2>'
+    +'<p style="color:#666;">Généré le '+new Date().toLocaleDateString('fr-FR')+'</p>'
+    +'<table><tr><th>Employé</th><th>Période</th><th>Base</th><th>Primes</th><th>Retenues</th><th>Net</th><th>Statut</th></tr>'
+    +rows+'</table></body></html>');
+  w.document.close();
+  setTimeout(function(){w.print();},500);
+}
+
+/* ══ ⑭ AVANCES ══ */
+var ADV_STATUS={en_attente:{label:'En attente',cls:'warn'},approuve:{label:'Approuvé',cls:'ok'},refuse:{label:'Refusé',cls:'danger'}};
+
+function loadAdv(){
+  GET('/rest/v1/veraluz_advances?select=*,veraluz_employees(full_name)&order=created_at.desc')
+    .then(function(r){ADVS=r;renderAdv();}).catch(function(){toast('Erreur avances',true);});
+}
+
+function renderAdv(){
+  document.getElementById('adv-pending-count').textContent=ADVS.filter(function(x){return x.status==='en_attente';}).length;
+  document.getElementById('adv-total-amt').textContent=fmt(ADVS.filter(function(x){return x.status==='approuve';}).reduce(function(s,x){return s+parseFloat(x.amount||0);},0));
+  document.getElementById('adv-repaid').textContent=ADVS.filter(function(x){return x.repaid;}).length;
+  var el=document.getElementById('adv-list');
+  if(!ADVS.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128180;</div><div class="empty-txt">Aucune avance</div></div>';return;}
+  el.innerHTML='<div class="card">'+ADVS.map(function(x){
+    var emp=x.veraluz_employees||{};var st=ADV_STATUS[x.status]||{label:x.status,cls:'info'};
+    return '<div class="entry"><div class="entry-ico">&#128180;</div>'
+      +'<div class="entry-body"><div class="entry-title">'+esc(emp.full_name||'?')+'</div>'
+      +'<div class="entry-sub">'+esc(x.reason||'—')+' · '+fmtDate(x.created_at)+'</div></div>'
+      +'<div style="text-align:right;"><div style="font-size:13px;font-weight:700;">'+fmt(x.amount)+' F</div>'
+      +'<span class="bdg '+st.cls+'" style="margin-top:3px;">'+st.label+'</span></div></div>';
+  }).join('')+'</div>';
+}
+
+function saveAdv(){
+  var eid=document.getElementById('adv-emp-sel').value;if(!eid){toast('Choisir un employé',true);return;}
+  var amt=parseFloat(document.getElementById('adv-amount').value);
+  if(!amt||amt<=0){toast('Montant invalide',true);return;}
+  var d={id:gid(),employee_id:eid,amount:amt,
+    reason:document.getElementById('adv-reason').value.trim(),
+    status:document.getElementById('adv-status-sel').value,repaid:false};
+  POST('veraluz_advances',[d])
+    .then(function(){toast('Avance enregistrée ✓');closeMd('md-add-adv');loadAdv();emit('advance-saved',{});})
+    .catch(function(){toast('Erreur',true);});
+}
+
+/* ══ ⑮ DOCUMENTS ══ */
+var DOC_ICONS={contrat:'&#128203;',identite:'&#128267;',diplome:'&#127891;',medical:'&#127973;',autre:'&#128196;'};
+
+function loadDocs(){
+  GET('/rest/v1/veraluz_employee_docs?select=*,veraluz_employees(full_name)&order=created_at.desc')
+    .then(function(r){DOCS=r;renderDocs();}).catch(function(){DOCS=[];renderDocs();});
+}
+
+function setDocFilter(f,el){
+  docFilter=f;
+  document.querySelectorAll('#pane-docs .fchip').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on'); renderDocs();
+}
+function filterDocs(){ renderDocs(); }
+
+function renderDocs(){
+  var q=(document.getElementById('doc-search').value||'').toLowerCase();
+  var list=DOCS.filter(function(d){
+    if(docFilter!=='all'&&d.type!==docFilter) return false;
+    if(q&&(d.name||'').toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+  var el=document.getElementById('docs-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128196;</div><div class="empty-txt">Aucun document</div></div>';return;}
+  el.innerHTML=list.map(function(d){
+    var emp=d.veraluz_employees||{};
+    var ico=DOC_ICONS[d.type]||'&#128196;';
+    return '<div class="doc-card"><div class="doc-ico">'+ico+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-size:13px;font-weight:600;">'+esc(d.name||'—')+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+esc(emp.full_name||'—')+' · '+fmtDate(d.doc_date)+'</div>'
+      +(d.notes?'<div style="font-size:11px;color:var(--text3);">'+esc(d.notes)+'</div>':'')
+      +'</div><span class="bdg info">'+esc(d.type||'—')+'</span></div>';
+  }).join('');
+}
+
+function saveDoc(){
+  var eid=document.getElementById('doc-emp-sel').value;if(!eid){toast('Choisir un employé',true);return;}
+  var name=document.getElementById('doc-name').value.trim();if(!name){toast('Nom requis',true);return;}
+  var d={id:gid(),employee_id:eid,name:name,
+    type:document.getElementById('doc-type').value,
+    doc_date:document.getElementById('doc-date').value||null,
+    notes:document.getElementById('doc-notes').value.trim()};
+  POST('veraluz_employee_docs',[d])
+    .then(function(){toast('Document enregistré ✓');closeMd('md-add-doc');loadDocs();})
+    .catch(function(){toast('Erreur (table veraluz_employee_docs absente?)',true);});
+}
+
+/* ══ ⑯ TÂCHES ══ */
+var TASK_STATUS_LABELS={a_faire:'À faire',en_cours:'En cours',termine:'Terminé'};
+var TASK_STATUS_CLS={a_faire:'warn',en_cours:'info',termine:'ok'};
+
+function setTaskFilter(f,el){
+  taskFilter=f;
+  document.querySelectorAll('#pane-tasks .fchip').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on'); renderTasks();
+}
+
+function loadTasks(){
+  GET('/rest/v1/veraluz_hr_tasks?select=*,veraluz_employees(full_name)&order=due_date,created_at')
+    .then(function(r){TASKS=r;renderTasks();}).catch(function(){toast('Erreur tâches',true);});
+}
+
+function renderTasks(){
+  var list=TASKS.filter(function(x){return taskFilter==='all'||x.status===taskFilter;});
+  var el=document.getElementById('task-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#9989;</div><div class="empty-txt">Aucune tâche</div></div>';return;}
+  el.innerHTML='<div class="card">'+list.map(function(x){
+    var emp=x.veraluz_employees||{};
+    var done=x.status==='termine';
+    var sc=TASK_STATUS_CLS[x.status]||'info';
+    var priCls=x.priority||'normale';
+    return '<div class="task-item">'
+      +'<div class="task-check '+(done?'done':'')+'" onclick="toggleTask(\''+esc(x.id)+'\')">'+( done?'&#10003;':'')+'</div>'
+      +'<div class="task-pri '+priCls+'"></div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-size:13px;font-weight:600;'+(done?'text-decoration:line-through;color:var(--text3);':'')+'">'
+      +esc(x.title)+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+esc(emp.full_name||'—')
+      +(x.due_date?' · '+fmtDate(x.due_date):'')+' </div>'
+      +'</div><span class="bdg '+sc+'">'+esc(TASK_STATUS_LABELS[x.status]||x.status)+'</span></div>';
+  }).join('')+'</div>';
+}
+
+function toggleTask(id){
+  var t=TASKS.find(function(x){return x.id===id;}); if(!t) return;
+  var next=t.status==='termine'?'a_faire':'termine';
+  PATCH('veraluz_hr_tasks',id,{status:next})
+    .then(function(){loadTasks();emit('task-updated',{id:id,status:next});})
+    .catch(function(){toast('Erreur',true);});
+}
+
+function saveTask(){
+  var eid=document.getElementById('task-emp-sel').value;if(!eid){toast('Choisir un employé',true);return;}
+  var title=document.getElementById('task-title').value.trim();if(!title){toast('Titre requis',true);return;}
+  var d={id:gid(),employee_id:eid,title:title,
+    description:document.getElementById('task-desc').value.trim(),
+    due_date:document.getElementById('task-due').value||null,
+    priority:document.getElementById('task-priority').value,status:'a_faire'};
+  POST('veraluz_hr_tasks',[d])
+    .then(function(){toast('Tâche créée ✓');closeMd('md-add-task');loadTasks();emit('task-created',{});})
+    .catch(function(){toast('Erreur',true);});
+}
+
+/* ══ ⑰ HISTORIQUE ══ */
+function setHistFilter(f,el){
+  histFilter=f;
+  document.querySelectorAll('#pane-hist .fchip').forEach(function(b){b.classList.remove('on');});
+  el.classList.add('on'); renderHist(histData);
+}
+
+function loadHist(){
+  Promise.all([
+    GET('/rest/v1/veraluz_payroll?select=*,veraluz_employees(full_name)&order=created_at.desc&limit=20'),
+    GET('/rest/v1/veraluz_advances?select=*,veraluz_employees(full_name)&order=created_at.desc&limit=20'),
+    GET('/rest/v1/veraluz_hr_tasks?select=*,veraluz_employees(full_name)&order=created_at.desc&limit=20')
+  ]).then(function(r){
+    var h=[];
+    r[0].forEach(function(x){h.push({type:'payroll',date:x.created_at,label:'Paie — '+(x.veraluz_employees||{}).full_name,sub:'Mois '+x.period_month+'/'+x.period_year,amt:x.net_salary,status:x.status});});
+    r[1].forEach(function(x){h.push({type:'advance',date:x.created_at,label:'Avance — '+(x.veraluz_employees||{}).full_name,sub:x.reason||'',amt:x.amount,status:x.status});});
+    r[2].forEach(function(x){h.push({type:'task',date:x.created_at,label:'Tâche — '+(x.veraluz_employees||{}).full_name,sub:x.title,amt:null,status:x.status});});
+    h.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+    histData=h; renderHist(h);
+  }).catch(function(){toast('Erreur historique',true);});
+}
+
+var HIST_ICONS={payroll:'&#128176;',advance:'&#128180;',task:'&#9989;',contract:'&#128203;'};
+
+function renderHist(data){
+  var list=data.filter(function(h){return histFilter==='all'||h.type===histFilter;});
+  var el=document.getElementById('hist-list');
+  if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128218;</div><div class="empty-txt">Aucune entrée</div></div>';return;}
+  el.innerHTML='<div class="card">'+list.map(function(h){
+    var ic=HIST_ICONS[h.type]||'&#128196;';
+    return '<div class="hist-entry"><div style="font-size:20px;">'+ic+'</div>'
+      +'<div><div style="font-size:12px;font-weight:600;">'+esc(h.label)+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+esc(h.sub)+'</div></div>'
+      +'<div style="text-align:right;">'
+      +(h.amt!=null?'<div style="font-size:12px;font-weight:700;">'+fmt(h.amt)+' F</div>':'')
+      +'<div style="font-size:10px;color:var(--text3);">'+fmtDate(h.date)+'</div>'
+      +'</div></div>';
+  }).join('')+'</div>';
+}
+
+/* ══ ⑱ INIT ══ */
+document.addEventListener('DOMContentLoaded', function() {
+  initAttDate();
+  loadAll();
+});
 </script>
 </body>
 </html>

@@ -1530,3 +1530,18 @@ function openSyncModal() {
       '</div>';
     }).join('');
     openModal('syncModal')
+}
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded', function() {
+  // Onglet par défaut
+  goTab('dash');
+  // Charger toutes les données Supabase
+  loadAll(function() {
+    refresh();
+    checkBookingEngineSync();
+  });
+});
+</script>
+</body>
+</html>

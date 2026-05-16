@@ -222,8 +222,10 @@ a{text-decoration:none;color:inherit}
   box-shadow:var(--shadow);border:1px solid var(--border);
   transition:transform .3s cubic-bezier(.34,1.56,.64,1),box-shadow .3s}
 .rcard:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg)}
-.rthumb{height:185px;display:flex;align-items:center;justify-content:center;position:relative}
-.rthumb::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,.3))}
+.rthumb{height:185px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.rthumb::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(0,0,0,.35))}
+.rthumb-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s ease}
+.rcard:hover .rthumb-img{transform:scale(1.06)}
 .rthumb-icon{width:64px;height:64px;color:rgba(255,255,255,.9);z-index:1;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3));transition:.3s}
 .rcard:hover .rthumb-icon{transform:scale(1.1) translateY(-4px)}
 .rbadge{position:absolute;top:12px;right:12px;z-index:2;font-size:11px;font-weight:700;
@@ -752,23 +754,30 @@ function amenIcon(a) {
   return AMEN_ICONS['default'];
 }
 
+var IMG_BASE = 'https://ngams237.github.io/veraluz-os/assets/unites/';
 var CATALOG = [
-  {id:'std1', name:'Chambre Standard', ikey:'std', type:'Chambre', price:25000, capacity:2, gradient:'linear-gradient(135deg,#1a6fa8,#0e3a5c)',
+  {id:'std1', name:'Chambre Standard', ikey:'std', type:'Chambre', price:25000, capacity:2,
+   img:IMG_BASE+'std_salon.jpg', gradient:'linear-gradient(135deg,#1a6fa8,#0e3a5c)',
    desc:'Chambre confortable avec vue sur jardin tropical. Parfaite pour un sejour relaxant.',
    amenities:['Climatisation','WiFi gratuit','TV ecran plat','Salle de bain'], avail:true},
-  {id:'mer1', name:'Chambre Vue Mer', ikey:'sea', type:'Chambre', price:35000, capacity:2, gradient:'linear-gradient(135deg,#006994,#004f75)',
+  {id:'mer1', name:'Chambre Vue Mer', ikey:'sea', type:'Chambre', price:35000, capacity:2,
+   img:IMG_BASE+'mer_salon.jpg', gradient:'linear-gradient(135deg,#006994,#004f75)',
    desc:"Vue panoramique sur l'Atlantique. Reveillez-vous face a l'ocean chaque matin.",
    amenities:['Vue sur mer','Climatisation','WiFi gratuit','Balcon prive'], avail:true},
-  {id:'apt1', name:'Appartement Vue Mer', ikey:'apt', type:'Appartement', price:55000, capacity:4, gradient:'linear-gradient(135deg,#2d6a4f,#1b4332)',
+  {id:'apt1', name:'Appartement Vue Mer', ikey:'apt', type:'Appartement', price:55000, capacity:4,
+   img:IMG_BASE+'apt_salon.jpg', gradient:'linear-gradient(135deg,#2d6a4f,#1b4332)',
    desc:"Appartement 2 chambres avec vue directe sur l'Atlantique, salon et cuisine equipee.",
    amenities:['2 chambres','Vue mer','Cuisine equipee','Salon','Climatisation'], avail:true},
-  {id:'suite1', name:'Suite Presidentielle', ikey:'suite', type:'Suite', price:85000, capacity:4, gradient:'linear-gradient(135deg,#7c3aed,#4c1d95)',
+  {id:'suite1', name:'Suite Presidentielle', ikey:'suite', type:'Suite', price:85000, capacity:4,
+   img:IMG_BASE+'suite_salon.jpg', gradient:'linear-gradient(135deg,#7c3aed,#4c1d95)',
    desc:'Suite de luxe avec terrasse panoramique, jacuzzi et service de concierge.',
    amenities:['Terrasse panoramique','Jacuzzi','2 chambres','Concierge','Vue mer'], avail:true},
-  {id:'villa1', name:'Villa Jardin Tropical', ikey:'villa', type:'Villa', price:70000, capacity:6, gradient:'linear-gradient(135deg,#92400e,#78350f)',
+  {id:'villa1', name:'Villa Jardin Tropical', ikey:'villa', type:'Villa', price:70000, capacity:6,
+   img:IMG_BASE+'villa_piscine.jpg', gradient:'linear-gradient(135deg,#92400e,#78350f)',
    desc:'Villa independante avec piscine privee, jardin tropical et barbecue.',
    amenities:['Piscine privee','Jardin tropical','Barbecue','3 chambres','Parking'], avail:true},
-  {id:'studio1', name:'Studio Cosy', ikey:'studio', type:'Studio', price:18000, capacity:2, gradient:'linear-gradient(135deg,#be185d,#9d174d)',
+  {id:'studio1', name:'Studio Cosy', ikey:'studio', type:'Studio', price:18000, capacity:2,
+   img:IMG_BASE+'studio_salon.jpg', gradient:'linear-gradient(135deg,#be185d,#9d174d)',
    desc:'Studio economique avec tout le confort essentiel pour un beau sejour a Kribi.',
    amenities:['Climatisation','WiFi','Kitchenette','TV'], avail:true}
 ];
@@ -786,8 +795,9 @@ function loadRooms() {
       var n = (u.name||'').toLowerCase();
       var ik = n.indexOf('mer')>=0?'sea':n.indexOf('suite')>=0?'suite':n.indexOf('villa')>=0?'villa':n.indexOf('apt')>=0?'apt':n.indexOf('studio')>=0?'studio':'std';
       var avail = u.status==='available'||u.status==='active';
+      var cat = CATALOG.find(function(c){return c.ikey===ik;});
       return {id:u.id,name:u.name||'Logement',ikey:ik,type:u.type||'chambre',price:u.price||0,capacity:u.capacity||2,
-              gradient:CATALOG.find(function(c){return c.ikey===ik;})?CATALOG.find(function(c){return c.ikey===ik;}).gradient:'linear-gradient(135deg,#023047,#0a3d5c)',
+              img:cat?cat.img:'', gradient:cat?cat.gradient:'linear-gradient(135deg,#023047,#0a3d5c)',
               desc:u.description||'',amenities:Array.isArray(u.amenities)?u.amenities:[],avail:avail};
     }) : CATALOG;
     _map = {}; rooms.forEach(function(r){_map[r.id]=r;});
@@ -805,7 +815,9 @@ function renderRooms(rooms) {
     (r.amenities||[]).slice(0,4).forEach(function(a){feats+='<span>'+amenIcon(a)+a+'</span>';});
     var caps=''; for(var i=0;i<Math.min(Number(r.capacity),5);i++) caps+='·';
     h+='<div class="rcard" data-rid="'+r.id+'">';
-    h+='<div class="rthumb" style="background:'+r.gradient+'"><div class="rthumb-icon">'+icon+'</div>';
+    h+='<div class="rthumb" style="background:'+r.gradient+'">';
+    if(r.img){h+='<img src="'+r.img+'" class="rthumb-img" alt="'+r.name+'" onerror="this.style.display=\'none\'">';}
+    else{h+='<div class="rthumb-icon">'+icon+'</div>';}
     h+='<span class="rbadge '+(r.avail?'ok':'na')+'">';
     h+='<svg viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>';
     h+=(r.avail?'Disponible':'Indisponible')+'</span></div>';
@@ -831,7 +843,8 @@ function openBk(rid) {
   if(ha.value) document.getElementById('arrD').value=ha.value;
   if(hd.value) document.getElementById('depD').value=hd.value;
   var icon=ROOM_ICONS[r.ikey]||ROOM_ICONS.std;
-  document.getElementById('rmini').innerHTML='<div class="rmini" style="background:'+r.gradient+'"><div class="rmini-icon">'+icon+'</div><div><div class="rmini-name">'+r.name+'</div><div class="rmini-price">'+Number(r.price).toLocaleString('fr-FR')+' FCFA / nuit</div></div></div>';
+  var imgHtml=r.img?'<img src="'+r.img+'" style="width:52px;height:52px;object-fit:cover;border-radius:10px;flex-shrink:0" onerror="this.style.display=\'none\'" alt="">':'<div class="rmini-icon">'+icon+'</div>';
+  document.getElementById('rmini').innerHTML='<div class="rmini" style="background:'+r.gradient+'">'+imgHtml+'<div><div class="rmini-name">'+r.name+'</div><div class="rmini-price">'+Number(r.price).toLocaleString('fr-FR')+' FCFA / nuit</div></div></div>';
   goS(1); calcN();
   document.getElementById('ov').classList.add('open');
   document.body.style.overflow='hidden';
@@ -1080,13 +1093,4 @@ function closeMob(){document.getElementById('navmob').classList.remove('open');d
 window.addEventListener('scroll',function(){document.getElementById('nav').classList.toggle('stuck',window.scrollY>50);},{passive:true});
 
 // ── Hero: stars ──
-// ── Init ──
-document.addEventListener('DOMContentLoaded',function(){
-  var t=new Date().toISOString().split('T')[0];
-  ['hArr','hDep','arrD','depD'].forEach(function(id){var el=document.getElementById(id);if(el)el.min=t;});
-  loadRooms();
-  document.getElementById('ov').addEventListener('click',function(e){if(e.target===this)closeOv();});
-});
-</script>
-</script>
-</html>                                                                                                                                                                                                                                                                                                                                                                                                              
+// ── I

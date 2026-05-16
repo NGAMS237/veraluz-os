@@ -1386,21 +1386,24 @@ function saveInvoice() {
     number: invNo,
     client_name: client,
     amount: amount,
-    data: JSON.stringify({total:amount, paid:paid, balance:amount-paid, notes:notes}),
+    data: {total:amount, paid:paid, balance:amount-paid, notes:notes},
     issued_at: new Date().toISOString()
   };
   if(rezId) body.reservation_id = rezId;
 
   sbFetch('veraluz_invoices', {method:'POST', body:JSON.stringify(body)})
     .then(function(r){
-      if(r.ok || r.status===201) {
+      if(r.ok || r.status===201 || r.status===204) {
         closeModal('invoiceModal');
-        showToast('Facture '+invNo+' créée', 'success');
+        showToast('Facture '+invNo+' créée ✓', 'success');
         loadAll(refresh);
       } else {
-        showToast('Erreur création facture', 'error');
+        return r.json().then(function(err){
+          var msg = (err && err.message) ? err.message : 'Erreur création facture';
+          showToast(msg, 'error');
+        }).catch(function(){ showToast('Erreur création facture', 'error'); });
       }
-    }).catch(function(){ showToast('Erreur réseau', 'error'); });
+    }).catch(function(e){ showToast('Erreur réseau: '+e.message, 'error'); });
 }
 
 function previewInvoice(id) {
@@ -1487,7 +1490,7 @@ function saveRefund() {
 
   sbFetch('veraluz_refunds', {method:'POST', body:JSON.stringify(body)})
     .then(function(r){
-      if(r.ok || r.status===201) {
+      if(r.ok || r.status===201 || r.status===204) {
         closeModal('refundModal');
         showToast('Demande de remboursement soumise', 'success');
         loadAll(refresh);

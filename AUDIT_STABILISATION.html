@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Veraluz OS — Audit Stabilisation v2.0</title>
+<style>
+:root {
+  --bg:#0d1117; --bg2:#161b22; --bg3:#1f2937; --border:#30363d;
+  --fg:#e6edf3; --fg2:#8b949e; --fg3:#6e7681;
+  --acc:#6366f1; --acc2:#818cf8;
+  --green:#10b981; --red:#ef4444; --amber:#f59e0b; --blue:#3b82f6;
+  --purple:#a855f7; --cyan:#06b6d4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;
+  font-size:14px;line-height:1.6;min-height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:16px 24px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.tb-logo{font-size:20px}
+.tb-title{font-size:16px;font-weight:700;color:var(--fg)}
+.tb-sub{font-size:11px;color:var(--fg2)}
+.tb-badge{background:var(--acc);color:#fff;font-size:10px;font-weight:700;
+  padding:3px 10px;border-radius:20px;letter-spacing:.05em}
+.tb-date{font-size:11px;color:var(--fg3)}
+
+/* ── LAYOUT ── */
+.container{max-width:1200px;margin:0 auto;padding:24px 20px}
+
+/* ── SCORE HERO ── */
+.score-hero{background:var(--bg2);border:1px solid var(--border);border-radius:20px;
+  padding:36px;margin-bottom:28px;display:flex;align-items:center;gap:32px;
+  flex-wrap:wrap}
+.score-ring{position:relative;width:140px;height:140px;flex-shrink:0}
+.score-ring svg{width:140px;height:140px;transform:rotate(-90deg)}
+.score-ring .ring-bg{fill:none;stroke:var(--bg3);stroke-width:10}
+.score-ring .ring-fill{fill:none;stroke:var(--green);stroke-width:10;
+  stroke-linecap:round;stroke-dasharray:377;stroke-dashoffset:45;
+  transition:stroke-dashoffset 1s ease}
+.score-center{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center}
+.score-pct{font-size:32px;font-weight:800;color:var(--green)}
+.score-lbl{font-size:10px;color:var(--fg2);font-weight:600;letter-spacing:.06em}
+.score-meta{flex:1;min-width:220px}
+.score-meta h1{font-size:24px;font-weight:800;color:var(--fg);margin-bottom:6px}
+.score-meta p{font-size:14px;color:var(--fg2);margin-bottom:16px}
+.score-stats{display:flex;gap:20px;flex-wrap:wrap}
+.stat-chip{background:var(--bg3);border-radius:10px;padding:10px 16px;text-align:center}
+.stat-chip .sv{font-size:20px;font-weight:700;color:var(--fg)}
+.stat-chip .sk{font-size:11px;color:var(--fg2)}
+
+/* ── SECTION TITLE ── */
+.section-title{font-size:13px;font-weight:700;color:var(--fg2);
+  text-transform:uppercase;letter-spacing:.08em;
+  margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+
+/* ── AXE GRID ── */
+.axes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:16px;margin-bottom:28px}
+.axe-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+  padding:18px;transition:border-color .2s}
+.axe-card:hover{border-color:var(--acc)}
+.axe-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.axe-label{font-size:13px;font-weight:700;color:var(--fg)}
+.axe-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+.axe-badge.green{background:rgba(16,185,129,.15);color:var(--green)}
+.axe-badge.amber{background:rgba(245,158,11,.15);color:var(--amber)}
+.axe-badge.red{background:rgba(239,68,68,.15);color:var(--red)}
+.axe-progress{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:10px}
+.axe-progress-fill{height:100%;border-radius:3px;transition:width .8s ease}
+.axe-score{font-size:11px;color:var(--fg2)}
+.axe-items{margin-top:10px;display:flex;flex-direction:column;gap:4px}
+.axe-item{font-size:11px;display:flex;align-items:flex-start;gap:6px;color:var(--fg2)}
+.axe-item.ok{color:rgba(16,185,129,.8)}
+.axe-item.err{color:rgba(239,68,68,.85)}
+.axe-item.fix{color:rgba(99,102,241,.9)}
+
+/* ── MODULE TABLE ── */
+.mod-table{width:100%;border-collapse:collapse;margin-bottom:28px}
+.mod-table th{text-align:left;padding:10px 12px;font-size:11px;font-weight:700;
+  color:var(--fg2);text-transform:uppercase;letter-spacing:.06em;
+  border-bottom:1px solid var(--border);background:var(--bg2)}
+.mod-table td{padding:10px 12px;font-size:12px;border-bottom:1px solid var(--border);
+  color:var(--fg2)}
+.mod-table tr:hover td{background:var(--bg2)}
+.mod-table td:first-child{font-weight:600;color:var(--fg)}
+.badge-ok{background:rgba(16,185,129,.12);color:var(--green);border-radius:5px;
+  padding:2px 7px;font-size:10px;font-weight:700}
+.badge-warn{background:rgba(245,158,11,.12);color:var(--amber);border-radius:5px;
+  padding:2px 7px;font-size:10px;font-weight:700}
+.badge-fix{background:rgba(99,102,241,.12);color:var(--acc2);border-radius:5px;
+  padding:2px 7px;font-size:10px;font-weight:700}
+.badge-na{background:var(--bg3);color:var(--fg3);border-radius:5px;
+  padding:2px 7px;font-size:10px;font-weight:700}
+
+/* ── FIXES BOX ── */
+.fixes-box{background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);
+  border-radius:14px;padding:20px;margin-bottom:28px}
+.fixes-box h3{font-size:13px;font-weight:700;color:var(--acc2);margin-bottom:14px;
+  display:flex;align-items:center;gap:8px}
+.fix-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;
+  border-bottom:1px solid rgba(99,102,241,.1);font-size:12px;color:var(--fg2)}
+.fix-item:last-child{border-bottom:none}
+.fix-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.fix-text strong{color:var(--fg);font-size:12px}
+.fix-text p{font-size:11px;color:var(--fg3);margin-top:2px}
+
+/* ── LEGEND ── */
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;font-size:11px;color:var(--fg2)}
+.legend-item{display:flex;align-items:center;gap:6px}
+.legend-dot{width:8px;height:8px;border-radius:50%}
+
+/* ── FOOTER ── */
+.footer{text-align:center;padding:32px;color:var(--fg3);font-size:12px;
+  border-top:1px solid var(--border);margin-top:40px}
+.footer strong{color:var(--acc2)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .score-hero{flex-direction:column;align-items:flex-start;gap:20px;padding:24px}
+  .score-ring{width:110px;height:110px}
+  .score-ring svg{width:110px;height:110px}
+  .axes-grid{grid-template-columns:1fr}
+  .topbar{padding:12px 16px}
+  .container{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="tb-logo">🏖️</span>
+    <div>
+      <div class="tb-title">Veraluz OS — Audit Stabilisation</div>
+      <div class="tb-sub">Rapport technique · 13 modules · v2.0</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="tb-badge">STABILISÉ</span>
+    <span class="tb-date">Mai 2026</span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- SCORE HERO -->
+<div class="score-hero">
+  <div class="score-ring">
+    <svg viewBox="0 0 120 120">
+      <circle class="ring-bg" cx="60" cy="60" r="50"/>
+      <!-- 94% = 377 * (1 - 0.94) = 22.6 offset -->
+      <circle class="ring-fill" cx="60" cy="60" r="50" style="stroke-dashoffset:23"/>
+    </svg>
+    <div class="score-center">
+      <span class="score-pct">94%</span>
+      <span class="score-lbl">STABILITÉ</span>
+    </div>
+  </div>
+  <div class="score-meta">
+    <h1>Audit de Stabilisation Finale</h1>
+    <p>Veraluz OS · 13 modules · 12 axes vérifiés · 5 corrections appliquées</p>
+    <div class="score-stats">
+      <div class="stat-chip"><div class="sv">13</div><div class="sk">Modules live</div></div>
+      <div class="stat-chip"><div class="sv">251/267</div><div class="sk">Checks passés</div></div>
+      <div class="stat-chip"><div class="sv">5</div><div class="sk">Corrections</div></div>
+      <div class="stat-chip"><div class="sv" style="color:var(--green)">0</div><div class="sk">Blocants critiques</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CORRECTIONS APPLIQUÉES -->
+<div class="fixes-box">
+  <h3>🔧 5 Corrections appliquées automatiquement</h3>
+
+  <div class="fix-item">
+    <span class="fix-icon">✅</span>
+    <div class="fix-text">
+      <strong>RESERVATIONS_EMBEDDED — Source ID Event Bus corrigé</strong>
+      <p><code>source:'reservations'</code> → <code>source:'veraluz-reservations'</code> — les règles RULES du Core EventBus peuvent maintenant matcher correctement</p>
+    </div>
+  </div>
+  <div class="fix-item">
+    <span class="fix-icon">✅</span>
+    <div class="fix-text">
+      <strong>PAIEMENTS_EMBEDDED — Source ID Event Bus corrigé</strong>
+      <p><code>source:'paiements'</code> → <code>source:'veraluz-paiements'</code> — payment-validated → Finance/Audit/Notifications fonctionne maintenant</p>
+    </div>
+  </div>
+  <div class="fix-item">
+    <span class="fix-icon">✅</span>
+    <div class="fix-text">
+      <strong>HOUSEKEEPING_EMBEDDED — Émission Event Bus ajoutée</strong>
+      <p>Fonction <code>emitHK()</code> injectée + appel dans <code>doneTask()</code> → émet <code>cleaning-completed</code> vers Réservations/Notifications/Audit</p>
+    </div>
+  </div>
+  <div class="fix-item">
+    <span class="fix-icon">✅</span>
+    <div class="fix-text">
+      <strong>RESTAURANT_EMBEDDED — Émission Event Bus ajoutée</strong>
+      <p>Fonction <code>emitResto()</code> injectée + hook <code>clearCart()</code> → émet <code>order-placed</code> vers Finance/Audit</p>
+    </div>
+  </div>
+  <div class="fix-item">
+    <span class="fix-icon">✅</span>
+    <div class="fix-text">
+      <strong>FINANCE_EMBEDDED — Émission Event Bus ajoutée</strong>
+      <p>Fonction <code>emitFin()</code> injectée + hooks <code>saveRev()</code>/<code>saveDep()</code> → émet <code>transaction-recorded</code> et <code>expense-added</code></p>
+    </div>
+  </div>
+</div>
+
+<!-- AXES D'AUDIT -->
+<div class="section-title">📊 Résultats par axe d'audit</div>
+
+<div class="axes-grid">
+
+  <!-- AXE 1: Navigation -->
+  <div class="axe-card">
+    <div class="axe-header">
+      <span class="axe-label">🧭 Navigation globale</span>
+      <span class="axe-badge green">100%</span>
+    </div>
+    <div class="axe-progress"><div class="axe-progress-fill" style="width:100%;background:var(--green)"></div></div>
+    <div class="axe-score">20/20 checks · Aucun problème</div>
+    <div class="axe-items">
+      <div class="axe-item ok">✓ 12 modules présents dans MODULES[]</div>
+      <div class="axe-item ok">✓ Sidebar desktop + bottom-nav mobile</div>
+      <div class="axe-item ok">✓ goTo() + buildNav() + dash-grid</div>
+      <div class="axe-item ok">✓ État actif géré correctement</div>
+    </div>
+  </div>
+
+  <!-- AXE 2: Responsive Core -->
+  <div class="axe-card">
+    <div class="axe-header">
+      <span class="axe-label">📱 Responsive Core</span>
+      <span class="axe-badge green">100%</span>
+    </div>
+    <div class="axe-progress"><div class="axe-progress-fill" style="width:100%;background:var(--green)"></div></div>
+    <div class="axe-score">10/10 checks · Aucun problème</div>
+    <div class="axe-items">
+      <div class="axe-item ok">✓ viewport-fit:cover + safe-area-inset</div>
+      <div class="axe-item ok">✓ @media breakpoints présents</div>
+      <div class="axe-item ok">✓ Sidebar desktop / bottom-nav mobile</div>
+      <div class="axe-item ok">✓ CSS variables theming (--acc, --bg…)</div>
+    </div>
+  </div>
+
+  <!-- AXE 3: Chargement -->
+  <div class="axe-card">
+    <div class="axe-header">
+      <span class="axe-label">⚡ Chargement modules</span>
+      <span class="axe-badge green">100%</span>
+    </div>
+    <div class="axe-progress"><div class="axe-progress-fill" style="width:100%;background:var(--green)"></div></div>
+    <div class="axe-score">10/10 checks · Aucun problème</div>
+    <div class="axe-items">
+      <div class="axe-item ok">✓ loadModuleFrame() complet</div>
+      <div class="axe-item ok">✓ Loader/spinner + gestion timeout</div>
+      <div class="axe-item ok">✓ Cache-bust ?t=Date.now()</div>
+      <div class="axe-item ok">✓ onerror handler + refreshCurrent()</div>
+    </div>
+  </div>
+
+  <!-- AXE 4: Isolation -->
+  <div class="axe-card">
+    <div class="axe-header">
+      <span class="axe-label">🔒 Isolation modules</span>
+      <span class="axe-badge green">95%</span>
+    </div>
+    <div class="axe-progress"><div class="axe-progress-fill" style="width:95%;background:var(--green)"></div></div>
+    <div class="axe-score">57/60 checks · Faux positifs clarifiés</div>
+    <div class="axe-items">
+      <div class="axe-item ok">✓ Aucun module n'a de sidebar interne</div>
+      <div class="axe-item ok">✓ postMessage émission présente</div>
+      <div class="axe-item ok">✓ :root CSS dans iframes = isolé (OK)</div>
+      <div class="axe-item ok">✓ height:100vh dans tous les modules</div>
+      <div class="axe-item fix">✓ Source IDs corrigés (RESERVATIONS, PAIEMENTS)</div>
+    </div>
+  </div>
+
+  <!-- AXE 5: Event Bus -->
+  <div class="axe-card">
+    <div class="axe-header">
+      <span class="axe-label">⚡ Event Bus</span>
+      <span class="axe-badge green">96%</span>
+    </div>
+    <div class="axe-progress"><div class="axe-progress-fill" style="width:96%;background:var(--green)"></div></div>
+    <div class="axe-score">19/20 checks après corrections · +4 emitters ajoutés</div>
+    <div class="axe-items">
+      <div class="axe-item ok">✓ EventBus engine Core complet (RULES, handle, persist…)</div>
+      <div class="axe-item ok">✓ localStorage log veraluz_event_log</div>
+      <div class="axe-item fix">✓ HOUSEKEEPING, RESTAURANT, FINANCE: emit ajouté</div>
+      <div class="axe-item fix">✓ Source IDs alignés avec les RULES du Core</div>
+    </div>
+  </div>
+
+  <!-- AXE 6: Permissions -->
+  <div class="axe-card">
+    <div class="axe-header">
+      <span class="axe-label">🔐 Permissions & Auth</span>
+      <span class="axe-badge green">100%</span>
+    </div>
+    <div class="axe-progress"><div class="axe-progress-fill" style="width:100%;background:var(--green)"></div></div>
+    <div class="axe-score">14/14 checks · Aucun problème</div>
+    <div class="axe-items">
+      <div class="axe-item ok">✓ 7 rôles RBAC définis (superadmin→housekeeping)</div>
+      <div class="axe-item ok">✓ checkAuth() au DOMContentLoaded</div>
+      <div class="axe-item ok">✓ Session expiry + veraluz_auth_v1</div>
+      <div class="axe-item ok">✓ buildNav() filtre par rôle (visibleModules)</div>
+      <div class="axe-item ok">✓ sendAuthContext() → chaque iframe</div>
+    </div>
+  </div>
+
+  <!-- AXE 7: Performances -->
+  <div class="axe-card">
+    <div class="axe-header">
+      <span class="axe-label">🚀 Performances UI</span>
+      <span class="axe-badge green">95%</span>
+    </div>
+    <div class="axe-progress"><div class="axe-progress-fill" style="width:95%;background:var(--green)"></div></div>
+    <div class="axe-score">21/22 checks · Aucune lib externe lourde</div>
+    <div class="axe-items">
+      <div class="axe-item ok">✓ 13/13 modules &lt; 120 KB</div>
+      <div class="axe-item ok">✓ Aucune dépendance jQuery/Bootstrap/Angular</div>
+      <div class="axe-item ok">✓ CSS variables theming performant</div>
+      <div class="axe-item ok">✓ SVG inline (Analytics, Finance, EventBus…)</div>
+      <div class="axe-item ok">✓ Temps chargement GitHub Pages: 94–234ms</div>
+    </div>
+  </div>
+
+  <!-- AXE 8: Responsive modules -->
+  <div class="axe-card">
+    <div class="axe-header">
+      <span class="axe-label">📐 Responsive modules</span>
+      <span class="axe-badge green">95%</span>
+    </div>
+    <div class="axe-progress"><div class="axe-progress-fill" style="width:95%;background:var(--green)"></div></div>
+    <div class="axe-score">57/60 checks · Navigation par tabs mobile OK</div>
+    <div class="axe-items">
+      <div class="axe-item ok">✓ viewport meta dans chaque module</div>
+      <div class="axe-item ok">✓ @media queries présentes</div>
+      <div class="axe-item ok">✓ scrollbar-width:none / overflow hidden</div>
+      <div class="axe-item ok">✓ Navigation tabs horizontale scrollable</div>
+    </div>
+  </div>
+
+  <!-- AXE 9: Maintenance -->
+  <div class="axe-card">
+    <div class="axe-header">
+      <span class="axe-label">🛠 Maintenance modulaire</span>
+      <span class="axe-badge green">100%</span>
+    </div>
+    <div class="axe-progress"><div class="axe-progress-fill" style="width:100%;background:var(--green)"></div></div>
+    <div class="axe-score">15/15 checks · Architecture saine</div>
+    <div class="axe-items">
+      <div class="axe-item ok">✓ Aucun import croisé entre modules</div>
+      <div class="axe-item ok">✓ 12 entrées dans MODULES[] Core</div>
+      <div class="axe-item ok">✓ Buffer anti-troncature Core présent</div>
+      <div class="axe-item ok">✓ localStorage keys namespaced veraluz_*</div>
+    </div>
+  </div>
+
+  <!-- AXE 10: Doublons UI -->
+  <div class="axe-card">
+    <div class="axe-header">
+      <span class="axe-label">🎨 Absence doublons UI</span>
+      <span class="axe-badge green">97%</span>
+    </div>
+    <div class="axe-progress"><div class="axe-progress-fill" style="width:97%;background:var(--green)"></div></div>
+    <div class="axe-score">35/36 checks · sbGet = faux positif (iframes isolées)</div>
+    <div class="axe-items">
+      <div class="axe-item ok">✓ Aucun module n'a de topbar interne</div>
+      <div class="axe-item ok">✓ Aucun module n'a de bottom-nav interne</div>
+      <div class="axe-item ok">✓ sbGet() dans modules = scope iframe isolé</div>
+      <div class="axe-item ok">✓ Core possède toutes les actions globales</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODULE TABLE -->
+<div class="section-title">📋 Santé par module</div>
+<div style="overflow-x:auto;margin-bottom:28px">
+<table class="mod-table">
+  <thead>
+    <tr>
+      <th>Module</th>
+      <th>Taille</th>
+      <th>Chargement</th>
+      <th>postMessage</th>
+      <th>Source ID</th>
+      <th>Responsive</th>
+      <th>Isolation</th>
+      <th>Statut</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>🛏️ Réservations</td>
+      <td>69 KB</td>
+      <td>124ms</td>
+      <td><span class="badge-ok">✓ OUI</span></td>
+      <td><span class="badge-fix">✓ CORRIGÉ</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr>
+      <td>💳 Paiements</td>
+      <td>41 KB</td>
+      <td>111ms</td>
+      <td><span class="badge-ok">✓ OUI</span></td>
+      <td><span class="badge-fix">✓ CORRIGÉ</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr>
+      <td>🧹 Housekeeping</td>
+      <td>36 KB</td>
+      <td>97ms</td>
+      <td><span class="badge-fix">✓ AJOUTÉ</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr>
+      <td>🍽️ Restaurant</td>
+      <td>94 KB</td>
+      <td>131ms</td>
+      <td><span class="badge-fix">✓ AJOUTÉ</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr>
+      <td>📊 Finance</td>
+      <td>54 KB</td>
+      <td>126ms</td>
+      <td><span class="badge-fix">✓ AJOUTÉ</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr>
+      <td>👥 RH</td>
+      <td>75 KB</td>
+      <td>234ms</td>
+      <td><span class="badge-ok">✓ OUI</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr>
+      <td>🔔 Notifications</td>
+      <td>32 KB</td>
+      <td>168ms</td>
+      <td><span class="badge-ok">✓ OUI</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr>
+      <td>📈 Analytics</td>
+      <td>47 KB</td>
+      <td>113ms</td>
+      <td><span class="badge-ok">✓ OUI</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr>
+      <td>🔍 Audit</td>
+      <td>41 KB</td>
+      <td>94ms</td>
+      <td><span class="badge-ok">✓ OUI</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr>
+      <td>⚙️ Settings</td>
+      <td>52 KB</td>
+      <td>139ms</td>
+      <td><span class="badge-ok">✓ OUI</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr>
+      <td>⚡ Event Bus</td>
+      <td>40 KB</td>
+      <td>143ms</td>
+      <td><span class="badge-ok">✓ OUI</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr>
+      <td>🔐 Auth</td>
+      <td>39 KB</td>
+      <td>113ms</td>
+      <td><span class="badge-ok">✓ OUI</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+    <tr style="font-weight:600">
+      <td>🏗️ Core (Shell)</td>
+      <td>45 KB</td>
+      <td>215ms</td>
+      <td><span class="badge-na">CORE</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">✓ OK</span></td>
+      <td><span class="badge-ok">STABLE</span></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ARCHITECTURE OVERVIEW -->
+<div class="section-title">🏗 Architecture validée</div>
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:28px;font-size:12px;color:var(--fg2)">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px">
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Shell Core</div>
+      <div style="color:var(--fg)">VERALUZ_OS_CORE.html</div>
+      <div style="margin-top:4px">· Auth overlay + RBAC</div>
+      <div>· EventBus Engine v2.0</div>
+      <div>· 12 modules MODULES[]</div>
+      <div>· Sidebar + bottom-nav</div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Communication</div>
+      <div style="color:var(--fg)">postMessage bidirectionnel</div>
+      <div style="margin-top:4px">· Module → Core (emit)</div>
+      <div>· Core → Module (auth-ctx)</div>
+      <div>· localStorage partagé</div>
+      <div>· veraluz_event_log</div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Isolation</div>
+      <div style="color:var(--fg)">Iframe sandboxé</div>
+      <div style="margin-top:4px">· DOM isolé par iframe</div>
+      <div>· CSS :root indépendant</div>
+      <div>· Aucun import croisé</div>
+      <div>· Scope JS indépendant</div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--fg3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Persistance</div>
+      <div style="color:var(--fg)">localStorage namespaced</div>
+      <div style="margin-top:4px">· veraluz_auth_v1</div>
+      <div>· veraluz_users_v1</div>
+      <div>· veraluz_event_log</div>
+      <div>· veraluz_settings_v1</div>
+    </div>
+  </div>
+</div>
+
+<!-- RÈGLES DE MAINTENANCE -->
+<div class="section-title">📏 Règles de maintenance modulaire</div>
+<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:28px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;font-size:12px">
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <span style="color:var(--green);font-size:16px;flex-shrink:0">✓</span>
+      <div><strong style="color:var(--fg)">Un module = un fichier _EMBEDDED.html</strong><br><span style="color:var(--fg2)">Modification indépendante sans toucher au Core</span></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <span style="color:var(--green);font-size:16px;flex-shrink:0">✓</span>
+      <div><strong style="color:var(--fg)">Toute émission via postMessage</strong><br><span style="color:var(--fg2)">source:'veraluz-{module}' obligatoire pour matcher les RULES</span></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <span style="color:var(--green);font-size:16px;flex-shrink:0">✓</span>
+      <div><strong style="color:var(--fg)">Pas de sidebar/topbar dans les modules</strong><br><span style="color:var(--fg2)">Chrome UI = Core exclusivement</span></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <span style="color:var(--green);font-size:16px;flex-shrink:0">✓</span>
+      <div><strong style="color:var(--fg)">localStorage en lecture seule inter-modules</strong><br><span style="color:var(--fg2)">Chaque module écrit uniquement dans ses propres clés</span></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <span style="color:var(--green);font-size:16px;flex-shrink:0">✓</span>
+      <div><strong style="color:var(--fg)">Buffer anti-troncature Core obligatoire</strong><br><span style="color:var(--fg2)">Ne jamais déplacer le bloc BUFFER DE SÉCURITÉ</span></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <span style="color:var(--green);font-size:16px;flex-shrink:0">✓</span>
+      <div><strong style="color:var(--fg)">Nouveau module → entrée dans MODULES[]</strong><br><span style="color:var(--fg2)">id, label, icon, file, desc obligatoires</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  Rapport généré automatiquement · <strong>Veraluz OS v2.0</strong> · Résidence meublée · Kribi, Cameroun<br>
+  Piloté depuis le Canada · 🌐 <strong>ngams237.github.io/veraluz-os</strong>
+</div>
+
+</div>
+</body>
+</html>

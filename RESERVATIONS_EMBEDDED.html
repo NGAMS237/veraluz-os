@@ -516,31 +516,46 @@ function sbFetch(path, opts) {
 
 /* ── UNIT IMAGE PRELOADING ── */
 var UNIT_IMG_BASE = 'https://ngams237.github.io/veraluz-os/assets/unites/';
+// Keyword → images mapping (ordre : du plus spécifique au plus générique)
 var UNIT_IMG_MAP = [
   {kw:'studio',      imgs:['studio_salon.jpg','studio_alt.jpg']},
   {kw:'villa',       imgs:['villa_piscine.jpg','villa_loft.jpg']},
   {kw:'suite',       imgs:['suite_salon.jpg','suite_art.jpg','suite_royal.jpg','suite_luxe.jpg']},
   {kw:'appartement', imgs:['apt_salon.jpg','apt_mezzanine.jpg']},
+  {kw:'familial',    imgs:['apt_salon.jpg','apt_mezzanine.jpg']},
   {kw:'vue mer',     imgs:['mer_salon.jpg','mer_entree.jpg']},
+  {kw:'mer',         imgs:['mer_salon.jpg','mer_entree.jpg']},
   {kw:'standard',    imgs:['std_salon.jpg','std_duplex.jpg']},
+  {kw:'deluxe',      imgs:['studio_salon.jpg','studio_alt.jpg']},
+  {kw:'chambre',     imgs:['std_salon.jpg','std_duplex.jpg']},  // Chambre 101, 102...
   {kw:'décor',       imgs:['decor_sofa.jpg','decor_buffet.jpg']}
 ];
 function preloadRoomImages() {
   _rooms.forEach(function(r) {
-    // Derive ikey if missing
+    // Derive ikey from name if missing
     if(!r.ikey) {
       var n = (r.name||'').toLowerCase();
-      r.ikey = n.indexOf('studio')>=0?'studio':n.indexOf('villa')>=0?'villa':n.indexOf('suite')>=0?'suite':n.indexOf('appartement')>=0?'apt':n.indexOf('mer')>=0?'sea':'std';
+      r.ikey = n.indexOf('studio')>=0?'studio'
+              :n.indexOf('villa')>=0?'villa'
+              :n.indexOf('suite')>=0?'suite'
+              :n.indexOf('appartement')>=0||n.indexOf('familial')>=0?'apt'
+              :n.indexOf('mer')>=0?'sea'
+              :'std';
     }
     // Only seed if room has no images yet
     if(r._images && r._images.length) return;
-    var n2 = (r.name||'').toLowerCase();
+    var n2 = (r.name||' ').toLowerCase() + ' ' + (r.type||'').toLowerCase();
     for(var i=0;i<UNIT_IMG_MAP.length;i++){
       if(n2.indexOf(UNIT_IMG_MAP[i].kw)>=0){
         r._images = UNIT_IMG_MAP[i].imgs.map(function(f){return UNIT_IMG_BASE+f;});
         localStorage.setItem('vlz_room_images_'+r.id, JSON.stringify(r._images));
         break;
       }
+    }
+    // Fallback absolu : images de chambre standard
+    if(!r._images || !r._images.length) {
+      r._images = [UNIT_IMG_BASE+'std_salon.jpg', UNIT_IMG_BASE+'std_duplex.jpg'];
+      localStorage.setItem('vlz_room_images_'+r.id, JSON.stringify(r._images));
     }
   });
 }
@@ -1463,21 +1478,4 @@ function openSyncModal() {
         '</div>'+
       '</div>';
     }).join('');
-    openModal('syncModal');
-  } catch(e) { showToast('Erreur lecture sync', 'error'); }
-}
-
-function importSyncRez(idx) {
-  try {
-    var sync = JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
-    var s = sync[idx];
-    if(!s) return;
-    // Import as pending reservation
-    var newRes = Object.assign({}, s, {status:'pending', source:'direct_website', id:'sync-'+Date.now(), created_at:new Date().toISOString()});
-    newRes.reference = newRes.reference || ('WEB-'+Date.now().toString(36).toUpperCase().slice(-6));
-    sbFetch('veraluz_reservations', {method:'POST', body:JSON.stringify(newRes)}).catch(function(){});
-    _reservations.unshift(newRes);
-    sync.splice(idx,1);
-    localStorage.setItem('vlz_booking_sync', JSON.stringify(sync));
-    if(!sync.length) {
-      var badge =
+    openModal('syncModal')

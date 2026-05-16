@@ -773,7 +773,15 @@ function startTask(id) {
     }).catch(function(){ toast('Erreur', false); });
 }
 
+
+/* ── Event Bus emit ──────────────────────────────────────────── */
+function emitHK(type, data) {
+  try { window.parent.postMessage({ source:'veraluz-housekeeping', type:type, data:data||{} }, '*'); }
+  catch(e) {}
+}
+
 function doneTask(id) {
+  emitHK('cleaning-completed', { taskId:id });
   var now = new Date().toISOString();
   sbPatch('veraluz_housekeeping', id, { status:'done', completed_at:now, updated_at:now })
     .then(function(){

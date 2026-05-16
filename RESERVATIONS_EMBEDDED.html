@@ -481,6 +481,12 @@ function normalizeRes(r) {
   r._normalized = true;
   return r;
 }
+
+function escHtml(s) {
+  if(s==null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 // Map internal format → Supabase columns for POST/PATCH
 function toSbRes(r) {
   var statusOut = {checked_in:'checkedin', checked_out:'checkedout'}[r.status] || r.status || 'pending';
@@ -1529,7 +1535,8 @@ function openSyncModal() {
         '</div>'+
       '</div>';
     }).join('');
-    openModal('syncModal')
+    openModal('syncModal');
+  }
 }
 
 /* ── INIT ── */

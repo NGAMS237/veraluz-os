@@ -657,6 +657,9 @@ var _restaurant = [];
 var _invoices = [];
 var _refunds = [];
 var _caisse = [];
+/* ── Status helpers (Restaurant écrit 'paye'/'pret', normalisation bilingue) ── */
+function restoIsPaid(s){ return s==='paid'||s==='paye'; }
+function restoIsOpen(s){ return s==='open'||s==='pret'||s==='ouvert'||s==='en_cours'||s==='new'; }
 var _activeTab = 'transactions';
 
 /* ── UTILITIES ── */
@@ -859,9 +862,9 @@ function updateBadges() {
   var pendingRef = _refunds.filter(function(r){return r.status==='pending';}).length;
   var unpaidRez = _reservations.filter(function(r){
     var total = parseInt(r.total)||0, paid = parseInt(r.paid)||0;
-    return paid < total && r.status !== 'checkedout';
+    return paid < total && r.status !== 'cancelled';
   }).length;
-  var openResto = _restaurant.filter(function(o){return o.status==='open';}).length;
+  var openResto = _restaurant.filter(function(o){return restoIsOpen(o.status);}).length;
 
   var bTx = document.getElementById('badge-tx');
   var bRez = document.getElementById('badge-rez');
@@ -969,7 +972,7 @@ function renderReservationsTab() {
         '<div class="progress-wrap"><div class="progress-bar'+(pct>=100?' full':pct<30?' low':'')+'" style="width:'+pct+'%"></div></div>'+
       '</div>'+
       '<div class="card-body">'+
-        (balance>0 && r.status!=='checkedout' ?
+        (balance>0 ?
           '<button class="btn btn-primary btn-sm" data-rid="'+esc(r.id)+'" data-name="'+safeName+'" data-balance="'+balance+'" onclick="openPayModalForRez(this.dataset.rid,this.dataset.name,+this.dataset.balance)">Payer</button>' : '')+
         '<button class="btn btn-ghost btn-sm" data-rid="'+esc(r.id)+'" onclick="openInvoiceForRez(this.dataset.rid)">Facture</button>'+
       '</div>'+
@@ -985,10 +988,14 @@ function renderRestaurant() {
   var list = _restaurant.filter(function(o) {
     var q = search.toLowerCase();
     var matchQ = !q || (o.table_name||'').toLowerCase().includes(q) || (o.room_number||'').toLowerCase().includes(q);
-    return matchQ && (sFilter==='all'||o.status===sFilter) && (tFilter==='all'||o.type===tFilter);
+    var matchS = sFilter==='all' ||
+      (sFilter==='open' && restoIsOpen(o.status)) ||
+      (sFilter==='paid' && restoIsPaid(o.status)) ||
+      o.status===sFilter;
+    return matchQ && matchS && (tFilter==='all'||o.type===tFilter);
   });
-  var openO = _restaurant.filter(function(o){return o.status==='open';});
-  var paidO = _restaurant.filter(function(o){return o.status==='paid';});
+  var openO = _restaurant.filter(function(o){return restoIsOpen(o.status);});
+  var paidO = _restaurant.filter(function(o){return restoIsPaid(o.status);});
   var totalRev = paidO.reduce(function(s,o){return s+(parseFloat(o.total)||parseFloat(o.total_amount)||0);},0);
   var openAmt = openO.reduce(function(s,o){return s+(parseFloat(o.total)||parseFloat(o.total_amount)||0);},0);
   var sg = document.getElementById('resto-stats');
@@ -1021,7 +1028,7 @@ function renderRestaurant() {
       '</div>'+
       (itemsHtml ? '<div class="card-body" style="margin-bottom:8px">'+itemsHtml+'</div>' : '')+
       '<div class="card-body">'+
-        (o.status==='open' ?
+        (restoIsOpen(o.status) ?
           '<button class="btn btn-success btn-sm" data-id="'+esc(o.id)+'" data-total="'+total+'" onclick="payRestoOrder(this.dataset.id,+this.dataset.total)">Encaisser</button>'+
           '<button class="btn btn-ghost btn-sm" data-id="'+esc(o.id)+'" onclick="roomChargeOrder(this.dataset.id)">Chambre</button>' : '')+
         '<span style="font-size:11px;color:var(--text2)">'+esc(methodLabel(o.payment_method))+'</span>'+
@@ -1581,18 +1588,25 @@ function saveCaisseEntry() {
 
 /* ── RESTAURANT ACTIONS ── */
 function payRestoOrder(id, total) {
+  var o = _restaurant.find(function(x){return x.id===id;});
+  var tableName = o ? (o.table_name||o.table_number||'Table') : 'Table';
+  var meth = 'cash'; // default; could show a method picker in future
   sbFetch('veraluz_restaurant_orders?id=eq.'+id, {
     method:'PATCH',
-    body:JSON.stringify({status:'paid', paid_at:new Date().toISOString()})
+    body:JSON.stringify({status:'paye', payment_method:meth, paid_at:new Date().toISOString()})
   }).then(function(r){
     if(r.ok) {
-      var o = _restaurant.find(function(x){return x.id===id;});
-      if(o) o.status = 'paid';
-      // Also create a payment entry
+      if(o) o.status = 'paye';
+      /* Écriture dans veraluz_payments pour traçabilité financière */
       sbFetch('veraluz_payments', {method:'POST', body:JSON.stringify({
-        amount: Math.round(total), method:'cash', payment_type:'restaurant',
-        source:'restaurant', status:'validated', guest_name:'Restaurant',
-        currency:'XAF', notes:'Commande '+id
+        amount: Math.round(total),
+        method: meth,
+        payment_type: 'restaurant',
+        source: 'restaurant',
+        status: 'validated',
+        guest_name: tableName,
+        currency: 'XAF',
+        notes: 'Commande '+id.slice(-6)+' · '+tableName
       })});
       showToast('Commande encaissée · '+fmtNum(total), 'success');
       renderRestaurant(); updateBadges();

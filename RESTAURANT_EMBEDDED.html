@@ -877,7 +877,7 @@ function addCart(pid){
   renderCart();toast(p.name+' ajout&#233;','ok');
 }
 function chgQty(i,d){CART[i].q+=d;if(CART[i].q<=0)CART.splice(i,1);renderCart();}
-function clearCart(){CART=[];cartOrd=null;renderCart();}
+function clearCart(){emitResto('order-placed',{ts:new Date().toISOString()});CART=[];cartOrd=null;renderCart();}
 function cartTot(){return CART.reduce(function(s,c){return s+c.p.price*c.q;},0);}
 function renderCart(){
   document.getElementById('cart-tot').textContent=fmt(cartTot());
@@ -1642,6 +1642,8 @@ function renderResa(){
   }).join('');
 }
 
+
+function emitResto(type,data){try{window.parent.postMessage({source:'veraluz-restaurant',type:type,data:data||{}}, '*');}catch(e){}}
 </script>
 </body>
 </html>

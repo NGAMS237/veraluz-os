@@ -1322,9 +1322,19 @@ function syncWithReservations() {
   var tomorrowStr = tomorrow.toISOString().slice(0,10);
 
   _reservations.forEach(function(r) {
-    // Checkout today (or status already checked-out with today's date) → ensure cleaning task
+    // Checkout today → ensure cleaning task (only today, not old checkouts)
     if((r.status==='checkedout'||r.status==='checked_out') && r.check_out===todayStr) {
       ensureCleaningTask(r, todayStr, tomorrowStr);
+    }
+    // Checkout yesterday → if cleaning done, ensure room is available
+    var yesterday=new Date(); yesterday.setDate(yesterday.getDate()-1);
+    var yStr=yesterday.toISOString().slice(0,10);
+    if((r.status==='checkedout'||r.status==='checked_out') && r.check_out===yStr) {
+      var u=_units.find(function(x){return x.id===r.unit_id;});
+      if(u && (u.hk_status==='dirty'||u.hk_status==='cleaning')) {
+        updateUnitHkStatus(r.unit_id,'available');
+        u.hk_status='available';
+      }
     }
     // Currently occupied → mark room as occupied (only if clean/available, not dirty/cleaning/maintenance)
     if((r.status==='checkedin'||r.status==='checked_in') && r.check_in<=todayStr && r.check_out>todayStr) {
@@ -1342,11 +1352,29 @@ function syncWithReservations() {
 }
 
 function ensureCleaningTask(r, todayStr, tomorrowStr) {
-  // Check if a pending/in_progress cleaning task already exists for this unit today
+  // Check if any cleaning task exists for this unit today (active OR already done/cancelled)
+  // This prevents the infinite-loop where sync recreates tasks after they're completed
   var existing = _tasks.filter(function(t){
-    return t.unit_id===r.unit_id && t.type==='cleaning' && isActive(t);
+    if(t.unit_id !== r.unit_id || t.type !== 'cleaning') return false;
+    var sf = t.scheduled_for || '';
+    var isToday = sf === todayStr || sf === r.check_out;
+    return isActive(t) || (isToday && (t.status==='done'||t.status==='completed'||t.status==='cancelled'));
   });
-  if(existing.length) return;
+
+  if(existing.length) {
+    // If all non-cancelled tasks are done → room is clean, ensure hk_status = available
+    var nonCancelled = existing.filter(function(t){return t.status!=='cancelled';});
+    var allDone = nonCancelled.length > 0 &&
+      nonCancelled.every(function(t){return t.status==='done'||t.status==='completed';});
+    if(allDone) {
+      var u = _units.find(function(x){return x.id===r.unit_id;});
+      if(u && (u.hk_status==='dirty'||u.hk_status==='cleaning')) {
+        updateUnitHkStatus(r.unit_id,'available');
+        u.hk_status = 'available';
+      }
+    }
+    return;
+  }
 
   // Check if another check-in is today or tomorrow → affects priority
   var nextArrival = _reservations.find(function(x){
@@ -1378,7 +1406,8 @@ function ensurePreparationTask(r) {
   var existing = _tasks.filter(function(t){
     return t.unit_id===r.unit_id &&
       (t.type==='preparation'||t.type==='vip') &&
-      isActive(t) && t.scheduled_for===r.check_in;
+      t.scheduled_for===r.check_in &&
+      (isActive(t)||t.status==='done'||t.status==='completed'||t.status==='cancelled');
   });
   if(existing.length) return;
 

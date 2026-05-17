@@ -794,6 +794,17 @@ function setRoomStatus(roomId,status){
 }
 
 /* ── Modals ── */
+function openNewRez(roomId){
+  var today=todayStr();
+  var tomorrow=new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  var tomStr=tomorrow.toISOString().slice(0,10);
+  _nf={step:1, check_in:today, check_out:tomStr, guests:2};
+  if(roomId){
+    var room=_rooms.find(function(r){return r.id===roomId;});
+    if(room){ _nf.unit_id=room.id; _nf.unit_name=room.name; _nf.price=room.price; _nf.nights=1; _nf.total=room.price; _nf.step=3; }
+  }
+  goTab('nouvelle');
+}
 function openRoomModal(roomId){
   var room=_rooms.find(function(r){return r.id===roomId;}); if(!room) return;
   var imgs=room._images||[];
@@ -803,19 +814,59 @@ function openRoomModal(roomId){
   var statusOpts=Object.keys(ROOM_STATUS).map(function(k){
     return '<option value="'+k+'"'+(room._dynStatus===k?' selected':'')+'>'+ROOM_STATUS[k].label+'</option>';
   }).join('');
-  var roomRez=_rez.filter(function(r){return r.unit_id===roomId&&['pending','confirmed','checkedin','checked_in'].includes(r.status);});
-  var rezHtml=roomRez.length?roomRez.map(function(r){
-    var s=statusInfo(r.status);
-    return '<div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:6px"><div style="font-weight:700">'+esc(r.guest_name||'—')+'</div><div style="font-size:12px;color:var(--text2)">'+fmtFull(r.check_in)+' → '+fmtFull(r.check_out)+'</div><div style="font-size:11px;color:'+s.color+'">'+s.label+'</div></div>';
-  }).join(''):'<p style="color:var(--text3);font-size:12px">Aucune réservation active</p>';
+
+  var activeRez=_rez.filter(function(r){
+    return r.unit_id===roomId&&['pending','confirmed','checkedin','checked_in'].includes(r.status);
+  });
+
+  var rezSection='';
+  if(activeRez.length){
+    rezSection=activeRez.map(function(r){
+      var s=statusInfo(r.status);
+      var nights=r.nights||diffDays(r.check_in,r.check_out)||1;
+      var balance=(r.total||0)-(r.paid||0);
+      var balColor=balance<=0?'var(--success,#22c55e)':'var(--danger,#ef4444)';
+      var balLabel=balance<=0?'Soldée ✓':fmtMoney(balance)+' restant';
+      return '<div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:8px">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
+        '<div style="font-weight:700;font-size:15px">'+esc(r.guest_name||'—')+'</div>'+
+        '<span style="background:'+s.color+';color:#fff;padding:2px 8px;border-radius:12px;font-size:11px">'+s.label+'</span>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;color:var(--text2);margin-bottom:8px">'+
+        (r.guest_phone?'<div>📞 <span style="color:var(--text)">'+esc(r.guest_phone)+'</span></div>':'<div></div>')+
+        (r.guest_email?'<div>✉ <span style="color:var(--text)">'+esc(r.guest_email)+'</span></div>':'<div></div>')+
+        '<div>🗓 Arrivée: <span style="color:var(--text)">'+fmtFull(r.check_in)+'</span></div>'+
+        '<div>🗓 Départ: <span style="color:var(--text)">'+fmtFull(r.check_out)+'</span></div>'+
+        '<div>🌙 Nuits: <span style="color:var(--text)">'+nights+'</span></div>'+
+        '<div>👥 Voyageurs: <span style="color:var(--text)">'+(r.guests||1)+' pers.</span></div>'+
+        '</div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:10px">'+
+        '<div style="font-size:12px;color:var(--text2)">Total: <strong style="color:var(--text)">'+fmtMoney(r.total||0)+'</strong></div>'+
+        '<div style="font-size:12px;color:var(--text2)">Payé: <strong style="color:var(--text)">'+fmtMoney(r.paid||0)+'</strong></div>'+
+        '<div style="font-size:12px;color:'+balColor+';font-weight:700">'+balLabel+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:8px">'+
+        '<button onclick="closeModal(\'roomModal\');openRezModal(\''+r.id+'\')" style="flex:1;padding:7px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--text);cursor:pointer;font-size:12px">📋 Voir réservation</button>'+
+        (balance>0?'<button onclick="closeModal(\'roomModal\');openRezModal(\''+r.id+'\',\'paiement\')" style="flex:1;padding:7px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:12px;font-weight:600">💳 Encaisser</button>':'')+
+        '</div>'+
+        '</div>';
+    }).join('');
+  } else {
+    rezSection='<div style="text-align:center;padding:20px;color:var(--text3)">'+
+      '<div style="font-size:28px;margin-bottom:8px">🛏</div>'+
+      '<div style="margin-bottom:12px">Aucune réservation active</div>'+
+      '<button onclick="closeModal(\'roomModal\');openNewRez(\''+roomId+'\')" style="padding:8px 16px;border-radius:6px;border:none;background:var(--accent);color:#fff;cursor:pointer">+ Nouvelle réservation</button>'+
+      '</div>';
+  }
+
   document.getElementById('roomModalContent').innerHTML=
     '<div class="modal-title">'+esc(room.name||'Chambre')+'</div>'+
     '<div class="modal-sub">'+(room.type||'Chambre')+' · '+(room.capacity||2)+' pers. · '+fmtMoney(room.price)+'</div>'+
     '<div class="modal-section"><div class="modal-section-title">Statut</div><select class="form-select" onchange="setRoomStatus(\''+roomId+'\',this.value)" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:7px 10px;width:100%">'+statusOpts+'</select></div>'+
+    '<div class="modal-section"><div class="modal-section-title">Réservation en cours</div>'+rezSection+'</div>'+
     '<div class="modal-section"><div class="modal-section-title">Photos</div><div class="img-list">'+
     (thumbs||'<span style="color:var(--text3);font-size:12px">Aucune photo</span>')+
-    '</div><div class="img-add-row"><input class="img-url-input" id="imgInput-'+roomId+'" placeholder="URL photo…"><button class="img-add-btn" onclick="addImg(\''+roomId+'\')">+</button></div></div>'+
-    '<div class="modal-section"><div class="modal-section-title">Réservations actives</div>'+rezHtml+'</div>';
+    '</div><div class="img-add-row"><input class="img-url-input" id="imgInput-'+roomId+'" placeholder="URL photo…"><button class="img-add-btn" onclick="addImg(\''+roomId+'\')">+</button></div></div>';
   openModal('roomModal');
 }
 function addImg(roomId){
@@ -835,7 +886,7 @@ function removeImg(roomId,idx){
 var _openRezId = null;
 var _rezPayMethod = 'cash';
 
-function openRezModal(rezId){
+function openRezModal(rezId,_tab){
   _openRezId = rezId;
   _rezPayMethod = 'cash';
   var r=_rez.find(function(x){return x.id===rezId;}); if(!r) return;
@@ -903,6 +954,7 @@ function openRezModal(rezId){
   document.getElementById('rezModalContent').innerHTML = html;
   openModal('rezModal');
   loadPayHistory(rezId);
+  if(_tab) setTimeout(function(){switchRezTab(_tab);},50);
 }
 
 function switchRezTab(tab){

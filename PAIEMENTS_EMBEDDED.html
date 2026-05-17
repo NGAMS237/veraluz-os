@@ -1107,8 +1107,11 @@ function renderRefunds() {
         '<span style="font-size:11px;color:var(--text2)">'+esc(methodLabel(r.method))+'</span>'+
         '<div style="flex:1"></div>'+
         (r.status==='pending' ?
-          '<button class="btn btn-success btn-sm" data-id="'+esc(r.id)+'" onclick="approveRefund(this.dataset.id)">Approuver</button>'+
-          '<button class="btn btn-danger btn-sm" data-id="'+esc(r.id)+'" onclick="rejectRefund(this.dataset.id)">Rejeter</button>' : '')+
+          '<button class="btn btn-success btn-sm" data-id="'+esc(r.id)+'" onclick="approveRefund(this.dataset.id)">✓ Approuver</button>'+
+          '<button class="btn btn-danger btn-sm" data-id="'+esc(r.id)+'" onclick="rejectRefund(this.dataset.id)">✗ Rejeter</button>' :
+         r.status==='approved' ?
+          '<span style="font-size:11px;color:var(--warning);margin-right:auto">⏳ En attente de paiement</span>'+
+          '<button class="btn btn-primary btn-sm" data-id="'+esc(r.id)+'" onclick="processRefund(this.dataset.id)">💸 Marquer traité</button>' : '')+
       '</div>'+
     '</div>';
   }).join('');
@@ -1400,6 +1403,7 @@ function saveInvoice() {
 
   if(!client) { showToast('Veuillez saisir le nom du client', 'error'); return; }
   if(amount <= 0) { showToast('Montant invalide', 'error'); return; }
+  if(!reason.trim()) { showToast('Veuillez saisir le motif du remboursement', 'error'); return; }
 
   var invNo = 'VLZ-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-5);
   var body = {
@@ -1515,7 +1519,7 @@ function saveRefund() {
         showToast('Demande de remboursement soumise', 'success');
         loadAll(refresh);
       } else {
-        showToast('Erreur soumission', 'error');
+        r.json().then(function(e){showToast('Erreur: '+(e&&e.message||'soumission'),'error');}).catch(function(){showToast('Erreur soumission','error');});
       }
     }).catch(function(){ showToast('Erreur réseau', 'error'); });
 }
@@ -1544,6 +1548,33 @@ function rejectRefund(id) {
       if(ref) ref.status = 'rejected';
       showToast('Remboursement rejeté', 'error');
       renderRefunds(); updateBadges();
+    }
+  });
+}
+
+function processRefund(id) {
+  if(!confirm('Confirmer que le remboursement a bien été effectué ?')) return;
+  sbFetch('veraluz_refunds?id=eq.'+id, {
+    method:'PATCH',
+    body:JSON.stringify({status:'processed', approved_at:new Date().toISOString()})
+  }).then(function(r){
+    if(r.ok) {
+      var ref = _refunds.find(function(x){return x.id===id;});
+      if(ref) ref.status = 'processed';
+      // Also write a caisse sortie entry for traceability
+      var body = {
+        date: new Date().toISOString().slice(0,10),
+        type: 'sortie',
+        montant: ref ? ref.amount : 0,
+        libelle: 'Remboursement — '+(ref&&ref.guest_name||'client'),
+        source: 'remboursement',
+        created_by: 'Réception'
+      };
+      sbFetch('veraluz_caisse', {method:'POST', body:JSON.stringify(body)});
+      showToast('Remboursement marqué traité ✓', 'success');
+      renderRefunds(); updateBadges();
+    } else {
+      showToast('Erreur mise à jour', 'error');
     }
   });
 }

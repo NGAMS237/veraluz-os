@@ -130,6 +130,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div class="sec-hdr">
         <span class="sec-title">&#128200; Vue d&#39;ensemble</span>
         <span id="dash-date" style="font-size:11px;color:var(--text3);"></span>
+        <button onclick="loadAll()" style="margin-left:8px;background:var(--acc1);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">&#8635; Actualiser</button>
       </div>
       <!-- KPIs -->
       <div class="card-row">
@@ -410,7 +411,7 @@ function openMd(id){document.getElementById(id).classList.add('on');}
 function closeMd(id){document.getElementById(id).classList.remove('on');}
 
 /* State */
-var EXPENSES=[],PAYMENTS=[],REST_ORDERS=[],CAISSE=[],RAPPROCHEMENTS=[];
+var EXPENSES=[],PAYMENTS=[],REST_ORDERS=[],CAISSE=[],RAPPROCHEMENTS=[],SUPPLIER_ORDERS=[];
 var revFilter='all',depFilter='all',jPeriod='month';
 var curTab='dash';
 
@@ -445,8 +446,9 @@ function loadAll(){
     GET('/rest/v1/veraluz_restaurant_orders?select=*&status=eq.paye&order=created_at.desc&limit=200'),
     GET('/rest/v1/veraluz_caisse?select=*&order=created_at.desc&limit=200'),
     GET('/rest/v1/veraluz_rapprochements?select=*&order=date.desc&limit=50'),
+    GET('/rest/v1/veraluz_restaurant_supplier_orders?select=*&status=in.(envoye,recu)&order=created_at.desc&limit=200'),
   ]).then(function(r){
-    EXPENSES=r[0]||[];PAYMENTS=r[1]||[];REST_ORDERS=r[2]||[];CAISSE=r[3]||[];RAPPROCHEMENTS=r[4]||[];
+    EXPENSES=r[0]||[];PAYMENTS=r[1]||[];REST_ORDERS=r[2]||[];CAISSE=r[3]||[];RAPPROCHEMENTS=r[4]||[];SUPPLIER_ORDERS=r[5]||[];
     renderDash();renderRev();renderDep();renderCaisse();renderJournal();renderRapprochements();
   }).catch(function(e){toast('Erreur chargement: '+e,'err');});
 }
@@ -463,7 +465,10 @@ function getMonthRev(){
 }
 function getMonthDep(){
   var m=new Date().toISOString().slice(0,7);
-  return EXPENSES.filter(function(e){return(e.date||'').slice(0,7)===m;}).reduce(function(s,e){return s+(e.amount||0);},0);
+  var fromExp=EXPENSES.filter(function(e){return(e.date||'').slice(0,7)===m;}).reduce(function(s,e){return s+(e.amount||0);},0);
+  /* Bons de commande fournisseurs restaurant reçus = sorties réelles */
+  var fromSO=SUPPLIER_ORDERS.filter(function(o){return o.status==='recu'&&(o.received_at||o.created_at||'').slice(0,7)===m;}).reduce(function(s,o){return s+(o.total_amount||0);},0);
+  return fromExp+fromSO;
 }
 function getCaisseSolde(){
   if(!CAISSE.length)return 0;
@@ -492,7 +497,8 @@ function renderCashflowChart(){
     var rev=PAYMENTS.filter(function(p){return p.status==='validated'&&(p.created_at||'').slice(0,7)===m;}).reduce(function(s,p){return s+(p.amount||0);},0)
       +REST_ORDERS.filter(function(o){return(o.paid_at||o.created_at||'').slice(0,7)===m;}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0)
       +CAISSE.filter(function(c){return c.type==='entree'&&(c.created_at||'').slice(0,7)===m;}).reduce(function(s,c){return s+(c.montant||0);},0);
-    var dep=EXPENSES.filter(function(e){return(e.date||'').slice(0,7)===m;}).reduce(function(s,e){return s+(e.amount||0);},0);
+    var dep=EXPENSES.filter(function(e){return(e.date||'').slice(0,7)===m;}).reduce(function(s,e){return s+(e.amount||0);},0)
+      +SUPPLIER_ORDERS.filter(function(o){return o.status==='recu'&&(o.received_at||o.created_at||'').slice(0,7)===m;}).reduce(function(s,o){return s+(o.total_amount||0);},0);
     if(rev>maxVal)maxVal=rev;if(dep>maxVal)maxVal=dep;
     var lbl=new Date(m+'-01').toLocaleDateString('fr-FR',{month:'short'});
     return{m:m,rev:rev,dep:dep,lbl:lbl};
@@ -509,7 +515,7 @@ function renderCashflowChart(){
 function renderDepBreakdown(){
   var el=document.getElementById('dep-breakdown');
   var cats={};var total=0;
-  EXPENSES.forEach(function(e){cats[e.category]=(cats[e.category]||0)+(e.amount||0);total+=(e.amount||0);});
+  allDepenses().forEach(function(e){cats[e.category]=(cats[e.category]||0)+(e.amount||0);total+=(e.amount||0);});
   if(!total){el.innerHTML='<div style="color:var(--text3);font-size:12px;">Aucune d&#233;pense enregistr&#233;e</div>';return;}
   var catIco={alimentation:'&#127823;',entretien:'&#128295;',salaires:'&#128104;&#8205;&#128188;',energie:'&#9889;',marketing:'&#128226;',fournitures:'&#128203;',transport:'&#128665;',autre:'&#9734;'};
   var sorted=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a];});
@@ -595,7 +601,6 @@ function openRevMd(){
   openMd('md-rev');
 }
 function saveRev(){
-  emitFin('transaction-recorded',{type:'revenue',ts:new Date().toISOString()});
   var amt=parseInt(document.getElementById('rev-amount').value)||0;
   if(!amt){toast('Montant requis','err');return;}
   var libelle=document.getElementById('rev-desc').value.trim()||'Revenu manuel';
@@ -622,13 +627,27 @@ function setDepFilter(f,btn){
   renderDep();
 }
 function filterDep(){renderDep();}
+function allDepenses(){
+  var res=[];
+  EXPENSES.forEach(function(e){
+    res.push({id:e.id,date:e.date+'T12:00:00Z',desc:e.description||e.category,amount:e.amount,
+      category:e.category,method:e.payment_method,src:'manuel'});
+  });
+  SUPPLIER_ORDERS.filter(function(o){return o.status==='recu';}).forEach(function(o){
+    res.push({id:o.id,date:o.received_at||o.created_at,
+      desc:'Achat fournisseur: '+(o.supplier_name||'Fournisseur'),
+      amount:o.total_amount||0,category:'fournitures',method:'fournisseur',src:'restaurant'});
+  });
+  return res.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+}
 function renderDep(){
   var el=document.getElementById('dep-list');
   var q=(document.getElementById('dep-search').value||'').toLowerCase();
   var catIco={alimentation:'&#127823;',entretien:'&#128295;',salaires:'&#128104;&#8205;&#128188;',energie:'&#9889;',marketing:'&#128226;',fournitures:'&#128203;',transport:'&#128665;',autre:'&#9734;'};
-  var list=EXPENSES.filter(function(e){
+  var srcBadge={manuel:'',restaurant:'&#127869; ',reservation:'&#128716; '};
+  var list=allDepenses().filter(function(e){
     if(depFilter!=='all'&&e.category!==depFilter)return false;
-    if(q&&!(e.description||'').toLowerCase().includes(q)&&!(e.category||'').includes(q))return false;
+    if(q&&!(e.desc||'').toLowerCase().includes(q)&&!(e.category||'').includes(q))return false;
     return true;
   });
   if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128184;</div>Aucune d&#233;pense trouv&#233;e</div>';return;}
@@ -638,8 +657,8 @@ function renderDep(){
       return '<div class="entry">'
         +'<div class="entry-ico exp">'+(catIco[e.category]||'&#128184;')+'</div>'
         +'<div class="entry-body">'
-        +'<div class="entry-title">'+esc(e.description||e.category)+'</div>'
-        +'<div class="entry-sub">'+fdate(e.date)+' &middot; '+esc(e.category)+(e.paid_by?' &middot; '+esc(e.paid_by):'')+'</div>'
+        +'<div class="entry-title">'+(srcBadge[e.src]||'')+esc(e.desc||e.category)+'</div>'
+        +'<div class="entry-sub">'+fdate(e.date.slice(0,10))+' &middot; '+esc(e.category)+(e.method&&e.method!=='fournisseur'?' &middot; '+esc(e.method):'')+'</div>'
         +'</div>'
         +'<div class="entry-amt amt-neg">-'+fmt(e.amount)+'</div>'
         +'</div>';
@@ -654,7 +673,6 @@ function openDepMd(){
   openMd('md-dep');
 }
 function saveDep(){
-  emitFin('expense-added',{ts:new Date().toISOString()});
   var amt=parseInt(document.getElementById('dep-amount').value)||0;
   if(!amt){toast('Montant requis','err');return;}
   var data={id:gid(),date:document.getElementById('dep-date').value,
@@ -746,6 +764,12 @@ function buildJournal(){
   });
   CAISSE.forEach(function(c){
     all.push({date:c.created_at,type:c.type==='entree'?'caisse_in':'caisse_out',desc:c.libelle||c.type,amount:c.montant,src:'Caisse',method:'cash'});
+  });
+  /* Bons de commande fournisseurs reçus = dépenses réelles */
+  SUPPLIER_ORDERS.filter(function(o){return o.status==='recu';}).forEach(function(o){
+    all.push({date:o.received_at||o.created_at,type:'depense',
+      desc:'Achat fournisseur '+(o.supplier_name||'')+(o.id?' #'+o.id.slice(-6):''),
+      amount:o.total_amount||0,src:'Fournisseur Restaurant',method:'fournisseur'});
   });
   return all.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
 }
@@ -949,6 +973,19 @@ function printReport(){
 document.addEventListener('DOMContentLoaded',function(){
   loadAll();
   initRptDates();
+  /* Auto-refresh quand Restaurant ou Réservations envoient un signal */
+  window.addEventListener('storage',function(ev){
+    if(ev.key==='vlz_resto_updated'||ev.key==='vlz_rez_updated'||ev.key==='vlz_finance_refresh'){
+      loadAll();
+      toast('Données mises à jour depuis un autre module &#8635;','ok');
+    }
+  });
+  /* Écoute aussi les messages postMessage (même onglet, iframes) */
+  window.addEventListener('message',function(ev){
+    if(ev.data&&(ev.data==='vlz_resto_updated'||ev.data==='vlz_rez_updated'||ev.data==='vlz_finance_refresh')){
+      loadAll();
+    }
+  });
 });
 /* GUARD [G001] *//* GUARD [G002] *//* GUARD [G003] *//* GUARD [G004] *//* GUARD [G005] */
 /* GUARD [G006] *//* GUARD [G007] *//* GUARD [G008] *//* GUARD [G009] *//* GUARD [G010] */
@@ -956,8 +993,6 @@ document.addEventListener('DOMContentLoaded',function(){
 /* GUARD [G016] *//* GUARD [G017] *//* GUARD [G018] *//* GUARD [G019] *//* GUARD [G020] */
 /* GUARD [G021] *//* GUARD [G022] *//* GUARD [G023] *//* GUARD [G024] *//* GUARD [G025] */
 /* GUARD [G026] *//* GUARD [G027] *//* GUARD [G028] *//* GUARD [G029] *//* GUARD [G030] */
-
-function emitFin(type,data){try{window.parent.postMessage({source:'veraluz-finance',type:type,data:data||{}}, '*');}catch(e){}}
 </script>
 </body>
-</html>
+</html>      

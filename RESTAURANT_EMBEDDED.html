@@ -492,6 +492,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
         <div class="pm" data-m="orange" onclick="selPay(this)">&#128992;<br>Orange Money</div>
         <div class="pm" data-m="mtn" onclick="selPay(this)">&#128993;<br>MTN MoMo</div>
         <div class="pm" data-m="carte" onclick="selPay(this)">&#128179;<br>Carte</div>
+        <div class="pm" data-m="chambre" onclick="selPay(this)">&#127974;<br>Chambre</div>
       </div>
       <div id="cash-row">
         <div class="fg"><label class="fl">Montant re&#231;u (FCFA)</label>
@@ -735,6 +736,7 @@ function goTab(t){
   if(t==='admin')goAdm(curAdm,null);
 }
 
+var ROOM_CHARGES=[],ACTIVE_HOTEL_GUESTS=[];
 /* Load all */
 function loadAll(){
   Promise.all([
@@ -743,10 +745,15 @@ function loadAll(){
     GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60'),
     GET('/rest/v1/veraluz_restaurant_stock?select=*&order=name'),
     GET('/rest/v1/veraluz_restaurant_suppliers?select=*&order=name'),
+    GET('/rest/v1/veraluz_restaurant_reservations?select=*&order=date.asc'),
+    GET('/rest/v1/veraluz_reservations?select=id,unit_id,client_name,check_in,check_out,status&status=eq.checkedin'),
+    GET('/rest/v1/veraluz_room_charges?select=*&settled=eq.false&order=created_at.desc'),
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
+    RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];
     buildSecFilt();renderTables();buildMenu();updateBdg();
     loadMvts();loadSOs();
+    if(curTab==='resa')renderResa();
   }).catch(function(e){toast('Erreur chargement: '+e,'er');});
 }
 function loadMvts(){GET('/rest/v1/veraluz_restaurant_stock_movements?select=*&order=created_at.desc&limit=100').then(function(r){MVTS=r||[];}).catch(function(){});}
@@ -877,7 +884,7 @@ function addCart(pid){
   renderCart();toast(p.name+' ajout&#233;','ok');
 }
 function chgQty(i,d){CART[i].q+=d;if(CART[i].q<=0)CART.splice(i,1);renderCart();}
-function clearCart(){emitResto('order-placed',{ts:new Date().toISOString()});CART=[];cartOrd=null;renderCart();}
+function clearCart(){CART=[];cartOrd=null;renderCart();}
 function cartTot(){return CART.reduce(function(s,c){return s+c.p.price*c.q;},0);}
 function renderCart(){
   document.getElementById('cart-tot').textContent=fmt(cartTot());
@@ -1008,7 +1015,7 @@ function openPayMd(oid){
 function selPay(el){
   document.querySelectorAll('.pm').forEach(function(m){m.classList.remove('on');});
   el.classList.add('on');payMeth=el.dataset.m;
-  document.getElementById('cash-row').style.display=payMeth==='cash'?'':'none';
+  document.getElementById('cash-row').style.display=(payMeth==='cash')?'':'none';
 }
 function calcChange(){
   var o=ORDERS.find(function(x){return x.id===payOid;});
@@ -1018,6 +1025,7 @@ function calcChange(){
 }
 function confirmPay(){
   if(!payOid){toast('Aucune commande','er');return;}
+  if(payMeth==='chambre'){closeMd('md-pay');openRoomChargeMd(payOid);return;}
   var now=new Date().toISOString();
   PATCH('veraluz_restaurant_orders',payOid,{status:'paye',payment_method:payMeth,paid_at:now}).then(function(){
     var o=ORDERS.find(function(x){return x.id===payOid;});
@@ -1307,7 +1315,7 @@ function renderSOs(){
       +'<div style="font-size:13px;font-weight:700;color:var(--accent);margin-bottom:5px;">'+fmt(o.total_amount)+'</div>'
       +'<div style="display:flex;gap:5px;">'
       +(o.status==='brouillon'?'<button class="btn bw bs" data-id="'+o.id+'" data-s="envoye" onclick="updSO(this.dataset.id,this.dataset.s)">&#128228; Envoyer</button>':'')+'<button class="btn bg bs" data-id="'+o.id+'" onclick="(function(){var so=SOS.find(function(x){return x.id===document.querySelector(\"[data-id=\''+o.id+'\']\")?x.id===\''+o.id+'\'&&true:false;});printSO(so||o);})()">&#128424;</button>'
-      +(o.status==='envoye'?'<button class="btn bp bs" data-id="'+o.id+'" onclick="recvSO(this.dataset.id)">&#9989; R&#233;ceptionner</button>':'')
+      +(o.status==='envoye'?'<button class="btn bp bs" data-id="'+o.id+'" onclick="openReceiptMd(this.dataset.id)">&#9745; Vérifier réception</button>':'')
       +(o.status!=='recu'&&o.status!=='annule'?'<button class="btn bg bs" data-id="'+o.id+'" data-s="annule" onclick="updSO(this.dataset.id,this.dataset.s)">&#10005;</button>':'')
       +'</div></div>';
   }).join('');
@@ -1319,21 +1327,85 @@ function updSO(id,st){
     renderSOs();toast('Statut mis &#224; jour','ok');
   });
 }
-function recvSO(id){
+/* ── RÉCEPTION BON DE COMMANDE (vérification item par item) ── */
+var _rcvSoId=null,_rcvItems=[];
+function openReceiptMd(id){
   var o=SOS.find(function(x){return x.id===id;});if(!o)return;
+  _rcvSoId=id;_rcvItems=[];
+  var items=o.items||[];
+  var rows=items.map(function(it,i){
+    _rcvItems.push({ordered:it,received:it.qty||0,ok:true});
+    var sid='rcv-qty-'+i;
+    return '<div style="background:var(--bg2);border-radius:8px;padding:10px;margin-bottom:8px;">'
+      +'<div style="font-weight:700;font-size:13px;">'+esc(it.name||'?')+'</div>'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-top:6px;">'
+      +'<span style="font-size:12px;color:var(--text2);">Commandé: <b>'+(it.qty||0)+'</b></span>'
+      +'<span style="font-size:12px;color:var(--text2);">'+(it.unit||'')+'</span>'
+      +'<div style="flex:1;text-align:right;">'
+      +'<label style="font-size:12px;color:var(--text2);">Reçu:</label> '
+      +'<input type="number" id="'+sid+'" value="'+(it.qty||0)+'" min="0" style="width:70px;padding:4px 6px;border-radius:6px;border:1px solid var(--brd);background:var(--bg3);color:var(--text);font-size:13px;" oninput="markRcvRow('+i+',this.value,'+(it.qty||0)+')" data-idx="'+i+'">'
+      +'</div></div>'
+      +'<div id="rcv-diff-'+i+'" style="font-size:11px;color:var(--err);margin-top:3px;display:none;">⚠️ Écart détecté !</div>'
+      +'</div>';
+  }).join('');
+  var html='<div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Bon: <b>#'+id.slice(-6)+'</b> — '+esc(o.supplier_name||'')+'</div>'
+    +(rows||'<div class="empty">Aucun article dans ce bon</div>')
+    +'<textarea id="rcv-notes" class="inp" rows="2" placeholder="Notes / remarques..." style="margin-top:8px;"></textarea>';
+  document.getElementById('rcv-body').innerHTML=html;
+  document.getElementById('rcv-tot-ordered').textContent=items.reduce(function(s,it){return s+(it.qty||0);},0);
+  document.getElementById('rcv-tot-received').textContent=items.reduce(function(s,it){return s+(it.qty||0);},0);
+  openMd('md-recv');
+}
+function markRcvRow(idx,val,ordered){
+  var received=parseFloat(val)||0;
+  _rcvItems[idx].received=received;
+  _rcvItems[idx].ok=(received===ordered);
+  var diff=document.getElementById('rcv-diff-'+idx);
+  if(diff)diff.style.display=(received!==ordered)?'':'none';
+  /* update totals */
+  var totR=_rcvItems.reduce(function(s,it){return s+it.received;},0);
+  document.getElementById('rcv-tot-received').textContent=totR;
+}
+function saveReceipt(){
+  if(!_rcvSoId)return;
+  var o=SOS.find(function(x){return x.id===_rcvSoId;});if(!o)return;
+  var notes=document.getElementById('rcv-notes').value.trim();
+  var hasDisc=_rcvItems.some(function(it){return !it.ok;});
   var now=new Date().toISOString();
-  var ps=[PATCH('veraluz_restaurant_supplier_orders',id,{status:'recu',received_at:now})];
-  (o.items||[]).forEach(function(it){
-    var w=(it.name||'').toLowerCase().split(' ')[0];
+  var receiptItems=_rcvItems.map(function(it){
+    return {name:it.ordered.name,unit:it.ordered.unit,ordered:it.ordered.qty||0,received:it.received,ok:it.ok};
+  });
+  var totOrdered=_rcvItems.reduce(function(s,it){return s+(it.ordered.qty||0);},0);
+  var totReceived=_rcvItems.reduce(function(s,it){return s+it.received;},0);
+  var receipt={
+    id:gid(),supplier_order_id:_rcvSoId,
+    received_at:now,received_by:'Manager',notes:notes,
+    items:JSON.stringify(receiptItems),
+    total_ordered:totOrdered,total_received:totReceived,
+    has_discrepancy:hasDisc,status:hasDisc?'ecart':'complet'
+  };
+  var ps=[
+    POST('veraluz_stock_receipts',receipt),
+    PATCH('veraluz_restaurant_supplier_orders',_rcvSoId,{status:'recu',received_at:now})
+  ];
+  /* update stock with ACTUAL received qty */
+  _rcvItems.forEach(function(it){
+    var w=(it.ordered.name||'').toLowerCase().split(' ')[0];
     var si=STOCK.find(function(s){return s.name&&s.name.toLowerCase().includes(w);});
-    if(si){
-      var nq=(si.quantity||0)+(it.qty||0);
+    if(si&&it.received>0){
+      var nq=(si.quantity||0)+it.received;
       ps.push(PATCH('veraluz_restaurant_stock',si.id,{quantity:nq}));
-      ps.push(POST('veraluz_restaurant_stock_movements',{id:gid(),stock_id:si.id,type:'entree',qty:it.qty,reason:'R&#233;ception bon '+id.slice(-6),supplier_order_id:id,created_at:now}));
+      ps.push(POST('veraluz_restaurant_stock_movements',{id:gid(),stock_id:si.id,type:'entree',qty:it.received,
+        reason:'Réception bon #'+_rcvSoId.slice(-6)+(it.ok?'':' [écart]'),supplier_order_id:_rcvSoId,created_at:now}));
       si.quantity=nq;
     }
   });
-  Promise.all(ps).then(function(){o.status='recu';o.received_at=now;renderSOs();renderStock();updateBdg();loadMvts();toast('R&#233;ception enregistr&#233;e &#9989;','ok');});
+  Promise.all(ps).then(function(){
+    o.status='recu';o.received_at=now;
+    closeMd('md-recv');renderSOs();renderStock();updateBdg();loadMvts();
+    if(hasDisc){toast('⚠️ Réception avec écarts — vérifiez le rapport','warn');}
+    else{toast('Réception confirmée ✅ — Stock mis à jour','ok');}
+  }).catch(function(e){toast('Erreur: '+e,'er');});
 }
 
 /* Admin */
@@ -1538,20 +1610,9 @@ function renderVentes(){
 }
 
 /* ═══════════════════════════════════════════
-   RÉSERVATIONS SALLE (localStorage)
+   RÉSERVATIONS SALLE (Supabase)
 ═══════════════════════════════════════════ */
-var RESAS=(function(){
-  var stored=localStorage.getItem('vz_resas');
-  if(stored)return JSON.parse(stored);
-  /* Données demo au premier démarrage */
-  var demos=[
-    {id:'demo1',event:'Anniversaire 40 ans de Marie',contact:'Marie Fouda +237 690 000 001',date:new Date(Date.now()+4*864e5).toISOString().slice(0,10),hd:'19:00',hf:'23:00',type:'anniversaire',pax:45,acompte:50000,notes:'Gâteau 3 étages prévu. Menu: poisson + poulet',status:'confirme',created:new Date().toISOString()},
-    {id:'demo2',event:'Réunion Corporate TotalEnergies',contact:'Jean Mbarga +237 677 000 002',date:new Date(Date.now()+10*864e5).toISOString().slice(0,10),hd:'08:00',hf:'17:00',type:'corporate',pax:20,acompte:100000,notes:'Déjeuner de travail inclus. Projecteur requis',status:'confirme',created:new Date().toISOString()},
-    {id:'demo3',event:'Mariage Ngo & Fils',contact:'Famille Ngo +237 699 000 003',date:new Date(Date.now()+21*864e5).toISOString().slice(0,10),hd:'15:00',hf:'01:00',type:'mariage',pax:120,acompte:200000,notes:'Décoration florale. Groupe de musique prévu',status:'confirme',created:new Date().toISOString()}
-  ];
-  localStorage.setItem('vz_resas',JSON.stringify(demos));
-  return demos;
-})();
+var RESAS=[];
 var editResaId=null;
 var RESA_TYPES={anniversaire:'🎂 Anniversaire',mariage:'💍 Mariage/Fiançailles',corporate:'💼 Corporate',bapteme:'🩷 Baptême',autre:'⭐ Autre'};
 
@@ -1563,8 +1624,8 @@ function openResaMd(id){
       document.getElementById('resa-evt').value=r.event||'';
       document.getElementById('resa-contact').value=r.contact||'';
       document.getElementById('resa-date').value=r.date||'';
-      document.getElementById('resa-hd').value=r.hd||'';
-      document.getElementById('resa-hf').value=r.hf||'';
+      document.getElementById('resa-hd').value=r.heure_debut||r.hd||'';
+      document.getElementById('resa-hf').value=r.heure_fin||r.hf||'';
       document.getElementById('resa-type').value=r.type||'autre';
       document.getElementById('resa-pax').value=r.pax||'';
       document.getElementById('resa-acompte').value=r.acompte||'';
@@ -1582,27 +1643,38 @@ function saveResa(){
   var date=document.getElementById('resa-date').value;
   if(!evt||!date){toast('Remplissez l\'&#233;v&#233;nement et la date','er');return;}
   var r={
-    id:editResaId||gid(),
     event:evt,contact:document.getElementById('resa-contact').value.trim(),
-    date:date,hd:document.getElementById('resa-hd').value,
-    hf:document.getElementById('resa-hf').value,
+    date:date,
+    heure_debut:document.getElementById('resa-hd').value,
+    heure_fin:document.getElementById('resa-hf').value,
     type:document.getElementById('resa-type').value,
     pax:parseInt(document.getElementById('resa-pax').value)||0,
     acompte:parseInt(document.getElementById('resa-acompte').value)||0,
     notes:document.getElementById('resa-notes').value.trim(),
-    status:'confirme',created:new Date().toISOString()
+    status:'confirme'
   };
-  if(editResaId){RESAS=RESAS.map(function(x){return x.id===editResaId?r:x;});}
-  else{RESAS.push(r);}
-  localStorage.setItem('vz_resas',JSON.stringify(RESAS));
-  closeMd('md-resa');renderResa();
-  toast('R&#233;servation enregistr&#233;e &#9989;','ok');
+  var p;
+  if(editResaId){
+    p=PATCH('veraluz_restaurant_reservations',editResaId,r).then(function(d){
+      var updated=Array.isArray(d)?d[0]:d;
+      RESAS=RESAS.map(function(x){return x.id===editResaId?(updated||Object.assign({id:editResaId},r)):x;});
+    });
+  } else {
+    r.id=gid();
+    p=POST('veraluz_restaurant_reservations',r).then(function(d){
+      var created=Array.isArray(d)?d[0]:d;
+      RESAS.push(created||r);
+    });
+  }
+  p.then(function(){closeMd('md-resa');renderResa();toast('R&#233;servation enregistr&#233;e &#9989;','ok');})
+   .catch(function(e){toast('Erreur sauvegarde: '+e,'er');});
 }
 function delResa(id){
-  if(!confirm('Supprimer cette r&#233;servation ?'))return;
-  RESAS=RESAS.filter(function(r){return r.id!==id;});
-  localStorage.setItem('vz_resas',JSON.stringify(RESAS));
-  renderResa();toast('R&#233;servation supprim&#233;e','ok');
+  if(!confirm('Supprimer cette réservation ?'))return;
+  DEL('veraluz_restaurant_reservations',id).then(function(){
+    RESAS=RESAS.filter(function(r){return r.id!==id;});
+    renderResa();toast('Réservation supprimée','ok');
+  }).catch(function(e){toast('Erreur suppression: '+e,'er');});
 }
 function renderResa(){
   var el=document.getElementById('resa-list');
@@ -1628,7 +1700,7 @@ function renderResa(){
       +'</div>'
       +'<div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:12px;color:var(--text2);">'
       +'<span>&#128197; '+esc(df)+'</span>'
-      +(r.hd?'<span>&#9200; '+esc(r.hd)+(r.hf?' → '+esc(r.hf):'')+'</span>':'<span></span>')
+      +(r.heure_debut||r.hd?'<span>&#9200; '+esc(r.heure_debut||r.hd)+((r.heure_fin||r.hf)?' → '+esc(r.heure_fin||r.hf):'')+'</span>':'<span></span>')
       +(r.pax?'<span>&#128101; '+r.pax+' personnes</span>':'<span></span>')
       +(r.acompte?'<span>&#128181; Acompte: '+fmt(r.acompte)+'</span>':'<span></span>')
       +'</div>'
@@ -1643,7 +1715,100 @@ function renderResa(){
 }
 
 
-function emitResto(type,data){try{window.parent.postMessage({source:'veraluz-restaurant',type:type,data:data||{}}, '*');}catch(e){}}
+
+/* ── ROOM SERVICE / FOLIO ── */
+var _rcGuestId=null;
+function openRoomChargeMd(oid){
+  payOid=oid;
+  var o=ORDERS.find(function(x){return x.id===oid;});if(!o)return;
+  _rcGuestId=null;
+  document.getElementById('rc-total').textContent=fmt(o.total||o.total_amount||0);
+  var guests=ACTIVE_HOTEL_GUESTS;
+  var el=document.getElementById('room-charge-guests');
+  if(!guests||!guests.length){
+    el.innerHTML='<div class="empty" style="padding:20px;text-align:center;">&#128683; Aucun hôte actif en ce moment</div>';
+  } else {
+    el.innerHTML=guests.map(function(g){
+      return '<div class="guest-row" data-id="'+g.id+'" onclick="selectRcGuest(this,\''+g.id+'\')" style="cursor:pointer;padding:10px;border-radius:8px;border:2px solid transparent;background:var(--bg2);margin-bottom:6px;">'
+        +'<div style="font-weight:700;">'+esc(g.client_name||'Client')+'</div>'
+        +'<div style="font-size:12px;color:var(--text2);">Chambre '+esc(g.unit_id||'?')+' • sortie: '+esc((g.check_out||'').slice(0,10))+'</div>'
+        +'</div>';
+    }).join('');
+  }
+  openMd('md-room-charge');
+}
+function selectRcGuest(el,gid){
+  document.querySelectorAll('.guest-row').forEach(function(r){r.style.borderColor='transparent';r.style.background='var(--bg2)';});
+  el.style.borderColor='var(--accent)';el.style.background='var(--bg3)';
+  _rcGuestId=gid;
+}
+function confirmRoomCharge(){
+  if(!_rcGuestId){toast('Sélectionnez un client','er');return;}
+  var o=ORDERS.find(function(x){return x.id===payOid;});if(!o)return;
+  var g=ACTIVE_HOTEL_GUESTS.find(function(x){return x.id===_rcGuestId;});if(!g)return;
+  var now=new Date().toISOString();
+  var charge={
+    id:gid(),reservation_id:_rcGuestId,unit_id:g.unit_id||'',
+    client_name:g.client_name||'',room_name:'Chambre '+g.unit_id,
+    amount:o.total||o.total_amount||0,
+    description:'Restaurant — commande #'+payOid.slice(-6)+' — '+(o.items||[]).slice(0,2).map(function(i){return i.name;}).join(', ')+(o.items&&o.items.length>2?'...':''),
+    charge_type:'restaurant',restaurant_order_id:payOid,
+    settled:false,created_at:now
+  };
+  Promise.all([
+    POST('veraluz_room_charges',charge),
+    PATCH('veraluz_restaurant_orders',payOid,{status:'paye',payment_method:'chambre',paid_at:now})
+  ]).then(function(){
+    var ord=ORDERS.find(function(x){return x.id===payOid;});
+    if(ord){
+      ord.status='paye';ord.payment_method='chambre';
+      if(ord.table_id)PATCH('veraluz_restaurant_tables',ord.table_id,{status:'libre'}).then(function(){
+        var t=TABLES.find(function(x){return x.id===ord.table_id;});if(t)t.status='libre';renderTables();
+      });
+    }
+    ROOM_CHARGES.push(charge);
+    clearCart();cartTbl=null;cartOrd=null;
+    closeMd('md-room-charge');
+    renderTables();updateBdg();
+    toast('🏨 Facturé à la chambre '+g.unit_id+' — '+esc(g.client_name||''),'ok');
+  }).catch(function(e){toast('Erreur: '+e,'er');});
+}
+
 </script>
+
+<!-- Receipt Verification Modal -->
+<div class="ov" id="md-recv">
+  <div class="md" style="max-width:520px;">
+    <div class="mdh"><span class="mdt">&#9745; Vérification de réception</span><button class="mdc" onclick="closeMd('md-recv')">&#10005;</button></div>
+    <div class="mdb" id="rcv-body" style="max-height:60vh;overflow-y:auto;"></div>
+    <div style="display:flex;gap:10px;padding:10px 16px;background:var(--bg2);border-top:1px solid var(--brd);font-size:13px;">
+      <span>Commandé: <b id="rcv-tot-ordered">0</b></span>
+      <span style="margin-left:auto;">Reçu: <b id="rcv-tot-received" style="color:var(--accent);">0</b></span>
+    </div>
+    <div class="mdf">
+      <button class="btn bg" onclick="closeMd('md-recv')" style="flex:1">Annuler</button>
+      <button class="btn bp" onclick="saveReceipt()" style="flex:2">&#128190; Confirmer réception</button>
+    </div>
+  </div>
+</div>
+
+<!-- Room Charge Guest Selector Modal -->
+<div class="ov" id="md-room-charge">
+  <div class="md" style="max-width:400px;">
+    <div class="mdh"><span class="mdt">&#127974; Facturer à la chambre</span><button class="mdc" onclick="closeMd('md-room-charge')">&#10005;</button></div>
+    <div class="mdb">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px;">Sélectionnez le client hôtel :</div>
+      <div id="room-charge-guests"></div>
+      <div style="margin-top:12px;padding:10px;background:var(--bg2);border-radius:8px;">
+        <div style="font-size:13px;font-weight:700;text-align:center;">Total: <span id="rc-total">0 FCFA</span></div>
+      </div>
+    </div>
+    <div class="mdf">
+      <button class="btn bg" onclick="closeMd('md-room-charge')" style="flex:1">Annuler</button>
+      <button class="btn bp" onclick="confirmRoomCharge()" style="flex:2" id="rc-confirm-btn">Facturer</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

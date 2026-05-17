@@ -559,6 +559,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div><label class="fl">Fin (CDD)</label><input class="fi" id="contract-end" type="date" style="margin-bottom:0"></div>
     </div>
     <textarea class="fi" id="contract-notes" placeholder="Notes&#8230;" rows="2" style="resize:none;margin-top:8px;"></textarea>
+    <div class="field"><label>Salaire mensuel (FCFA)</label><input type="number" id="contract-salary" placeholder="150000" style="width:100%;padding:10px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text1);"></div>
     <button class="btn btn-primary" style="width:100%;" onclick="saveContract()">Enregistrer</button>
   </div>
 </div>
@@ -719,7 +720,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 /* ═══════════════ CONFIG ═══════════════ */
 var SUPA_URL='https://dfdmasejsoibxrvubegu.supabase.co';
-var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydWJlZ3UiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc0MjkzMTIwMywiZXhwIjoyMDU4NTA3MjAzfQ.FHPDWoDUEYJULrHRElPdOEWENSNNwAG3-lPcKxcKO5o';
+var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
 function GET(t){return fetch(SUPA_URL+'/rest/v1/'+t,{headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}}).then(function(r){return r.json();});}
 function POST(t,d){return fetch(SUPA_URL+'/rest/v1/'+t,{method:'POST',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(d)}).then(function(r){return r.json();});}
@@ -1101,19 +1102,31 @@ function loadContracts(){
   if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128203;</div>Aucun contrat</div>';return;}
   el.innerHTML=list.map(function(c){
     var emp=EMPS.find(function(e){return e.id===c.employee_id;});
+    var signed=c.signed_at?'<span class="bdg ok" style="margin-left:6px;">✍️ Signé</span>':'<span class="bdg warn" style="margin-left:6px;">⏳ Non signé</span>';
+    var typeLabel={'cdi':'CDI','cdd':'CDD','stage':'Stage','freelance':'Freelance'}[c.type]||c.type||'—';
     return '<div class="card" style="margin-bottom:8px;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-      +'<span style="font-weight:700;">'+esc(emp?emp.full_name:'—')+'</span>'
-      +'<span class="bdg '+(c.status==='actif'?'ok':c.status==='essai'?'warn':'danger')+'">'+esc(c.type||'')+'</span>'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">'
+      +'<div><span style="font-weight:700;font-size:14px;">'+esc(emp?emp.full_name:'—')+'</span>'+signed+'</div>'
+      +'<span class="bdg '+(c.status==='signe'?'ok':c.status==='actif'?'ok':'warn')+'">'+typeLabel+'</span>'
       +'</div>'
-      +'<div style="font-size:12px;color:var(--text3);">'+fdate(c.start_date)+' — '+(c.end_date?fdate(c.end_date):'Ind&#233;termin&#233;')+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-bottom:8px;">'
+      +fdate(c.start_date)+' → '+(c.end_date?fdate(c.end_date):'Indéterminé')
+      +(c.salary?' &nbsp;·&nbsp; '+fmt(c.salary)+' FCFA/mois':'')
+      +'</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+      +(c.signed_at?'':'<button class="btn btn-primary btn-sm" data-cid="'+esc(c.id)+'" onclick="openSignModal(this.dataset.cid);initSignPad();">✍️ Faire signer</button>')
+      +'<button class="btn btn-sec btn-sm" data-cid="'+esc(c.id)+'" onclick="printContract(this.dataset.cid)">🖨 Imprimer PDF</button>'
+      +'</div>'
       +'</div>';
   }).join('');
 }
 function saveContract(){
-  var d={id:gid(),employee_id:document.getElementById('contract-emp').value,type:document.getElementById('contract-type').value,status:document.getElementById('contract-status').value,start_date:document.getElementById('contract-start').value||null,end_date:document.getElementById('contract-end').value||null,notes:document.getElementById('contract-notes').value.trim()||null};
-  if(!d.employee_id){toast('Employ&#233; requis','err');return;}
-  POST('veraluz_contracts',d).then(function(r){CONTRACTS.unshift(r[0]||d);closeMd('md-add-contract');loadContracts();toast('Contrat ajout&#233; &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
+  var emp=EMPS.find(function(e){return e.id===document.getElementById('contract-emp').value;});
+  var hotel=SETTINGS.hotel_name||'Résidence Veraluz';
+  var body=genContractBody(emp,document.getElementById('contract-type').value,document.getElementById('contract-start').value,document.getElementById('contract-end').value,parseFloat(document.getElementById('contract-salary').value)||0);
+  var d={id:gid(),employee_id:document.getElementById('contract-emp').value,type:document.getElementById('contract-type').value,status:'actif',salary:parseFloat(document.getElementById('contract-salary').value)||0,start_date:document.getElementById('contract-start').value||null,end_date:document.getElementById('contract-end').value||null,notes:document.getElementById('contract-notes').value.trim()||null,contract_body:body};
+  if(!d.employee_id){toast('Employé requis','err');return;}
+  POST('veraluz_contracts',d).then(function(r){var c=r[0]||d;CONTRACTS.unshift(c);closeMd('md-add-contract');loadContracts();toast('Contrat ajouté ✅','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 function saveTeam(){
   var d={id:gid(),name:document.getElementById('team-name').value.trim(),color:document.getElementById('team-color').value};
@@ -1670,6 +1683,109 @@ function changePin(){
 }
 
 /* ═══════════════ INIT ═══════════════ */
+
+/* ═══════════════ CONTRAT ÉLECTRONIQUE ═══════════════ */
+function genContractBody(emp,type,start,end,salary){
+  var hotel=SETTINGS.hotel_name||'Résidence Veraluz';
+  var addr=SETTINGS.hotel_address||'Kribi, Cameroun';
+  var typeLabel={'cdi':'Contrat à Durée Indéterminée','cdd':'Contrat à Durée Déterminée','stage':'Convention de Stage','freelance':'Contrat Freelance'}[type]||type;
+  var endLine=end?'jusqu\'au '+fdate(end):'sans terme fixé';
+  return [
+    'CONTRAT DE TRAVAIL — '+typeLabel.toUpperCase(),
+    '',
+    'Entre les soussignés :',
+    '  L\'employeur : '+hotel+', '+addr,
+    '  L\'employé(e) : '+(emp?emp.full_name:'—')+', Poste : '+(emp?emp.role||'—':'—'),
+    '',
+    'Il est convenu ce qui suit :',
+    'Article 1 — Engagement : '+hotel+' engage '+(emp?emp.full_name:'—')+' en qualité de '+(emp?emp.role||'—':'—')+'.',
+    'Article 2 — Durée : Le présent contrat prend effet le '+fdate(start)+' '+endLine+'.',
+    'Article 3 — Rémunération : Le salaire mensuel brut est fixé à '+fmt(salary)+' FCFA.',
+    'Article 4 — Lieu de travail : '+addr+'.',
+    'Article 5 — Obligations : L\'employé(e) s\'engage à respecter le règlement intérieur et la confidentialité.',
+    'Article 6 — Loi applicable : Le présent contrat est soumis au droit du travail camerounais.',
+    '',
+    'Fait à Kribi, le '+new Date().toLocaleDateString('fr-FR'),
+  ].join('\n');
+}
+
+var _signContractId=null;
+var _signCanvas=null,_signCtx=null,_drawing=false;
+
+function openSignModal(cid){
+  _signContractId=cid;
+  var c=CONTRACTS.find(function(x){return x.id===cid;});
+  if(!c)return;
+  var emp=EMPS.find(function(e){return e.id===c.employee_id;});
+  var body=c.contract_body||genContractBody(emp,c.type,c.start_date,c.end_date,c.salary||0);
+  document.getElementById('sign-contract-body').textContent=body;
+  document.getElementById('sign-emp-name').textContent=emp?emp.full_name:'';
+  document.getElementById('sign-status').textContent=c.signed_at?('Signé le '+fdt(c.signed_at)):'Non signé';
+  clearSignPad();
+  document.getElementById('md-sign-contract').classList.add('on');
+}
+
+function clearSignPad(){
+  var canvas=document.getElementById('sign-pad');
+  if(!canvas)return;
+  _signCanvas=canvas;_signCtx=canvas.getContext('2d');
+  _signCtx.clearRect(0,0,canvas.width,canvas.height);
+  _signCtx.fillStyle='#f8f8f8';_signCtx.fillRect(0,0,canvas.width,canvas.height);
+  _signCtx.strokeStyle='#1a1a2e';_signCtx.lineWidth=2;_signCtx.lineCap='round';
+  _drawing=false;
+}
+
+function initSignPad(){
+  var canvas=document.getElementById('sign-pad');if(!canvas)return;
+  _signCanvas=canvas;_signCtx=canvas.getContext('2d');clearSignPad();
+  function getPos(e){
+    var r=canvas.getBoundingClientRect();
+    var src=e.touches?e.touches[0]:e;
+    return {x:(src.clientX-r.left)*(canvas.width/r.width),y:(src.clientY-r.top)*(canvas.height/r.height)};
+  }
+  canvas.addEventListener('mousedown',function(e){_drawing=true;var p=getPos(e);_signCtx.beginPath();_signCtx.moveTo(p.x,p.y);});
+  canvas.addEventListener('mousemove',function(e){if(!_drawing)return;var p=getPos(e);_signCtx.lineTo(p.x,p.y);_signCtx.stroke();});
+  canvas.addEventListener('mouseup',function(){_drawing=false;});
+  canvas.addEventListener('touchstart',function(e){e.preventDefault();_drawing=true;var p=getPos(e);_signCtx.beginPath();_signCtx.moveTo(p.x,p.y);},{passive:false});
+  canvas.addEventListener('touchmove',function(e){e.preventDefault();if(!_drawing)return;var p=getPos(e);_signCtx.lineTo(p.x,p.y);_signCtx.stroke();},{passive:false});
+  canvas.addEventListener('touchend',function(){_drawing=false;});
+}
+
+function signContract(){
+  if(!_signContractId)return;
+  if(!_signCanvas){toast('Pad non initialisé','err');return;}
+  // Vérifier que la signature n\'est pas vide
+  var blank=document.createElement('canvas');blank.width=_signCanvas.width;blank.height=_signCanvas.height;
+  var bctx=blank.getContext('2d');bctx.fillStyle='#f8f8f8';bctx.fillRect(0,0,blank.width,blank.height);
+  if(_signCanvas.toDataURL()===blank.toDataURL()){toast('Veuillez signer dans le cadre','err');return;}
+  var sigData=_signCanvas.toDataURL('image/png');
+  var empName=document.getElementById('sign-emp-name').textContent;
+  var now=new Date().toISOString();
+  PATCH('veraluz_contracts',_signContractId,{signed_at:now,signed_by_name:empName,signature_data:sigData,status:'signe'})
+    .then(function(){
+      var c=CONTRACTS.find(function(x){return x.id===_signContractId;});
+      if(c){c.signed_at=now;c.signed_by_name=empName;c.signature_data=sigData;c.status='signe';}
+      document.getElementById('sign-status').textContent='Signé le '+fdt(now);
+      toast('Contrat signé ✅','ok');
+      setTimeout(function(){closeMd('md-sign-contract');loadContracts();},1200);
+    }).catch(function(e){toast('Erreur signature: '+e,'err');});
+}
+
+function printContract(cid){
+  var c=CONTRACTS.find(function(x){return x.id===cid;});if(!c)return;
+  var emp=EMPS.find(function(e){return e.id===c.employee_id;});
+  var hotel=SETTINGS.hotel_name||'Résidence Veraluz';
+  var body=c.contract_body||genContractBody(emp,c.type,c.start_date,c.end_date,c.salary||0);
+  var sigHtml=c.signature_data?'<div style="margin-top:24px;"><div style="font-size:12px;color:#666;margin-bottom:4px;">Signature de '+(c.signed_by_name||'')+'</div><img src="'+c.signature_data+'" style="max-width:250px;border:1px solid #ccc;border-radius:4px;"></div><div style="font-size:11px;color:#666;margin-top:4px;">Signé le '+fdt(c.signed_at)+'</div>':'<div style="margin-top:40px;border-top:1px solid #ccc;width:200px;font-size:12px;color:#666;">Signature</div>';
+  var w=window.open('','_blank','width=700,height=900');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Contrat</title><style>body{font-family:Arial,sans-serif;margin:0;padding:40px;color:#111;font-size:13px;line-height:1.8;}h2{color:#22d3a5;margin-bottom:24px;}pre{white-space:pre-wrap;font-family:Arial;font-size:13px;line-height:1.8;}.footer{margin-top:48px;display:flex;justify-content:space-between;}</style></head><body>');
+  w.document.write('<h2>'+hotel+'</h2><pre>'+body+'</pre>');
+  w.document.write('<div class="footer"><div>L\'Employeur<br><br>_______________</div>'+sigHtml+'</div>');
+  w.document.write('</body></html>');
+  w.document.close();setTimeout(function(){w.print();},600);
+}
+
+
 document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('att-date').value=new Date().toISOString().slice(0,10);
   document.getElementById('adv-date').value=new Date().toISOString().slice(0,10);
@@ -1680,8 +1796,26 @@ document.addEventListener('DOMContentLoaded',function(){
   document.getElementById('emp-hire').value=new Date().toISOString().slice(0,10);
   document.getElementById('doc-date').value=new Date().toISOString().slice(0,10);
   loadAll();
+  initSignPad();
 });
 
 </script>
+
+<!-- Modal signature électronique -->
+<div class="ov" id="md-sign-contract">
+  <div class="md" style="max-width:600px;max-height:90vh;overflow-y:auto;">
+    <div class="mdhdr"><h3>&#9997;&#65039; Signature electronique</h3><button class="mdc" onclick="closeMd('md-sign-contract')">&#10005;</button></div>
+    <div style="background:var(--bg2);border-radius:8px;padding:12px;max-height:220px;overflow-y:auto;margin-bottom:12px;">
+      <pre id="sign-contract-body" style="white-space:pre-wrap;font-size:11px;color:var(--text2);margin:0;line-height:1.7;"></pre>
+    </div>
+    <div style="margin-bottom:8px;font-size:13px;color:var(--text2);">Employe(e) : <strong id="sign-emp-name"></strong> &nbsp;&middot;&nbsp; <span id="sign-status" style="color:var(--acc1);"></span></div>
+    <div style="margin-bottom:8px;font-size:12px;color:var(--text3);">Signez dans le cadre ci-dessous avec votre doigt ou la souris :</div>
+    <canvas id="sign-pad" width="540" height="160" style="width:100%;border:2px dashed var(--border);border-radius:8px;background:#f8f8f8;display:block;touch-action:none;cursor:crosshair;"></canvas>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-sec" onclick="clearSignPad()" style="flex:1;">&#128465; Effacer</button>
+      <button class="btn btn-primary" onclick="signContract()" style="flex:2;">&#9989; Valider la signature</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

@@ -995,4 +995,22 @@ document.addEventListener('DOMContentLoaded',function(){
 /* GUARD [G026] *//* GUARD [G027] *//* GUARD [G028] *//* GUARD [G029] *//* GUARD [G030] */
 </script>
 </body>
-</html>      
+</html>      toast('Données mises à jour depuis un autre module &#8635;','ok');
+    }
+  });
+  /* Écoute aussi les messages postMessage (même onglet, iframes) */
+  window.addEventListener('message',function(ev){
+    if(ev.data&&(ev.data==='vlz_resto_updated'||ev.data==='vlz_rez_updated'||ev.data==='vlz_finance_refresh')){
+      loadAll();
+    }
+  });
+});
+/* GUARD [G001] *//* GUARD [G002] *//* GUARD [G003] *//* GUARD [G004] *//* GUARD [G005] */
+/* GUARD [G006] *//* GUARD [G007] *//* GUARD [G008] *//* GUARD [G009] *//* GUARD [G010] */
+/* GUARD [G011] *//* GUARD [G012] *//* GUARD [G013] *//* GUARD [G014] *//* GUARD [G015] */
+/* GUARD [G016] *//* GUARD [G017] *//* GUARD [G018] *//* GUARD [G019] *//* GUARD [G020] */
+/* GUARD [G021] *//* GUARD [G022] *//* GUARD [G023] *//* GUARD [G024] *//* GUARD [G025] */
+/* GUARD [G026] *//* GUARD [G027] *//* GUARD [G028] *//* GUARD [G029] *//* GUARD [G030] */
+</script>
+</body>
+</html>

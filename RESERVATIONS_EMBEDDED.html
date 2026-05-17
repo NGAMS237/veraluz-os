@@ -934,6 +934,7 @@ function openRezModal(rezId,_tab){
     '<div class="inv-total"><span>Solde restant</span><span class="'+balCls+'">'+balLbl+'</span></div>'+
     '<div style="margin-top:14px"><div class="param-section-title">Historique des paiements</div>'+
     '<div id="pay-history-lst">Chargement…</div></div>'+
+    '<div id="room-charges-lst"></div>'+
     '</div>'+
     '<div id="rzpane-paiement" style="display:none">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
@@ -975,22 +976,53 @@ function selPayMethod(btn){
 }
 function loadPayHistory(rezId){
   var el = document.getElementById('pay-history-lst'); if(!el) return;
-  sbGet('veraluz_payments?reservation_id=eq.'+rezId+'&order=created_at.desc').then(function(data){
+  var rcEl = document.getElementById('room-charges-lst');
+  Promise.all([
+    sbGet('veraluz_payments?reservation_id=eq.'+rezId+'&order=created_at.desc'),
+    sbGet('veraluz_room_charges?reservation_id=eq.'+rezId+'&order=created_at.desc')
+  ]).then(function(res){
+    var data=res[0]||[], charges=res[1]||[];
     if(!el) return;
     if(!Array.isArray(data)||!data.length){
       el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:10px">Aucun paiement enregistré</div>';
-      return;
+    } else {
+      var mLbl={cash:'Espèces',card:'Carte',mobile_money:'Mobile Money',transfer:'Virement'};
+      el.innerHTML=data.map(function(p){
+        var d=p.created_at?new Date(p.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+        return '<div class="inv-hist-item">'+
+          '<div style="display:flex;justify-content:space-between"><strong style="color:var(--success)">+'+fmtMoney(p.amount||0)+'</strong><span style="color:var(--text3)">'+d+'</span></div>'+
+          '<div style="color:var(--text2);margin-top:2px">'+(mLbl[p.method]||p.method||'—')+(p.notes?' — '+esc(p.notes):'')+' </div></div>';
+      }).join('');
     }
-    var mLbl={cash:'Espèces',card:'Carte',mobile_money:'Mobile Money',transfer:'Virement'};
-    el.innerHTML=data.map(function(p){
-      var d=p.created_at?new Date(p.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
-      return '<div class="inv-hist-item">'+
-        '<div style="display:flex;justify-content:space-between"><strong style="color:var(--success)">+'+fmtMoney(p.amount||0)+'</strong><span style="color:var(--text3)">'+d+'</span></div>'+
-        '<div style="color:var(--text2);margin-top:2px">'+(mLbl[p.method]||p.method||'—')+(p.notes?' — '+esc(p.notes):'')+'</div></div>';
-    }).join('');
+    if(rcEl){
+      if(!charges.length){rcEl.innerHTML='';return;}
+      var unsettled=charges.filter(function(c){return !c.settled;});
+      var totCharges=unsettled.reduce(function(s,c){return s+(c.amount||0);},0);
+      rcEl.innerHTML='<div style="margin-top:14px"><div class="param-section-title">🍽️ Charges restaurant (folio)</div>'+
+        charges.map(function(c){
+          var d=c.created_at?new Date(c.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'—';
+          var badge=c.settled
+            ?'<span style="font-size:10px;background:var(--success);color:#fff;border-radius:4px;padding:1px 5px;margin-left:4px;">Réglé</span>'
+            :'<span style="font-size:10px;background:var(--danger);color:#fff;border-radius:4px;padding:1px 5px;margin-left:4px;">À payer</span>';
+          return '<div class="inv-hist-item" style="border-left:3px solid #f59e0b;padding-left:8px;">'+
+            '<div style="display:flex;justify-content:space-between;align-items:center">'+
+            '<strong style="color:#f59e0b;">+'+fmtMoney(c.amount||0)+' (Restaurant)</strong>'+badge+
+            '<span style="color:var(--text3)">'+d+'</span></div>'+
+            '<div style="color:var(--text2);margin-top:2px;font-size:12px;">'+esc(c.description||'Commande restaurant')+'</div>'+
+            (!c.settled?'<button onclick="settleCharge(\''+c.id+'\',\''+rezId+'\')" style="margin-top:5px;font-size:11px;padding:3px 8px;border:none;border-radius:5px;background:var(--accent);color:#fff;cursor:pointer;">✓ Marquer réglé</button>':'')+'</div>';
+        }).join('')+
+        (totCharges>0?'<div class="inv-line" style="border-top:1px dashed var(--border);margin-top:8px;padding-top:8px;font-weight:700;color:#f59e0b;">'+
+          '<span>Total charges restaurant non réglées</span><strong>'+fmtMoney(totCharges)+'</strong></div>':'')+'</div>';
+    }
   }).catch(function(){
     if(el) el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px">Impossible de charger l\'historique</div>';
   });
+}
+function settleCharge(chargeId,rezId){
+  sbPatch('veraluz_room_charges?id=eq.'+chargeId,{settled:true,settled_at:new Date().toISOString()}).then(function(){
+    toast('Charge réglée ✓','success');
+    loadPayHistory(rezId);
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'danger');});
 }
 function recordPayment(){
   var rezId=_openRezId; if(!rezId) return;

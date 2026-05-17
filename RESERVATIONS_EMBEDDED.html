@@ -1042,8 +1042,21 @@ function nfNext1(){
   if(!ci||!co||ci>=co){toast('Dates invalides','danger');return;}
   _nf.check_in=ci; _nf.check_out=co; _nf.guests=g; _nf.step=2; renderNewForm();
 }
+function isUnitAvailable(unitId, checkIn, checkOut){
+  // Two date ranges overlap when: A.start < B.end AND A.end > B.start
+  var blocked=['pending','confirmed','checkedin','checked_in'];
+  return !_rez.some(function(r){
+    return r.unit_id===unitId
+      && blocked.indexOf(r.status)>=0
+      && r.check_in < checkOut
+      && r.check_out > checkIn;
+  });
+}
 function buildStep2(){
-  var avail=_rooms.filter(function(r){return r._dynStatus==='available';});
+  var avail=_rooms.filter(function(r){
+    if(r._dynStatus==='maintenance'||r._dynStatus==='out_of_service') return false;
+    return isUnitAvailable(r.id, _nf.check_in, _nf.check_out);
+  });
   if(!avail.length) return '<div class="form-section"><p style="color:var(--text2);text-align:center;padding:20px">Aucun logement disponible pour ces dates.</p></div><button class="btn-secondary" onclick="_nf.step=1;renderNewForm()">← Retour</button>';
   var n=diffDays(_nf.check_in,_nf.check_out);
   return '<div class="form-section"><p class="section-title">Étape 2 — Choisir le logement ('+n+' nuit'+(n>1?'s':'')+')</p>'+
@@ -1094,6 +1107,11 @@ function buildStep4(){
     '</div><div class="form-nav"><button class="btn-secondary" onclick="_nf.step=3;renderNewForm()">← Retour</button><button class="btn-primary" style="flex:1" onclick="nfSubmit()">✓ Enregistrer</button></div>';
 }
 function nfSubmit(){
+  // Double-booking guard: re-check before saving
+  if(!isUnitAvailable(_nf.unit_id, _nf.check_in, _nf.check_out)){
+    toast("Ce logement n'est plus disponible pour ces dates — veuillez en choisir un autre.",'danger');
+    _nf.step=2; renderNewForm(); return;
+  }
   _nf.source=(document.getElementById('nf-source')||{}).value||'reception';
   _nf.notes=(document.getElementById('nf-notes')||{}).value||'';
   var sbData=toSb({
@@ -1484,6 +1502,14 @@ document.addEventListener('DOMContentLoaded', function(){
     refresh();
     checkBkSync();
   });
+  // Auto-refresh when Booking Engine creates a reservation
+  var _lastRezSync=0;
+  setInterval(function(){
+    try{
+      var ts=parseInt(localStorage.getItem('vlz_rez_updated')||'0');
+      if(ts>_lastRezSync){ _lastRezSync=ts; loadAll(function(){enrichStatuses();refresh();}); toast('Nouvelle réservation reçue du Booking Engine ✓','success'); }
+    }catch(e){}
+  },5000);
 });
 </script>
 </body>

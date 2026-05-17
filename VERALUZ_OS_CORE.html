@@ -428,7 +428,7 @@ function loadModuleFrame(mod) {
       document.getElementById('mod-error').classList.add('show');
     };
     loadTimer = setTimeout(onReady, 8000);
-    iframe.src = mod.file;
+    iframe.src = mod.file + "?v=" + Date.now();
   }, 80);
 }
 

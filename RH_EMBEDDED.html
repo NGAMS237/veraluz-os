@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <title>RH — Veraluz</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -158,7 +160,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="kpi"><div class="kpi-v" id="kpi-total">&#8212;</div><div class="kpi-l">Total</div></div>
       </div>
       <div class="btn-row">
-        <button class="btn btn-primary" onclick="openMd(\'md-add-emp\')">&#43; Employ&#233;</button>
+        <button class="btn btn-primary" onclick="openAddEmp()">&#43; Employ&#233;</button>
         <button class="btn btn-sec"     onclick="openMd(\'md-add-team\')">&#43; &#201;quipe</button>
       </div>
       <input class="search" id="emp-search" placeholder="&#128269; Rechercher&#8230;" oninput="filterEmps()">
@@ -174,7 +176,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <!-- CONTRATS -->
     <div class="pane" id="pane-contrats">
       <div class="btn-row">
-        <button class="btn btn-primary" onclick="openMd(\'md-add-contract\')">&#43; Contrat</button>
+        <button class="btn btn-primary" onclick="openAddContract()">&#43; Contrat</button>
       </div>
       <div class="filters">
         <button class="fchip on" onclick="setCFilter('all',this)"    data-c="all">Tous</button>
@@ -192,7 +194,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div style="display:flex;gap:6px;">
           <button class="btn btn-sec btn-sm" onclick="prevWeek()">&#9664;</button>
           <button class="btn btn-sec btn-sm" onclick="nextWeek()">&#9654;</button>
-          <button class="btn btn-primary btn-sm" onclick="openMd(\'md-add-sched\')">&#43; Shift</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddSched()">&#43; Shift</button>
         </div>
       </div>
       <div class="sg-wrap"><table class="sg" id="sched-grid"></table></div>
@@ -210,7 +212,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <span class="sec-title">&#9200; Pointages</span>
         <div style="display:flex;gap:6px;align-items:center;">
           <input type="date" class="fi" id="att-date" style="width:150px;margin:0;" onchange="loadAtt()">
-          <button class="btn btn-primary btn-sm" onclick="openMd(\'md-add-att\')">&#43; Pointer</button>
+          <button class="btn btn-primary btn-sm" onclick="openAddAtt()">&#43; Pointer</button>
         </div>
       </div>
       <div class="card-row">
@@ -242,7 +244,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         </div>
         <div class="btn-row">
           <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" /><button class="btn btn-primary" onclick="calcPayroll()">&#128200; Calculer la paie du mois</button>
-          <button class="btn btn-sec"     onclick="openMd(\'md-add-pay\')">&#43; Fiche manuelle</button>
+          <button class="btn btn-sec"     onclick="openAddPay()">&#43; Fiche manuelle</button>
           <button class="btn btn-sec"     onclick="exportPayCSV()">&#128438; Export banque</button>
         </div>
       </div>
@@ -263,7 +265,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <!-- AVANCES -->
     <div class="pane" id="pane-adv">
       <div class="btn-row">
-        <button class="btn btn-primary" onclick="openMd(\'md-add-adv\')">&#43; Avance</button>
+        <button class="btn btn-primary" onclick="openAddAdv()">&#43; Avance</button>
       </div>
       <div class="card-row">
         <div class="kpi warn"><div class="kpi-v" id="adv-count">&#8212;</div><div class="kpi-l">En attente</div></div>
@@ -275,7 +277,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
     <!-- DOCUMENTS -->
     <div class="pane" id="pane-docs">
-      <div class="btn-row"><button class="btn btn-primary" onclick="openMd(\'md-add-doc\')">&#43; Document</button></div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="openAddDoc()">&#43; Document</button></div>
       <input class="search" id="doc-search" placeholder="&#128269; Rechercher&#8230;" oninput="filterDocs()">
       <div class="filters">
         <button class="fchip on" onclick="setDocFilter('all',this)">Tous</button>
@@ -289,7 +291,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
     <!-- TACHES -->
     <div class="pane" id="pane-tasks">
-      <div class="btn-row"><button class="btn btn-primary" onclick="openMd(\'md-add-task\')">&#43; T&#226;che</button></div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="openAddTask()">&#43; T&#226;che</button></div>
       <div class="filters">
         <button class="fchip on" onclick="setTaskFilter('all',this)">Toutes</button>
         <button class="fchip"    onclick="setTaskFilter('a_faire',this)">&#192; faire</button>
@@ -801,7 +803,7 @@ function safeGet(t){
 }
 function loadAll(){
   var banner=document.getElementById('load-banner');
-  if(banner){banner.textContent='Chargement des données...';banner.style.display='block';banner.style.color='var(--accent)';}
+  if(banner){banner.textContent='Chargement des données...';banner.style.display='block';banner.style.color='var(--acc1)';}
   Promise.all([
     safeGet('veraluz_employees?select=*&order=full_name.asc'),
     safeGet('veraluz_teams?select=*'),
@@ -833,7 +835,13 @@ function loadAll(){
     populateSelects();
     initParamSelects();
     if(EMPS.length===0){
-      if(banner){banner.textContent='Aucun employé trouvé. Vérifiez votre connexion Supabase.';banner.style.display='block';banner.style.color='var(--warn, orange)';}
+      if(!window._rhRetried){
+        window._rhRetried=true;
+        console.warn('RH: EMPS empty, retrying in 1.5s...');
+        setTimeout(loadAll,1500);
+      } else {
+        if(banner){banner.textContent='Aucun employé trouvé. Vérifiez la connexion Supabase.';banner.style.display='block';banner.style.color='var(--warn, orange)';}
+      }
     }
   }).catch(function(e){
     var msg='Erreur chargement: '+(e.message||e);
@@ -1017,7 +1025,7 @@ function toggleEmpStatus(eid,cur){
 function renderDosContrat(){
   var list=CONTRACTS.filter(function(c){return c.employee_id===_dosEmpId;});
   var el=document.getElementById('dos-contrat');
-  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openMd(\'md-add-contract\')">&#43; Contrat</button></div>';
+  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openAddContract()">&#43; Contrat</button></div>';
   if(!list.length){el.innerHTML+='<div class="empty"><div class="empty-ico">&#128203;</div>Aucun contrat</div>';return;}
   el.innerHTML+=list.map(function(c){
     return '<div class="card" style="margin-bottom:8px;">'
@@ -1074,7 +1082,7 @@ function renderDosPaie(){
 function renderDosTaches(){
   var list=TASKS.filter(function(t){return t.employee_id===_dosEmpId;});
   var el=document.getElementById('dos-taches');
-  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openMd(\'md-add-task\')">&#43; T&#226;che</button></div>';
+  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openAddTask()">&#43; T&#226;che</button></div>';
   if(!list.length){el.innerHTML+='<div class="empty"><div class="empty-ico">&#9989;</div>Aucune t&#226;che</div>';return;}
   el.innerHTML+=list.map(function(t){
     var ico=t.status==='termine'?'&#9989;':t.status==='en_cours'?'&#9654;':'&#9723;';
@@ -1105,7 +1113,7 @@ function renderDosAtt(){
 function renderDosDocs(){
   var list=DOCS.filter(function(d){return d.employee_id===_dosEmpId;});
   var el=document.getElementById('dos-docs');
-  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openMd(\'md-add-doc\')">&#43; Document</button></div>';
+  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openAddDoc()">&#43; Document</button></div>';
   if(!list.length){el.innerHTML+='<div class="empty"><div class="empty-ico">&#128196;</div>Aucun document</div>';return;}
   el.innerHTML+=list.map(function(d){
     return '<div class="entry"><div class="entry-ico acc">&#128196;</div>'
@@ -1168,6 +1176,14 @@ function loadContracts(){
       +'</div>';
   }).join('');
 }
+
+function openAddContract(){document.getElementById('contract-emp').value='';openMd('md-add-contract');}
+function openAddSched(){openMd('md-add-sched');}
+function openAddAtt(){openMd('md-add-att');}
+function openAddAdv(){openMd('md-add-adv');}
+function openAddDoc(){openMd('md-add-doc');}
+function openAddTask(){openMd('md-add-task');}
+function openAddPay(){openMd('md-add-pay');}
 function saveContract(){
   var emp=EMPS.find(function(e){return e.id===document.getElementById('contract-emp').value;});
   var hotel=SETTINGS.hotel_name||'Résidence Veraluz';
@@ -1647,8 +1663,8 @@ function doLogin(){
   var eid=document.getElementById('login-emp-sel').value;
   if(!eid){document.getElementById('login-err').textContent='Choisissez votre nom';_pinBuffer='';updatePinDots();return;}
   var emp=EMPS.find(function(e){return e.id===eid;});
-  if(!emp){document.getElementById('login-err').textContent='Employ&#233; introuvable';_pinBuffer='';updatePinDots();return;}
-  if((emp.pin_code||'0000')!==_pinBuffer){
+  if(!emp){document.getElementById('login-err').textContent=(EMPS.length===0?'Module non chargé — cliquez Actualiser':'Employé introuvable');_pinBuffer='';updatePinDots();return;}
+  if((emp.pin_code||SETTINGS.default_pin||'1234')!==_pinBuffer){
     document.getElementById('login-err').textContent='PIN incorrect &#10006;';
     _pinBuffer='';updatePinDots();return;
   }

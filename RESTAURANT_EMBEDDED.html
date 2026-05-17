@@ -1584,8 +1584,20 @@ function saveSO(){
   var data={id:gid(),supplier_id:supId,supplier_name:supName,items:items,status:'brouillon',total_amount:tot,notes:notes||null};
   POST('veraluz_restaurant_supplier_orders',data).then(function(r){
     var saved=r[0]||data;SOS.unshift(saved);
-    closeMd('md-so');renderSOs();toast('Bon cr&#233;&#233; &#9989;','ok');
+    closeMd('md-so');renderSOs();toast('Bon créé ✅','ok');
     setTimeout(function(){printSO(saved);},400);
+    /* Mémoriser last_pu sur les articles stock dès la commande */
+    var now2=new Date().toISOString();
+    soLines.forEach(function(l){
+      if(l.pid&&l.pid.startsWith('s_')&&l.pu>0){
+        var sid2=l.pid.slice(2);
+        var si2=STOCK.find(function(x){return x.id===sid2;});
+        if(si2){
+          si2.last_pu=l.pu;si2.last_pu_at=now2;
+          PATCH('veraluz_restaurant_stock',sid2,{last_pu:l.pu,last_pu_at:now2}).catch(function(){});
+        }
+      }
+    });
   }).catch(function(e){toast('Erreur: '+e,'er');});
 }
 function printSO(o){
@@ -2202,34 +2214,73 @@ function renderTarifs(){
     +'<thead><tr style="background:var(--bg2);position:sticky;top:0;">'
     +'<th style="padding:8px 6px;text-align:left;font-weight:700;color:var(--text2);">Article</th>'
     +'<th style="padding:8px 6px;text-align:left;font-weight:700;color:var(--text2);">Unité embal.</th>'
-    +'<th style="padding:8px 6px;text-align:right;font-weight:700;color:var(--acc2);">Dernier PU</th>'
-    +'<th style="padding:8px 6px;text-align:right;font-weight:700;color:var(--text2);">Dernière réception</th>'
-    +'<th style="padding:8px 6px;text-align:right;font-weight:700;color:var(--text2);">Stock actuel</th>'
+    +'<th style="padding:8px 6px;text-align:center;font-weight:700;color:var(--acc2);">Dernier PU (FCFA)</th>'
+    +'<th style="padding:8px 6px;text-align:right;font-weight:700;color:var(--text2);">Dernière maj</th>'
+    +'<th style="padding:8px 6px;text-align:right;font-weight:700;color:var(--text2);">Stock</th>'
     +'</tr></thead>'
     +'<tbody>'
     +sorted.map(function(s,idx){
       var hasPu=s.last_pu&&s.last_pu>0;
-      var dateStr=s.last_pu_at?new Date(s.last_pu_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'2-digit'}):'—';
-      var unitLabel=(s.order_unit&&s.order_unit!=='unité')?s.order_unit+(s.order_unit_qty>1?' ×'+s.order_unit_qty:''):'—';
+      var dateStr=s.last_pu_at?new Date(s.last_pu_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'2-digit'}):'--';
+      var unitLabel=(s.order_unit&&s.order_unit!=='unité')?s.order_unit+(s.order_unit_qty>1?' x'+s.order_unit_qty:''):'--';
       var sup=SUPS.find(function(x){return x.id===s.supplier_id;});
+      var curPu=s.last_pu||0;
       return '<tr style="border-bottom:1px solid var(--border);'+(idx%2===0?'':'background:var(--bg2);')+'">'
         +'<td style="padding:8px 6px;">'
         +'<div style="font-weight:600;color:var(--text);">'+esc(s.name||'')+'</div>'
         +(sup?'<div style="font-size:10px;color:var(--text3);">'+esc(sup.name||'')+'</div>':'')
         +'</td>'
         +'<td style="padding:8px 6px;color:var(--text2);">'+esc(unitLabel)+'</td>'
-        +'<td style="padding:8px 6px;text-align:right;font-weight:700;color:'+(hasPu?'var(--acc2)':'var(--text3)')+';">'
-        +(hasPu?fmt(s.last_pu):'Non renseigné')+'</td>'
+        /* PU editable — use data-attributes to avoid quote escaping */
+        +'<td style="padding:6px;text-align:center;">'
+        +'<div id="tarif-disp-'+s.id+'" style="display:flex;align-items:center;justify-content:center;gap:6px;">'
+        +'<span style="font-weight:700;color:'+(hasPu?'var(--acc2)':'var(--text3)')+';">'+(hasPu?Number(curPu).toLocaleString('fr-FR'):'--')+'</span>'
+        +'<button data-sid="'+s.id+'" data-pu="'+curPu+'" onclick="openTarifEdit(this.dataset.sid,parseFloat(this.dataset.pu))" style="background:none;border:1px solid var(--border);border-radius:5px;padding:1px 5px;cursor:pointer;font-size:10px;color:var(--text2);">✎</button>'
+        +'</div>'
+        +'<div id="tarif-edit-'+s.id+'" style="display:none;align-items:center;gap:4px;justify-content:center;">'
+        +'<input type="number" id="tarif-inp-'+s.id+'" min="0" value="'+curPu+'" placeholder="PU" style="width:80px;padding:3px 5px;border-radius:5px;border:1px solid var(--acc2);background:var(--bg3);color:var(--text);font-size:12px;">'
+        +'<button data-sid="'+s.id+'" onclick="saveTarifPu(this.dataset.sid)" style="background:var(--acc2);color:#fff;border:none;border-radius:5px;padding:3px 7px;cursor:pointer;font-size:11px;">✓</button>'
+        +'<button data-sid="'+s.id+'" onclick="cancelTarifEdit(this.dataset.sid)" style="background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:3px 6px;cursor:pointer;font-size:11px;">✕</button>'
+        +'</div>'
+        +'</td>'
         +'<td style="padding:8px 6px;text-align:right;color:var(--text3);font-size:11px;">'+dateStr+'</td>'
         +'<td style="padding:8px 6px;text-align:right;color:'+(s.quantity>0?'var(--ok)':'var(--err)')+';">'
-        +(s.quantity||0)+' '+(s.unit||'')
-        +'</td>'
+        +(s.quantity||0)+' '+(s.unit||'')+'</td>'
         +'</tr>';
     }).join('')
     +'</tbody></table>'
     +'<div style="padding:10px;font-size:11px;color:var(--text3);text-align:center;border-top:1px solid var(--border);margin-top:8px;">'
-    +'&#128161; Les prix se mettent à jour automatiquement lors de chaque vérification de réception.'
+    +'💡 Prix mis à jour auto à chaque commande/réception. Cliquez ✎ pour modifier manuellement.'
     +'</div>';
+}
+function openTarifEdit(sid,current){
+  var disp=document.getElementById('tarif-disp-'+sid);
+  var edit=document.getElementById('tarif-edit-'+sid);
+  var inp=document.getElementById('tarif-inp-'+sid);
+  if(!disp||!edit||!inp)return;
+  inp.value=current||'';
+  disp.style.display='none';
+  edit.style.display='flex';
+  inp.focus();inp.select();
+}
+function cancelTarifEdit(sid){
+  var disp=document.getElementById('tarif-disp-'+sid);
+  var edit=document.getElementById('tarif-edit-'+sid);
+  if(disp)disp.style.display='flex';
+  if(edit)edit.style.display='none';
+}
+function saveTarifPu(sid){
+  var inp=document.getElementById('tarif-inp-'+sid);
+  if(!inp)return;
+  var val=parseFloat(inp.value);
+  if(isNaN(val)||val<0){toast('PU invalide','er');return;}
+  var now=new Date().toISOString();
+  PATCH('veraluz_restaurant_stock',sid,{last_pu:val,last_pu_at:now}).then(function(){
+    var si=STOCK.find(function(x){return x.id===sid;});
+    if(si){si.last_pu=val;si.last_pu_at=now;}
+    toast('PU mis à jour ✅','ok');
+    renderTarifs();
+  }).catch(function(e){toast('Erreur: '+e,'er');});
 }
 
 /* ── CARTE DE MENU PDF ── */

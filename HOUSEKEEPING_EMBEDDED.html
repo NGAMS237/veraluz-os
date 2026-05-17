@@ -554,7 +554,7 @@ var SK = (window.__SUPABASE_KEY__||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3M
 var STAFF = ['Marie','Jean','Tech'];
 
 /* ── STATE ── */
-var _tasks = [], _units = [], _activeTab = 'dash';
+var _tasks = [], _units = [], _reservations = [], _activeTab = 'dash';
 var _empName = '', _selProblem = '';
 
 /* ── UTILITIES ── */
@@ -610,7 +610,7 @@ function sbFetch(path, opts) {
 /* ── LOAD ALL ── */
 function loadAll(cb) {
   var done = 0;
-  function check() { done++; if(done>=2 && cb) cb(); }
+  function check() { done++; if(done>=3 && cb) cb(); }
   // Restore cache
   try{ var c=localStorage.getItem('vlz_hk_tasks'); if(c)_tasks=JSON.parse(c); }catch(e){}
   try{ var c=localStorage.getItem('vlz_hk_units'); if(c)_units=JSON.parse(c); }catch(e){}
@@ -626,6 +626,14 @@ function loadAll(cb) {
     .then(function(r){return r.json();})
     .then(function(d){
       if(Array.isArray(d)){_units=d;try{localStorage.setItem('vlz_hk_units',JSON.stringify(d));}catch(e){}}
+      check();
+    }).catch(check);
+
+  // Fetch active + recent reservations for sync
+  sbFetch('veraluz_reservations?select=id,unit_id,client_name,status,check_in,check_out&or=(status.eq.confirmed,status.eq.checkedin,status.eq.checked_in,status.eq.checkedout,status.eq.checkedout)&limit=300')
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(Array.isArray(d)) _reservations=d;
       check();
     }).catch(check);
 }
@@ -1209,15 +1217,121 @@ function saveProblem() {
   });
 }
 
+/* ── RESERVATIONS SYNC ── */
+function syncWithReservations() {
+  var todayStr = today();
+  var tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+  var tomorrowStr = tomorrow.toISOString().slice(0,10);
+
+  _reservations.forEach(function(r) {
+    // Checkout today (or status already checked-out with today's date) → ensure cleaning task
+    if((r.status==='checkedout'||r.status==='checked_out') && r.check_out===todayStr) {
+      ensureCleaningTask(r, todayStr, tomorrowStr);
+    }
+    // Currently occupied → mark room as occupied (only if clean/available, not dirty/cleaning/maintenance)
+    if((r.status==='checkedin'||r.status==='checked_in') && r.check_in<=todayStr && r.check_out>todayStr) {
+      var u=_units.find(function(x){return x.id===r.unit_id;});
+      if(u && (u.hk_status==='available'||u.hk_status==='inspected'||!u.hk_status)) {
+        updateUnitHkStatus(r.unit_id,'occupied');
+        u.hk_status='occupied'; // update local cache immediately
+      }
+    }
+    // Confirmed arrival today or tomorrow → ensure preparation task
+    if(r.status==='confirmed' && (r.check_in===todayStr||r.check_in===tomorrowStr)) {
+      ensurePreparationTask(r);
+    }
+  });
+}
+
+function ensureCleaningTask(r, todayStr, tomorrowStr) {
+  // Check if a pending/in_progress cleaning task already exists for this unit today
+  var existing = _tasks.filter(function(t){
+    return t.unit_id===r.unit_id && t.type==='cleaning' && isActive(t);
+  });
+  if(existing.length) return;
+
+  // Check if another check-in is today or tomorrow → affects priority
+  var nextArrival = _reservations.find(function(x){
+    return x.unit_id===r.unit_id && x.id!==r.id &&
+      (x.check_in===todayStr||x.check_in===tomorrowStr) &&
+      (x.status==='confirmed'||x.status==='checkedin'||x.status==='checked_in');
+  });
+  var prio = nextArrival && nextArrival.check_in===todayStr ? 'urgent' : nextArrival ? 'high' : 'normal';
+  var u = _units.find(function(x){return x.id===r.unit_id;});
+  var body = {
+    unit_id:r.unit_id, type:'cleaning', status:'pending', priority:prio,
+    task_label:'Nettoyage départ',
+    room_name:u?u.name:r.unit_id,
+    notes:'Départ: '+(r.client_name||'client')+(nextArrival?' | Prochaine arrivée: '+(nextArrival.check_in===todayStr?"aujourd'hui":nextArrival.check_in):''),
+    scheduled_for:todayStr,
+    reported_by:'Auto-sync Réservations',
+    created_at:new Date().toISOString(), updated_at:new Date().toISOString()
+  };
+  sbFetch('veraluz_housekeeping',{method:'POST',body:JSON.stringify(body)}).then(function(res){
+    if(res.ok||res.status===201){
+      updateUnitHkStatus(r.unit_id,'dirty');
+      showToast((u?u.name:r.unit_id)+' — tâche ménage créée automatiquement','ok');
+      loadAll(function(){syncWithReservations();refresh();});
+    }
+  });
+}
+
+function ensurePreparationTask(r) {
+  var existing = _tasks.filter(function(t){
+    return t.unit_id===r.unit_id &&
+      (t.type==='preparation'||t.type==='vip') &&
+      isActive(t) && t.scheduled_for===r.check_in;
+  });
+  if(existing.length) return;
+
+  var todayStr = today();
+  var u = _units.find(function(x){return x.id===r.unit_id;});
+  var body = {
+    unit_id:r.unit_id, type:'preparation', status:'pending',
+    priority: r.check_in===todayStr ? 'high' : 'normal',
+    task_label:'Préparation arrivée',
+    room_name:u?u.name:r.unit_id,
+    notes:'Arrivée: '+(r.client_name||'client')+' le '+r.check_in,
+    scheduled_for:r.check_in,
+    reported_by:'Auto-sync Réservations',
+    created_at:new Date().toISOString(), updated_at:new Date().toISOString()
+  };
+  sbFetch('veraluz_housekeeping',{method:'POST',body:JSON.stringify(body)}).then(function(res){
+    if(res.ok||res.status===201){
+      showToast((u?u.name:r.unit_id)+' — préparation arrivée créée','ok');
+      loadAll(function(){refresh();});
+    }
+  });
+}
+
 /* ── MODAL OVERLAY CLOSE ── */
 document.querySelectorAll('.modal-overlay').forEach(function(o){
   o.addEventListener('click',function(e){if(e.target===o)o.classList.remove('open');});
 });
 
 /* ── INIT ── */
+var _lastHkRezSync = 0;
+
 document.addEventListener('DOMContentLoaded',function(){
   goTab('dash');
-  loadAll(refresh);
+  loadAll(function(){
+    syncWithReservations();
+    refresh();
+  });
+
+  // Poll localStorage every 5s for reservation changes (checkout, checkin, new booking)
+  setInterval(function(){
+    try{
+      var ts = parseInt(localStorage.getItem('vlz_rez_updated')||'0');
+      if(ts > _lastHkRezSync){
+        _lastHkRezSync = ts;
+        loadAll(function(){
+          syncWithReservations();
+          refresh();
+        });
+      }
+    }catch(e){}
+  }, 5000);
 });
 </script>
 </body>

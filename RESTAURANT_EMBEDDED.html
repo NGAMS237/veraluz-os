@@ -368,6 +368,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
       <button class="stab on" onclick="goStk('inv',this)">&#128230; Inventaire</button>
       <button class="stab" onclick="goStk('mvt',this)">&#128202; Mouvements</button>
       <button class="stab" onclick="goStk('cmd',this)">&#128666; Fournisseurs</button>
+      <button class="stab" onclick="goStk('tarif',this)">&#128176; Tarifs</button>
       <button class="stab" onclick="printMenu()" style="margin-left:auto;background:var(--accent);color:#fff;border-radius:8px;padding:5px 10px;font-size:12px;">&#128247; Imprimer carte</button>
     </div>
     <div style="flex:1;position:relative;">
@@ -378,6 +379,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);
           <button class="btn bp bs" onclick="openSOMd(null)">&#43; Bon de commande</button>
         </div>
         <div id="so-list"></div>
+      </div>
+      <div class="spane" id="sp-tarif" style="position:absolute;inset:0;overflow-y:auto;">
+        <div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+          <span style="font-weight:700;font-size:13px;flex:1;">&#128176; Catalogue Tarifs Fournisseurs</span>
+          <span style="font-size:11px;color:var(--text3);">PU auto-sauvegardé à chaque réception</span>
+        </div>
+        <div id="tarif-list" style="padding:8px;"></div>
       </div>
     </div>
   </div>
@@ -1327,6 +1335,7 @@ function goStk(t,btn){
   if(t==='inv')renderStock();
   if(t==='mvt')renderMvts();
   if(t==='cmd')renderSOs();
+  if(t==='tarif')renderTarifs();
 }
 function renderStock(){
   var el=document.getElementById('sp-inv');
@@ -1500,7 +1509,7 @@ function soLineArt(i,val){
   } else if(val.startsWith('s_')){
     var s=STOCK.find(function(x){return x.id===val.slice(2);});
     if(s){
-      soLines[i].pname=s.name;soLines[i].pu=s.unit_cost||s.cost_price||0;
+      soLines[i].pname=s.name;soLines[i].pu=s.last_pu||s.unit_cost||s.cost_price||0;
       soLines[i].order_unit=s.order_unit||'unité';
       soLines[i].order_unit_qty=s.order_unit_qty||1;
       soLines[i].order_unit_options=s.order_unit_options||null;
@@ -1651,7 +1660,7 @@ function openReceiptMd(id){
     var unitLabel=it.order_unit||it.unit||'unité';
     var stockEq=(it.qty||0)*pkgQty;
     var convStr=pkgQty>1?' = <b>'+stockEq+'</b> '+(it.stock_unit||it.unit||'unités')+' en stock':'';
-    _rcvItems.push({ordered:it,received:it.qty||0,ok:true,pkgQty:pkgQty,unitLabel:unitLabel});
+    _rcvItems.push({ordered:it,received:it.qty||0,ok:true,pkgQty:pkgQty,unitLabel:unitLabel,pu:it.pu||0});
     var sid='rcv-qty-'+i;
     return '<div style="background:var(--bg2);border-radius:8px;padding:10px;margin-bottom:8px;">'
       +'<div style="font-weight:700;font-size:13px;">'+esc(it.name||'?')+'</div>'
@@ -1659,12 +1668,16 @@ function openReceiptMd(id){
       +'Commandé : <b>'+(it.qty||0)+'</b> '+esc(unitLabel)
       +(pkgQty>1?' <span style="color:var(--acc);">(× '+pkgQty+convStr+')</span>':'')
       +'</div>'
-      +'<div style="display:flex;align-items:center;gap:10px;margin-top:6px;">'
-      +'<div style="flex:1;">'
-      +'<label style="font-size:12px;color:var(--text2);">Reçu ('+esc(unitLabel)+') :</label> '
+      +'<div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">'
+      +'<div style="display:flex;flex-direction:column;gap:2px;">'
+      +'<label style="font-size:11px;color:var(--text2);">Reçu ('+esc(unitLabel)+')</label>'
       +'<input type="number" id="'+sid+'" value="'+(it.qty||0)+'" min="0" style="width:70px;padding:4px 6px;border-radius:6px;border:1px solid var(--brd);background:var(--bg3);color:var(--text);font-size:13px;" oninput="markRcvRow('+i+',this.value,'+(it.qty||0)+','+pkgQty+')" data-idx="'+i+'">'
       +'</div>'
-      +'<div id="rcv-conv-'+i+'" style="font-size:11px;color:var(--ok);"></div>'
+      +'<div style="display:flex;flex-direction:column;gap:2px;">'
+      +'<label style="font-size:11px;color:var(--acc2);">&#128181; PU réel (FCFA)</label>'
+      +'<input type="number" id="rcv-pu-'+i+'" value="'+(it.pu||0)+'" min="0" placeholder="0" style="width:90px;padding:4px 6px;border-radius:6px;border:1px solid var(--acc2);background:var(--bg3);color:var(--text);font-size:13px;" oninput="markRcvPu('+i+',this.value)">'
+      +'</div>'
+      +'<div id="rcv-conv-'+i+'" style="font-size:11px;color:var(--ok);margin-top:auto;"></div>'
       +'</div>'
       +'<div id="rcv-diff-'+i+'" style="font-size:11px;color:var(--err);margin-top:3px;display:none;">⚠️ Écart détecté !</div>'
       +'</div>';
@@ -1696,14 +1709,23 @@ function markRcvRow(idx,val,ordered,pkgQty){
   var totR=_rcvItems.reduce(function(s,it){return s+it.received;},0);
   document.getElementById('rcv-tot-received').textContent=totR;
 }
+
+function markRcvPu(idx,val){
+  _rcvItems[idx].pu=parseFloat(val)||0;
+}
 function saveReceipt(){
   if(!_rcvSoId)return;
   var o=SOS.find(function(x){return x.id===_rcvSoId;});if(!o)return;
   var notes=document.getElementById('rcv-notes').value.trim();
   var hasDisc=_rcvItems.some(function(it){return !it.ok;});
   var now=new Date().toISOString();
+  /* Lire PU réels depuis les inputs */
+  _rcvItems.forEach(function(it,i){
+    var puEl=document.getElementById('rcv-pu-'+i);
+    if(puEl)it.pu=parseFloat(puEl.value)||it.pu||0;
+  });
   var receiptItems=_rcvItems.map(function(it){
-    return {name:it.ordered.name,unit:it.ordered.unit,ordered:it.ordered.qty||0,received:it.received,ok:it.ok};
+    return {name:it.ordered.name,unit:it.ordered.unit,ordered:it.ordered.qty||0,received:it.received,ok:it.ok,pu:it.pu||0};
   });
   var totOrdered=_rcvItems.reduce(function(s,it){return s+(it.ordered.qty||0);},0);
   var totReceived=_rcvItems.reduce(function(s,it){return s+it.received;},0);
@@ -1730,7 +1752,10 @@ function saveReceipt(){
       var unitLabel=it.ordered.order_unit&&it.ordered.order_unit!=='unité'
         ?it.received+' '+it.ordered.order_unit+' ('+stockReceived+' u.)'
         :String(stockReceived);
-      ps.push(PATCH('veraluz_restaurant_stock',si.id,{quantity:nq}));
+      var realPu=it.pu||0;
+      var stockPatch={quantity:nq};
+      if(realPu>0){stockPatch.last_pu=realPu;stockPatch.last_pu_at=now;}
+      ps.push(PATCH('veraluz_restaurant_stock',si.id,stockPatch));
       ps.push(POST('veraluz_restaurant_stock_movements',{id:gid(),stock_id:si.id,type:'entree',
         qty:stockReceived,
         reason:'Réception #'+_rcvSoId.slice(-6)+' — '+unitLabel+(it.ok?'':' [ÉCART]'),
@@ -2004,9 +2029,120 @@ function saveResa(){
       RESAS.push(created||r);
     });
   }
-  p.then(function(){closeMd('md-resa');renderResa();toast('R&#233;servation enregistr&#233;e &#9989;','ok');})
+  p.then(function(){
+    closeMd('md-resa');renderResa();
+    toast('Réservation enregistrée ✅','ok');
+    /* Proposer l’impression de la confirmation */
+    setTimeout(function(){
+      var last=RESAS[RESAS.length-1];
+      if(last&&!editResaId&&confirm('Imprimer la confirmation de réservation ?')){printResaPdf(last.id);}
+    },400);
+  })
    .catch(function(e){toast('Erreur sauvegarde: '+e,'er');});
 }
+
+/* ── PDF CONFIRMATION RÉSERVATION DE SALLE ── */
+function printResaPdf(id){
+  var r=RESAS.find(function(x){return x.id===id;});
+  if(!r){toast('Réservation introuvable','er');return;}
+  var typeLabels={anniversaire:'Anniversaire',mariage:'Mariage / Fiançailles',corporate:'Corporate / Réunion',bapteme:'Baptême / Communion',autre:'Événement privé'};
+  var d=new Date(r.date+'T00:00:00');
+  var df=d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  var refNum='RES-'+r.id.slice(-8).toUpperCase();
+  var now=new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  var html='<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">'
+    +'<title>Confirmation '+refNum+'</title>'
+    +'<style>'
+    +'*{margin:0;padding:0;box-sizing:border-box;}'
+    +'body{font-family:Georgia,serif;color:#1a1a2e;background:#fff;padding:40px;max-width:800px;margin:0 auto;}'
+    +'@media print{body{padding:20px;}@page{margin:15mm;}}'
+    +'.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #c8a96e;padding-bottom:20px;margin-bottom:24px;}'
+    +'.logo-block{}'
+    +'.logo-name{font-size:28px;font-weight:700;color:#1a1a2e;letter-spacing:2px;}'
+    +'.logo-sub{font-size:11px;color:#6b7280;margin-top:2px;letter-spacing:1px;}'
+    +'.logo-addr{font-size:11px;color:#6b7280;margin-top:6px;line-height:1.5;}'
+    +'.doc-info{text-align:right;}'
+    +'.doc-type{font-size:18px;font-weight:700;color:#c8a96e;}'
+    +'.doc-ref{font-size:12px;color:#6b7280;margin-top:4px;}'
+    +'.doc-date{font-size:11px;color:#9ca3af;margin-top:2px;}'
+    +'.stamp{display:inline-block;border:2px solid #22c55e;color:#22c55e;font-size:13px;font-weight:700;padding:4px 12px;border-radius:6px;letter-spacing:1px;margin-top:8px;}'
+    +'.section{margin-bottom:20px;}'
+    +'.section-title{font-size:13px;font-weight:700;color:#c8a96e;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:12px;}'
+    +'.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}'
+    +'.field{}'
+    +'.field-label{font-size:10px;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}'
+    +'.field-value{font-size:14px;color:#1a1a2e;font-weight:600;}'
+    +'.highlight-box{background:#fef9ec;border:1px solid #c8a96e;border-radius:8px;padding:16px;margin-bottom:20px;}'
+    +'.event-name{font-size:22px;font-weight:700;color:#1a1a2e;}'
+    +'.event-type{font-size:13px;color:#c8a96e;margin-top:4px;}'
+    +'.conditions{background:#f9fafb;border-radius:8px;padding:16px;font-size:12px;color:#6b7280;line-height:1.6;margin-bottom:20px;}'
+    +'.conditions strong{color:#1a1a2e;}'
+    +'.footer{border-top:2px solid #c8a96e;padding-top:16px;display:flex;justify-content:space-between;align-items:flex-end;margin-top:20px;}'
+    +'.footer-left{font-size:11px;color:#9ca3af;line-height:1.6;}'
+    +'.signature{text-align:center;}'
+    +'.sig-line{width:160px;border-bottom:1px solid #1a1a2e;margin:0 auto 4px;}'
+    +'.sig-label{font-size:10px;color:#9ca3af;}'
+    +'.notes-box{background:#f0fdf4;border-left:3px solid #22c55e;padding:10px 14px;border-radius:0 6px 6px 0;font-size:12px;color:#374151;}'
+    +'</style></head><body>'
+    /* HEADER */
+    +'<div class="header">'
+    +'<div class="logo-block">'
+    +'<div class="logo-name">VERALUZ</div>'
+    +'<div class="logo-sub">RÉSIDENCE HÔTELIÈRE &amp; RESTAURANT</div>'
+    +'<div class="logo-addr">Kribi, Région du Sud — Cameroun<br>+237 6XX XXX XXX &nbsp;|&nbsp; veraluz@gmail.com</div>'
+    +'</div>'
+    +'<div class="doc-info">'
+    +'<div class="doc-type">CONFIRMATION DE RÉSERVATION</div>'
+    +'<div class="doc-ref">Réf. : '+refNum+'</div>'
+    +'<div class="doc-date">Émis le '+now+'</div>'
+    +'<div class="stamp">✓ CONFIRMÉ</div>'
+    +'</div></div>'
+    /* EVENT */
+    +'<div class="highlight-box">'
+    +'<div class="event-name">'+esc(r.event||'')+'</div>'
+    +'<div class="event-type">'+esc(typeLabels[r.type]||r.type||'')+'</div>'
+    +'</div>'
+    /* DETAILS */
+    +'<div class="section"><div class="section-title">Détails de l\'événement</div>'
+    +'<div class="grid">'
+    +'<div class="field"><div class="field-label">Date</div><div class="field-value">'+df+'</div></div>'
+    +(r.heure_debut||r.hd?'<div class="field"><div class="field-label">Horaires</div><div class="field-value">'+(r.heure_debut||r.hd)+((r.heure_fin||r.hf)?' → '+(r.heure_fin||r.hf):'')+'</div></div>':'')
+    +(r.pax?'<div class="field"><div class="field-label">Nombre de personnes</div><div class="field-value">'+r.pax+' invités</div></div>':'')
+    +(r.acompte?'<div class="field"><div class="field-label">Acompte versé</div><div class="field-value" style="color:#c8a96e;">'+Number(r.acompte).toLocaleString('fr-FR')+' FCFA</div></div>':'')
+    +'</div></div>'
+    /* CONTACT */
+    +(r.contact?'<div class="section"><div class="section-title">Contact</div>'
+    +'<div class="field"><div class="field-label">Nom &amp; coordonnées</div>'
+    +'<div class="field-value">'+esc(r.contact)+'</div></div></div>':'')
+    /* NOTES */
+    +(r.notes?'<div class="section"><div class="section-title">Notes &amp; demandes spéciales</div>'
+    +'<div class="notes-box">'+esc(r.notes)+'</div></div>':'')
+    /* CONDITIONS */
+    +'<div class="conditions">'
+    +'<strong>Conditions de la réservation</strong><br>'
+    +'• Toute annulation doit être communiquée au moins 48h à l\'avance.<br>'
+    +'• L\'acompte versé est non remboursable en cas d\'annulation de dernière minute.<br>'
+    +'• La salle doit être libérée à l\'heure de fin convenue. Toute prolongation fera l\'objet d\'une facturation supplémentaire.<br>'
+    +'• La résidence se réserve le droit de refuser l\'accès à tout invité perturbateur.'
+    +'</div>'
+    /* FOOTER */
+    +'<div class="footer">'
+    +'<div class="footer-left">'
+    +'Veraluz Résidence · Kribi, Cameroun<br>'
+    +'Merci de votre confiance et à très bientôt !'
+    +'</div>'
+    +'<div class="signature">'
+    +'<div class="sig-line"></div>'
+    +'<div class="sig-label">Signature &amp; Cachet Veraluz</div>'
+    +'</div></div>'
+    +'</body></html>';
+  var w=window.open('','_blank','width=850,height=1100');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){w.print();},500);
+}
+
 function delResa(id){
   if(!confirm('Supprimer cette réservation ?'))return;
   DEL('veraluz_restaurant_reservations',id).then(function(){
@@ -2046,6 +2182,7 @@ function renderResa(){
       +(r.notes?'<div style="font-size:11px;color:var(--text3);margin-top:3px;font-style:italic;">'+esc(r.notes)+'</div>':'')
       +'<div style="display:flex;gap:6px;margin-top:10px;">'
       +'<button class="btn bg bs" style="flex:1;font-size:11px;" data-id="'+r.id+'" onclick="openResaMd(this.dataset.id)">&#9999; Modifier</button>'
+      +'<button class="btn bp bs" style="flex:1;font-size:11px;" data-id="'+r.id+'" onclick="printResaPdf(this.dataset.id)">&#128196; Confirmation</button>'
       +'<button class="btn bd bs" style="font-size:11px;" data-id="'+r.id+'" onclick="delResa(this.dataset.id)">&#128465;</button>'
       +'</div>'
       +'</div>';
@@ -2053,6 +2190,47 @@ function renderResa(){
 }
 
 
+
+
+/* ── CATALOGUE TARIFS FOURNISSEURS ── */
+function renderTarifs(){
+  var el=document.getElementById('tarif-list');
+  if(!el)return;
+  if(!STOCK.length){el.innerHTML='<div class="empty">Aucun article en stock</div>';return;}
+  var sorted=[].concat(STOCK).sort(function(a,b){return (a.name||'').localeCompare(b.name||'','fr');});
+  el.innerHTML='<table style="width:100%;border-collapse:collapse;font-size:12px;">'
+    +'<thead><tr style="background:var(--bg2);position:sticky;top:0;">'
+    +'<th style="padding:8px 6px;text-align:left;font-weight:700;color:var(--text2);">Article</th>'
+    +'<th style="padding:8px 6px;text-align:left;font-weight:700;color:var(--text2);">Unité embal.</th>'
+    +'<th style="padding:8px 6px;text-align:right;font-weight:700;color:var(--acc2);">Dernier PU</th>'
+    +'<th style="padding:8px 6px;text-align:right;font-weight:700;color:var(--text2);">Dernière réception</th>'
+    +'<th style="padding:8px 6px;text-align:right;font-weight:700;color:var(--text2);">Stock actuel</th>'
+    +'</tr></thead>'
+    +'<tbody>'
+    +sorted.map(function(s,idx){
+      var hasPu=s.last_pu&&s.last_pu>0;
+      var dateStr=s.last_pu_at?new Date(s.last_pu_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'2-digit'}):'—';
+      var unitLabel=(s.order_unit&&s.order_unit!=='unité')?s.order_unit+(s.order_unit_qty>1?' ×'+s.order_unit_qty:''):'—';
+      var sup=SUPS.find(function(x){return x.id===s.supplier_id;});
+      return '<tr style="border-bottom:1px solid var(--border);'+(idx%2===0?'':'background:var(--bg2);')+'">'
+        +'<td style="padding:8px 6px;">'
+        +'<div style="font-weight:600;color:var(--text);">'+esc(s.name||'')+'</div>'
+        +(sup?'<div style="font-size:10px;color:var(--text3);">'+esc(sup.name||'')+'</div>':'')
+        +'</td>'
+        +'<td style="padding:8px 6px;color:var(--text2);">'+esc(unitLabel)+'</td>'
+        +'<td style="padding:8px 6px;text-align:right;font-weight:700;color:'+(hasPu?'var(--acc2)':'var(--text3)')+';">'
+        +(hasPu?fmt(s.last_pu):'Non renseigné')+'</td>'
+        +'<td style="padding:8px 6px;text-align:right;color:var(--text3);font-size:11px;">'+dateStr+'</td>'
+        +'<td style="padding:8px 6px;text-align:right;color:'+(s.quantity>0?'var(--ok)':'var(--err)')+';">'
+        +(s.quantity||0)+' '+(s.unit||'')
+        +'</td>'
+        +'</tr>';
+    }).join('')
+    +'</tbody></table>'
+    +'<div style="padding:10px;font-size:11px;color:var(--text3);text-align:center;border-top:1px solid var(--border);margin-top:8px;">'
+    +'&#128161; Les prix se mettent à jour automatiquement lors de chaque vérification de réception.'
+    +'</div>';
+}
 
 /* ── CARTE DE MENU PDF ── */
 function printMenu(){

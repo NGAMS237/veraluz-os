@@ -449,13 +449,11 @@ function sbGet(path){
 }
 function sbPatch(path,data){
   return fetch(SB+'/rest/v1/'+path,{method:'PATCH',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(data)})
-    .then(function(r){ return r.json(); })
-    .catch(function(){ return null; });
+    .then(function(r){ if(!r.ok) return r.json().then(function(e){throw new Error((e&&e.message)||'Erreur PATCH '+r.status);}); return r.json(); });
 }
 function sbPost(path,data){
   return fetch(SB+'/rest/v1/'+path,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(data)})
-    .then(function(r){ return r.json(); })
-    .catch(function(){ return null; });
+    .then(function(r){ if(!r.ok) return r.json().then(function(e){throw new Error((e&&e.message)||'Erreur POST '+r.status);}); return r.json(); });
 }
 
 /* ── Normalisation champs Supabase → interne ── */
@@ -639,19 +637,38 @@ function renderPlanning(){
   var lbl=document.getElementById('planPeriodLabel');
   if(lbl) lbl.textContent=fmtDate(days[0])+' – '+fmtDate(days[DAYS-1]);
   var wrap=document.getElementById('ganttWrap'); if(!wrap) return;
+  if(!_rooms.length){
+    wrap.innerHTML='<div class="empty-state"><p>⚙️ Aucune chambre configurée — créez vos unités dans <strong>Paramètres</strong></p></div>';
+    return;
+  }
+  var activeRez=_rez.filter(function(r){return !['cancelled','no_show'].includes(r.status);});
   var h='<table class="gantt-table"><thead><tr><th class="gantt-room">Logement</th>';
   days.forEach(function(d){ h+='<th class="gantt-cell'+(d===today?' today-col':'')+'">'+fmtDay(d)+'</th>'; });
   h+='</tr></thead><tbody>';
   _rooms.forEach(function(room){
     h+='<tr><td class="gantt-room">'+esc(room.name||'?')+'</td>';
     days.forEach(function(d){
-      var rz=_rez.find(function(r){return r.unit_id===room.id&&r.check_in<=d&&r.check_out>d;});
+      var rz=activeRez.find(function(r){return r.unit_id===room.id&&r.check_in<=d&&r.check_out>d;});
       h+='<td class="gantt-cell'+(d===today?' today-col':'')+'">';
       if(rz){ var s=statusInfo(rz.status); h+='<div class="gantt-bar" style="background:'+s.color+'" onclick="openRezModal(\''+rz.id+'\')" title="'+esc(rz.guest_name)+'">'+esc((rz.guest_name||'').split(' ')[0])+'</div>'; }
       h+='</td>';
     });
     h+='</tr>';
   });
+  /* Ligne "Non assigné" pour réservations sans unité correspondante */
+  var unassigned=activeRez.filter(function(r){
+    return !r.unit_id||!_rooms.find(function(room){return room.id===r.unit_id;});
+  });
+  if(unassigned.length){
+    h+='<tr><td class="gantt-room" style="color:var(--text3);font-style:italic">⚠ Non assigné</td>';
+    days.forEach(function(d){
+      var rz=unassigned.find(function(r){return r.check_in<=d&&r.check_out>d;});
+      h+='<td class="gantt-cell'+(d===today?' today-col':'')+'">';
+      if(rz){ var s=statusInfo(rz.status); h+='<div class="gantt-bar" style="background:'+s.color+';opacity:.7" onclick="openRezModal(\''+rz.id+'\')" title="'+esc(rz.guest_name)+'">'+esc((rz.guest_name||'').split(' ')[0])+'</div>'; }
+      h+='</td>';
+    });
+    h+='</tr>';
+  }
   h+='</tbody></table>';
   wrap.innerHTML=h;
 }
@@ -936,14 +953,14 @@ function recordPayment(){
     return sbPatch('veraluz_reservations?id=eq.'+rezId,{paid:newPaid}).then(function(){
       r.paid=newPaid;
       try{localStorage.setItem('vlz_cache_rez',JSON.stringify(_rez));}catch(e){}
+      /* Signal cross-module : PAIEMENTS se rafraîchira automatiquement */
+      try{localStorage.setItem('vlz_pay_updated',String(Date.now()));}catch(e){}
       toast('Paiement de '+fmtMoney(amt)+' enregistré !','success');
       openRezModal(rezId);
     });
-  }).catch(function(){
-    r.paid=(r.paid||0)+amt;
-    toast('Paiement enregistré (hors ligne)');
+  }).catch(function(e){
+    toast((e&&e.message)||'Erreur enregistrement paiement','danger');
     if(btn){btn.disabled=false;btn.textContent='✓ Enregistrer le paiement';}
-    try{localStorage.setItem('vlz_cache_rez',JSON.stringify(_rez));}catch(e){}
   });
 }
 
@@ -1401,10 +1418,10 @@ function saveSettings(){
   _settings.currency     =(document.getElementById('p-currency')||{}).value||'FCFA';
   _settings.whatsapp     =(document.getElementById('p-wa')||{}).value||'';
   _settings.breakfast_price=parseFloat((document.getElementById('p-bkf')||{}).value||0);
-  _settings.transfer_price =parseFloat((documument.getElementById('p-trf')||{}).value||0);
+  _settings.transfer_price =parseFloat((document.getElementById('p-trf')||{}).value||0);
   _settings.tax_pct        =parseFloat((document.getElementById('p-tax')||{}).value||0);
   try{localStorage.setItem('vlz_settings',JSON.stringify(_settings));}catch(e){}
-  toast('Param\u00e8tres sauvegard\u00e9s \u2713','success');
+  toast('Paramètres sauvegardés ✓','success');
 }
 
 /* ── INIT ── */

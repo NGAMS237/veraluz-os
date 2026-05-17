@@ -240,7 +240,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <div class="kpi ok"><div class="kpi-v" id="pay-paid">&#8212;</div><div class="kpi-l">Pay&#233;es</div></div>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary" onclick="calcPayroll()">&#128200; Calculer la paie du mois</button>
+          <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" /><button class="btn btn-primary" onclick="calcPayroll()">&#128200; Calculer la paie du mois</button>
           <button class="btn btn-sec"     onclick="openMd(\'md-add-pay\')">&#43; Fiche manuelle</button>
           <button class="btn btn-sec"     onclick="exportPayCSV()">&#128438; Export banque</button>
         </div>
@@ -321,7 +321,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div class="card" style="margin-bottom:12px;">
         <div class="sec-title" style="margin-bottom:12px;">&#128100; Employ&#233;s</div>
-        <label class="fl">PIN par d&#233;faut (nouveaux employ&#233;s)</label>
+        <div style="margin-bottom:14px;padding:12px;background:var(--bg2);border-radius:10px;border:1px solid var(--border);">
+<div style="font-size:12px;font-weight:700;color:var(--acc1);margin-bottom:8px;">&#127981; Param&#232;tres fiscaux Cameroun</div>
+<label class="fl">Appliquer CNPS (s&#233;curit&#233; sociale)</label>
+<select class="fi" id="param-cnps"><option value="true">Oui &#8212; activ&#233;</option><option value="false">Non &#8212; d&#233;sactiv&#233;</option></select>
+<div class="fg">
+<div><label class="fl">Taux CNPS salari&#233; (%)</label><input class="fi" id="param-cnps-emp" type="number" step="0.1" min="0" max="20" value="4.2"></div>
+<div><label class="fl">Taux CNPS patronal (%)</label><input class="fi" id="param-cnps-empr" type="number" step="0.1" min="0" max="30" value="16.2"></div>
+</div>
+<label class="fl">Plafond CNPS mensuel (FCFA)</label>
+<input class="fi" id="param-cnps-ceiling" type="number" value="750000">
+<label class="fl">Appliquer IRPP (imp&#244;t sur le revenu)</label>
+<select class="fi" id="param-irpp"><option value="false">Non &#8212; d&#233;sactiv&#233;</option><option value="true">Oui &#8212; activ&#233;</option></select>
+<div style="font-size:10px;color:var(--text3);margin-top:4px;">Bar&#232;me IRPP Cameroun&#160;: 10% jusqu&#8217;&#224;&#160;2M, 15% de 2&#8211;3M, 25% de 3&#8211;5M, 35% au-del&#224; (abattement 30%)</div>
+</div>
+<label class="fl">PIN par d&#233;faut (nouveaux employ&#233;s)</label>
         <input class="fi" id="param-pin" type="text" maxlength="4" placeholder="1234">
         <label class="fl">Plafond avance (% du salaire)</label>
         <input class="fi" id="param-adv-limit" type="number" min="0" max="100" placeholder="50">
@@ -722,9 +736,11 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 var SUPA_URL='https://dfdmasejsoibxrvubegu.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
-function GET(t){return fetch(SUPA_URL+'/rest/v1/'+t,{headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}}).then(function(r){return r.json();});}
-function POST(t,d){return fetch(SUPA_URL+'/rest/v1/'+t,{method:'POST',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(d)}).then(function(r){return r.json();});}
-function PATCH(t,id,d){return fetch(SUPA_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(d)}).then(function(r){return r.json();});}
+function _hdr(x){return Object.assign({'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},x||{});}
+function _chk(r){if(!r.ok){return r.json().then(function(e){throw new Error((e&&(e.message||e.hint||JSON.stringify(e)))||'HTTP '+r.status);});}return r.json();}
+function GET(t){return fetch(SUPA_URL+'/rest/v1/'+t,{headers:_hdr()}).then(_chk);}
+function POST(t,d){return fetch(SUPA_URL+'/rest/v1/'+t,{method:'POST',headers:_hdr({'Content-Type':'application/json','Prefer':'return=representation'}),body:JSON.stringify(d)}).then(_chk);}
+function PATCH(t,id,d){return fetch(SUPA_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:_hdr({'Content-Type':'application/json','Prefer':'return=representation'}),body:JSON.stringify(d)}).then(_chk);}
 function DELETE(t,id){return fetch(SUPA_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}});}
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -768,7 +784,14 @@ function openMd(id){document.getElementById(id).classList.add('on');}
 function closeMd(id){document.getElementById(id).classList.remove('on');}
 
 /* ═══════════════ LOAD ALL ═══════════════ */
-function payM(p){var m=p.month||'';if(m)return m;if(p.period_year&&p.period_month){return p.period_year+'-'+(('0'+p.period_month).slice(-2));}return '';}
+function payM(p){if(p.period_year&&p.period_month){return p.period_year+'-'+(('0'+p.period_month).slice(-2));}return p.month||'';}
+function initParamSelects(){
+  var sm={'param-cnps':'apply_cnps','param-irpp':'apply_irpp'};
+  for(var id in sm){var el=document.getElementById(id);if(el&&SETTINGS[sm[id]]!==undefined)el.value=SETTINGS[sm[id]];}
+  var nm={'param-cnps-emp':'cnps_rate_employee','param-cnps-empr':'cnps_rate_employer','param-cnps-ceiling':'cnps_ceiling'};
+  for(var id in nm){var el=document.getElementById(id);if(el&&SETTINGS[nm[id]])el.value=SETTINGS[nm[id]];}
+  var calEl=document.getElementById('calc-month');if(calEl&&!calEl.value)calEl.value=new Date().toISOString().slice(0,7);
+}
 function loadAll(){
   Promise.all([
     GET('veraluz_employees?select=*&order=full_name.asc'),
@@ -791,7 +814,8 @@ function loadAll(){
     sets.forEach(function(s){SETTINGS[s.key]=s.value;});
     renderEmps();
     populateSelects();
-  }).catch(function(e){toast('Erreur chargement: '+e,'err');});
+    initParamSelects();
+  }).catch(function(e){toast('Erreur chargement: '+(e.message||e),'err');});
 }
 
 function populateSelects(){
@@ -1014,7 +1038,7 @@ function renderDosPaie(){
       +'<span style="font-weight:700;">'+esc(payM(p)||fdate(p.created_at))+'</span>'
       +'<span class="bdg '+(p.status==='paye'?'ok':p.status==='approuve'?'acc':'warn')+'">'+esc(p.status)+'</span>'
       +'</div>'
-      +'<div style="font-size:15px;font-weight:800;color:var(--acc1);">'+fmt((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)))+' FCFA</div>'
+      +'<div style="font-size:15px;font-weight:800;color:var(--acc1);">'+fmt(netOf(p))+' FCFA</div>'
       +'<div style="font-size:11px;color:var(--text3);margin-top:4px;">Base: '+fmt(p.base_salary||0)+' · Prime: +'+fmt(p.bonus||0)+' · Retenue: -'+fmt(p.deductions||0)+'</div>'
       +'<div class="btn-row" style="margin-top:8px;margin-bottom:0;">'
       +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; PDF</button>'
@@ -1218,10 +1242,11 @@ function saveAtt(){
 }
 
 /* ═══════════════ PAIE ═══════════════ */
+function netOf(p){return p.net_salary||p.net_amount||0;}
 function loadPay(){
-  var total=PAYROLLS.reduce(function(s,p){return s+((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)));},0);
-  var pending=PAYROLLS.filter(function(p){return p.status==='en_attente';}).reduce(function(s,p){return s+((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)));},0);
-  var paid=PAYROLLS.filter(function(p){return p.status==='paye';}).reduce(function(s,p){return s+((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)));},0);
+  var total=PAYROLLS.reduce(function(s,p){return s+(netOf(p));},0);
+  var pending=PAYROLLS.filter(function(p){return p.status==='en_attente';}).reduce(function(s,p){return s+(netOf(p));},0);
+  var paid=PAYROLLS.filter(function(p){return p.status==='paye';}).reduce(function(s,p){return s+(netOf(p));},0);
   document.getElementById('pay-mass').textContent=fmt(total)+' F';
   document.getElementById('pay-pending').textContent=fmt(pending)+' F';
   document.getElementById('pay-paid').textContent=fmt(paid)+' F';
@@ -1239,7 +1264,7 @@ function renderPay(){
       +'<span class="bdg '+(p.status==='paye'?'ok':p.status==='approuve'?'acc':'warn')+'">'+esc(p.status)+'</span>'
       +'</div>'
       +'<div style="font-size:12px;color:var(--text3);">'+esc(payM(p)||'')+'</div>'
-      +'<div style="font-size:16px;font-weight:800;color:var(--acc1);margin-top:4px;">'+fmt((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)))+' FCFA</div>'
+      +'<div style="font-size:16px;font-weight:800;color:var(--acc1);margin-top:4px;">'+fmt(netOf(p))+' FCFA</div>'
       +'<div class="btn-row" style="margin-top:8px;margin-bottom:0;">'
       +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; PDF</button>'
       +(p.status!=='paye'?'<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">&#9989; Payer</button>':'')
@@ -1247,46 +1272,87 @@ function renderPay(){
       +'</div>';
   }).join('');
 }
+function calcTaxes(base,bonus,settings){
+  var gross=(base||0)+(bonus||0);
+  var applyCNPS=(settings.apply_cnps||'true')==='true';
+  var applyIRPP=(settings.apply_irpp||'false')==='true';
+  var rE=parseFloat(settings.cnps_rate_employee||'4.2')/100;
+  var rP=parseFloat(settings.cnps_rate_employer||'16.2')/100;
+  var ceil=parseFloat(settings.cnps_ceiling||'750000');
+  var base2=Math.min(gross,ceil);
+  var cE=applyCNPS?Math.round(base2*rE):0;
+  var cP=applyCNPS?Math.round(base2*rP):0;
+  var taxable=Math.max(0,gross*0.70-cE);
+  var irpp=0;
+  if(applyIRPP&&taxable>0){var ann=taxable*12;
+    if(ann<=2000000)irpp=Math.round(ann*0.10/12);
+    else if(ann<=3000000)irpp=Math.round((200000+(ann-2000000)*0.15)/12);
+    else if(ann<=5000000)irpp=Math.round((350000+(ann-3000000)*0.25)/12);
+    else irpp=Math.round((850000+(ann-5000000)*0.35)/12);}
+  return{gross:gross,cnps_emp:cE,cnps_empr:cP,irpp:irpp,taxable:taxable,apply_cnps:applyCNPS,apply_irpp:applyIRPP};
+}
 function calcPayroll(){
-  var month=new Date().toISOString().slice(0,7);
+  var calEl=document.getElementById('calc-month');
+  var month=(calEl&&calEl.value)||new Date().toISOString().slice(0,7);
   var preview=[];
   EMPS.filter(function(e){return e.status==='actif';}).forEach(function(e){
     var bonuses=BONUSES.filter(function(b){return b.employee_id===e.id&&b.month===month;});
     var bonus=bonuses.filter(function(b){return b.type==='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
     var deduct=bonuses.filter(function(b){return b.type!=='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
     var adv=ADVANCES.filter(function(a){return a.employee_id===e.id&&a.status==='en_attente';}).reduce(function(s,a){return s+(a.amount||0);},0);
-    var net=(e.base_salary||0)+bonus-deduct-adv;
-    preview.push({emp:e,base:e.base_salary||0,bonus:bonus,deduct:deduct,adv:adv,net:Math.max(0,net)});
+    var t=calcTaxes(e.base_salary||0,bonus,SETTINGS);
+    var net=t.gross-deduct-adv-(t.apply_cnps?t.cnps_emp:0)-(t.apply_irpp?t.irpp:0);
+    preview.push({emp:e,base:e.base_salary||0,gross:t.gross,bonus:bonus,deduct:deduct,adv:adv,
+      cnps_emp:t.cnps_emp,cnps_empr:t.cnps_empr,irpp:t.irpp,taxable:t.taxable,
+      apply_cnps:t.apply_cnps,apply_irpp:t.apply_irpp,net:Math.max(0,net)});
   });
-  var wrap=document.getElementById('payroll-table-wrap');
   var totalNet=preview.reduce(function(s,p){return s+p.net;},0);
-  wrap.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--acc1);margin-bottom:8px;">Mois: '+month+' — Total: '+fmt(totalNet)+' FCFA</div>'
-    +'<table class="tbl"><thead><tr><th>Employ&#233;</th><th>Base</th><th>Primes</th><th>Retenues</th><th>Avances</th><th>Net</th></tr></thead><tbody>'
+  var totalCP=preview.reduce(function(s,p){return s+p.cnps_empr;},0);
+  var sC=(SETTINGS.apply_cnps||'true')==='true';
+  var sI=(SETTINGS.apply_irpp||'false')==='true';
+  var wrap=document.getElementById('payroll-table-wrap');
+  wrap.innerHTML='<div style="font-size:13px;font-weight:700;color:var(--acc1);margin-bottom:8px;">Mois: '+month
+    +' &#8212; Masse nette: '+fmt(totalNet)+' FCFA'+(sC?' | Charges pat.: '+fmt(totalCP)+' FCFA':'')+'</div>'
+    +'<div style="overflow-x:auto;"><table class="tbl"><thead><tr>'
+    +'<th>Employ&#233;</th><th>Brut</th><th>Primes</th><th>Retenues</th><th>Avances</th>'
+    +(sC?'<th>CNPS sal.</th><th>CNPS pat.</th>':'')
+    +(sI?'<th>IRPP</th>':'')
+    +'<th style="color:var(--acc1);">NET</th></tr></thead><tbody>'
     +preview.map(function(p){
-      return '<tr><td style="font-weight:600;">'+esc(p.emp.full_name)+'</td>'
-        +'<td>'+fmt(p.base)+'</td>'
+      return '<tr><td style="font-weight:600;white-space:nowrap;">'+esc(p.emp.full_name)+'</td>'
+        +'<td>'+fmt(p.gross)+'</td>'
         +'<td style="color:var(--ok);">+'+fmt(p.bonus)+'</td>'
         +'<td style="color:var(--danger);">-'+fmt(p.deduct)+'</td>'
         +'<td style="color:var(--warn);">-'+fmt(p.adv)+'</td>'
+        +(sC?'<td style="color:var(--danger);">-'+fmt(p.cnps_emp)+'</td><td style="color:var(--text3);">'+fmt(p.cnps_empr)+'</td>':'')
+        +(sI?'<td style="color:var(--danger);">-'+fmt(p.irpp)+'</td>':'')
         +'<td style="font-weight:800;color:var(--acc1);">'+fmt(p.net)+'</td></tr>';
-    }).join('')
-    +'</tbody></table>';
+    }).join('')+'</tbody></table></div>';
   document.getElementById('payroll-preview').style.display='block';
   document.getElementById('payroll-preview')._preview=preview;
 }
 function approveAllPayroll(){
   var preview=document.getElementById('payroll-preview')._preview||[];
-  var month=new Date().toISOString().slice(0,7);
+  var calEl=document.getElementById('calc-month');
+  var month=(calEl&&calEl.value)||new Date().toISOString().slice(0,7);
+  var mparts=(month||'').split('-');
+  var pyr=parseInt(mparts[0])||new Date().getFullYear();
+  var pmo=parseInt(mparts[1])||new Date().getMonth()+1;
   var promises=preview.map(function(p){
-    var existing=PAYROLLS.find(function(x){return x.employee_id===p.emp.id&&x.month===month;});
-    var d={employee_id:p.emp.id,month:month,base_salary:p.base,bonus:p.bonus,deductions:p.deduct+p.adv,net_salary:p.net,net_amount:p.net,month:month,status:'approuve'};
+    var existing=PAYROLLS.find(function(x){return x.employee_id===p.emp.id&&payM(x)===month;});
+    var d={employee_id:p.emp.id,period_year:pyr,period_month:pmo,
+      gross_salary:p.gross||p.base,base_salary:p.base,bonus:p.bonus,
+      deductions:(p.deduct||0)+(p.adv||0),
+      cnps_employee:p.cnps_emp||0,cnps_employer:p.cnps_empr||0,irpp:p.irpp||0,
+      apply_cnps:p.apply_cnps,apply_irpp:p.apply_irpp,
+      taxable_income:p.taxable||0,net_salary:p.net,status:'approuve'};
     if(existing){return PATCH('veraluz_payroll',existing.id,d);}
     else{d.id=gid();return POST('veraluz_payroll',d).then(function(r){PAYROLLS.unshift(r[0]||d);});}
   });
   Promise.all(promises).then(function(){
     document.getElementById('payroll-preview').style.display='none';
-    loadPay();toast('Paie approv&#233;e pour '+preview.length+' employ&#233;s &#9989;','ok');
-  }).catch(function(e){toast('Erreur: '+e,'err');});
+    loadPay();toast('Paie approuv&#233;e pour '+preview.length+' employ&#233;(s) &#9989;','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
 }
 function markPayPaid(pid){
   PATCH('veraluz_payroll',pid,{status:'paye'}).then(function(){
@@ -1299,15 +1365,27 @@ function savePay(){
   var base=parseFloat(document.getElementById('pay-amount').value)||0;
   var bonus=parseFloat(document.getElementById('pay-bonus').value)||0;
   var deduct=parseFloat(document.getElementById('pay-deduct').value)||0;
-  var d={id:gid(),employee_id:document.getElementById('pay-emp').value,month:document.getElementById('pay-month').value,net_salary:base+bonus-deduct,net_amount:base+bonus-deduct,base_salary:base,bonus:bonus,deductions:deduct,status:document.getElementById('pay-status').value,notes:document.getElementById('pay-notes').value.trim()||null};
+  var ms=document.getElementById('pay-month').value||new Date().toISOString().slice(0,7);
+  var mparts=ms.split('-');
+  var pyr=parseInt(mparts[0])||new Date().getFullYear();
+  var pmo=parseInt(mparts[1])||new Date().getMonth()+1;
+  var t=calcTaxes(base,bonus,SETTINGS);
+  var net=t.gross-deduct-(t.apply_cnps?t.cnps_emp:0)-(t.apply_irpp?t.irpp:0);
+  var d={id:gid(),employee_id:document.getElementById('pay-emp').value,
+    period_year:pyr,period_month:pmo,
+    gross_salary:t.gross,base_salary:base,bonus:bonus,deductions:deduct,
+    cnps_employee:t.cnps_emp,cnps_employer:t.cnps_empr,irpp:t.irpp,
+    apply_cnps:t.apply_cnps,apply_irpp:t.apply_irpp,taxable_income:t.taxable,
+    net_salary:Math.max(0,net),status:document.getElementById('pay-status').value,
+    notes:document.getElementById('pay-notes').value.trim()||null};
   if(!d.employee_id){toast('Employ&#233; requis','err');return;}
-  POST('veraluz_payroll',d).then(function(r){PAYROLLS.unshift(r[0]||d);closeMd('md-add-pay');loadPay();toast('Fiche ajout&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
+  POST('veraluz_payroll',d).then(function(r){PAYROLLS.unshift(r[0]||d);closeMd('md-add-pay');loadPay();toast('Fiche ajout&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
 }
 function exportPayCSV(){
   var month=new Date().toISOString().slice(0,7);
   var rows=PAYROLLS.filter(function(p){return payM(p)===month;}).map(function(p){
     var emp=EMPS.find(function(e){return e.id===p.employee_id;});
-    return [emp?emp.full_name:'—',emp?emp.momo_number||emp.bank_account||'—':'—',(p.net_salary||(p.net_salary||p.net_amount||0)||0),p.status,month].join(';');
+    return [emp?emp.full_name:'—',emp?emp.momo_number||emp.bank_account||'—':'—',netOf(p),p.status,month].join(';');
   });
   var csv='Nom;MoMo/Compte;Montant FCFA;Statut;Mois\n'+rows.join('\n');
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='paie_'+month+'.csv';a.click();
@@ -1315,23 +1393,77 @@ function exportPayCSV(){
 function printPayslip(pid){
   var p=PAYROLLS.find(function(x){return x.id===pid;});if(!p)return;
   var emp=EMPS.find(function(e){return e.id===p.employee_id;});
-  var hotel=SETTINGS.hotel_name||'R&#233;sidence Veraluz';
-  var w=window.open('','_blank','width=700,height=900');
-  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fiche de paie</title>'
-    +'<style>body{font-family:Arial,sans-serif;margin:0;padding:32px;color:#111;}h1{font-size:22px;color:#22d3a5;}.hdr{display:flex;justify-content:space-between;border-bottom:2px solid #22d3a5;padding-bottom:12px;margin-bottom:20px;}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:14px;}.total{font-size:18px;font-weight:800;color:#22d3a5;padding:12px 0;display:flex;justify-content:space-between;}.footer{margin-top:40px;border-top:1px solid #ccc;padding-top:16px;font-size:12px;color:#666;display:flex;justify-content:space-between;}</style></head><body>'
-    +'<div class="hdr"><div><h1>'+hotel+'</h1><div style="font-size:12px;color:#666;">'+esc(SETTINGS.hotel_address||'Kribi, Cameroun')+'</div></div><div style="text-align:right;"><div style="font-size:18px;font-weight:800;">BULLETIN DE PAIE</div><div style="color:#666;">'+esc(payM(p)||'')+'</div></div></div>'
-    +'<div style="background:#f9f9f9;border-radius:8px;padding:16px;margin-bottom:20px;">'
-    +'<div style="font-size:16px;font-weight:700;">'+(emp?esc(emp.full_name):'—')+'</div>'
-    +'<div style="font-size:13px;color:#666;">'+(emp?esc(emp.role||''):'')+'</div>'
-    +'<div style="font-size:12px;color:#666;margin-top:4px;">Embauche: '+(emp?fdate(emp.hire_date):'—')+'</div>'
+  var hotel=SETTINGS.hotel_name||'Résidence Veraluz';
+  var addr=SETTINGS.hotel_address||'Kribi, Cameroun';
+  var gross=p.gross_salary||((p.base_salary||0)+(p.bonus||0));
+  var cE=p.cnps_employee||0;var cP=p.cnps_employer||0;var irpp=p.irpp||0;
+  var sC=(p.apply_cnps!==undefined?p.apply_cnps:(SETTINGS.apply_cnps||'true')==='true');
+  var sI=(p.apply_irpp!==undefined?p.apply_irpp:(SETTINGS.apply_irpp||'false')==='true');
+  var rE=SETTINGS.cnps_rate_employee||'4.2';var rP=SETTINGS.cnps_rate_employer||'16.2';
+  var en=emp?esc(emp.full_name):'&#8212;';
+  var er=emp?esc(emp.role||'&#8212;'):'&#8212;';
+  var eh=emp?fdate(emp.hire_date):'&#8212;';
+  var es=emp?esc(emp.status||'actif'):'&#8212;';
+  var em=emp?esc(emp.momo_number||emp.bank_account||'&#8212;'):'&#8212;';
+  var per=esc(payM(p)||'');
+  var ref2=esc((p.id||'').slice(0,8).toUpperCase());
+  var stxt=p.status==='paye'?'&#9989; Pay&#233;':p.status==='approuve'?'&#8987; Approuv&#233;':'&#9208; En attente';
+  var dg=new Date().toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  var css='*{box-sizing:border-box;margin:0;padding:0;}'
+    +'body{font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#111;padding:28px;}'
+    +'h1{font-size:20px;font-weight:800;color:#0d7a5f;}'
+    +'.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #0d7a5f;padding-bottom:14px;margin-bottom:18px;}'
+    +'.emp-box{background:#f4f9f8;border-left:4px solid #0d7a5f;padding:12px 16px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;}'
+    +'.lbl{font-size:10px;color:#666;text-transform:uppercase;letter-spacing:0.3px;}'
+    +'.val{font-size:13px;font-weight:600;}'
+    +'.sec{font-size:11px;font-weight:700;color:#0d7a5f;text-transform:uppercase;border-bottom:1px solid #0d7a5f;padding-bottom:4px;margin:14px 0 8px;}'
+    +'.row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:13px;}'
+    +'.row.neg{color:#c0392b;font-style:italic;}'
+    +'.row.sub{padding-left:14px;font-size:12px;color:#444;}'
+    +'.row.bold{font-weight:700;background:#f9f9f9;padding:7px 0;}'
+    +'.total-box{background:#0d7a5f;color:#fff;padding:14px 18px;border-radius:6px;'
+    +'display:flex;justify-content:space-between;align-items:center;margin:16px 0;font-size:18px;font-weight:800;}'
+    +'.note{font-size:11px;color:#555;background:#fffce8;border:1px solid #f0d000;border-radius:4px;padding:8px 12px;margin-bottom:12px;}'
+    +'.sig-box{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:36px;border-top:1px solid #ccc;padding-top:20px;}'
+    +'.sig-line{border-top:1px solid #888;margin-top:50px;padding-top:6px;font-size:11px;color:#666;text-align:center;}'
+    +'@media print{body{padding:16px;}}';
+  var htm='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Bulletin de paie</title>'
+    +'<style>'+css+'</style></head><body>'
+    +'<div class="hdr"><div><h1>'+hotel+'</h1>'
+    +'<div style="font-size:11px;color:#666;margin-top:3px;">'+addr+'</div></div>'
+    +'<div style="text-align:right;">'
+    +'<div style="font-size:16px;font-weight:800;letter-spacing:1px;">BULLETIN DE PAIE</div>'
+    +'<div style="color:#0d7a5f;font-weight:700;font-size:14px;">'+per+'</div>'
+    +'<div style="font-size:11px;color:#888;margin-top:2px;">R&#233;f&#160;: '+ref2+'</div>'
+    +'</div></div>'
+    +'<div class="emp-box">'
+    +'<div><div class="lbl">Employ&#233;</div><div class="val">'+en+'</div></div>'
+    +'<div><div class="lbl">Poste</div><div class="val">'+er+'</div></div>'
+    +'<div><div class="lbl">Date embauche</div><div class="val">'+eh+'</div></div>'
+    +'<div><div class="lbl">Statut</div><div class="val">'+es+'</div></div>'
+    +'<div><div class="lbl">MoMo / Compte</div><div class="val">'+em+'</div></div>'
+    +'<div><div class="lbl">P&#233;riode</div><div class="val">'+per+'</div></div>'
     +'</div>'
-    +'<div class="row"><span>Salaire de base</span><span>'+fmt(p.base_salary||0)+' FCFA</span></div>'
-    +'<div class="row" style="color:green;"><span>+ Primes</span><span>+'+fmt(p.bonus||0)+' FCFA</span></div>'
-    +'<div class="row" style="color:red;"><span>- Retenues / Avances</span><span>-'+fmt(p.deductions||0)+' FCFA</span></div>'
-    +'<div class="total"><span>NET A PAYER</span><span>'+fmt((p.net_salary||(p.net_salary||p.net_amount||0)||0))+' FCFA</span></div>'
-    +'<div class="footer"><div>Statut: <strong>'+esc(p.status||'')+'</strong></div><div>G&#233;n&#233;r&#233; le: '+new Date().toLocaleDateString('fr-FR')+'</div><div>Signature: _______________</div></div>'
-    +'</body></html>');
-  w.document.close();setTimeout(function(){w.print();},600);
+    +'<div class="sec">R&#233;mun&#233;ration brute</div>'
+    +'<div class="row sub"><span>Salaire de base</span><span>'+fmt(p.base_salary||0)+' FCFA</span></div>'
+    +(p.bonus?'<div class="row sub" style="color:green;"><span>+ Primes</span><span>+'+fmt(p.bonus||0)+' FCFA</span></div>':'')
+    +'<div class="row bold"><span>SALAIRE BRUT</span><span>'+fmt(gross)+' FCFA</span></div>'
+    +'<div class="sec">Cotisations salariales</div>'
+    +(sC&&cE>0?'<div class="row sub neg"><span>CNPS &#8212; Vieillesse salari&#233; ('+rE+'%)</span><span>&#8722;&#160;'+fmt(cE)+' FCFA</span></div>':'')
+    +(sI&&irpp>0?'<div class="row sub neg"><span>IRPP &#8212; Bar&#232;me progressif (abat. 30%)</span><span>&#8722;&#160;'+fmt(irpp)+' FCFA</span></div>':'')
+    +((p.deductions&&p.deductions>0)?'<div class="row sub neg"><span>Retenues / avances</span><span>&#8722;&#160;'+fmt(p.deductions||0)+' FCFA</span></div>':'')
+    +'<div class="total-box"><span>NET &#192; PAYER</span><span>'+fmt(netOf(p))+' FCFA</span></div>'
+    +(sC&&cP>0?'<div class="note"><strong>Charges patronales (info, non d&#233;duites du net) :</strong><br>CNPS employeur ('+rP+'&#160;%) &#8201;: '+fmt(cP)+' FCFA</div>':'')
+    +'<div class="sec">Informations</div>'
+    +'<div class="row"><span>Statut paiement</span><span style="font-weight:700;">'+stxt+'</span></div>'
+    +(p.notes?'<div class="row"><span>Notes</span><span>'+esc(p.notes)+'</span></div>':'')
+    +'<div class="row"><span>G&#233;n&#233;r&#233; le</span><span>'+dg+'</span></div>'
+    +'<div class="sig-box">'
+    +'<div><div class="sig-line">Signature employ&#233;<br>'+en+'</div></div>'
+    +'<div><div class="sig-line">Signature employeur<br>Direction &#8212; '+hotel+'</div></div>'
+    +'</div></body></html>';
+  var w=window.open('','_blank','width=750,height=1050');
+  w.document.write(htm);w.document.close();setTimeout(function(){w.print();},700);
 }
 
 /* ═══════════════ AVANCES ═══════════════ */
@@ -1417,7 +1549,7 @@ var _histFilter='all';
 function setHistFilter(f,btn){_histFilter=f;document.querySelectorAll('#pane-hist .fchip').forEach(function(b){b.classList.remove('on');});if(btn)btn.classList.add('on');loadHist();}
 function loadHist(){
   var all=[];
-  PAYROLLS.forEach(function(p){var emp=EMPS.find(function(e){return e.id===p.employee_id;});all.push({date:p.created_at,type:'payroll',desc:'Paie '+(payM(p)||'')+(emp?' — '+emp.full_name:''),amount:(p.net_salary||(p.net_salary||p.net_amount||0)||0),status:p.status});});
+  PAYROLLS.forEach(function(p){var emp=EMPS.find(function(e){return e.id===p.employee_id;});all.push({date:p.created_at,type:'payroll',desc:'Paie '+(payM(p)||'')+(emp?' — '+emp.full_name:''),amount:netOf(p),status:p.status});});
   ADVANCES.forEach(function(a){var emp=EMPS.find(function(e){return e.id===a.employee_id;});all.push({date:a.date+'T12:00:00Z',type:'advance',desc:'Avance'+(emp?' — '+emp.full_name:''),amount:a.amount||0,status:a.status});});
   TASKS.forEach(function(t){var emp=EMPS.find(function(e){return e.id===t.employee_id;});all.push({date:t.created_at||t.due_date+'T12:00:00Z',type:'task',desc:t.title+(emp?' — '+emp.full_name:''),amount:0,status:t.status});});
   ATTS.forEach(function(a){var emp=EMPS.find(function(e){return e.id===a.employee_id;});all.push({date:a.date+'T08:00:00Z',type:'attendance',desc:'Pointage '+(emp?emp.full_name:''),amount:0,status:a.status});});
@@ -1620,7 +1752,7 @@ function renderEpPaie(){
       +'<span style="font-weight:700;">'+esc(payM(p)||'')+'</span>'
       +'<span class="bdg '+(p.status==='paye'?'ok':'warn')+'">'+esc(p.status)+'</span>'
       +'</div>'
-      +'<div style="font-size:18px;font-weight:800;color:var(--acc1);margin-top:6px;">'+fmt((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)))+' FCFA</div>'
+      +'<div style="font-size:18px;font-weight:800;color:var(--acc1);margin-top:6px;">'+fmt(netOf(p))+' FCFA</div>'
       +'<button class="btn btn-sec btn-sm" style="margin-top:8px;" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; Voir le bulletin PDF</button>'
       +'</div>';
   }).join('');

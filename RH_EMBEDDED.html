@@ -767,17 +767,18 @@ function openMd(id){document.getElementById(id).classList.add('on');}
 function closeMd(id){document.getElementById(id).classList.remove('on');}
 
 /* ═══════════════ LOAD ALL ═══════════════ */
+function payM(p){if(payM(p))return payM(p);if(p.period_year&&p.period_month){return p.period_year+'-'+(('0'+p.period_month).slice(-2));}return '';}
 function loadAll(){
   Promise.all([
     GET('veraluz_employees?select=*&order=full_name.asc'),
-    GET('veraluz_employee_teams?select=*'),
-    GET('veraluz_employee_contracts?select=*&order=created_at.desc&limit=100'),
-    GET('veraluz_employee_schedules?select=*&order=date.desc&limit=200'),
-    GET('veraluz_employee_attendance?select=*&order=date.desc&limit=200'),
-    GET('veraluz_employee_payrolls?select=*&order=created_at.desc&limit=200'),
-    GET('veraluz_employee_advances?select=*&order=created_at.desc&limit=100'),
-    GET('veraluz_employee_documents?select=*&order=created_at.desc&limit=100'),
-    GET('veraluz_employee_tasks?select=*&order=created_at.desc&limit=200'),
+    GET('veraluz_teams?select=*'),
+    GET('veraluz_contracts?select=*&order=created_at.desc&limit=100'),
+    GET('veraluz_schedules?select=*&order=date.desc&limit=200'),
+    GET('veraluz_attendance?select=*&order=date.desc&limit=200'),
+    GET('veraluz_payroll?select=*&order=created_at.desc&limit=200'),
+    GET('veraluz_advances?select=*&order=created_at.desc&limit=100'),
+    GET('veraluz_hr_documents?select=*&order=created_at.desc&limit=100'),
+    GET('veraluz_hr_tasks?select=*&order=created_at.desc&limit=200'),
     GET('veraluz_employee_bonuses?select=*&order=created_at.desc&limit=200'),
     GET('veraluz_hr_settings?select=*')
   ]).then(function(r){
@@ -1009,10 +1010,10 @@ function renderDosPaie(){
   el.innerHTML=list.map(function(p){
     return '<div class="card" style="margin-bottom:8px;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
-      +'<span style="font-weight:700;">'+esc(p.month||fdate(p.created_at))+'</span>'
+      +'<span style="font-weight:700;">'+esc(payM(p)||fdate(p.created_at))+'</span>'
       +'<span class="bdg '+(p.status==='paye'?'ok':p.status==='approuve'?'acc':'warn')+'">'+esc(p.status)+'</span>'
       +'</div>'
-      +'<div style="font-size:15px;font-weight:800;color:var(--acc1);">'+fmt(p.net_amount||p.amount||0)+' FCFA</div>'
+      +'<div style="font-size:15px;font-weight:800;color:var(--acc1);">'+fmt((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)))+' FCFA</div>'
       +'<div style="font-size:11px;color:var(--text3);margin-top:4px;">Base: '+fmt(p.base_salary||0)+' · Prime: +'+fmt(p.bonus||0)+' · Retenue: -'+fmt(p.deductions||0)+'</div>'
       +'<div class="btn-row" style="margin-top:8px;margin-bottom:0;">'
       +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; PDF</button>'
@@ -1042,13 +1043,13 @@ function renderDosAtt(){
   el.innerHTML='<table class="tbl"><thead><tr><th>Date</th><th>Statut</th><th>Arriv&#233;e</th><th>D&#233;part</th><th>Dur&#233;e</th></tr></thead><tbody>'
     +list.map(function(a){
       var dur='—';
-      if(a.time_in&&a.time_out){
-        var d=Math.round((new Date('2000-01-01T'+a.time_out)-new Date('2000-01-01T'+a.time_in))/60000);
+      if((a.check_in||a.time_in)&&(a.check_out||a.time_out)){
+        var d=Math.round((new Date('2000-01-01T'+(a.check_out||a.time_out))-new Date('2000-01-01T'+(a.check_in||a.time_in)))/60000);
         if(d>0){var h=Math.floor(d/60);var m=d%60;dur=h+'h'+(m>0?m+'m':'');}
       }
       return '<tr><td>'+fdate(a.date)+'</td>'
         +'<td><span class="bdg '+(a.status==='present'?'ok':a.status==='retard'?'warn':'danger')+'">'+esc(a.status)+'</span></td>'
-        +'<td>'+(a.time_in||'—')+'</td><td>'+(a.time_out||'—')+'</td><td>'+dur+'</td></tr>';
+        +'<td>'+((a.check_in||a.time_in)||'—')+'</td><td>'+((a.check_out||a.time_out)||'—')+'</td><td>'+dur+'</td></tr>';
     }).join('')
     +'</tbody></table>';
 }
@@ -1112,12 +1113,12 @@ function loadContracts(){
 function saveContract(){
   var d={id:gid(),employee_id:document.getElementById('contract-emp').value,type:document.getElementById('contract-type').value,status:document.getElementById('contract-status').value,start_date:document.getElementById('contract-start').value||null,end_date:document.getElementById('contract-end').value||null,notes:document.getElementById('contract-notes').value.trim()||null};
   if(!d.employee_id){toast('Employ&#233; requis','err');return;}
-  POST('veraluz_employee_contracts',d).then(function(r){CONTRACTS.unshift(r[0]||d);closeMd('md-add-contract');loadContracts();toast('Contrat ajout&#233; &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
+  POST('veraluz_contracts',d).then(function(r){CONTRACTS.unshift(r[0]||d);closeMd('md-add-contract');loadContracts();toast('Contrat ajout&#233; &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 function saveTeam(){
   var d={id:gid(),name:document.getElementById('team-name').value.trim(),color:document.getElementById('team-color').value};
   if(!d.name){toast('Nom requis','err');return;}
-  POST('veraluz_employee_teams',d).then(function(r){TEAMS.push(r[0]||d);populateSelects();closeMd('md-add-team');toast('&#201;quipe cr&#233;&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
+  POST('veraluz_teams',d).then(function(r){TEAMS.push(r[0]||d);populateSelects();closeMd('md-add-team');toast('&#201;quipe cr&#233;&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 
 /* ═══════════════ HORAIRES ═══════════════ */
@@ -1155,16 +1156,16 @@ function cycleShift(eid,date,el){
   var idx=SHIFT_CYCLE.indexOf(cur);var next=SHIFT_CYCLE[(idx+1)%SHIFT_CYCLE.length];
   var existing=SCHEDS.find(function(s){return s.employee_id===eid&&s.date===date;});
   if(existing){
-    PATCH('veraluz_employee_schedules',existing.id,{shift_type:next||'R'}).then(function(){existing.shift_type=next||'R';renderSched();});
+    PATCH('veraluz_schedules',existing.id,{shift_type:next||'R'}).then(function(){existing.shift_type=next||'R';renderSched();});
   } else {
     var d={id:gid(),employee_id:eid,date:date,shift_type:next||'R'};
-    POST('veraluz_employee_schedules',d).then(function(r){SCHEDS.push(r[0]||d);renderSched();});
+    POST('veraluz_schedules',d).then(function(r){SCHEDS.push(r[0]||d);renderSched();});
   }
 }
 function saveSched(){
   var d={id:gid(),employee_id:document.getElementById('sched-emp').value,date:document.getElementById('sched-date').value,shift_type:document.getElementById('sched-type').value,start_time:document.getElementById('sched-start').value||null,end_time:document.getElementById('sched-end').value||null};
   if(!d.employee_id||!d.date){toast('Employ&#233; et date requis','err');return;}
-  POST('veraluz_employee_schedules',d).then(function(r){SCHEDS.push(r[0]||d);closeMd('md-add-sched');renderSched();toast('Shift ajout&#233; &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
+  POST('veraluz_schedules',d).then(function(r){SCHEDS.push(r[0]||d);closeMd('md-add-sched');renderSched();toast('Shift ajout&#233; &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 
 /* ═══════════════ PRESENCES ═══════════════ */
@@ -1188,26 +1189,26 @@ function renderAtt(){
   el.innerHTML=list.map(function(a){
     var emp=EMPS.find(function(e){return e.id===a.employee_id;});
     var dur='—';
-    if(a.time_in&&a.time_out){var d2=Math.round((new Date('2000-01-01T'+a.time_out)-new Date('2000-01-01T'+a.time_in))/60000);if(d2>0){dur=Math.floor(d2/60)+'h'+(d2%60>0?d2%60+'m':'');}}
+    if((a.check_in||a.time_in)&&(a.check_out||a.time_out)){var d2=Math.round((new Date('2000-01-01T'+(a.check_out||a.time_out))-new Date('2000-01-01T'+(a.check_in||a.time_in)))/60000);if(d2>0){dur=Math.floor(d2/60)+'h'+(d2%60>0?d2%60+'m':'');}}
     return '<div class="entry">'
       +'<div class="entry-ico '+(a.status==='present'?'ok':a.status==='retard'?'warn':'danger')+'">&#9200;</div>'
       +'<div class="entry-body"><div class="entry-title">'+esc(emp?emp.full_name:'—')+'</div>'
-      +'<div class="entry-sub">'+(a.time_in||'—')+' → '+(a.time_out||'—')+' · '+dur+'</div></div>'
+      +'<div class="entry-sub">'+((a.check_in||a.time_in)||'—')+' → '+((a.check_out||a.time_out)||'—')+' · '+dur+'</div></div>'
       +'<span class="bdg '+(a.status==='present'?'ok':a.status==='retard'?'warn':'danger')+'">'+esc(a.status)+'</span>'
       +'</div>';
   }).join('');
 }
 function saveAtt(){
-  var d={id:gid(),employee_id:document.getElementById('att-emp').value,date:document.getElementById('att-md-date').value,status:document.getElementById('att-status').value,time_in:document.getElementById('att-in').value||null,time_out:document.getElementById('att-out').value||null,notes:document.getElementById('att-notes').value.trim()||null};
+  var d={id:gid(),employee_id:document.getElementById('att-emp').value,date:document.getElementById('att-md-date').value,status:document.getElementById('att-status').value,check_in:document.getElementById('att-in').value||null,check_out:document.getElementById('att-out').value||null,notes:document.getElementById('att-notes').value.trim()||null};
   if(!d.employee_id||!d.date){toast('Employ&#233; et date requis','err');return;}
-  POST('veraluz_employee_attendance',d).then(function(r){ATTS.unshift(r[0]||d);closeMd('md-add-att');loadAtt();toast('Pointage enregistr&#233; &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
+  POST('veraluz_attendance',d).then(function(r){ATTS.unshift(r[0]||d);closeMd('md-add-att');loadAtt();toast('Pointage enregistr&#233; &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 
 /* ═══════════════ PAIE ═══════════════ */
 function loadPay(){
-  var total=PAYROLLS.reduce(function(s,p){return s+(p.net_amount||p.amount||0);},0);
-  var pending=PAYROLLS.filter(function(p){return p.status==='en_attente';}).reduce(function(s,p){return s+(p.net_amount||p.amount||0);},0);
-  var paid=PAYROLLS.filter(function(p){return p.status==='paye';}).reduce(function(s,p){return s+(p.net_amount||p.amount||0);},0);
+  var total=PAYROLLS.reduce(function(s,p){return s+((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)));},0);
+  var pending=PAYROLLS.filter(function(p){return p.status==='en_attente';}).reduce(function(s,p){return s+((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)));},0);
+  var paid=PAYROLLS.filter(function(p){return p.status==='paye';}).reduce(function(s,p){return s+((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)));},0);
   document.getElementById('pay-mass').textContent=fmt(total)+' F';
   document.getElementById('pay-pending').textContent=fmt(pending)+' F';
   document.getElementById('pay-paid').textContent=fmt(paid)+' F';
@@ -1224,8 +1225,8 @@ function renderPay(){
       +'<span style="font-weight:700;">'+esc(emp?emp.full_name:'—')+'</span>'
       +'<span class="bdg '+(p.status==='paye'?'ok':p.status==='approuve'?'acc':'warn')+'">'+esc(p.status)+'</span>'
       +'</div>'
-      +'<div style="font-size:12px;color:var(--text3);">'+esc(p.month||'')+'</div>'
-      +'<div style="font-size:16px;font-weight:800;color:var(--acc1);margin-top:4px;">'+fmt(p.net_amount||p.amount||0)+' FCFA</div>'
+      +'<div style="font-size:12px;color:var(--text3);">'+esc(payM(p)||'')+'</div>'
+      +'<div style="font-size:16px;font-weight:800;color:var(--acc1);margin-top:4px;">'+fmt((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)))+' FCFA</div>'
       +'<div class="btn-row" style="margin-top:8px;margin-bottom:0;">'
       +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; PDF</button>'
       +(p.status!=='paye'?'<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">&#9989; Payer</button>':'')
@@ -1265,9 +1266,9 @@ function approveAllPayroll(){
   var month=new Date().toISOString().slice(0,7);
   var promises=preview.map(function(p){
     var existing=PAYROLLS.find(function(x){return x.employee_id===p.emp.id&&x.month===month;});
-    var d={employee_id:p.emp.id,month:month,base_salary:p.base,bonus:p.bonus,deductions:p.deduct+p.adv,net_amount:p.net,status:'approuve'};
-    if(existing){return PATCH('veraluz_employee_payrolls',existing.id,d);}
-    else{d.id=gid();return POST('veraluz_employee_payrolls',d).then(function(r){PAYROLLS.unshift(r[0]||d);});}
+    var d={employee_id:p.emp.id,month:month,base_salary:p.base,bonus:p.bonus,deductions:p.deduct+p.adv,net_salary:p.net,net_amount:p.net,month:month,status:'approuve'};
+    if(existing){return PATCH('veraluz_payroll',existing.id,d);}
+    else{d.id=gid();return POST('veraluz_payroll',d).then(function(r){PAYROLLS.unshift(r[0]||d);});}
   });
   Promise.all(promises).then(function(){
     document.getElementById('payroll-preview').style.display='none';
@@ -1275,7 +1276,7 @@ function approveAllPayroll(){
   }).catch(function(e){toast('Erreur: '+e,'err');});
 }
 function markPayPaid(pid){
-  PATCH('veraluz_employee_payrolls',pid,{status:'paye'}).then(function(){
+  PATCH('veraluz_payroll',pid,{status:'paye'}).then(function(){
     var p=PAYROLLS.find(function(x){return x.id===pid;});
     if(p)p.status='paye';
     loadPay();toast('Paiement enregistr&#233; &#9989;','ok');
@@ -1285,15 +1286,15 @@ function savePay(){
   var base=parseFloat(document.getElementById('pay-amount').value)||0;
   var bonus=parseFloat(document.getElementById('pay-bonus').value)||0;
   var deduct=parseFloat(document.getElementById('pay-deduct').value)||0;
-  var d={id:gid(),employee_id:document.getElementById('pay-emp').value,month:document.getElementById('pay-month').value,base_salary:base,bonus:bonus,deductions:deduct,net_amount:base+bonus-deduct,status:document.getElementById('pay-status').value,notes:document.getElementById('pay-notes').value.trim()||null};
+  var d={id:gid(),employee_id:document.getElementById('pay-emp').value,month:document.getElementById('pay-month').value,net_salary:base+bonus-deduct,net_amount:base+bonus-deduct,base_salary:base,bonus:bonus,deductions:deduct,status:document.getElementById('pay-status').value,notes:document.getElementById('pay-notes').value.trim()||null};
   if(!d.employee_id){toast('Employ&#233; requis','err');return;}
-  POST('veraluz_employee_payrolls',d).then(function(r){PAYROLLS.unshift(r[0]||d);closeMd('md-add-pay');loadPay();toast('Fiche ajout&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
+  POST('veraluz_payroll',d).then(function(r){PAYROLLS.unshift(r[0]||d);closeMd('md-add-pay');loadPay();toast('Fiche ajout&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 function exportPayCSV(){
   var month=new Date().toISOString().slice(0,7);
-  var rows=PAYROLLS.filter(function(p){return p.month===month;}).map(function(p){
+  var rows=PAYROLLS.filter(function(p){return payM(p)===month;}).map(function(p){
     var emp=EMPS.find(function(e){return e.id===p.employee_id;});
-    return [emp?emp.full_name:'—',emp?emp.momo_number||emp.bank_account||'—':'—',p.net_amount||0,p.status,month].join(';');
+    return [emp?emp.full_name:'—',emp?emp.momo_number||emp.bank_account||'—':'—',(p.net_salary||(p.net_salary||p.net_amount||0)||0),p.status,month].join(';');
   });
   var csv='Nom;MoMo/Compte;Montant FCFA;Statut;Mois\n'+rows.join('\n');
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='paie_'+month+'.csv';a.click();
@@ -1305,7 +1306,7 @@ function printPayslip(pid){
   var w=window.open('','_blank','width=700,height=900');
   w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fiche de paie</title>'
     +'<style>body{font-family:Arial,sans-serif;margin:0;padding:32px;color:#111;}h1{font-size:22px;color:#22d3a5;}.hdr{display:flex;justify-content:space-between;border-bottom:2px solid #22d3a5;padding-bottom:12px;margin-bottom:20px;}.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:14px;}.total{font-size:18px;font-weight:800;color:#22d3a5;padding:12px 0;display:flex;justify-content:space-between;}.footer{margin-top:40px;border-top:1px solid #ccc;padding-top:16px;font-size:12px;color:#666;display:flex;justify-content:space-between;}</style></head><body>'
-    +'<div class="hdr"><div><h1>'+hotel+'</h1><div style="font-size:12px;color:#666;">'+esc(SETTINGS.hotel_address||'Kribi, Cameroun')+'</div></div><div style="text-align:right;"><div style="font-size:18px;font-weight:800;">BULLETIN DE PAIE</div><div style="color:#666;">'+esc(p.month||'')+'</div></div></div>'
+    +'<div class="hdr"><div><h1>'+hotel+'</h1><div style="font-size:12px;color:#666;">'+esc(SETTINGS.hotel_address||'Kribi, Cameroun')+'</div></div><div style="text-align:right;"><div style="font-size:18px;font-weight:800;">BULLETIN DE PAIE</div><div style="color:#666;">'+esc(payM(p)||'')+'</div></div></div>'
     +'<div style="background:#f9f9f9;border-radius:8px;padding:16px;margin-bottom:20px;">'
     +'<div style="font-size:16px;font-weight:700;">'+(emp?esc(emp.full_name):'—')+'</div>'
     +'<div style="font-size:13px;color:#666;">'+(emp?esc(emp.role||''):'')+'</div>'
@@ -1314,7 +1315,7 @@ function printPayslip(pid){
     +'<div class="row"><span>Salaire de base</span><span>'+fmt(p.base_salary||0)+' FCFA</span></div>'
     +'<div class="row" style="color:green;"><span>+ Primes</span><span>+'+fmt(p.bonus||0)+' FCFA</span></div>'
     +'<div class="row" style="color:red;"><span>- Retenues / Avances</span><span>-'+fmt(p.deductions||0)+' FCFA</span></div>'
-    +'<div class="total"><span>NET A PAYER</span><span>'+fmt(p.net_amount||0)+' FCFA</span></div>'
+    +'<div class="total"><span>NET A PAYER</span><span>'+fmt((p.net_salary||(p.net_salary||p.net_amount||0)||0))+' FCFA</span></div>'
     +'<div class="footer"><div>Statut: <strong>'+esc(p.status||'')+'</strong></div><div>G&#233;n&#233;r&#233; le: '+new Date().toLocaleDateString('fr-FR')+'</div><div>Signature: _______________</div></div>'
     +'</body></html>');
   w.document.close();setTimeout(function(){w.print();},600);
@@ -1341,7 +1342,7 @@ function loadAdv(){
 function saveAdv(){
   var d={id:gid(),employee_id:document.getElementById('adv-emp').value,amount:parseFloat(document.getElementById('adv-amount').value)||0,date:document.getElementById('adv-date').value,reason:document.getElementById('adv-reason').value.trim()||null,status:'en_attente'};
   if(!d.employee_id||!d.amount){toast('Employ&#233; et montant requis','err');return;}
-  POST('veraluz_employee_advances',d).then(function(r){ADVANCES.unshift(r[0]||d);closeMd('md-add-adv');loadAdv();toast('Avance enregistr&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
+  POST('veraluz_advances',d).then(function(r){ADVANCES.unshift(r[0]||d);closeMd('md-add-adv');loadAdv();toast('Avance enregistr&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 
 /* ═══════════════ DOCUMENTS ═══════════════ */
@@ -1365,7 +1366,7 @@ function loadDocs(){filterDocs();}
 function saveDoc(){
   var d={id:gid(),employee_id:document.getElementById('doc-emp').value,type:document.getElementById('doc-type').value,date:document.getElementById('doc-date').value||null,title:document.getElementById('doc-title').value.trim(),url:document.getElementById('doc-url').value.trim()||null};
   if(!d.title||!d.employee_id){toast('Employ&#233; et titre requis','err');return;}
-  POST('veraluz_employee_documents',d).then(function(r){DOCS.unshift(r[0]||d);closeMd('md-add-doc');filterDocs();toast('Document ajout&#233; &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
+  POST('veraluz_hr_documents',d).then(function(r){DOCS.unshift(r[0]||d);closeMd('md-add-doc');filterDocs();toast('Document ajout&#233; &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 
 /* ═══════════════ TACHES ═══════════════ */
@@ -1392,10 +1393,10 @@ function renderTasks(){
 function saveTask(){
   var d={id:gid(),title:document.getElementById('task-title').value.trim(),employee_id:document.getElementById('task-emp').value,due_date:document.getElementById('task-due').value||null,priority:document.getElementById('task-priority').value,description:document.getElementById('task-desc').value.trim()||null,status:'a_faire'};
   if(!d.title||!d.employee_id){toast('Titre et employ&#233; requis','err');return;}
-  POST('veraluz_employee_tasks',d).then(function(r){TASKS.unshift(r[0]||d);closeMd('md-add-task');renderTasks();toast('T&#226;che ajout&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
+  POST('veraluz_hr_tasks',d).then(function(r){TASKS.unshift(r[0]||d);closeMd('md-add-task');renderTasks();toast('T&#226;che ajout&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 function completeTask(tid){
-  PATCH('veraluz_employee_tasks',tid,{status:'termine'}).then(function(){var t=TASKS.find(function(x){return x.id===tid;});if(t)t.status='termine';renderTasks();toast('T&#226;che termin&#233;e &#9989;','ok');});
+  PATCH('veraluz_hr_tasks',tid,{status:'termine'}).then(function(){var t=TASKS.find(function(x){return x.id===tid;});if(t)t.status='termine';renderTasks();toast('T&#226;che termin&#233;e &#9989;','ok');});
 }
 
 /* ═══════════════ HISTORIQUE ═══════════════ */
@@ -1403,7 +1404,7 @@ var _histFilter='all';
 function setHistFilter(f,btn){_histFilter=f;document.querySelectorAll('#pane-hist .fchip').forEach(function(b){b.classList.remove('on');});if(btn)btn.classList.add('on');loadHist();}
 function loadHist(){
   var all=[];
-  PAYROLLS.forEach(function(p){var emp=EMPS.find(function(e){return e.id===p.employee_id;});all.push({date:p.created_at,type:'payroll',desc:'Paie '+(p.month||'')+(emp?' — '+emp.full_name:''),amount:p.net_amount||0,status:p.status});});
+  PAYROLLS.forEach(function(p){var emp=EMPS.find(function(e){return e.id===p.employee_id;});all.push({date:p.created_at,type:'payroll',desc:'Paie '+(payM(p)||'')+(emp?' — '+emp.full_name:''),amount:(p.net_salary||(p.net_salary||p.net_amount||0)||0),status:p.status});});
   ADVANCES.forEach(function(a){var emp=EMPS.find(function(e){return e.id===a.employee_id;});all.push({date:a.date+'T12:00:00Z',type:'advance',desc:'Avance'+(emp?' — '+emp.full_name:''),amount:a.amount||0,status:a.status});});
   TASKS.forEach(function(t){var emp=EMPS.find(function(e){return e.id===t.employee_id;});all.push({date:t.created_at||t.due_date+'T12:00:00Z',type:'task',desc:t.title+(emp?' — '+emp.full_name:''),amount:0,status:t.status});});
   ATTS.forEach(function(a){var emp=EMPS.find(function(e){return e.id===a.employee_id;});all.push({date:a.date+'T08:00:00Z',type:'attendance',desc:'Pointage '+(emp?emp.full_name:''),amount:0,status:a.status});});
@@ -1515,15 +1516,15 @@ function checkTodayPunch(){
   var btnOut=document.getElementById('btn-depart');
   var status=document.getElementById('clock-status');
   if(!att){btnIn.disabled=false;btnOut.disabled=true;status.textContent='Pas encore point&#233; aujourd&#39;hui';}
-  else if(att.time_in&&!att.time_out){btnIn.disabled=true;btnOut.disabled=false;status.textContent='Arriv&#233;e enregistr&#233;e &#224; '+att.time_in;}
-  else if(att.time_in&&att.time_out){btnIn.disabled=true;btnOut.disabled=true;status.textContent='Journ&#233;e compl&#232;te &#9989; '+att.time_in+' &#8594; '+att.time_out;}
+  else if((att.check_in||att.time_in)&&!(att.check_out||att.time_out)){btnIn.disabled=true;btnOut.disabled=false;status.textContent='Arriv&#233;e enregistr&#233;e &#224; '+(att.check_in||att.time_in);}
+  else if((att.check_in||att.time_in)&&(att.check_out||att.time_out)){btnIn.disabled=true;btnOut.disabled=true;status.textContent='Journ&#233;e compl&#232;te &#9989; '+(att.check_in||att.time_in)+' &#8594; '+(att.check_out||att.time_out);}
 }
 function punchIn(){
   if(!LOGGED_EMP)return;
   var today=new Date().toISOString().slice(0,10);
   var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  var d={id:gid(),employee_id:LOGGED_EMP.id,date:today,status:'present',time_in:now};
-  POST('veraluz_employee_attendance',d).then(function(r){
+  var d={id:gid(),employee_id:LOGGED_EMP.id,date:today,status:'present',check_in:now};
+  POST('veraluz_attendance',d).then(function(r){
     ATTS.unshift(r[0]||d);
     checkTodayPunch();
     toast('Arriv&#233;e enregistr&#233;e &#224; '+now+' &#9989;','ok');
@@ -1535,8 +1536,8 @@ function punchOut(){
   var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   var att=ATTS.find(function(a){return a.employee_id===LOGGED_EMP.id&&a.date===today;});
   if(!att){toast('Pas d\'arrivée enregistrée','err');return;}
-  PATCH('veraluz_employee_attendance',att.id,{time_out:now}).then(function(){
-    att.time_out=now;
+  PATCH('veraluz_attendance',att.id,{check_out:now}).then(function(){
+    att.check_out=now;att.time_out=now;
     checkTodayPunch();
     toast('D&#233;part enregistr&#233; &#224; '+now+' &#9989;','ok');
   }).catch(function(e){toast('Erreur: '+e,'err');});
@@ -1603,10 +1604,10 @@ function renderEpPaie(){
   el.innerHTML=list.map(function(p){
     return '<div class="card" style="margin-bottom:8px;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-      +'<span style="font-weight:700;">'+esc(p.month||'')+'</span>'
+      +'<span style="font-weight:700;">'+esc(payM(p)||'')+'</span>'
       +'<span class="bdg '+(p.status==='paye'?'ok':'warn')+'">'+esc(p.status)+'</span>'
       +'</div>'
-      +'<div style="font-size:18px;font-weight:800;color:var(--acc1);margin-top:6px;">'+fmt(p.net_amount||p.amount||0)+' FCFA</div>'
+      +'<div style="font-size:18px;font-weight:800;color:var(--acc1);margin-top:6px;">'+fmt((p.net_salary||(p.net_salary||(p.net_salary||p.net_amount||0)||0)))+' FCFA</div>'
       +'<button class="btn btn-sec btn-sm" style="margin-top:8px;" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; Voir le bulletin PDF</button>'
       +'</div>';
   }).join('');
@@ -1624,7 +1625,7 @@ function renderEpTaches(){
   }).join('');
 }
 function empCompleteTask(tid){
-  PATCH('veraluz_employee_tasks',tid,{status:'termine'}).then(function(){var t=TASKS.find(function(x){return x.id===tid;});if(t)t.status='termine';renderEpTaches();toast('T&#226;che termin&#233;e &#9989;','ok');});
+  PATCH('veraluz_hr_tasks',tid,{status:'termine'}).then(function(){var t=TASKS.find(function(x){return x.id===tid;});if(t)t.status='termine';renderEpTaches();toast('T&#226;che termin&#233;e &#9989;','ok');});
 }
 function renderEpPlanning(){
   var today=new Date();var monday=new Date(today);var d=monday.getDay()||7;monday.setDate(monday.getDate()-d+1);
@@ -1651,8 +1652,8 @@ function renderEpPointages(){
   if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#9200;</div>Aucun pointage</div>';return;}
   el.innerHTML='<table class="tbl"><thead><tr><th>Date</th><th>Statut</th><th>Entr&#233;e</th><th>Sortie</th><th>Dur&#233;e</th></tr></thead><tbody>'
     +list.map(function(a){
-      var dur='—';if(a.time_in&&a.time_out){var dm=Math.round((new Date('2000-01-01T'+a.time_out)-new Date('2000-01-01T'+a.time_in))/60000);if(dm>0){dur=Math.floor(dm/60)+'h'+(dm%60?dm%60+'m':'');}}
-      return '<tr><td>'+fdate(a.date)+'</td><td><span class="bdg '+(a.status==='present'?'ok':a.status==='retard'?'warn':'danger')+'">'+esc(a.status)+'</span></td><td>'+(a.time_in||'—')+'</td><td>'+(a.time_out||'—')+'</td><td>'+dur+'</td></tr>';
+      var dur='—';if((a.check_in||a.time_in)&&(a.check_out||a.time_out)){var dm=Math.round((new Date('2000-01-01T'+(a.check_out||a.time_out))-new Date('2000-01-01T'+(a.check_in||a.time_in)))/60000);if(dm>0){dur=Math.floor(dm/60)+'h'+(dm%60?dm%60+'m':'');}}
+      return '<tr><td>'+fdate(a.date)+'</td><td><span class="bdg '+(a.status==='present'?'ok':a.status==='retard'?'warn':'danger')+'">'+esc(a.status)+'</span></td><td>'+((a.check_in||a.time_in)||'—')+'</td><td>'+((a.check_out||a.time_out)||'—')+'</td><td>'+dur+'</td></tr>';
     }).join('')+'</tbody></table>';
 }
 function changePin(){
@@ -1684,4 +1685,3 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 </body>
 </html>
-     

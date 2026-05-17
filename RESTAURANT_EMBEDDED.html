@@ -1114,13 +1114,27 @@ function confirmPick(){
 /* Send to kitchen */
 function sendKitchen(){
   if(!CART.length){toast('Panier vide','er');return;}
-  /* Anti-409 : si table a déjà une commande active, on l'utilise */
+  /* Anti-409 : check mémoire locale d'abord */
   if(!cartOrd&&cartTbl&&cartTbl.id&&!cartTbl.id.startsWith('room_')&&!cartTbl.id.startsWith('guest_')){
-    var _existing=ORDERS.find(function(o){
+    var _memOrd=ORDERS.find(function(o){
       return o.table_id===cartTbl.id&&(o.status==='ouvert'||o.status==='en_preparation');
     });
-    if(_existing){cartOrd=_existing;}
+    if(_memOrd){cartOrd=_memOrd;}
   }
+  /* Anti-409 : si toujours pas de cartOrd, vérif live en DB avant POST */
+  if(!cartOrd&&cartTbl&&cartTbl.id&&!cartTbl.id.startsWith('room_')&&!cartTbl.id.startsWith('guest_')){
+    GET('veraluz_restaurant_orders?table_id=eq.'+cartTbl.id+'&status=in.(ouvert,en_preparation)&limit=1').then(function(rows){
+      if(rows&&rows.length){
+        cartOrd=rows[0];
+        if(!ORDERS.find(function(o){return o.id===cartOrd.id;}))ORDERS.unshift(cartOrd);
+      }
+      _doSendKitchen();
+    }).catch(function(){_doSendKitchen();});
+    return;
+  }
+  _doSendKitchen();
+}
+function _doSendKitchen(){
   var now=new Date().toISOString();
   var newItems=CART.map(function(c){return{product_id:c.p.id,name:c.p.name,price:c.p.price,qty:c.q,station:c.p.station||'cuisine',status:'attente'};});
 
@@ -1429,14 +1443,24 @@ function soRenderLines(){
     var opts=null; try{opts=l.order_unit_options?JSON.parse(l.order_unit_options):null;}catch(e){}
     var pkgHtml='';
     if(opts&&opts.length>1){
-      pkgHtml='<select class="fi" style="font-size:11px;min-width:110px;" onchange="soLinePkg('+i+',this.value)">'
+      /* Options pré-configurées → dropdown */
+      pkgHtml='<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
+        +'<label style="font-size:10px;color:var(--text3);">Format</label>'
+        +'<select class="fi" style="font-size:11px;min-width:110px;" onchange="soLinePkg('+i+',this.value)">'
         +opts.map(function(o){return'<option value="'+o.qty+'"'+(l.pkg_qty==o.qty?' selected':'')+'>'+esc(o.label)+'</option>';}).join('')
-        +'</select>';
+        +'</select></div>';
     } else {
-      var unitLabel=l.order_unit||'unité';
-      var unitQty=l.order_unit_qty||1;
-      pkgHtml='<span style="font-size:11px;padding:4px 8px;background:var(--bg2);border-radius:6px;color:var(--acc2);white-space:nowrap;">'
-        +esc(unitLabel)+(unitQty>1?' (×'+unitQty+')':'')+'</span>';
+      /* Édition manuelle de l'unité et du nombre d'unités par paquet */
+      pkgHtml='<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
+        +'<label style="font-size:10px;color:var(--text3);">Unité embal.</label>'
+        +'<input class="fi" type="text" value="'+esc(l.order_unit||'unité')+'" placeholder="casier/kg…" '
+        +'style="width:72px;font-size:11px;text-align:center;" oninput="soLineUnit('+i+',this.value)">'
+        +'</div>'
+        +'<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
+        +'<label style="font-size:10px;color:var(--text3);">Qté/paquet</label>'
+        +'<input class="fi" type="number" min="1" value="'+(l.order_unit_qty||1)+'" '
+        +'style="width:52px;font-size:11px;text-align:center;" oninput="soLinePkgQty('+i+',this.value)">'
+        +'</div>';
     }
     var stockQty=(l.qty||1)*(l.pkg_qty||l.order_unit_qty||1);
     var convLabel=stockQty!=(l.qty||1)?(' = <b>'+stockQty+'</b> '+(l.stock_unit||'unités')+ ' en stock'):'';
@@ -1500,6 +1524,17 @@ function soLinePkg(i,qtyVal){
   soLines[i].order_unit_qty=soLines[i].pkg_qty;
   soRenderLines();soCalcTotal();
 }
+function soLineUnit(i,val){
+  soLines[i].order_unit=val.trim()||'unité';
+  soRenderLines();soCalcTotal();
+}
+function soLinePkgQty(i,val){
+  var q=parseFloat(val)||1;
+  soLines[i].order_unit_qty=q;
+  soLines[i].pkg_qty=q;
+  soRenderLines();soCalcTotal();
+}
+
 function soLineName(i,v){soLines[i].pname=v;}
 function soLineQty(i,v){soLines[i].qty=parseFloat(v)||1;soCalcTotal();}
 function soLinePU(i,v){soLines[i].pu=parseFloat(v)||0;soCalcTotal();}

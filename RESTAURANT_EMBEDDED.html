@@ -354,37 +354,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);
     </div>
   </div>
 
-  <!-- MODAL RÉSA SALLE -->
-  <div class="md" id="md-resa">
-    <div class="mdb">
-      <div class="mdh"><span>&#128197; R&#233;server la salle</span><button class="mdc" onclick="closeMd('md-resa')">&#10005;</button></div>
-      <div class="mdf" style="flex-direction:column;gap:10px;">
-        <input id="resa-evt" class="inp" placeholder="Nom de l'&#233;v&#233;nement (ex: Anniversaire Marie)">
-        <input id="resa-contact" class="inp" placeholder="Contact (nom + t&#233;l.)">
-        <div style="display:flex;gap:8px;">
-          <input id="resa-date" class="inp" type="date" style="flex:1">
-          <input id="resa-hd" class="inp" type="time" placeholder="D&#233;but" style="flex:1">
-          <input id="resa-hf" class="inp" type="time" placeholder="Fin" style="flex:1">
-        </div>
-        <div style="display:flex;gap:8px;">
-          <select id="resa-type" class="inp" style="flex:1;">
-            <option value="anniversaire">&#127874; Anniversaire</option>
-            <option value="mariage">&#128141; Mariage / Fiançailles</option>
-            <option value="corporate">&#128188; Corporate / R&#233;union</option>
-            <option value="bapteme">&#128149; Bapt&#234;me / Communion</option>
-            <option value="autre">&#9734; Autre</option>
-          </select>
-          <input id="resa-pax" class="inp" type="number" placeholder="Nb personnes" style="flex:1;">
-        </div>
-        <input id="resa-acompte" class="inp" type="number" placeholder="Acompte reu (FCFA)">
-        <textarea id="resa-notes" class="inp" rows="2" placeholder="Notes (menu souhaite, deco...)"></textarea>
-      </div>
-      <div class="mdf" style="margin-top:8px;">
-        <button class="btn bg" onclick="closeMd('md-resa')" style="flex:1">Annuler</button>
-        <button class="btn bp" onclick="saveResa()" style="flex:2">&#128190; Confirmer la r&#233;servation</button>
-      </div>
-    </div>
-  </div>
 
   <!-- STOCK -->
   <div class="pane-flex" id="pane-stock" style="flex-direction:column;">
@@ -440,6 +409,37 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 
 <!-- ══ MODALS ══ -->
 <!-- Pick table -->
+<div class="ov" id="md-resa">
+  <div class="md">
+    <div class="mdh"><span>&#128197; R&#233;server la salle</span><button class="mdc" onclick="closeMd('md-resa')">&#10005;</button></div>
+    <div class="mdb" style="display:flex;flex-direction:column;gap:10px;">
+      <input id="resa-evt" class="inp" placeholder="Nom de l'&#233;v&#233;nement (ex: Anniversaire Marie)">
+      <input id="resa-contact" class="inp" placeholder="Contact (nom + t&#233;l.)">
+      <div style="display:flex;gap:8px;">
+        <input id="resa-date" class="inp" type="date" style="flex:1">
+        <input id="resa-hd" class="inp" type="time" placeholder="D&#233;but" style="flex:1">
+        <input id="resa-hf" class="inp" type="time" placeholder="Fin" style="flex:1">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <select id="resa-type" class="inp" style="flex:1;">
+          <option value="anniversaire">&#127874; Anniversaire</option>
+          <option value="mariage">&#128141; Mariage / Fian&#231;ailles</option>
+          <option value="corporate">&#128188; Corporate / R&#233;union</option>
+          <option value="bapteme">&#128149; Bapt&#234;me / Communion</option>
+          <option value="autre">&#9734; Autre</option>
+        </select>
+        <input id="resa-pax" class="inp" type="number" placeholder="Nb personnes" style="flex:1;">
+      </div>
+      <input id="resa-acompte" class="inp" type="number" placeholder="Acompte re&#231;u (FCFA)">
+      <textarea id="resa-notes" class="inp" rows="2" placeholder="Notes (menu souhait&#233;, d&#233;co, allergies...)"></textarea>
+    </div>
+    <div class="mdf">
+      <button class="btn bg" onclick="closeMd('md-resa')" style="flex:1">Annuler</button>
+      <button class="btn bp" onclick="saveResa()" style="flex:2">&#128190; Confirmer la r&#233;servation</button>
+    </div>
+  </div>
+</div>
+
 <div class="ov" id="md-pick">
   <div class="md">
     <div class="mdh"><span class="mdt">Choisir une table</span><button class="mdc" onclick="closeMd('md-pick')">&#10005;</button></div>

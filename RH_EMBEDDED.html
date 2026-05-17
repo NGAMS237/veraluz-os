@@ -148,6 +148,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <button class="tab"    data-p="empmode"  onclick="showLoginScreen()" style="color:var(--acc2);border-left:1px solid var(--border);">&#128100; Mon espace</button>
   </div>
   <div id="content">
+<div id="load-banner" style="display:none;position:absolute;top:0;left:0;right:0;z-index:50;background:var(--bg3);border-bottom:1px solid var(--border);padding:8px 14px;font-size:12px;color:var(--text3);text-align:center;">Chargement...</div>
     <!-- EMPLOYES -->
     <div class="pane on" id="pane-emp">
       <div class="card-row">
@@ -792,30 +793,53 @@ function initParamSelects(){
   for(var id in nm){var el=document.getElementById(id);if(el&&SETTINGS[nm[id]])el.value=SETTINGS[nm[id]];}
   var calEl=document.getElementById('calc-month');if(calEl&&!calEl.value)calEl.value=new Date().toISOString().slice(0,7);
 }
+function safeGet(t){
+  return GET(t).catch(function(e){
+    console.warn('RH load failed ['+t+']:', e.message||e);
+    return [];
+  });
+}
 function loadAll(){
+  var banner=document.getElementById('load-banner');
+  if(banner){banner.textContent='Chargement des données...';banner.style.display='block';banner.style.color='var(--accent)';}
   Promise.all([
-    GET('veraluz_employees?select=*&order=full_name.asc'),
-    GET('veraluz_teams?select=*'),
-    GET('veraluz_contracts?select=*&order=created_at.desc&limit=100'),
-    GET('veraluz_schedules?select=*&order=date.desc&limit=200'),
-    GET('veraluz_attendance?select=*&order=date.desc&limit=200'),
-    GET('veraluz_payroll?select=*&order=created_at.desc&limit=200'),
-    GET('veraluz_advances?select=*&order=created_at.desc&limit=100'),
-    GET('veraluz_hr_documents?select=*&order=created_at.desc&limit=100'),
-    GET('veraluz_hr_tasks?select=*&order=created_at.desc&limit=200'),
-    GET('veraluz_employee_bonuses?select=*&order=created_at.desc&limit=200'),
-    GET('veraluz_hr_settings?select=*')
+    safeGet('veraluz_employees?select=*&order=full_name.asc'),
+    safeGet('veraluz_teams?select=*'),
+    safeGet('veraluz_contracts?select=*&order=created_at.desc&limit=100'),
+    safeGet('veraluz_schedules?select=*&order=date.desc&limit=200'),
+    safeGet('veraluz_attendance?select=*&order=date.desc&limit=200'),
+    safeGet('veraluz_payroll?select=*&order=created_at.desc&limit=200'),
+    safeGet('veraluz_advances?select=*&order=created_at.desc&limit=100'),
+    safeGet('veraluz_hr_documents?select=*&order=created_at.desc&limit=100'),
+    safeGet('veraluz_hr_tasks?select=*&order=created_at.desc&limit=200'),
+    safeGet('veraluz_employee_bonuses?select=*&order=created_at.desc&limit=200'),
+    safeGet('veraluz_hr_settings?select=*')
   ]).then(function(r){
-    EMPS=r[0]||[];TEAMS=r[1]||[];CONTRACTS=r[2]||[];SCHEDS=r[3]||[];
-    ATTS=r[4]||[];PAYROLLS=r[5]||[];ADVANCES=r[6]||[];DOCS=r[7]||[];
-    TASKS=r[8]||[];BONUSES=r[9]||[];
-    var sets=r[10]||[];
+    EMPS=Array.isArray(r[0])?r[0]:[];
+    TEAMS=Array.isArray(r[1])?r[1]:[];
+    CONTRACTS=Array.isArray(r[2])?r[2]:[];
+    SCHEDS=Array.isArray(r[3])?r[3]:[];
+    ATTS=Array.isArray(r[4])?r[4]:[];
+    PAYROLLS=Array.isArray(r[5])?r[5]:[];
+    ADVANCES=Array.isArray(r[6])?r[6]:[];
+    DOCS=Array.isArray(r[7])?r[7]:[];
+    TASKS=Array.isArray(r[8])?r[8]:[];
+    BONUSES=Array.isArray(r[9])?r[9]:[];
+    var sets=Array.isArray(r[10])?r[10]:[];
     SETTINGS={};
     sets.forEach(function(s){SETTINGS[s.key]=s.value;});
+    if(banner){banner.style.display='none';}
     renderEmps();
     populateSelects();
     initParamSelects();
-  }).catch(function(e){toast('Erreur chargement: '+(e.message||e),'err');});
+    if(EMPS.length===0){
+      if(banner){banner.textContent='Aucun employé trouvé. Vérifiez votre connexion Supabase.';banner.style.display='block';banner.style.color='var(--warn, orange)';}
+    }
+  }).catch(function(e){
+    var msg='Erreur chargement: '+(e.message||e);
+    if(banner){banner.textContent=msg;banner.style.display='block';banner.style.color='var(--danger)';}
+    toast(msg,'err');
+  });
 }
 
 function populateSelects(){
@@ -1919,18 +1943,22 @@ function printContract(cid){
 
 
 document.addEventListener('DOMContentLoaded',function(){
-  document.getElementById('att-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('adv-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('att-md-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('pay-month').value=new Date().toISOString().slice(0,7);
-  document.getElementById('bonus-month').value=new Date().toISOString().slice(0,7);
-  document.getElementById('sched-date').value=new Date().toISOString().slice(0,10);
-  document.getElementById('emp-hire').value=new Date().toISOString().slice(0,10);
-  document.getElementById('doc-date').value=new Date().toISOString().slice(0,10);
-  loadAll();
-  initSignPad();
+  function setVal(id,v){var el=document.getElementById(id);if(el)el.value=v;}
+  var td=new Date().toISOString().slice(0,10);
+  var tm=new Date().toISOString().slice(0,7);
+  setVal('att-date',td);setVal('adv-date',td);setVal('att-md-date',td);
+  setVal('pay-month',tm);setVal('bonus-month',tm);
+  setVal('sched-date',td);setVal('emp-hire',td);setVal('doc-date',td);
+  try{loadAll();}catch(e){console.error('loadAll error:',e);}
+  try{initSignPad();}catch(e){console.warn('initSignPad error:',e);}
 });
 
+window.onerror=function(msg,src,line,col,err){
+  console.error('RH JS Error:',msg,'at',src+':'+line);
+  var banner=document.getElementById('load-banner');
+  if(banner&&banner.style.display==='none')return;
+  if(banner){banner.style.display='block';banner.textContent='Erreur JS: '+msg;banner.style.color='var(--danger)';}
+};
 </script>
 
 <!-- Modal signature électronique -->

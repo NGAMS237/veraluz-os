@@ -727,8 +727,6 @@ textarea.fi{resize:vertical;min-height:78px}
 </footer>
 </body>
 <script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script>
 var SB='https://dfdmasejsoibxrvubegu.supabase.co';
 var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
@@ -923,6 +921,15 @@ function p1nx() {
   e.classList.remove('on'); calcN();
   var r=_bk.room,icon=ROOM_ICONS[r.ikey]||ROOM_ICONS.std;
   document.getElementById('rcC').innerHTML='<div class="rc-card"><div class="rc-in" style="background:'+r.gradient+'"><div class="rc-ico">'+icon+'</div><div><div class="rc-name">'+r.name+'</div><div class="rc-dates">'+_bk.nights+' nuit(s) · '+fd(_bk.arr)+' → '+fd(_bk.dep)+'</div><div class="rc-total">'+_bk.total.toLocaleString('fr-FR')+' FCFA</div></div></div></div>';
+  // Check availability for selected dates
+  var bkConflict=_activeRez.some(function(rz){
+    return rz.unit_id===_bk.room.id && ['pending','confirmed','checkedin','checked_in'].indexOf(rz.status)>=0
+      && rz.check_in < _bk.dep && rz.check_out > _bk.arr;
+  });
+  if(bkConflict){
+    e.textContent="Ce logement est déjà réservé pour ces dates. Choisissez d'autres dates ou un autre logement.";
+    e.classList.add('on'); return;
+  }
   document.getElementById('rcAv').innerHTML='<div class="avail-ok"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Logement disponible pour ces dates</div>';
   goS(2);
 }
@@ -961,14 +968,24 @@ function confRes() {
   var bk=_bk, ref='VLZ-'+Date.now().toString(36).toUpperCase();
   var pm_labels={'o':'Orange Money','m':'MTN MoMo','a':'Paiement à l\'arrivée','t':'Virement bancaire'};
   var d={reference:ref,unit_id:bk.room.id,unit_name:bk.room.name,
-    guest_name:bk.guest.name,guest_email:bk.guest.email,guest_phone:bk.guest.phone,
-    guest_count:parseInt(bk.guest.count)||1,special_requests:bk.guest.requests||'',
+    client_name:bk.guest.name,client_email:bk.guest.email,client_phone:bk.guest.phone,
+    guests:parseInt(bk.guest.count)||1,notes:bk.guest.requests||'',
     check_in:bk.arr,check_out:bk.dep,nights:bk.nights,
-    total_amount:bk.total,deposit_amount:bk.deposit,
-    amount_paid:bk.amt==='f'?bk.total:bk.deposit,
+    total:bk.total,
+    paid:bk.amt==='f'?bk.total:bk.deposit,
     payment_method:pm_labels[bk.pm]||bk.pm,payment_type:bk.amt==='d'?'acompte':'total',
     status:'confirmed',source:'booking_engine',created_at:new Date().toISOString()};
   _conf=d;
+  // Final double-booking guard before saving
+  var finalConflict=_activeRez.some(function(rz){
+    return rz.unit_id===d.unit_id && ['pending','confirmed','checkedin','checked_in'].indexOf(rz.status)>=0
+      && rz.check_in < d.check_out && rz.check_out > d.check_in;
+  });
+  if(finalConflict){
+    btn.disabled=false; btn.innerHTML='Confirmer';
+    alert('Ce logement vient d\'être réservé. Veuillez choisir d\'autres dates.');
+    goS(1); return;
+  }
   sbPost('veraluz_reservations',d).then(function(saved){
     // Fallback localStorage
     if(!saved){try{var loc=JSON.parse(localStorage.getItem('vlz_res')||'[]');loc.push(d);localStorage.setItem('vlz_res',JSON.stringify(loc));}catch(e){}}
@@ -984,6 +1001,7 @@ function confRes() {
       var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
       sync.unshift(d); if(sync.length>50)sync.length=50;
       localStorage.setItem('vlz_booking_sync',JSON.stringify(sync));
+      localStorage.setItem('vlz_rez_updated',String(Date.now()));
     }catch(e){}
     rndrConf(ref,d);
     goS(5);

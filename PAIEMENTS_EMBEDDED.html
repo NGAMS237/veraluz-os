@@ -1666,6 +1666,19 @@ document.addEventListener('DOMContentLoaded', function(){
   loadAll(function(){
     refresh();
   });
+
+  /* Auto-sync : détecte les paiements créés depuis le module Réservations */
+  var _lastPaySync = 0;
+  setInterval(function(){
+    try{
+      var ts = parseInt(localStorage.getItem('vlz_pay_updated')||'0');
+      if(ts > _lastPaySync){
+        _lastPaySync = ts;
+        loadAll(refresh);
+        showToast('Paiement reçu depuis Réservations ✓', 'success');
+      }
+    }catch(e){}
+  }, 4000);
 });
 </script>
 </body>

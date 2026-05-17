@@ -763,7 +763,9 @@ function doCheckIn(id){
   var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
   if(!confirm('Check-in pour '+r.guest_name+' ?')) return;
   sbPatch('veraluz_reservations?id=eq.'+id,{status:'checkedin'}).then(function(){
-    r.status='checkedin'; refresh(); toast('Check-in effectué','success');
+    r.status='checkedin';
+    try{localStorage.setItem('vlz_rez_updated',String(Date.now()));localStorage.setItem('vlz_hk_checkin',JSON.stringify({unit_id:r.unit_id,check_in:r.check_in,client:r.client_name||'',rez_id:id}));}catch(e){}
+    refresh(); toast('Check-in effectué','success');
   }).catch(function(){ r.status='checkedin'; refresh(); toast('Check-in (hors ligne)'); });
 }
 function doCheckOut(id){
@@ -771,6 +773,7 @@ function doCheckOut(id){
   if(!confirm('Check-out pour '+r.guest_name+' ?')) return;
   sbPatch('veraluz_reservations?id=eq.'+id,{status:'checkedout'}).then(function(){
     r.status='checkedout';
+    try{localStorage.setItem('vlz_rez_updated',String(Date.now()));localStorage.setItem('vlz_hk_checkout',JSON.stringify({unit_id:r.unit_id,date:new Date().toISOString().slice(0,10),client:r.client_name||'',rez_id:id}));}catch(e){}
     var room=_rooms.find(function(x){return x.id===r.unit_id;});
     if(room) room._dynStatus='cleaning';
     refresh(); toast('Check-out — ménage requis','success');

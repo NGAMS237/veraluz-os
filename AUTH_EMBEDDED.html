@@ -803,7 +803,7 @@ function renderRoles(){
       Object.keys(PERM_SCHEMA).forEach(function(mod){
         var schema=PERM_SCHEMA[mod];
         html+='<div class="perm-module">'
-          +'<div class="perm-module-hdr" data-mod="'+mod+'" onclick="togglePermModule(this.dataset.mod)">'
+          +'<div class="perm-module-hdr" data-mod="'+mod+'" onclick="event.stopPropagation();togglePermModule(this.dataset.mod)">'
           +esc(schema.label)+'<span id="pm-arrow-'+mod+'"> ▾</span>'
           +'</div>'
           +'<div class="perm-module-body" id="pm-body-'+mod+'">';
@@ -813,7 +813,7 @@ function renderRoles(){
             +'<div class="perm-actions">';
           subDef.actions.forEach(function(a){
             var checked=r.perms&&r.perms[mod]&&r.perms[mod][sub]&&r.perms[mod][sub][a];
-            html+='<label class="perm-chk"><input type="checkbox" id="pck-'+mod+'-'+sub+'-'+a+'"'+(checked?' checked':'')
+            html+='<label class="perm-chk"><input type="checkbox" onclick="event.stopPropagation()" id="pck-'+mod+'-'+sub+'-'+a+'"'+(checked?' checked':'')
               +(r.locked?' disabled':'')+'>'+a+'</label>';
           });
           html+='</div></div>';
@@ -822,7 +822,7 @@ function renderRoles(){
       });
       if(!r.locked){
         html+='<div class="btn-row">'
-          +'<button class="btn btn-primary" data-rid="'+esc(r.id)+'" onclick="saveRolePerms(this.dataset.rid)">Enregistrer permissions</button>'
+          +'<button class="btn btn-primary" data-rid="'+esc(r.id)+'" onclick="event.stopPropagation();saveRolePerms(this.dataset.rid)">Enregistrer permissions</button>'
           +'</div>';
       }
       html+='</div>';

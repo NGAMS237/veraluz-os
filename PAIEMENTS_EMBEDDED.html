@@ -371,9 +371,10 @@ select.form-control option{background:var(--bg2)}
     <div class="pay-pane" id="pane-caisse">
       <div class="caisse-summary" id="caisse-summary"></div>
       <div class="toolbar">
-        <div class="search-wrap">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          <input type="text" id="caisse-date" type="date" placeholder="Date..." oninput="renderCaisse()"/>
+        <div style="display:flex;gap:6px;align-items:center;flex:1">
+          <input type="date" id="caisse-date" onchange="renderCaisse()" style="color:var(--text);background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;flex:1"/>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('caisse-date').value='';renderCaisse()">Tout</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('caisse-date').value=today();renderCaisse()">Aujourd'hui</button>
         </div>
         <button class="btn btn-success btn-sm" onclick="openCaisseModal('entree')">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -1161,18 +1162,30 @@ function renderMethods() {
   };
   var el = document.getElementById('methods-grid');
   if(!el) return;
+  // Load saved preferences
+  try {
+    var saved = JSON.parse(localStorage.getItem('vlz_pay_methods')||'{}');
+    methods.forEach(function(m){ if(saved.hasOwnProperty(m.id)) m.on = saved[m.id]; });
+  } catch(e) {}
   el.innerHTML = methods.map(function(m) {
     return '<div class="method-card">'+
       '<div class="method-icon" style="width:40px;height:40px;border-radius:10px">'+(icons[m.id]||icons.cash)+'</div>'+
       '<div class="minfo"><div class="mname">'+esc(m.name)+'</div><div class="mdesc">'+esc(m.desc)+'</div></div>'+
-      '<button class="toggle '+(m.on?'on':'')+'" id="toggle-'+m.id+'" data-id="'+m.id+'" onclick="toggleMethod(this.dataset.id)"></button>'+
+      '<button class="toggle '+(m.on?'on':'')+'" id="toggle-'+m.id+'" data-id="'+m.id+'" onclick="toggleMethod(this.dataset.id)" title="'+(m.on?'Actif — cliquer pour désactiver':'Inactif — cliquer pour activer')+'"></button>'+
     '</div>';
   }).join('');
 }
 
 function toggleMethod(id) {
   var btn = document.getElementById('toggle-'+id);
-  if(btn) btn.classList.toggle('on');
+  if(!btn) return;
+  btn.classList.toggle('on');
+  // Persist to localStorage
+  try {
+    var saved = JSON.parse(localStorage.getItem('vlz_pay_methods')||'{}');
+    saved[id] = btn.classList.contains('on');
+    localStorage.setItem('vlz_pay_methods', JSON.stringify(saved));
+  } catch(e) {}
 }
 
 /* ── RENDER RAPPORTS ── */
@@ -1581,7 +1594,7 @@ function saveCaisseEntry() {
         showToast((type==='entree'?'Entrée':'Sortie')+' de caisse enregistrée', 'success');
         loadAll(refresh);
       } else {
-        showToast('Erreur enregistrement caisse', 'error');
+        r.json().then(function(e){showToast('Erreur: '+(e&&e.message||'enregistrement caisse'),'error');}).catch(function(){showToast('Erreur enregistrement caisse','error');});
       }
     }).catch(function(){ showToast('Erreur réseau', 'error'); });
 }

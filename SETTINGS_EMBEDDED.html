@@ -222,6 +222,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 .sys-key{color:var(--text2);}
 .sys-val{font-weight:600;font-family:monospace;font-size:11px;color:var(--acc);}
 </style>
+
+<style data-injected="embedded-mode">
+/* ═══ EMBEDDED MODE — Settings module ═══ */
+html, body {
+  margin: 0 !important; padding: 0 !important;
+  height: 100% !important; overflow: hidden !important;
+}
+.app, #app {
+  display: flex !important; flex-direction: column !important;
+  height: 100vh !important; overflow: hidden !important;
+}
+.main, #main-content {
+  flex: 1 !important; overflow-y: auto !important; overflow-x: hidden !important;
+  display: flex !important; flex-direction: column !important;
+}
+.sidebar, aside, .topbar, #toast-container {
+  display: none !important;
+}
+#content {
+  flex: 1 !important; overflow-y: auto !important;
+}
+</style>
 </head>
 <body>
 <div id="app">
@@ -418,13 +440,35 @@ function loadSettings() {
 
 /* ── Event Bus ───────────────────────────────────────────── */
 function emit(type, data) {
-  try { window.parent.postMessage({ source: MODULE_ID, type: type, data: data || {} }, '*'); }
-  catch(e) {}
+  try {
+    window.parent.postMessage({
+      veraluzEvent: true,
+      source: MODULE_ID,
+      type: type,
+      data: data || {}
+    }, '*');
+  } catch(e) {}
 }
 window.addEventListener('message', function(ev) {
   if (!ev.data || ev.data.source !== 'veraluz-core') return;
   var msg = ev.data;
-  if (msg.type === 'auth-context') { /* could restrict sections */ }
+  if (msg.type === 'auth-context') {
+    var d = msg.data || {};
+    /* Mettre à jour affichage utilisateur */
+    if (d.name) {
+      var uname = document.getElementById('st-user-name');
+      var urole = document.getElementById('st-user-role');
+      if (uname) uname.textContent = d.name;
+      if (urole) urole.textContent = d.roleLabel || d.role || '';
+    }
+    /* Restreindre accès Settings aux admins/gérants uniquement */
+    var adminRoles = ['admin','gerant','manager','super_admin'];
+    if (d.role && !adminRoles.includes(d.role)) {
+      var restricted = document.getElementById('content');
+      if (restricted) restricted.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444;">⛔ Accès réservé aux administrateurs</div>';
+    }
+    return;
+  }
   if (msg.type === 'refresh') { loadSettings(); renderSection(currentSection); }
   if (msg.type === 'navigate-tab' && msg.data && msg.data.tab) goSection(msg.data.tab);
 });
@@ -487,6 +531,10 @@ function saveAll() {
     markClean();
     toast('✅ Paramètres enregistrés');
     emit('settings-updated', { section: currentSection, ts: new Date().toISOString() });
+    /* Émettre les permissions au Core pour mise à jour des droits d'accès */
+    if (S.permissions) {
+      emit('permissions-updated', { permissions: S.permissions, ts: new Date().toISOString() });
+    }
   } catch(e) {
     toast('❌ Erreur sauvegarde', false);
   }

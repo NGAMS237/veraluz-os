@@ -1260,37 +1260,93 @@ function checkBkSync(){
     var cnt=document.getElementById('syncCount');
     if(badge) badge.style.display=sync.length?'':'none';
     if(cnt) cnt.textContent=sync.length;
+    /* Badge sur onglet Liste */
+    var listTab=document.getElementById('tab-liste');
+    var lb=document.getElementById('liste-new-badge');
+    if(sync.length){
+      if(!lb && listTab){
+        lb=document.createElement('span');
+        lb.id='liste-new-badge'; lb.className='tbadge ok';
+        lb.style.marginLeft='4px'; lb.style.fontSize='10px';
+        listTab.appendChild(lb);
+      }
+      if(lb) lb.textContent=sync.length;
+    } else if(lb){ lb.style.display='none'; }
+    /* Notifier nouvelles réservations (1 fois par référence) */
+    var notified={}; try{notified=JSON.parse(localStorage.getItem('vlz_notified_bk')||'{}');}catch(e){}
+    var changed=false;
+    sync.forEach(function(s){
+      var ref=s.reference||s.id||(s.check_in+'_'+(s.guest_name||''));
+      if(!notified[ref]){ notified[ref]=Date.now(); notifyNewBooking(s); changed=true; }
+    });
+    if(changed) try{localStorage.setItem('vlz_notified_bk',JSON.stringify(notified));}catch(e){}
   }catch(e){}
+}
+function notifyNewBooking(s){
+  var hotel={}; try{hotel=JSON.parse(localStorage.getItem('vz_hotel_info')||'{}');}catch(e){}
+  var waConf={}; try{waConf=JSON.parse(localStorage.getItem('vz_whatsapp_settings')||'{}');}catch(e){}
+  /* Email au gérant */
+  var ownerEmail=hotel.email||'';
+  if(ownerEmail){
+    window.parent.postMessage({veraluzEvent:true,source:'veraluz-reservations',type:'send-email',data:{
+      to_email:ownerEmail, to_name:hotel.name||'Résidence Veraluz',
+      subject:'\uD83C\uDFE8 Nouvelle réservation en ligne — '+(s.guest_name||'Client'),
+      body_html:'<h2 style="color:#1a2e44">Nouvelle réservation depuis le site</h2>'+
+        '<table style="border-collapse:collapse;width:100%;max-width:480px">'+
+        '<tr><td style="padding:6px 0;color:#666">Client</td><td style="font-weight:bold">'+(s.guest_name||'—')+'</td></tr>'+
+        '<tr><td style="padding:6px 0;color:#666">Logement</td><td>'+(s.unit_name||'—')+'</td></tr>'+
+        '<tr><td style="padding:6px 0;color:#666">Arrivée</td><td>'+fmtDate(s.check_in)+'</td></tr>'+
+        '<tr><td style="padding:6px 0;color:#666">Départ</td><td>'+fmtDate(s.check_out)+'</td></tr>'+
+        '<tr><td style="padding:6px 0;color:#666">Total</td><td style="font-weight:bold;color:#22c55e">'+fmtMoney(s.total||0)+'</td></tr>'+
+        '<tr><td style="padding:6px 0;color:#666">Paiement</td><td>'+(s.payment_method||'—')+'</td></tr>'+
+        '<tr><td style="padding:6px 0;color:#666">Référence</td><td style="font-family:monospace">'+(s.reference||'—')+'</td></tr>'+
+        '</table><br><p style="color:#555">Connectez-vous à <b>Veraluz OS → Réservations</b> pour confirmer.</p>'
+    }},'*');
+  }
+  /* WhatsApp au gérant */
+  var waPhone=waConf.phone||hotel.phone||'';
+  if(waPhone){
+    var msg='\uD83C\uDFE8 Nouvelle réservation en ligne!\n'+
+      'Client: '+(s.guest_name||'—')+'\n'+
+      'Logement: '+(s.unit_name||'—')+'\n'+
+      'Dates: '+fmtDate(s.check_in)+' → '+fmtDate(s.check_out)+'\n'+
+      'Montant: '+fmtMoney(s.total||0)+'\n'+
+      'Réf: '+(s.reference||'—');
+    window.parent.postMessage({veraluzEvent:true,source:'veraluz-reservations',type:'whatsapp-open',
+      data:{phone:waPhone,message:msg,client_name:'Vous-même'}
+    },'*');
+  }
 }
 function openSyncModal(){
   try{
     var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
     var list=document.getElementById('syncModalList'); if(!list) return;
     if(!sync.length){
-      list.innerHTML='<p style="color:var(--text2);text-align:center;padding:20px">Aucune réservation en attente</p>';
+      list.innerHTML='<p style="color:var(--text2);text-align:center;padding:20px">Aucune nouvelle réservation en attente</p>';
       openModal('syncModal'); return;
     }
+    list.innerHTML='<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#22c55e">✅ Ces réservations sont déjà enregistrées dans Supabase. Cliquez <b>Voir dans la liste</b> pour les consulter.</div>';
     list.innerHTML=sync.map(function(s,i){
       return '<div class="sync-item"><div class="sync-item-name">'+esc(s.guest_name||'—')+'</div>'+
         '<div class="sync-item-sub">'+esc(s.unit_name||'—')+' · '+fmtDate(s.check_in)+' → '+fmtDate(s.check_out)+'</div>'+
         '<div class="sync-item-price">'+fmtMoney(s.total_amount||0)+'</div>'+
-        '<div class="sync-item-btns"><button class="btn-import" onclick="importSync('+i+')">✓ Importer</button>'+
+        '<div class="sync-item-btns"><button class="btn-import" onclick="importSync('+i+')">✓ Voir dans la liste</button>'+
         '<button class="btn-dismiss" onclick="dismissSync('+i+')">✗ Ignorer</button></div></div>';
     }).join('');
     openModal('syncModal');
   }catch(e){}
 }
 function importSync(i){
+  /* La réservation est déjà dans Supabase (booking engine la sauvegarde directement).
+     On supprime juste la notification et on recharge la liste. */
   try{
     var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
-    var s=sync[i]; if(!s) return;
-    _nf={step:1,check_in:s.check_in,check_out:s.check_out,guests:s.guests||1,
-         unit_id:s.unit_id,unit_name:s.unit_name,price:s.price||0,
-         guest_name:s.guest_name,guest_email:s.guest_email,guest_phone:s.guest_phone,
-         nights:diffDays(s.check_in,s.check_out),total:s.total_amount||0,step:4};
     sync.splice(i,1);
     localStorage.setItem('vlz_booking_sync',JSON.stringify(sync));
-    closeModal('syncModal'); goTab('nouvelle'); checkBkSync();
+    closeModal('syncModal');
+    refresh();      /* recharge depuis Supabase */
+    goTab('liste'); /* affiche la liste */
+    checkBkSync();
   }catch(e){}
 }
 function dismissSync(i){
@@ -1393,7 +1449,7 @@ function renderParams(){
       '<div class="ext-logo">🌐</div>'+
       '<div class="ext-info"><div class="ext-name">Booking Engine Veraluz</div>'+
       '<div class="ext-status">Site public → sync localStorage <span class="ext-badge">'+(syncCount>0?syncCount+' en attente':'Connecté')+'</span></div></div>'+
-      '<button class="ext-action" onclick="openSyncModal()">'+(syncCount>0?'Importer ('+syncCount+')':'Voir les syncs')+'</button>'+
+      '<button class="ext-action" onclick="openSyncModal()">'+(syncCount>0?'Nouvelles ('+syncCount+')':'Voir les syncs')+'</button>'+
     '</div>'+
     '<div class="ext-card">'+
       '<div class="ext-logo">🏡</div>'+

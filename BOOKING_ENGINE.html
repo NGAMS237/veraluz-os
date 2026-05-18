@@ -954,10 +954,16 @@ function rndrPay() {
   sAmt(bk.amt); sPm(bk.pm);
 }
 
+function getHotelPay(){
+  try{ return JSON.parse(localStorage.getItem('vz_hotel_info')||'{}'); }catch(e){ return {}; }
+}
 function rndrPi() {
   var bk=_bk, a=bk.amt==='d'?bk.deposit:bk.total, s=a.toLocaleString('fr-FR')+' FCFA', tot=bk.total.toLocaleString('fr-FR')+' FCFA', pm=bk.pm, h='';
-  if(pm==='o') h='<div class="pinstr orange"><div class="pi-tit">Orange Money</div><div class="pi-r">1. Composez #150# sur votre téléphone Orange</div><div class="pi-r">2. Envoyez <b>'+s+'</b></div><div class="pi-num">+237 6XX XXX XXX</div><div class="pi-r">Référence: VERALUZ-BK</div><div class="pi-note">Conservez votre reçu SMS.</div></div>';
-  else if(pm==='m') h='<div class="pinstr mtn"><div class="pi-tit">MTN Mobile Money</div><div class="pi-r">1. Ouvrez votre app MTN MoMo</div><div class="pi-r">2. Transférez <b>'+s+'</b></div><div class="pi-num">+237 6XX XXX XXX</div><div class="pi-r">Référence: VERALUZ-BK</div><div class="pi-note">Transaction sécurisée MTN.</div></div>';
+  var hcfg=getHotelPay();
+  var omNum  = hcfg.om_phone  || hcfg.phone || '+237 6XX XXX XXX';
+  var mtnNum = hcfg.mtn_phone || hcfg.phone || '+237 6XX XXX XXX';
+  if(pm==='o') h='<div class="pinstr orange"><div class="pi-tit">Orange Money</div><div class="pi-r">1. Composez #150# sur votre téléphone Orange</div><div class="pi-r">2. Envoyez <b>'+s+'</b></div><div class="pi-num">'+omNum+'</div><div class="pi-r">Référence: VERALUZ-BK</div><div class="pi-note">Conservez votre reçu SMS.</div></div>';
+  else if(pm==='m') h='<div class="pinstr mtn"><div class="pi-tit">MTN Mobile Money</div><div class="pi-r">1. Ouvrez votre app MTN MoMo</div><div class="pi-r">2. Transférez <b>'+s+'</b></div><div class="pi-num">'+mtnNum+'</div><div class="pi-r">Référence: VERALUZ-BK</div><div class="pi-note">Transaction sécurisée MTN.</div></div>';
   else if(pm==='a') h='<div class="pinstr arrival"><div class="pi-tit">Paiement à l\'arrivée</div><div class="pi-r">Réservation confirmée sans paiement immédiat.</div><div class="pi-r">Montant dû à l\'arrivée: <b>'+tot+'</b></div><div class="pi-note">Espèces ou mobile money à la réception.</div></div>';
   else h='<div class="pinstr transfer"><div class="pi-tit">Virement bancaire</div><div class="pi-r">Banque: <b>Afriland First Bank</b></div><div class="pi-r">Titulaire: <b>Résidence Veraluz SARL</b></div><div class="pi-r">Montant: <b>'+s+'</b></div><div class="pi-note">Envoyez votre reçu par WhatsApp.</div></div>';
   document.getElementById('piEl').innerHTML=h;
@@ -1051,7 +1057,7 @@ function genPDF() {
   doc.setFont('helvetica','normal');
   doc.text('Kribi, Cameroun  ·  Front de mer Atlantique',W/2,28,{align:'center'});
   doc.setFontSize(9); doc.setTextColor(140,180,200);
-  doc.text('contact@veraluz.com  ·  +237 6XX XXX XXX',W/2,36,{align:'center'});
+  var _hcp=getHotelPay(); doc.text((_hcp.email||'contact@veraluz.cm')+'  ·  '+(_hcp.phone||'+237 6XX XXX XXX'),W/2,36,{align:'center'});
 
   // Receipt label
   doc.setTextColor(2,48,71); doc.setFontSize(16); doc.setFont('helvetica','bold');
@@ -1160,7 +1166,7 @@ function sendMail() {
     +'Référence: '+d.reference+'\nLogement: '+d.unit_name+'\nArrivée: '+fd(d.check_in)
     +'\nDépart: '+fd(d.check_out)+'\nDurée: '+d.nights+' nuit(s)'
     +'\nMode de paiement: '+d.payment_method+'\nMontant payé: '+Number(d.amount_paid).toLocaleString('fr-FR')+' FCFA'
-    +'\n\nPour toute question: +237 6XX XXX XXX ou WhatsApp.'
+    +'\n\nPour toute question: '+(getHotelPay().phone||'+237 6XX XXX XXX')+' ou WhatsApp.'
     +'\n\nMerci pour votre confiance.\nL\'équipe Résidence Veraluz';
   window.location.href='mailto:'+d.guest_email+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);
 }

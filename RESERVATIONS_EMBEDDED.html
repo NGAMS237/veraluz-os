@@ -1335,15 +1335,17 @@ function openSyncModal(){
 }
 function importSync(i){
   /* La réservation est déjà dans Supabase (booking engine la sauvegarde directement).
-     On supprime juste la notification et on recharge la liste. */
+     On supprime la notification puis on recharge TOUT depuis Supabase (loadAll)
+     pour que client_name/total soient bien dans _rez avant d'afficher la liste. */
   try{
     var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
     sync.splice(i,1);
     localStorage.setItem('vlz_booking_sync',JSON.stringify(sync));
     closeModal('syncModal');
-    refresh();      /* recharge depuis Supabase */
-    goTab('liste'); /* affiche la liste */
-    checkBkSync();
+    loadAll(function(){
+      goTab('liste');
+      checkBkSync();
+    });
   }catch(e){}
 }
 function dismissSync(i){

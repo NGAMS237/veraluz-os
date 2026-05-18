@@ -359,6 +359,7 @@ function markClean(){
 
 /* ── Navigation ── */
 function goSection(id){
+  collectForm(); /* Sauvegarder la section courante avant de changer */
   currentSection=id;
   document.querySelectorAll('.tab-btn').forEach(function(el){ el.classList.remove('active'); });
   var tab = document.getElementById('tab-'+id);
@@ -391,6 +392,7 @@ function saveAll(){
     /* Propager logo si changé */
     if(S.branding && S.branding.logo_url){
       emit('logo-updated', {logo_url:S.branding.logo_url, ts:new Date().toISOString()});
+      try{ localStorage.setItem('vz_logo_data', S.branding.logo_url); }catch(e2){}
     }
     /* Propager langue/devise/taxes aux modules */
     emit('locale-updated', {
@@ -503,10 +505,14 @@ function renderBranding(){
   +(hasLogo?'<img src="'+escH(b.logo_url)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;lp-placeholder&quot;>Image introuvable</div>\'">'
     :'<div class="lp-placeholder">Cliquer pour définir<br>le logo</div>')
   +'</div>'
-  +'<div class="row"><label>URL du logo (PNG, SVG, JPG)</label>'
+  +'<div class="row"><label>Uploader un logo (PNG, JPG, SVG)</label>'
+  +'<div style="display:flex;gap:8px;align-items:center;">'
+  +'<label style="cursor:pointer;background:var(--bg3);border:1px solid var(--bg4);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--text2);">📁 Choisir un fichier<input type="file" accept="image/*" style="display:none" onchange="uploadLogo(this)"></label>'
+  +'<span style="color:var(--text3);font-size:11px;">ou</span>'
   +'<input type="url" id="logo-url-input" data-field="branding.logo_url" value="'+escH(b.logo_url||'')+'"'
-  +' placeholder="https://example.com/logo.png" oninput="markDirty();previewLogo(this.value)">'
-  +'<div class="row-hint">→ Le logo sera appliqué dans la barre de navigation principale et le Booking Engine</div>'
+  +' placeholder="https://example.com/logo.png" oninput="markDirty();previewLogo(this.value)" style="flex:1;">'
+  +'</div>'
+  +'<div class="row-hint">→ Le logo s\'applique à la barre de navigation et au Booking Engine</div>'
   +'</div>'
   +toggle('Afficher le logo dans le header','Remplace le texte "Veraluz OS" par l\'image','branding.show_logo',b.show_logo)
   +'</div>'
@@ -613,6 +619,9 @@ function renderRestaurant(){
   var r=S.restaurant;
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>',
     'Restaurant & Bar', 'Configuration du Mako Lounge')
+  +'<div class="card" style="background:rgba(34,211,165,.05);border-color:rgba(34,211,165,.2);">'
+  +'<p style="font-size:11px;color:var(--acc);">ℹ Ces données sont utilisées par le <strong>module Restaurant</strong> (TVA tickets, frais de service, commande min, horaires) et par le <strong>Booking Engine</strong> (services affichés aux clients).</p>'
+  +'</div>'
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>Identité</div>'
   +field('Nom du restaurant','restaurant.name',r.name)
@@ -778,6 +787,21 @@ function previewLogo(url){
   if(!prev) return;
   prev.innerHTML=url?'<img src="'+escH(url)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;lp-placeholder&quot;>Image introuvable</div>\'">'
     :'<div class="lp-placeholder">Cliquer pour définir<br>le logo</div>';
+}
+function uploadLogo(input){
+  var file=input.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var dataUrl=e.target.result;
+    S.branding.logo_url=dataUrl;
+    var urlInput=document.getElementById('logo-url-input');
+    if(urlInput){ urlInput.value='[image uploadée]'; urlInput.setAttribute('data-field-override','true'); }
+    previewLogo(dataUrl);
+    try{ localStorage.setItem('vz_logo_data', dataUrl); }catch(e2){}
+    markDirty();
+    toast('✓ Logo chargé');
+  };
+  reader.readAsDataURL(file);
 }
 function updateRoom(i, key, val){ S.chambres[i][key]=val; markDirty(); }
 function addRoom(){

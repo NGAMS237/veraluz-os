@@ -976,12 +976,13 @@ function sendAuthContext(iframe) {
       source: 'veraluz-core',
       type:   'auth-context',
       data: {
-        username:  currentUser.username,
-        name:      currentUser.name,
-        role:      currentUser.role,
-        roleLabel: rd.label || currentUser.role,
-        roleIcon:  rd.icon  || '👤',
-        modules:   rd.modules || []
+        username:    currentUser.username,
+        name:        currentUser.name,
+        role:        currentUser.role,
+        roleLabel:   rd.label || currentUser.role,
+        roleIcon:    rd.icon  || '👤',
+        modules:     rd.modules || [],
+        employee_id: currentUser.employee_id || null
       }
     }, '*');
   } catch(e){}
@@ -1231,9 +1232,4 @@ window.addEventListener('message', function(ev) {
     <div class="auth-mode-toggle">
       <a id="auth-mode-lnk" onclick="toggleAdminMode()">🔐 Accès administrateur</a>
     </div>
-    <div class="auth-hint">Veraluz Property Management · v2.0</div>
-  </div>
-</div>
-
-</body>
-</html>
+    <div class="auth-hint">Veraluz 

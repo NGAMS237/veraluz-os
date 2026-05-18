@@ -429,8 +429,8 @@ var MODULES = [
     file:'FINANCE_EMBEDDED.html',      desc:'Revenus · Dépenses · Caisse' },
   { id:'rh',           label:'RH',           icon:'👥',
     file:'RH_EMBEDDED.html',           desc:'Employés · Paie · Horaires' },
-  { id:'clients',      label:'Clients',      icon:'🧑‍🤝‍🧑',
-    file:'CLIENT_EMBEDDED.html',       desc:'CRM · Historique · Fidélité' },
+  { id:'contacts',     label:'Contacts',     icon:'👥',
+    file:'CONTACTS_EMBEDDED.html',     desc:'Clients · Employés · Prestataires · Historique' },
   { id:'notifications', label:'Notifications', icon:'🔔',
     file:'NOTIFICATIONS_EMBEDDED.html', desc:'Alertes & Centre de notifications' },
   { id:'analytics',     label:'Analytics',     icon:'📈',
@@ -447,7 +447,7 @@ var MODULES = [
 
 /* ── Monochrome SVG icons for sidebar ─────────────────────────────── */
 var SVG_ICONS = {
-  'clients': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  'contacts': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
   dashboard:     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
   reservations:  '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V6a1 1 0 011-1h16a1 1 0 011 1v3"/><path d="M3 9h18v11a1 1 0 01-1 1H4a1 1 0 01-1-1V9z"/><path d="M8 5V3m8 2V3"/><path d="M7 14h.01M12 14h.01M17 14h.01"/></svg>',
   paiements:     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>',
@@ -707,12 +707,12 @@ var ROLE_MAP = {
 var ROLES = {
   superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'rh',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
-             'notifications','analytics','audit','settings','eventbus','auth','clients'] },
+             'notifications','analytics','audit','settings','eventbus','auth','contacts'] },
   manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'rh',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
-             'notifications','analytics','auth','clients'] },
+             'notifications','analytics','auth','contacts'] },
   reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981', primaryModule:'reservations',
-    modules:['reservations','paiements','notifications','rh','clients'] },
+    modules:['reservations','paiements','notifications','rh','contacts'] },
   rh:          { label:'RH',               icon:'👥',  color:'#f59e0b', primaryModule:'rh',
     modules:['rh','notifications','analytics'] },
   comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'finance',
@@ -1580,4 +1580,3 @@ setInterval(function(){
 </script>
 
 </body>
-</html>

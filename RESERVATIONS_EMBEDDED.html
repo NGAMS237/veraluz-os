@@ -587,8 +587,17 @@ function updateBadges(){
   var el=document.getElementById('avail-badge');
   if(el){el.textContent=avail; el.className='tbadge'+(avail>0?' ok':'');}
   var pending = _rez.filter(function(r){return r.status==='pending';}).length;
+  var onlineCnt=0; try{onlineCnt=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]').length;}catch(e){}
   var rb=document.getElementById('rez-badge');
-  if(rb){rb.textContent=pending; rb.style.display=pending>0?'':'none';}
+  if(rb){
+    if(onlineCnt>0){
+      rb.textContent=onlineCnt+' en ligne'; rb.style.display='';
+      rb.className='tbadge ok'; rb.title='Nouvelles réservations depuis le site';
+    } else {
+      rb.textContent=pending; rb.style.display=pending>0?'':'none';
+      rb.className='tbadge warn';
+    }
+  }
 }
 
 /* ── Navigation tabs ── */
@@ -723,8 +732,18 @@ function renderRezList(){
     return true;
   });
   var el=document.getElementById('rezList'); if(!el) return;
-  if(!list.length){el.innerHTML='<div class="empty-state"><p>Aucune réservation</p></div>';return;}
-  el.innerHTML=list.map(function(r){
+  /* Bannière réservations online en attente */
+  var onlineSync=[]; try{onlineSync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');}catch(e){}
+  var banner='';
+  if(onlineSync.length){
+    banner='<div style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(16,185,129,.08));border:1.5px solid rgba(34,197,94,.4);border-radius:8px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px">'+
+      '<div><span style="font-size:13px;font-weight:700;color:#22c55e">🌐 '+onlineSync.length+' nouvelle'+(onlineSync.length>1?'s':'')+' réservation'+(onlineSync.length>1?'s':'')+' depuis le site</span>'+
+      '<div style="font-size:11px;color:#94a3b8;margin-top:2px">Déjà enregistrée'+(onlineSync.length>1?'s':'')+' — à confirmer</div></div>'+
+      '<button onclick="openSyncModal()" style="background:#22c55e;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">Voir détails</button>'+
+      '</div>';
+  }
+  if(!list.length){el.innerHTML=banner+'<div class="empty-state"><p>Aucune réservation</p></div>';return;}
+  el.innerHTML=banner+list.map(function(r){
     var s=statusInfo(r.status);
     var actions='';
     if(r.status==='pending') actions+='<button class="act-btn btn-confirm" onclick="event.stopPropagation();doConfirm(\''+r.id+'\')">Confirmer</button>';
@@ -1260,18 +1279,8 @@ function checkBkSync(){
     var cnt=document.getElementById('syncCount');
     if(badge) badge.style.display=sync.length?'':'none';
     if(cnt) cnt.textContent=sync.length;
-    /* Badge sur onglet Liste */
-    var listTab=document.getElementById('tab-liste');
-    var lb=document.getElementById('liste-new-badge');
-    if(sync.length){
-      if(!lb && listTab){
-        lb=document.createElement('span');
-        lb.id='liste-new-badge'; lb.className='tbadge ok';
-        lb.style.marginLeft='4px'; lb.style.fontSize='10px';
-        listTab.appendChild(lb);
-      }
-      if(lb) lb.textContent=sync.length;
-    } else if(lb){ lb.style.display='none'; }
+    /* Rafraîchir le badge Liste via updateBadges() */
+    updateBadges();
     /* Notifier nouvelles réservations (1 fois par référence) */
     var notified={}; try{notified=JSON.parse(localStorage.getItem('vlz_notified_bk')||'{}');}catch(e){}
     var changed=false;
@@ -1303,19 +1312,7 @@ function notifyNewBooking(s){
         '</table><br><p style="color:#555">Connectez-vous à <b>Veraluz OS → Réservations</b> pour confirmer.</p>'
     }},'*');
   }
-  /* WhatsApp au gérant */
-  var waPhone=waConf.phone||hotel.phone||'';
-  if(waPhone){
-    var msg='\uD83C\uDFE8 Nouvelle réservation en ligne!\n'+
-      'Client: '+(s.guest_name||'—')+'\n'+
-      'Logement: '+(s.unit_name||'—')+'\n'+
-      'Dates: '+fmtDate(s.check_in)+' → '+fmtDate(s.check_out)+'\n'+
-      'Montant: '+fmtMoney(s.total||0)+'\n'+
-      'Réf: '+(s.reference||'—');
-    window.parent.postMessage({veraluzEvent:true,source:'veraluz-reservations',type:'whatsapp-open',
-      data:{phone:waPhone,message:msg,client_name:'Vous-même'}
-    },'*');
-  }
+
 }
 function openSyncModal(){
   try{
@@ -1329,7 +1326,7 @@ function openSyncModal(){
     list.innerHTML=sync.map(function(s,i){
       return '<div class="sync-item"><div class="sync-item-name">'+esc(s.guest_name||'—')+'</div>'+
         '<div class="sync-item-sub">'+esc(s.unit_name||'—')+' · '+fmtDate(s.check_in)+' → '+fmtDate(s.check_out)+'</div>'+
-        '<div class="sync-item-price">'+fmtMoney(s.total_amount||0)+'</div>'+
+        '<div class="sync-item-price">'+fmtMoney(s.total||s.paid||s.total_amount||0)+'</div>'+
         '<div class="sync-item-btns"><button class="btn-import" onclick="importSync('+i+')">✓ Voir dans la liste</button>'+
         '<button class="btn-dismiss" onclick="dismissSync('+i+')">✗ Ignorer</button></div></div>';
     }).join('');

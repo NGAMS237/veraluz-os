@@ -1112,7 +1112,9 @@ function recordPayment(){
   var note=(document.getElementById('pay-note')||{}).value||'';
   var btn=document.querySelector('.btn-pay');
   if(btn){btn.disabled=true;btn.textContent='Enregistrement…';}
-  var payData={reservation_id:rezId,amount:amt,method:_rezPayMethod||'cash',status:'validated',
+  var METHOD_MAP={'cash':'cash','card':'carte','mobile_money':'momo','transfer':'virement','carte':'carte','momo':'momo','orange':'orange','virement':'virement'};
+  var dbMethod=METHOD_MAP[_rezPayMethod]||'cash';
+  var payData={reservation_id:rezId,amount:amt,method:dbMethod,status:'validated',
     notes:note||null,guest_name:r.guest_name||null,payment_type:'payment',source:'reception',
     created_at:new Date().toISOString()};
   sbPost('veraluz_payments',payData).then(function(){

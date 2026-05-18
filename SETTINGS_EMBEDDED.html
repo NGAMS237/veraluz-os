@@ -430,19 +430,7 @@ function discardChanges(){
   loadSettings(); markClean(); renderSection(currentSection); toast('↩ Modifications annulées');
 }
 
-/* ── Collect current form values into S ── */
-function collectForm(){
-  var inputs = document.querySelectorAll('#section-wrap [data-field]');
-  inputs.forEach(function(el){
-    var path = el.getAttribute('data-field').split('.');
-    var obj = S;
-    for(var i=0;i<path.length-1;i++) obj=obj[path[i]];
-    var last = path[path.length-1];
-    if(el.type==='checkbox') obj[last]=el.checked;
-    else if(el.type==='number') obj[last]=parseFloat(el.value)||0;
-    else obj[last]=el.value;
-  });
-}
+/* collectForm() — defined below with safe nested-object init */
 
 /* ── Field helper ── */
 function field(label, dfn, val, type, hint){
@@ -766,17 +754,34 @@ function renderEmail(){
 function testEmail(){
   collectForm();
   var tpl=(S.email&&S.email.template_id)||'';
-  if(!tpl){ toast('⚠ Entrez le Template ID d\'abord',false); return; }
+  if(!tpl){ toast('Entrez d abord le Template ID puis Enregistrer'); return; }
   try{ localStorage.setItem('vz_email_template',tpl); }catch(ex){}
   var to=(S.email&&S.email.test_address)||'residenceveraluz@gmail.com';
-  emit('send-email',{
-    to_email:to, to_name:'Admin Veraluz', subject:'✅ Test email — Veraluz OS',
-    body_html:'<div style="font-family:Arial;padding:24px;background:#0f1117;color:#e2e8f0;border-radius:12px;">'
-      +'<h2 style="color:#22d3a5;">✅ Email opérationnel</h2>'
-      +'<p>Le système email de Veraluz OS fonctionne correctement.</p>'
-      +'<p style="color:#94a3b8;font-size:12px;">Service: service_mwiart1 · Template: '+tpl+'</p></div>'
+  var btn=document.querySelector('[onclick="testEmail()"]');
+  if(btn){ btn.disabled=true; btn.textContent='Envoi en cours...'; }
+  fetch('https://api.emailjs.com/api/v1.0/email/send',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      service_id:'service_mwiart1',
+      template_id:tpl,
+      user_id:'MqrKcqvO952CD5HOA',
+      template_params:{
+        to_email:to, to_name:'Admin Veraluz',
+        subject:'Test - Residence Veraluz OS',
+        body_html:'<div style="font-family:Arial,sans-serif;padding:24px;max-width:500px;"><h2 style="color:#0d7a5f;">Email operationnel !</h2><p>Le systeme email fonctionne.</p><p style="color:#888;font-size:12px;">Template: '+tpl+' | Service: service_mwiart1</p></div>',
+        from_name:'Residence Veraluz',
+        reply_to:'residenceveraluz@gmail.com'
+      }
+    })
+  }).then(function(r){
+    if(btn){ btn.disabled=false; btn.textContent='Envoyer un email de test'; }
+    if(r.ok){ toast('Email envoye a '+to+' - verifiez votre boite !'); }
+    else{ r.text().then(function(t){ toast('Erreur EmailJS: '+t.slice(0,100)); }); }
+  }).catch(function(e){
+    if(btn){ btn.disabled=false; btn.textContent='Envoyer un email de test'; }
+    toast('Erreur reseau: '+e.message);
   });
-  toast('📧 Test envoyé à '+to);
 }
 
 function renderSysteme(){

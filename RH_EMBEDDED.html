@@ -1975,23 +1975,38 @@ window.onerror=function(msg,src,line,col,err){
   if(banner&&banner.style.display==='none')return;
   if(banner){banner.style.display='block';banner.textContent='Erreur JS: '+msg;banner.style.color='var(--danger)';}
 };
+
+// ─── Auto-login depuis le Core Veraluz OS (postMessage) ─────────────────────
+// Quand l'employé se connecte via le NIP dans le Core, le Core envoie
+// l'employee_id ici via postMessage. On définit LOGGED_EMP automatiquement
+// et on affiche l'écran de pointage sans repasser par le login interne.
+window.addEventListener('message', function(ev) {
+  if (!ev.data || ev.data.source !== 'veraluz-core') return;
+  if (ev.data.type !== 'auth-context') return;
+  var d = ev.data.data || {};
+  var empId = d.employee_id || null;
+  if (!empId) return;
+
+  // EMPS peut encore être en cours de chargement depuis Supabase.
+  // On réessaie jusqu'à 10 fois (toutes les 500 ms = 5 secondes max).
+  function tryAutoLogin(attempts) {
+    var emp = EMPS.find(function(e) { return e.id === empId; });
+    if (emp) {
+      LOGGED_EMP = emp;
+      // Fermer l'écran de login interne s'il est affiché
+      var ls = document.getElementById('login-screen');
+      if (ls) ls.classList.remove('on');
+      // Afficher directement l'écran de pointage
+      showClockScreen();
+    } else if ((attempts || 0) < 10) {
+      setTimeout(function() { tryAutoLogin((attempts || 0) + 1); }, 500);
+    } else {
+      console.warn('RH auto-login: employé introuvable dans EMPS pour id=' + empId);
+    }
+  }
+  tryAutoLogin(0);
+});
 </script>
 
 <!-- Modal signature électronique -->
-<div class="ov" id="md-sign-contract">
-  <div class="md" style="max-width:600px;max-height:90vh;overflow-y:auto;">
-    <div class="mdhdr"><h3>&#9997;&#65039; Signature electronique</h3><button class="mdc" onclick="closeMd('md-sign-contract')">&#10005;</button></div>
-    <div style="background:var(--bg2);border-radius:8px;padding:12px;max-height:220px;overflow-y:auto;margin-bottom:12px;">
-      <pre id="sign-contract-body" style="white-space:pre-wrap;font-size:11px;color:var(--text2);margin:0;line-height:1.7;"></pre>
-    </div>
-    <div style="margin-bottom:8px;font-size:13px;color:var(--text2);">Employe(e) : <strong id="sign-emp-name"></strong> &nbsp;&middot;&nbsp; <span id="sign-status" style="color:var(--acc1);"></span></div>
-    <div style="margin-bottom:8px;font-size:12px;color:var(--text3);">Signez dans le cadre ci-dessous avec votre doigt ou la souris :</div>
-    <canvas id="sign-pad" width="540" height="160" style="width:100%;border:2px dashed var(--border);border-radius:8px;background:#f8f8f8;display:block;touch-action:none;cursor:crosshair;"></canvas>
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn btn-sec" onclick="clearSignPad()" style="flex:1;">&#128465; Effacer</button>
-      <button class="btn btn-primary" onclick="signContract()" style="flex:2;">&#9989; Valider la signature</button>
-    </div>
-  </div>
-</div>
-</body>
-</html>
+<div class="ov" id="md-sign-contract

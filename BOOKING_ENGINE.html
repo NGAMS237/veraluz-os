@@ -1027,11 +1027,11 @@ function rndrConf(ref,d) {
     '<div class="conf-row"><span>Arrivée</span><span>'+fd(d.check_in)+'</span></div>'+
     '<div class="conf-row"><span>Départ</span><span>'+fd(d.check_out)+'</span></div>'+
     '<div class="conf-row"><span>Durée</span><span>'+d.nights+' nuit(s)</span></div>'+
-    '<div class="conf-row"><span>Client</span><span>'+d.guest_name+'</span></div>'+
+    '<div class="conf-row"><span>Client</span><span>'+(d.client_name||d.guest_name||'—')+'</span></div>'+
     '<div class="conf-row"><span>Paiement</span><span>'+d.payment_method+'</span></div>'+
-    '<div class="conf-row"><span>Montant payé</span><span>'+Number(d.amount_paid).toLocaleString('fr-FR')+' FCFA</span></div>';
+    '<div class="conf-row"><span>Montant payé</span><span>'+Number(d.paid||d.amount_paid||0).toLocaleString('fr-FR')+' FCFA</span></div>';
   document.getElementById('cNext').innerHTML='📧 Téléchargez votre reçu PDF ci-dessous.<br>💬 Notre équipe vous contactera sur WhatsApp.';
-  var msg=encodeURIComponent('Bonjour! Reservation confirmee a la Residence Veraluz.\nReference: '+ref+'\nLogement: '+d.unit_name+'\nArrivee: '+fd(d.check_in)+'\nDepart: '+fd(d.check_out)+'\nMontant: '+Number(d.amount_paid).toLocaleString('fr-FR')+' FCFA');
+  var msg=encodeURIComponent('Bonjour! Reservation confirmee a la Residence Veraluz.\nReference: '+ref+'\nLogement: '+d.unit_name+'\nArrivee: '+fd(d.check_in)+'\nDepart: '+fd(d.check_out)+'\nMontant: '+Number(d.paid||d.amount_paid||0).toLocaleString('fr-FR')+' FCFA');
   var _hcWA=getHotelPay(); var _waNum=(_hcWA.phone||'237600000000').replace(/[^0-9]/g,''); document.getElementById('confWA').href='https://wa.me/'+_waNum+'?text='+msg;
 }
 
@@ -1085,13 +1085,13 @@ function genPDF() {
     ['Date de départ',fd(d.check_out)],
     ['Durée',d.nights+' nuit(s)'],
     ['Nombre de voyageurs',String(d.guest_count||1)],
-    ['Nom du client',d.guest_name||''],
+    ['Nom du client',d.client_name||d.guest_name||''],
     ['Email',d.guest_email||''],
     ['Téléphone',d.guest_phone||''],
     ['Mode de paiement',d.payment_method||''],
     ['Type de paiement',d.payment_type==='d'?'Acompte 30%':'Paiement intégral'],
     ['Montant total séjour',Number(d.total_amount||0).toLocaleString('fr-FR')+' FCFA'],
-    ['Montant payé',Number(d.amount_paid||0).toLocaleString('fr-FR')+' FCFA'],
+    ['Montant payé',Number(d.paid||d.amount_paid||0).toLocaleString('fr-FR')+' FCFA'],
     ['Statut','CONFIRMÉ'],
   ];
   var y=98;
@@ -1165,10 +1165,10 @@ function sendMail() {
   var d=_conf;
   if(!d.reference){alert('Aucune réservation.');return;}
   var subj='Confirmation de réservation '+d.reference+' — Résidence Veraluz';
-  var body='Bonjour '+d.guest_name+',\n\nVotre réservation à la Résidence Veraluz est confirmée.\n\n'
+  var body='Bonjour '+(d.client_name||d.guest_name||'Client')+',\n\nVotre réservation à la Résidence Veraluz est confirmée.\n\n'
     +'Référence: '+d.reference+'\nLogement: '+d.unit_name+'\nArrivée: '+fd(d.check_in)
     +'\nDépart: '+fd(d.check_out)+'\nDurée: '+d.nights+' nuit(s)'
-    +'\nMode de paiement: '+d.payment_method+'\nMontant payé: '+Number(d.amount_paid).toLocaleString('fr-FR')+' FCFA'
+    +'\nMode de paiement: '+d.payment_method+'\nMontant payé: '+Number(d.paid||d.amount_paid||0).toLocaleString('fr-FR')+' FCFA'
     +'\n\nPour toute question: '+(getHotelPay().phone||'+237 6XX XXX XXX')+' ou WhatsApp.'
     +'\n\nMerci pour votre confiance.\nL\'équipe Résidence Veraluz';
   window.location.href='mailto:'+d.guest_email+'?subject='+encodeURIComponent(subj)+'&body='+encodeURIComponent(body);

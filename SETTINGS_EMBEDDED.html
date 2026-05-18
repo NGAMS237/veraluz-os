@@ -271,6 +271,7 @@ var DEFAULTS = {
     name:'Résidence Veraluz', tagline:'Vue sur mer · Kribi · Cameroun',
     address:'Boulevard de l\'Océan, Kribi, Sud Cameroun',
     phone:'+237 6XX XXX XXX', email:'contact@veraluz.cm',
+    om_phone:'', mtn_phone:'',
     website:'https://veraluz.cm', checkin:'14:00', checkout:'11:00',
     timezone:'Africa/Douala', total_rooms:9
   },
@@ -394,6 +395,8 @@ function saveAll(){
         phone:   S.hotel.phone   || '',
         email:   S.hotel.email   || '',
         website: S.hotel.website || '',
+        om_phone:  S.hotel.om_phone  || '',
+        mtn_phone: S.hotel.mtn_phone || '',
         ts: new Date().toISOString()
       });
     }
@@ -477,6 +480,14 @@ function renderHotel(){
   +field('Email','hotel.email',h.email,'email')
   +'</div>'
   +field('Site web','hotel.website',h.website,'url')
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title">📱 Paiements Mobile Money</div>'
+  +'<div class="row-hint" style="margin-bottom:10px">Ces numéros s\'affichent dans le Booking Engine et les reçus clients.</div>'
+  +'<div class="row2">'
+  +field('Numéro Orange Money','hotel.om_phone',h.om_phone||'','tel')
+  +field('Numéro MTN MoMo','hotel.mtn_phone',h.mtn_phone||'','tel')
+  +'</div>'
   +'</div>'
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Opérations</div>'

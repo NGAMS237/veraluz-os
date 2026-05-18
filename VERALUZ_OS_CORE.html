@@ -1096,6 +1096,7 @@ var EventBus = {
     { trigger:'payroll-processed',    from:'veraluz-rh',           targets:['veraluz-finance','veraluz-notifications','veraluz-audit'] },
     { trigger:'attendance-recorded',  from:'veraluz-rh',           targets:['veraluz-audit'] },
     { trigger:'settings-updated',     from:'veraluz-settings',     targets:['veraluz-audit','veraluz-notifications'] },
+    { trigger:'permissions-updated',   from:'veraluz-settings',     targets:['veraluz-audit'] },
     { trigger:'settings-reset',       from:'veraluz-settings',     targets:['veraluz-audit','veraluz-notifications'] },
     { trigger:'analytics-export',     from:'veraluz-analytics',    targets:['veraluz-audit'] },
     { trigger:'audit-export',         from:'veraluz-audit',        targets:[] },
@@ -1154,6 +1155,20 @@ var EventBus = {
     /* ── Core-level side-effects ── */
     if (source === 'veraluz-notifications' && type === 'notification-count') {
       updateNotifBadge(data && data.unread ? data.unread : 0);
+    }
+
+    /* ── Appliquer les permissions mises à jour depuis Settings ── */
+    if (source === 'veraluz-settings' && type === 'permissions-updated' && data.permissions) {
+      var permsMap = data.permissions;
+      /* Mettre à jour dynamiquement ROLES[role].modules selon la matrice */
+      Object.keys(permsMap).forEach(function(role) {
+        if (!ROLES[role]) return;
+        var mods = permsMap[role];
+        ROLES[role].modules = Object.keys(mods).filter(function(mod){ return mods[mod] === true; });
+      });
+      /* Rafraîchir la barre latérale si un utilisateur est connecté */
+      if (currentUser) renderSidebar();
+      console.log('[Core] Permissions mises à jour depuis Settings');
     }
 
     /* ── Log entry ── */

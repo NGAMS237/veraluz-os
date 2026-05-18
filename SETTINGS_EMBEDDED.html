@@ -1,1067 +1,845 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Settings — Veraluz</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Veraluz OS — Paramètres</title>
 <style>
-/* ── Reset & Tokens ──────────────────────────────────────── */
-*{box-sizing:border-box;margin:0;padding:0;}
 :root{
   --acc:#22d3a5;--acc2:#1ba87f;
   --bg:#0f1117;--bg2:#161b24;--bg3:#1e2535;--bg4:#252d3d;
   --text:#e8eaf0;--text2:#8b95a8;--text3:#5a6478;
   --red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;
-  --purple:#8b5cf6;--green:#10b981;--orange:#f97316;
-  --safe-bot:env(safe-area-inset-bottom,0px);
+  --green:#10b981;--orange:#f97316;--purple:#8b5cf6;
 }
+*{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;}
 
-/* ── Layout ──────────────────────────────────────────────── */
-#app{display:flex;height:100vh;height:100dvh;}
+/* ── App shell ── */
+#app{display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden;}
 
-/* ── Sidebar nav (desktop) ───────────────────────────────── */
-#sidenav{
-  width:200px;flex-shrink:0;background:var(--bg2);
-  border-right:1px solid var(--bg4);overflow-y:auto;
-  display:flex;flex-direction:column;padding:12px 8px;gap:2px;
+/* ── Tab bar ── */
+#tabbar{
+  display:flex;overflow-x:auto;background:var(--bg2);
+  border-bottom:2px solid var(--bg4);flex-shrink:0;scrollbar-width:none;
 }
-.nav-section{font-size:10px;color:var(--text3);padding:10px 10px 4px;
-  text-transform:uppercase;letter-spacing:.6px;font-weight:600;}
-.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;
-  border-radius:8px;cursor:pointer;font-size:13px;color:var(--text2);
-  transition:all .15s;border:none;background:none;width:100%;text-align:left;}
-.nav-item:hover{background:var(--bg3);color:var(--text);}
-.nav-item.active{background:var(--bg4);color:var(--acc);}
-.nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
-.save-all-btn{margin-top:auto;padding-top:12px;
-  border-top:1px solid var(--bg4);}
-.save-all-btn button{width:100%;padding:10px;border-radius:8px;border:none;
-  background:var(--acc);color:#000;font-size:13px;font-weight:700;
-  cursor:pointer;transition:all .15s;}
-.save-all-btn button:hover{background:var(--acc2);}
-
-/* ── Mobile bottom tabs ──────────────────────────────────── */
-#mobile-tabs{
-  display:none;overflow-x:auto;gap:0;
-  background:var(--bg2);border-bottom:1px solid var(--bg4);
-  scrollbar-width:none;flex-shrink:0;
+#tabbar::-webkit-scrollbar{display:none;}
+.tab-btn{
+  flex-shrink:0;border:none;background:none;color:var(--text3);
+  padding:0 14px;height:48px;cursor:pointer;font-size:12px;font-weight:500;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  border-bottom:2px solid transparent;transition:.15s;white-space:nowrap;
 }
-#mobile-tabs::-webkit-scrollbar{display:none;}
-.m-tab{flex-shrink:0;padding:10px 14px;border:none;background:transparent;
-  color:var(--text2);font-size:11px;cursor:pointer;white-space:nowrap;
-  display:flex;flex-direction:column;align-items:center;gap:2px;
-  border-bottom:2px solid transparent;transition:all .15s;}
-.m-tab.active{color:var(--acc);border-bottom-color:var(--acc);}
-.m-tab-icon{font-size:16px;}
+.tab-btn:hover{color:var(--text2);background:var(--bg3);}
+.tab-btn.active{color:var(--acc);border-bottom-color:var(--acc);background:rgba(34,211,165,.05);}
+.tab-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.tab-label{font-size:10px;line-height:1;}
 
-/* ── Responsive breakpoint ───────────────────────────────── */
-@media(max-width:680px){
-  #sidenav{display:none;}
-  #mobile-tabs{display:flex;}
-  #app{flex-direction:column;}
-  #main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+/* ── Unsaved bar ── */
+#unsaved-bar{
+  display:none;background:rgba(245,158,11,.12);border-bottom:1px solid rgba(245,158,11,.3);
+  padding:8px 16px;flex-shrink:0;align-items:center;gap:10px;font-size:12px;color:var(--amber);
 }
+#unsaved-bar.show{display:flex;}
+#unsaved-bar button{padding:5px 14px;border-radius:6px;border:none;font-size:12px;
+  font-weight:600;cursor:pointer;}
+.btn-save{background:var(--acc);color:#000;}
+.btn-discard{background:var(--bg4);color:var(--text2);}
 
-/* ── Main content ────────────────────────────────────────── */
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-#content{flex:1;overflow-y:auto;padding:20px;
-  padding-bottom:calc(20px + var(--safe-bot));}
-@media(max-width:680px){#content{padding:14px;}}
+/* ── Content ── */
+#content{flex:1;overflow-y:auto;padding:16px;display:none;}
+#content.active{display:block;}
 
-/* ── Page header ─────────────────────────────────────────── */
-.page-header{margin-bottom:20px;}
-.page-title{font-size:18px;font-weight:700;display:flex;align-items:center;gap:10px;}
-.page-sub{font-size:12px;color:var(--text2);margin-top:4px;}
+/* ── Page header ── */
+.ph{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;
+  border-bottom:1px solid var(--bg4);}
+.ph svg{width:22px;height:22px;stroke:var(--acc);fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;}
+.ph-text h2{font-size:15px;font-weight:700;}
+.ph-text p{font-size:11px;color:var(--text2);margin-top:2px;}
 
-/* ── Settings Card ───────────────────────────────────────── */
+/* ── Card ── */
 .card{background:var(--bg2);border:1px solid var(--bg4);border-radius:12px;
-  padding:18px;margin-bottom:14px;}
-.card-title{font-size:13px;font-weight:600;color:var(--text2);
-  text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;
-  display:flex;align-items:center;gap:8px;}
-.card-title span{color:var(--text);}
+  padding:16px;margin-bottom:12px;}
+.card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--text3);margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+.card-title svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;}
 
-/* ── Form elements ───────────────────────────────────────── */
-.form-row{margin-bottom:14px;}
-.form-row:last-child{margin-bottom:0;}
-.form-label{font-size:12px;font-weight:500;color:var(--text2);
-  margin-bottom:6px;display:block;}
-.form-label span{color:var(--red);margin-left:2px;}
-.form-input,.form-select,.form-textarea{
-  width:100%;padding:9px 12px;border-radius:8px;
-  border:1px solid var(--bg4);background:var(--bg3);
-  color:var(--text);font-size:13px;transition:border-color .15s;
-  font-family:inherit;}
-.form-input:focus,.form-select:focus,.form-textarea:focus{
-  outline:none;border-color:var(--acc);}
-.form-textarea{resize:vertical;min-height:80px;line-height:1.5;}
-.form-hint{font-size:11px;color:var(--text3);margin-top:4px;}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-@media(max-width:480px){.form-grid{grid-template-columns:1fr;}}
-.form-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-@media(max-width:480px){.form-grid-3{grid-template-columns:1fr 1fr;}}
+/* ── Form rows ── */
+.row{margin-bottom:12px;}
+.row label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;font-weight:500;}
+.row input,.row select,.row textarea{
+  width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--bg4);
+  border-radius:8px;color:var(--text);font-size:13px;outline:none;transition:.15s;}
+.row input:focus,.row select:focus,.row textarea:focus{border-color:var(--acc);}
+.row textarea{resize:vertical;min-height:70px;}
+.row-hint{font-size:10px;color:var(--text3);margin-top:4px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:480px){.row2{grid-template-columns:1fr;}}
 
-/* ── Toggle switch ───────────────────────────────────────── */
-.toggle-row{display:flex;justify-content:space-between;align-items:center;
-  padding:10px 0;border-bottom:1px solid var(--bg3);}
-.toggle-row:last-child{border-bottom:none;padding-bottom:0;}
+/* ── Toggle row ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid var(--bg4);}
+.toggle-row:last-child{border-bottom:none;}
 .toggle-info{flex:1;}
 .toggle-label{font-size:13px;font-weight:500;}
 .toggle-desc{font-size:11px;color:var(--text2);margin-top:2px;}
-.toggle{position:relative;width:42px;height:24px;flex-shrink:0;cursor:pointer;}
+.toggle{position:relative;width:42px;height:24px;flex-shrink:0;}
 .toggle input{opacity:0;width:0;height:0;}
-.toggle-slider{position:absolute;inset:0;background:var(--bg4);
-  border-radius:24px;transition:.3s;}
-.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;
-  left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
-.toggle input:checked + .toggle-slider{background:var(--acc);}
-.toggle input:checked + .toggle-slider:before{transform:translateX(18px);}
+.toggle-track{position:absolute;inset:0;background:var(--bg4);border-radius:12px;
+  cursor:pointer;transition:.2s;}
+.toggle input:checked + .toggle-track{background:var(--acc);}
+.toggle-track::after{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;
+  background:#fff;border-radius:50%;transition:.2s;}
+.toggle input:checked + .toggle-track::after{transform:translateX(18px);}
 
-/* ── Color picker row ────────────────────────────────────── */
-.color-row{display:flex;align-items:center;gap:10px;}
-.color-swatch{width:36px;height:36px;border-radius:8px;border:none;
-  cursor:pointer;padding:0;flex-shrink:0;}
-.color-val{font-family:monospace;font-size:12px;color:var(--acc);}
+/* ── Logo preview ── */
+#logo-preview{
+  width:80px;height:80px;border-radius:12px;background:var(--bg3);
+  border:2px dashed var(--bg4);display:flex;align-items:center;justify-content:center;
+  overflow:hidden;margin-bottom:10px;cursor:pointer;transition:.15s;}
+#logo-preview:hover{border-color:var(--acc);}
+#logo-preview img{width:100%;height:100%;object-fit:contain;}
+#logo-preview .lp-placeholder{font-size:11px;color:var(--text3);text-align:center;padding:8px;}
 
-/* ── Room type card ──────────────────────────────────────── */
-.room-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-@media(min-width:600px){.room-grid{grid-template-columns:repeat(3,1fr);}}
-.room-card{background:var(--bg3);border:1px solid var(--bg4);border-radius:10px;
-  padding:12px;position:relative;}
-.room-card.active-room{border-color:var(--acc);}
-.room-name{font-size:13px;font-weight:600;margin-bottom:4px;}
-.room-count{font-size:11px;color:var(--text2);}
-.room-price{font-size:12px;color:var(--acc);margin-top:6px;font-weight:600;}
-.room-edit{position:absolute;top:8px;right:8px;background:var(--bg4);
-  border:none;border-radius:6px;padding:3px 8px;color:var(--text2);
-  font-size:11px;cursor:pointer;}
-.room-edit:hover{color:var(--acc);}
+/* ── Color swatch ── */
+.color-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.color-row label{font-size:12px;color:var(--text2);flex:1;}
+.color-row input[type=color]{width:40px;height:32px;border:none;border-radius:6px;
+  cursor:pointer;background:none;padding:0;}
+.color-val{font-size:11px;color:var(--text3);width:60px;font-family:monospace;}
 
-/* ── Tax row ─────────────────────────────────────────────── */
-.tax-row{display:flex;align-items:center;gap:10px;padding:8px 0;
-  border-bottom:1px solid var(--bg3);}
-.tax-row:last-child{border-bottom:none;}
-.tax-name{flex:1;font-size:13px;}
-.tax-rate{width:80px;text-align:right;}
-.tax-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;}
-.tax-on{background:rgba(16,185,129,.15);color:var(--green);}
-.tax-off{background:rgba(91,99,120,.15);color:var(--text3);}
+/* ── Table ── */
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+.tbl th{text-align:left;padding:7px 10px;font-size:10px;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--bg4);}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--bg3);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:var(--bg3);}
 
-/* ── Intégration card ────────────────────────────────────── */
-.int-card{background:var(--bg3);border:1px solid var(--bg4);border-radius:10px;
-  padding:14px;display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;}
-.int-icon{font-size:28px;flex-shrink:0;}
-.int-info{flex:1;}
-.int-name{font-size:13px;font-weight:600;margin-bottom:3px;}
-.int-desc{font-size:11px;color:var(--text2);margin-bottom:8px;}
-.int-status{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;display:inline-block;}
-.int-connected{background:rgba(16,185,129,.15);color:var(--green);}
-.int-pending{background:rgba(245,158,11,.15);color:var(--amber);}
-.int-soon{background:rgba(91,99,120,.15);color:var(--text3);}
-.int-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+/* ── Badges ── */
+.bdg{display:inline-flex;align-items:center;padding:2px 8px;border-radius:5px;
+  font-size:10px;font-weight:600;}
+.bdg-g{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2);}
+.bdg-r{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.bdg-a{background:rgba(245,158,11,.1);color:var(--amber);border:1px solid rgba(245,158,11,.2);}
+.bdg-b{background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.2);}
 
-/* ── Permission table ────────────────────────────────────── */
-.perm-table{width:100%;border-collapse:collapse;font-size:12px;}
-.perm-table th{padding:8px 6px;text-align:center;color:var(--text2);
-  border-bottom:1px solid var(--bg4);font-weight:500;font-size:10px;}
-.perm-table th:first-child{text-align:left;}
-.perm-table td{padding:8px 6px;border-bottom:1px solid var(--bg3);text-align:center;}
-.perm-table td:first-child{text-align:left;color:var(--text);font-weight:500;}
-.perm-table tr:last-child td{border-bottom:none;}
-.perm-check{width:16px;height:16px;accent-color:var(--acc);cursor:pointer;}
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;
+  border:none;font-size:12px;font-weight:600;cursor:pointer;transition:.15s;}
+.btn-p{background:var(--acc);color:#000;}
+.btn-p:hover{background:var(--acc2);}
+.btn-o{background:var(--bg3);color:var(--text2);border:1px solid var(--bg4);}
+.btn-o:hover{background:var(--bg4);color:var(--text);}
+.btn-r{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
 
-/* ── Buttons ─────────────────────────────────────────────── */
-.btn{padding:9px 18px;border-radius:8px;border:none;font-size:13px;
-  font-weight:600;cursor:pointer;transition:all .15s;}
-.btn-primary{background:var(--acc);color:#000;}
-.btn-primary:hover{background:var(--acc2);}
-.btn-secondary{background:var(--bg3);color:var(--text);border:1px solid var(--bg4);}
-.btn-secondary:hover{background:var(--bg4);}
-.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
-.btn-danger:hover{background:rgba(239,68,68,.25);}
-.btn-sm{padding:5px 12px;font-size:11px;}
-.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;}
+/* ── Permission grid ── */
+.perm-table{width:100%;border-collapse:collapse;font-size:11px;}
+.perm-table th,.perm-table td{padding:7px 6px;text-align:center;border:1px solid var(--bg4);}
+.perm-table th:first-child,.perm-table td:first-child{text-align:left;font-weight:600;
+  white-space:nowrap;padding-left:10px;}
+.perm-table thead th{background:var(--bg3);font-size:10px;color:var(--text2);}
+.perm-table input[type=checkbox]{width:15px;height:15px;accent-color:var(--acc);cursor:pointer;}
 
-/* ── Badge ───────────────────────────────────────────────── */
-.badge{display:inline-flex;align-items:center;padding:2px 8px;
-  border-radius:20px;font-size:10px;font-weight:600;}
-.badge-acc{background:rgba(34,211,165,.15);color:var(--acc);}
-.badge-blue{background:rgba(59,130,246,.15);color:var(--blue);}
-.badge-red{background:rgba(239,68,68,.15);color:var(--red);}
+/* ── Integration card ── */
+.integ-card{display:flex;align-items:flex-start;gap:12px;padding:12px;
+  background:var(--bg3);border-radius:10px;margin-bottom:8px;}
+.integ-icon{width:36px;height:36px;border-radius:8px;background:var(--bg4);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.integ-icon svg{width:18px;height:18px;stroke:var(--acc);fill:none;stroke-width:1.8;
+  stroke-linecap:round;stroke-linejoin:round;}
+.integ-body{flex:1;}
+.integ-name{font-size:13px;font-weight:600;}
+.integ-desc{font-size:11px;color:var(--text2);margin-top:2px;}
+.integ-status{margin-top:6px;}
 
-/* ── Unsaved indicator ───────────────────────────────────── */
-.unsaved-bar{
-  background:rgba(245,158,11,.1);border-bottom:1px solid rgba(245,158,11,.3);
-  padding:8px 20px;display:none;align-items:center;justify-content:space-between;
-  flex-shrink:0;font-size:12px;color:var(--amber);}
-.unsaved-bar.show{display:flex;}
+/* ── Toast ── */
+#toast{position:fixed;bottom:16px;right:16px;background:var(--bg3);border:1px solid var(--bg4);
+  border-radius:10px;padding:10px 16px;font-size:12.5px;z-index:9999;
+  display:none;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+#toast.show{display:flex;}
 
-/* ── Toast ───────────────────────────────────────────────── */
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-  background:var(--bg3);border:1px solid var(--acc);color:var(--acc);
-  padding:10px 20px;border-radius:10px;font-size:13px;font-weight:500;
-  opacity:0;pointer-events:none;transition:opacity .3s;z-index:999;white-space:nowrap;}
-#toast.show{opacity:1;}
-
-/* ── Confirm modal ───────────────────────────────────────── */
-#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);
-  z-index:900;align-items:center;justify-content:center;padding:20px;}
+/* ── Modal ── */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:1000;
+  display:none;align-items:center;justify-content:center;padding:16px;}
 #modal-overlay.show{display:flex;}
-.modal{background:var(--bg2);border:1px solid var(--bg4);border-radius:14px;
-  padding:24px;max-width:380px;width:100%;}
-.modal-title{font-size:16px;font-weight:700;margin-bottom:8px;}
-.modal-body{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.5;}
-.modal-btns{display:flex;gap:10px;justify-content:flex-end;}
+#modal{background:var(--bg2);border:1px solid var(--bg4);border-radius:14px;
+  width:100%;max-width:420px;overflow:hidden;}
+.modal-hd{padding:16px 20px;border-bottom:1px solid var(--bg4);font-size:14px;font-weight:700;}
+.modal-bd{padding:20px;}
+.modal-ft{padding:12px 20px;border-top:1px solid var(--bg4);display:flex;gap:8px;justify-content:flex-end;}
 
-/* ── System info ─────────────────────────────────────────── */
-.sys-row{display:flex;justify-content:space-between;padding:8px 0;
-  border-bottom:1px solid var(--bg3);font-size:12px;}
-.sys-row:last-child{border-bottom:none;}
-.sys-key{color:var(--text2);}
-.sys-val{font-weight:600;font-family:monospace;font-size:11px;color:var(--acc);}
-</style>
-
-<style data-injected="embedded-mode">
-/* ═══ EMBEDDED MODE — Settings module ═══ */
-html, body {
-  margin: 0 !important; padding: 0 !important;
-  height: 100% !important; overflow: hidden !important;
-}
-.app, #app {
-  display: flex !important; flex-direction: column !important;
-  height: 100vh !important; overflow: hidden !important;
-}
-.main, #main-content {
-  flex: 1 !important; overflow-y: auto !important; overflow-x: hidden !important;
-  display: flex !important; flex-direction: column !important;
-}
-.sidebar, aside, .topbar, #toast-container {
-  display: none !important;
-}
-#content {
-  flex: 1 !important; overflow-y: auto !important;
-}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px;}
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- Desktop Side Nav -->
-  <nav id="sidenav">
-    <div class="nav-section">Propriété</div>
-    <button class="nav-item active" onclick="goSection('hotel')"       id="nav-hotel">      <span class="nav-icon">🏨</span>Hôtel</button>
-    <button class="nav-item"        onclick="goSection('branding')"    id="nav-branding">   <span class="nav-icon">🎨</span>Branding</button>
-    <button class="nav-item"        onclick="goSection('chambres')"    id="nav-chambres">   <span class="nav-icon">🛏️</span>Chambres</button>
+<!-- ── Tab Bar ── -->
+<div id="tabbar">
+  <button class="tab-btn active" onclick="goSection('hotel')" id="tab-hotel">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span class="tab-label">Hôtel</span>
+  </button>
+  <button class="tab-btn" onclick="goSection('branding')" id="tab-branding">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+    <span class="tab-label">Branding</span>
+  </button>
+  <button class="tab-btn" onclick="goSection('chambres')" id="tab-chambres">
+    <svg viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg>
+    <span class="tab-label">Types chambres</span>
+  </button>
+  <button class="tab-btn" onclick="goSection('tarifs')" id="tab-tarifs">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+    <span class="tab-label">Tarifs & Taxes</span>
+  </button>
+  <button class="tab-btn" onclick="goSection('devises')" id="tab-devises">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z"/></svg>
+    <span class="tab-label">Langue & Devise</span>
+  </button>
+  <button class="tab-btn" onclick="goSection('restaurant')" id="tab-restaurant">
+    <svg viewBox="0 0 24 24"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>
+    <span class="tab-label">Restaurant</span>
+  </button>
+  <button class="tab-btn" onclick="goSection('notifs')" id="tab-notifs">
+    <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+    <span class="tab-label">Notifications</span>
+  </button>
+  <button class="tab-btn" onclick="goSection('permissions')" id="tab-permissions">
+    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+    <span class="tab-label">Permissions</span>
+  </button>
+  <button class="tab-btn" onclick="goSection('integrations')" id="tab-integrations">
+    <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+    <span class="tab-label">Intégrations</span>
+  </button>
+  <button class="tab-btn" onclick="goSection('systeme')" id="tab-systeme">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+    <span class="tab-label">Système</span>
+  </button>
+</div>
 
-    <div class="nav-section">Finance</div>
-    <button class="nav-item"        onclick="goSection('tarifs')"      id="nav-tarifs">     <span class="nav-icon">💰</span>Tarifs & Taxes</button>
-    <button class="nav-item"        onclick="goSection('devises')"     id="nav-devises">    <span class="nav-icon">🌐</span>Langue & Région</button>
+<!-- ── Unsaved changes bar ── -->
+<div id="unsaved-bar">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  Modifications non sauvegardées
+  <button class="btn-save" onclick="saveAll()">Enregistrer</button>
+  <button class="btn-discard" onclick="discardChanges()">Annuler</button>
+</div>
 
-    <div class="nav-section">Opérations</div>
-    <button class="nav-item"        onclick="goSection('restaurant')"  id="nav-restaurant"> <span class="nav-icon">🍽️</span>Restaurant & Bar</button>
-    <button class="nav-item"        onclick="goSection('notifs')"      id="nav-notifs">     <span class="nav-icon">🔔</span>Notifications</button>
+<!-- ── Sections ── -->
+<div id="s-hotel"        class="content active"></div>
+<div id="s-branding"     class="content"></div>
+<div id="s-chambres"     class="content"></div>
+<div id="s-tarifs"       class="content"></div>
+<div id="s-devises"      class="content"></div>
+<div id="s-restaurant"   class="content"></div>
+<div id="s-notifs"       class="content"></div>
+<div id="s-permissions"  class="content"></div>
+<div id="s-integrations" class="content"></div>
+<div id="s-systeme"      class="content"></div>
 
-    <div class="nav-section">Système</div>
-    <button class="nav-item"        onclick="goSection('permissions')" id="nav-permissions"><span class="nav-icon">🔐</span>Permissions</button>
-    <button class="nav-item"        onclick="goSection('integrations')"id="nav-integrations"><span class="nav-icon">🔌</span>Intégrations</button>
-    <button class="nav-item"        onclick="goSection('systeme')"     id="nav-systeme">    <span class="nav-icon">⚙️</span>Système</button>
+</div><!-- #app -->
 
-    <div class="save-all-btn">
-      <button onclick="saveAll()">💾 Enregistrer tout</button>
-    </div>
-  </nav>
-
-  <!-- Main -->
-  <div id="main">
-    <!-- Mobile tab bar -->
-    <div id="mobile-tabs">
-      <button class="m-tab active" onclick="goSection('hotel')"        id="mtab-hotel">      <span class="m-tab-icon">🏨</span>Hôtel</button>
-      <button class="m-tab"        onclick="goSection('branding')"     id="mtab-branding">   <span class="m-tab-icon">🎨</span>Branding</button>
-      <button class="m-tab"        onclick="goSection('chambres')"     id="mtab-chambres">   <span class="m-tab-icon">🛏️</span>Chambres</button>
-      <button class="m-tab"        onclick="goSection('tarifs')"       id="mtab-tarifs">     <span class="m-tab-icon">💰</span>Tarifs</button>
-      <button class="m-tab"        onclick="goSection('devises')"      id="mtab-devises">    <span class="m-tab-icon">🌐</span>Région</button>
-      <button class="m-tab"        onclick="goSection('restaurant')"   id="mtab-restaurant"> <span class="m-tab-icon">🍽️</span>Restaurant</button>
-      <button class="m-tab"        onclick="goSection('notifs')"       id="mtab-notifs">     <span class="m-tab-icon">🔔</span>Notifs</button>
-      <button class="m-tab"        onclick="goSection('permissions')"  id="mtab-permissions"><span class="m-tab-icon">🔐</span>Accès</button>
-      <button class="m-tab"        onclick="goSection('integrations')" id="mtab-integrations"><span class="m-tab-icon">🔌</span>APIs</button>
-      <button class="m-tab"        onclick="goSection('systeme')"      id="mtab-systeme">    <span class="m-tab-icon">⚙️</span>Système</button>
-    </div>
-
-    <!-- Unsaved bar -->
-    <div id="unsaved-bar" class="unsaved-bar">
-      <span>⚠️ Modifications non enregistrées</span>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-sm btn-secondary" onclick="discardChanges()">Annuler</button>
-        <button class="btn btn-sm btn-primary" onclick="saveAll()">Enregistrer</button>
-      </div>
-    </div>
-
-    <!-- Content -->
-    <div id="content"></div>
+<!-- ── Modal ── -->
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div id="modal">
+    <div class="modal-hd" id="modal-title">Confirmation</div>
+    <div class="modal-bd" id="modal-body"></div>
+    <div class="modal-ft" id="modal-ft"></div>
   </div>
 </div>
 
-<!-- Modal -->
-<div id="modal-overlay">
-  <div class="modal">
-    <div class="modal-title" id="modal-title"></div>
-    <div class="modal-body" id="modal-body"></div>
-    <div class="modal-btns" id="modal-btns"></div>
-  </div>
-</div>
-
+<!-- ── Toast ── -->
 <div id="toast"></div>
 
 <script>
-/* ═══════════════════════════════════════════════════════════
-   VERALUZ — SETTINGS MODULE v1.0
-   Mobile-First | Event Bus | localStorage persistence
-   ═════════════════════════════════════════════════════════ */
-
+/* ══════════════════════════════════════════════════════════
+   SETTINGS_EMBEDDED v3 — Veraluz OS
+   Icônes monochrome · Logo → Core · Langue/Devise/Taxe → modules
+══════════════════════════════════════════════════════════ */
 var MODULE_ID = 'veraluz-settings';
-var LS_KEY    = 'veraluz_settings_v1';
+var LS_KEY    = 'veraluz_settings_v3';
+var isDirty   = false;
 var currentSection = 'hotel';
-var _dirty = false;
 
-/* ── Default Settings ────────────────────────────────────── */
+/* ── Default settings ── */
 var DEFAULTS = {
   hotel: {
-    name:        'Résidence Veraluz',
-    tagline:     'Vue sur mer · Kribi · Cameroun',
-    address:     'Boulevard de l\'Océan, Kribi, Sud Cameroun',
-    phone:       '+237 6XX XXX XXX',
-    email:       'contact@veraluz.cm',
-    website:     'https://veraluz.cm',
-    checkin:     '14:00',
-    checkout:    '11:00',
-    timezone:    'Africa/Douala',
-    total_rooms: 12
+    name:'Résidence Veraluz', tagline:'Vue sur mer · Kribi · Cameroun',
+    address:'Boulevard de l\'Océan, Kribi, Sud Cameroun',
+    phone:'+237 6XX XXX XXX', email:'contact@veraluz.cm',
+    website:'https://veraluz.cm', checkin:'14:00', checkout:'11:00',
+    timezone:'Africa/Douala', total_rooms:9
   },
   branding: {
-    primary_color:   '#22d3a5',
-    secondary_color: '#1ba87f',
-    bg_color:        '#0f1117',
-    logo_url:        '',
-    font:            'Inter',
-    dark_mode:       true,
-    show_logo:       true
+    logo_url:'', primary_color:'#22d3a5', secondary_color:'#1ba87f',
+    bg_color:'#0f1117', font:'Inter', dark_mode:true, show_logo:true
   },
   chambres: [
-    { id:'std',   name:'Standard',    count:4,  capacity:2, price:35000, amenities:'WiFi, Climatisation, TV, Vue jardin' },
-    { id:'sup',   name:'Supérieure',  count:4,  capacity:2, price:55000, amenities:'WiFi, Climatisation, TV, Minibar, Vue mer' },
-    { id:'suite', name:'Suite',       count:2,  capacity:4, price:95000, amenities:'WiFi, Clim, TV, Minibar, Jacuzzi, Vue mer panoramique' },
-    { id:'famil', name:'Familiale',   count:2,  capacity:5, price:75000, amenities:'WiFi, Clim, 2 TV, Cuisine, Vue jardin' },
+    {id:'std',   name:'Chambre Standard',     count:5, capacity:2, price:75000,  amenities:'WiFi, Climatisation, TV, Vue jardin'},
+    {id:'apt',   name:'Appartement 2 ch.',    count:1, capacity:5, price:120000, amenities:'WiFi, Clim, 2 TV, Cuisine équipée'},
+    {id:'stua',  name:'Studio A (2e étage)',  count:1, capacity:3, price:90000,  amenities:'WiFi, Clim, TV, Kitchenette'},
+    {id:'stub',  name:'Studio B (2e étage)',  count:1, capacity:3, price:90000,  amenities:'WiFi, Clim, TV, Kitchenette'},
+    {id:'suite', name:'Suite Présidentielle', count:1, capacity:4, price:250000, amenities:'WiFi, Clim, TV, Minibar, Jacuzzi, Vue mer panoramique'},
   ],
   tarifs: {
-    currency: 'XAF',
-    tax_tva:          { rate:19.25, active:true,  name:'TVA' },
-    tax_tourist:      { rate:2000,  active:true,  name:'Taxe touristique (XAF/nuit)' },
-    tax_service:      { rate:10,    active:true,  name:'Charge de service' },
-    tax_municipal:    { rate:5000,  active:false, name:'Taxe communale (XAF)' },
-    early_checkin:    15000,
-    late_checkout:    12000,
-    extra_bed:        10000,
-    pet_fee:          8000,
-    cancellation_pct: 30
+    currency:'XAF', tax_tva:{rate:19.25, active:true, name:'TVA'},
+    tax_tourist:{rate:2000, active:true, name:'Taxe touristique (XAF/nuit)'},
+    tax_service:{rate:10, active:true, name:'Charge de service'},
+    tax_municipal:{rate:5000, active:false, name:'Taxe communale (XAF)'},
+    early_checkin:15000, late_checkout:12000, extra_bed:10000, cancellation_pct:30
   },
   devises: {
-    primary:    'XAF',
-    secondary:  'EUR',
-    language:   'fr',
-    date_format:'DD/MM/YYYY',
-    time_format:'24h',
-    timezone:   'Africa/Douala'
+    primary:'XAF', secondary:'EUR', language:'fr',
+    date_format:'DD/MM/YYYY', time_format:'24h', timezone:'Africa/Douala'
   },
   restaurant: {
-    name:           'Le Mako Lounge',
-    capacity:       40,
-    open_time:      '07:00',
-    close_time:     '23:00',
-    breakfast_start:'07:00',
-    breakfast_end:  '10:30',
-    lunch_start:    '12:00',
-    lunch_end:      '14:30',
-    dinner_start:   '19:00',
-    dinner_end:     '22:30',
-    room_service:   true,
-    bar_active:     true,
-    bar_open:       '10:00',
-    bar_close:      '00:00',
-    tva_restaurant: 19.25,
-    service_charge: 10,
-    min_order:      3000
+    name:'Le Mako Lounge', capacity:40,
+    open:'07:00', close:'23:00',
+    breakfast_start:'07:00', breakfast_end:'10:30',
+    lunch_start:'12:00', lunch_end:'14:30',
+    dinner_start:'19:00', dinner_end:'22:30',
+    room_service:true, bar_active:true, bar_open:'10:00', bar_close:'00:00',
+    tva:19.25, service_charge:10, min_order:3000
   },
   notifs: {
-    email_reservations: true,
-    email_payments:     true,
-    email_checkin:      true,
-    email_checkout:     false,
-    sms_reservations:   false,
-    sms_payments:       true,
-    push_enabled:       false,
-    whatsapp_enabled:   false,
-    daily_report:       true,
-    daily_report_time:  '08:00',
-    alert_occupancy:    90,
-    alert_revenue_drop: true
+    email_reservations:true, email_payments:true, email_checkin:true,
+    email_checkout:false, sms_reservations:false, sms_payments:false,
+    daily_report:true, weekly_report:true, low_stock_alert:true,
+    payment_alert:true, alert_email:'afterworkquebec2025@gmail.com'
   },
   permissions: {
-    admin:        { reservations:true,  paiements:true,  housekeeping:true,  restaurant:true,  finance:true,  rh:true,   settings:true,  audit:true },
-    gerant:       { reservations:true,  paiements:true,  housekeeping:true,  restaurant:true,  finance:true,  rh:true,   settings:false, audit:true },
-    receptionist: { reservations:true,  paiements:true,  housekeeping:false, restaurant:false, finance:false, rh:false,  settings:false, audit:false },
-    housekeeping: { reservations:false, paiements:false, housekeeping:true,  restaurant:false, finance:false, rh:false,  settings:false, audit:false },
-    waiter:       { reservations:false, paiements:true,  housekeeping:false, restaurant:true,  finance:false, rh:false,  settings:false, audit:false },
-    comptable:    { reservations:false, paiements:true,  housekeeping:false, restaurant:false, finance:true,  rh:false,  settings:false, audit:true },
+    admin:       {reservations:true,  paiements:true,  housekeeping:true,  restaurant:true,  rh:true,   finance:true,  analytics:true, audit:true,  settings:true},
+    gerant:      {reservations:true,  paiements:true,  housekeeping:true,  restaurant:true,  rh:true,   finance:true,  analytics:true, audit:true,  settings:false},
+    receptionist:{reservations:true,  paiements:true,  housekeeping:false, restaurant:false, rh:false,  finance:false, analytics:false,audit:false, settings:false},
+    housekeeping:{reservations:false, paiements:false, housekeeping:true,  restaurant:false, rh:false,  finance:false, analytics:false,audit:false, settings:false},
+    restaurant:  {reservations:false, paiements:false, housekeeping:false, restaurant:true,  rh:false,  finance:false, analytics:false,audit:false, settings:false},
   },
   integrations: {
-    supabase:   { status:'connected', key_hint:'eyJhbG…' },
-    cinetpay:   { status:'pending',   key_hint:'' },
-    whatsapp:   { status:'soon',      key_hint:'' },
-    smtp_email: { status:'soon',      key_hint:'' },
-    booking:    { status:'soon',      key_hint:'' },
-    airbnb:     { status:'soon',      key_hint:'' },
+    booking_com:false, airbnb:false, cinetpay:true, whatsapp:false,
+    booking_com_key:'', airbnb_key:'', cinetpay_key:'', whatsapp_number:''
+  },
+  systeme: {
+    auto_backup:true, backup_freq:'daily', log_retention:90,
+    session_timeout:480, maintenance_mode:false
   }
 };
 
-/* ── Settings store ──────────────────────────────────────── */
 var S = {};
-function loadSettings() {
-  try {
-    var saved = localStorage.getItem(LS_KEY);
-    S = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(DEFAULTS));
-  } catch(e) { S = JSON.parse(JSON.stringify(DEFAULTS)); }
-  /* fill missing keys */
-  Object.keys(DEFAULTS).forEach(function(k){
-    if (!S[k]) S[k] = JSON.parse(JSON.stringify(DEFAULTS[k]));
+
+/* ── Load / Save ── */
+function loadSettings(){
+  try{ var sv=localStorage.getItem(LS_KEY); S=sv?JSON.parse(sv):JSON.parse(JSON.stringify(DEFAULTS)); }
+  catch(e){ S=JSON.parse(JSON.stringify(DEFAULTS)); }
+  Object.keys(DEFAULTS).forEach(function(k){ if(!S[k]) S[k]=JSON.parse(JSON.stringify(DEFAULTS[k])); });
+}
+
+/* ── Event Bus ── */
+function emit(type, data){
+  try{ window.parent.postMessage({veraluzEvent:true, source:MODULE_ID, type:type, data:data||{}}, '*'); }
+  catch(e){}
+}
+
+/* ── Toast ── */
+function toast(msg, ok){
+  var el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast show';
+  if(ok===false) el.style.borderColor='var(--red)'; else el.style.borderColor='var(--bg4)';
+  setTimeout(function(){el.className='toast';},2800);
+}
+
+/* ── Dirty state ── */
+function markDirty(){
+  isDirty=true;
+  document.getElementById('unsaved-bar').classList.add('show');
+}
+function markClean(){
+  isDirty=false;
+  document.getElementById('unsaved-bar').classList.remove('show');
+}
+
+/* ── Navigation ── */
+function goSection(id){
+  currentSection=id;
+  document.querySelectorAll('.content').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.tab-btn').forEach(function(el){ el.classList.remove('active'); });
+  var sec = document.getElementById('s-'+id);
+  var tab = document.getElementById('tab-'+id);
+  if(sec) sec.classList.add('active');
+  if(tab){ tab.classList.add('active'); tab.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'}); }
+  renderSection(id);
+}
+
+/* ── Save All ── */
+function saveAll(){
+  collectForm();
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(S));
+    markClean();
+    toast('✓ Paramètres enregistrés');
+    /* Propager au Core */
+    emit('settings-updated', {section:currentSection, ts:new Date().toISOString()});
+    /* Propager logo si changé */
+    if(S.branding && S.branding.logo_url){
+      emit('logo-updated', {logo_url:S.branding.logo_url, ts:new Date().toISOString()});
+    }
+    /* Propager langue/devise/taxes aux modules */
+    emit('locale-updated', {
+      language:  S.devises.language,
+      currency:  S.devises.primary,
+      currency2: S.devises.secondary,
+      date_fmt:  S.devises.date_format,
+      time_fmt:  S.devises.time_format,
+      timezone:  S.devises.timezone,
+      tax_tva:   S.tarifs.tax_tva,
+      tax_tourist: S.tarifs.tax_tourist,
+      tax_service: S.tarifs.tax_service,
+      ts: new Date().toISOString()
+    });
+    /* Propager permissions */
+    if(S.permissions){
+      emit('permissions-updated', {permissions:S.permissions, ts:new Date().toISOString()});
+    }
+  }catch(e){ toast('❌ Erreur sauvegarde', false); }
+}
+
+function discardChanges(){
+  loadSettings(); markClean(); renderSection(currentSection); toast('↩ Modifications annulées');
+}
+
+/* ── Collect current form values into S ── */
+function collectForm(){
+  var inputs = document.querySelectorAll('#s-'+currentSection+' [data-field]');
+  inputs.forEach(function(el){
+    var path = el.getAttribute('data-field').split('.');
+    var obj = S;
+    for(var i=0;i<path.length-1;i++) obj=obj[path[i]];
+    var last = path[path.length-1];
+    if(el.type==='checkbox') obj[last]=el.checked;
+    else if(el.type==='number') obj[last]=parseFloat(el.value)||0;
+    else obj[last]=el.value;
   });
 }
 
-/* ── Event Bus ───────────────────────────────────────────── */
-function emit(type, data) {
-  try {
-    window.parent.postMessage({
-      veraluzEvent: true,
-      source: MODULE_ID,
-      type: type,
-      data: data || {}
-    }, '*');
-  } catch(e) {}
+/* ── Field helper ── */
+function field(label, dfn, val, type, hint){
+  type=type||'text';
+  var h='<div class="row"><label>'+label+'</label>';
+  h+='<input type="'+type+'" data-field="'+dfn+'" value="'+escH(String(val||''))+'" oninput="markDirty()">';
+  if(hint) h+='<div class="row-hint">'+hint+'</div>';
+  h+='</div>'; return h;
 }
-window.addEventListener('message', function(ev) {
-  if (!ev.data || ev.data.source !== 'veraluz-core') return;
-  var msg = ev.data;
-  if (msg.type === 'auth-context') {
-    var d = msg.data || {};
-    /* Mettre à jour affichage utilisateur */
-    if (d.name) {
-      var uname = document.getElementById('st-user-name');
-      var urole = document.getElementById('st-user-role');
-      if (uname) uname.textContent = d.name;
-      if (urole) urole.textContent = d.roleLabel || d.role || '';
-    }
-    /* Restreindre accès Settings aux admins/gérants uniquement */
-    var adminRoles = ['admin','gerant','manager','super_admin'];
-    if (d.role && !adminRoles.includes(d.role)) {
-      var restricted = document.getElementById('content');
-      if (restricted) restricted.innerHTML = '<div style="padding:40px;text-align:center;color:#ef4444;">⛔ Accès réservé aux administrateurs</div>';
+function sel(label, dfn, val, opts){
+  var h='<div class="row"><label>'+label+'</label><select data-field="'+dfn+'" onchange="markDirty()">';
+  opts.forEach(function(o){ h+='<option value="'+o[0]+'"'+(o[0]===val?' selected':'')+'>'+o[1]+'</option>'; });
+  h+='</select></div>'; return h;
+}
+function toggle(label, desc, dfn, val){
+  return '<div class="toggle-row"><div class="toggle-info"><div class="toggle-label">'+label+'</div>'+(desc?'<div class="toggle-desc">'+desc+'</div>':'')+'</div>'
+    +'<label class="toggle"><input type="checkbox" data-field="'+dfn+'"'+(val?' checked':'')
+    +' onchange="markDirty()"><div class="toggle-track"></div></label></div>';
+}
+function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function ph(icon, title, desc){
+  return '<div class="ph">'+icon+'<div class="ph-text"><h2>'+title+'</h2>'+(desc?'<p>'+desc+'</p>':'')+'</div></div>';
+}
+function phIcon(d){
+  return '<svg viewBox="0 0 24 24"><path d="'+d+'"/></svg>';
+}
+
+/* ══════════════════ SECTION RENDERERS ══════════════════ */
+
+function renderHotel(){
+  var h=S.hotel;
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    'Informations Hôtel', 'Données générales de la résidence')
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>Identité</div>'
+  +field('Nom de la résidence','hotel.name',h.name)
+  +field('Slogan / Tagline','hotel.tagline',h.tagline)
+  +field('Adresse complète','hotel.address',h.address)
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.18 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.56-.56a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>Contact</div>'
+  +'<div class="row2">'
+  +field('Téléphone','hotel.phone',h.phone,'tel')
+  +field('Email','hotel.email',h.email,'email')
+  +'</div>'
+  +field('Site web','hotel.website',h.website,'url')
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Opérations</div>'
+  +'<div class="row2">'
+  +field('Check-in','hotel.checkin',h.checkin,'time')
+  +field('Check-out','hotel.checkout',h.checkout,'time')
+  +'</div>'
+  +sel('Fuseau horaire','hotel.timezone',h.timezone,[
+    ['Africa/Douala','Africa/Douala (WAT UTC+1)'],
+    ['Africa/Lagos','Africa/Lagos'],
+    ['Europe/Paris','Europe/Paris (CET)'],
+    ['America/Toronto','America/Toronto (EST)'],
+  ])
+  +field('Nombre total d\'unités','hotel.total_rooms',h.total_rooms,'number')
+  +'</div>';
+}
+
+function renderBranding(){
+  var b=S.branding;
+  var hasLogo = b.logo_url && b.logo_url.length > 0;
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>',
+    'Branding & Logo', 'Identité visuelle appliquée à toute l\'application')
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Logo</div>'
+  +'<div id="logo-preview" onclick="document.getElementById(\'logo-url-input\').focus()">'
+  +(hasLogo?'<img src="'+escH(b.logo_url)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;lp-placeholder&quot;>Image introuvable</div>\'">'
+    :'<div class="lp-placeholder">Cliquer pour définir<br>le logo</div>')
+  +'</div>'
+  +'<div class="row"><label>URL du logo (PNG, SVG, JPG)</label>'
+  +'<input type="url" id="logo-url-input" data-field="branding.logo_url" value="'+escH(b.logo_url||'')+'"'
+  +' placeholder="https://example.com/logo.png" oninput="markDirty();previewLogo(this.value)">'
+  +'<div class="row-hint">→ Le logo sera appliqué dans la barre de navigation principale et le Booking Engine</div>'
+  +'</div>'
+  +toggle('Afficher le logo dans le header','Remplace le texte "Veraluz OS" par l\'image','branding.show_logo',b.show_logo)
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>Couleurs</div>'
+  +'<div class="color-row"><label>Couleur principale (accent)</label>'
+  +'<input type="color" data-field="branding.primary_color" value="'+b.primary_color+'" oninput="markDirty()"><span class="color-val">'+b.primary_color+'</span></div>'
+  +'<div class="color-row"><label>Couleur secondaire</label>'
+  +'<input type="color" data-field="branding.secondary_color" value="'+b.secondary_color+'" oninput="markDirty()"><span class="color-val">'+b.secondary_color+'</span></div>'
+  +'<div class="color-row"><label>Fond général</label>'
+  +'<input type="color" data-field="branding.bg_color" value="'+b.bg_color+'" oninput="markDirty()"><span class="color-val">'+b.bg_color+'</span></div>'
+  +'</div>';
+}
+
+function renderChambres(){
+  var rooms=S.chambres;
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M2 4v16M22 4v16M2 12h20M12 4v8"/><rect x="2" y="4" width="20" height="16" rx="1"/></svg>',
+    'Types de chambres', 'Catégories et prix de base utilisés par le Booking Engine et les Réservations')
+  +'<div class="card" style="background:rgba(59,130,246,.05);border-color:rgba(59,130,246,.2);">'
+  +'<p style="font-size:11px;color:var(--blue);">ℹ Ces types définissent le <strong>catalogue</strong> disponible à la réservation. Les chambres individuelles sont gérées dans le module Réservations via Supabase.</p>'
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Catalogue</div>'
+  +'<div style="overflow-x:auto;"><table class="tbl"><thead><tr>'
+  +'<th>Nom</th><th>Qté</th><th>Capacité</th><th>Prix/nuit (XAF)</th><th>Équipements</th><th></th>'
+  +'</tr></thead><tbody id="rooms-tbody">'
+  +rooms.map(function(r,i){
+    return '<tr><td><input type="text" style="background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:5px 8px;width:140px;color:var(--text);font-size:12px;" value="'+escH(r.name)+'" onchange="updateRoom('+i+',\'name\',this.value)">'
+    +'</td><td><input type="number" style="background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:5px 8px;width:55px;color:var(--text);font-size:12px;" value="'+r.count+'" onchange="updateRoom('+i+',\'count\',+this.value)">'
+    +'</td><td><input type="number" style="background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:5px 8px;width:55px;color:var(--text);font-size:12px;" value="'+r.capacity+'" onchange="updateRoom('+i+',\'capacity\',+this.value)">'
+    +'</td><td><input type="number" style="background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:5px 8px;width:90px;color:var(--text);font-size:12px;" value="'+r.price+'" onchange="updateRoom('+i+',\'price\',+this.value)">'
+    +'</td><td style="max-width:180px;"><input type="text" style="background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:5px 8px;width:100%;color:var(--text);font-size:11px;" value="'+escH(r.amenities)+'" onchange="updateRoom('+i+',\'amenities\',this.value)">'
+    +'</td><td><button class="btn btn-r btn-sm" onclick="removeRoom('+i+')">✕</button></td></tr>';
+  }).join('')
+  +'</tbody></table></div>'
+  +'<div class="btn-group"><button class="btn btn-o" onclick="addRoom()">+ Ajouter un type</button>'
+  +'<button class="btn btn-p" onclick="saveAll()">Enregistrer le catalogue</button></div>'
+  +'</div>';
+}
+
+function renderTarifs(){
+  var t=S.tarifs;
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
+    'Tarifs & Taxes', 'Taxes et frais supplémentaires appliqués aux réservations')
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Taxes applicables</div>'
+  +toggle('TVA ('+t.tax_tva.rate+'%)','Taxe sur la Valeur Ajoutée Cameroun','tarifs.tax_tva.active',t.tax_tva.active)
+  +'<div class="row2">'+field('Taux TVA (%)','tarifs.tax_tva.rate',t.tax_tva.rate,'number')
+  +field('Libellé','tarifs.tax_tva.name',t.tax_tva.name)+'</div>'
+  +toggle('Taxe touristique','Fixe par nuit en XAF','tarifs.tax_tourist.active',t.tax_tourist.active)
+  +field('Montant taxe touristique (XAF/nuit)','tarifs.tax_tourist.rate',t.tax_tourist.rate,'number')
+  +toggle('Charge de service','% sur total de la facture','tarifs.tax_service.active',t.tax_service.active)
+  +field('Taux charge de service (%)','tarifs.tax_service.rate',t.tax_service.rate,'number')
+  +toggle('Taxe communale (XAF)','Fixe par séjour','tarifs.tax_municipal.active',t.tax_municipal.active)
+  +field('Montant taxe communale','tarifs.tax_municipal.rate',t.tax_municipal.rate,'number')
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Frais supplémentaires</div>'
+  +'<div class="row2">'
+  +field('Early check-in (XAF)','tarifs.early_checkin',t.early_checkin,'number')
+  +field('Late check-out (XAF)','tarifs.late_checkout',t.late_checkout,'number')
+  +field('Lit supplémentaire (XAF)','tarifs.extra_bed',t.extra_bed,'number')
+  +field('Annulation (% retenu)','tarifs.cancellation_pct',t.cancellation_pct,'number')
+  +'</div>'
+  +'<div class="row-hint" style="margin-top:8px;">→ Ces taxes sont appliquées automatiquement dans le module Réservations et la Finance</div>'
+  +'</div>';
+}
+
+function renderDevises(){
+  var d=S.devises;
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z"/></svg>',
+    'Langue & Devise', 'Localisation appliquée à toute l\'application après sauvegarde')
+  +'<div class="card" style="background:rgba(34,211,165,.05);border-color:rgba(34,211,165,.2);">'
+  +'<p style="font-size:11px;color:var(--acc);">→ Toute modification ici est propagée automatiquement aux modules Réservations, Finance, Restaurant et Paiements.</p>'
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>Langue</div>'
+  +sel('Langue d\'interface','devises.language',d.language,[
+    ['fr','Français'],['en','English'],['es','Español'],
+  ])
+  +sel('Format de date','devises.date_format',d.date_format,[
+    ['DD/MM/YYYY','DD/MM/YYYY (ex: 18/05/2026)'],
+    ['MM/DD/YYYY','MM/DD/YYYY (ex: 05/18/2026)'],
+    ['YYYY-MM-DD','YYYY-MM-DD (ISO)'],
+  ])
+  +sel('Format heure','devises.time_format',d.time_format,[
+    ['24h','24h (ex: 14:30)'],['12h','12h AM/PM (ex: 2:30 PM)'],
+  ])
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Devise</div>'
+  +sel('Devise principale','devises.primary',d.primary,[
+    ['XAF','XAF — Franc CFA (BEAC)'],['EUR','EUR — Euro'],
+    ['USD','USD — Dollar américain'],['CAD','CAD — Dollar canadien'],
+  ])
+  +sel('Devise secondaire (affichage)','devises.secondary',d.secondary,[
+    ['EUR','EUR — Euro'],['USD','USD — Dollar américain'],
+    ['CAD','CAD — Dollar canadien'],['XAF','XAF — Franc CFA'],
+  ])
+  +'</div>';
+}
+
+function renderRestaurant(){
+  var r=S.restaurant;
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>',
+    'Restaurant & Bar', 'Configuration du Mako Lounge')
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>Identité</div>'
+  +field('Nom du restaurant','restaurant.name',r.name)
+  +field('Capacité (couverts)','restaurant.capacity',r.capacity,'number')
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Horaires</div>'
+  +'<div class="row2">'+field('Ouverture','restaurant.open',r.open,'time')+field('Fermeture','restaurant.close',r.close,'time')+'</div>'
+  +'<div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Services</div>'
+  +'<div class="row2">'+field('Petit-déj. début','restaurant.breakfast_start',r.breakfast_start,'time')+field('Petit-déj. fin','restaurant.breakfast_end',r.breakfast_end,'time')+'</div>'
+  +'<div class="row2">'+field('Déjeuner début','restaurant.lunch_start',r.lunch_start,'time')+field('Déjeuner fin','restaurant.lunch_end',r.lunch_end,'time')+'</div>'
+  +'<div class="row2">'+field('Dîner début','restaurant.dinner_start',r.dinner_start,'time')+field('Dîner fin','restaurant.dinner_end',r.dinner_end,'time')+'</div>'
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Options</div>'
+  +toggle('Room service actif','Commandes livraison en chambre','restaurant.room_service',r.room_service)
+  +toggle('Bar Lounge actif','Espace bar indépendant','restaurant.bar_active',r.bar_active)
+  +'<div class="row2">'+field('Bar ouverture','restaurant.bar_open',r.bar_open,'time')+field('Bar fermeture','restaurant.bar_close',r.bar_close,'time')+'</div>'
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Finance F&B</div>'
+  +'<div class="row2">'+field('TVA restaurant (%)','restaurant.tva',r.tva,'number')+field('Charge de service (%)','restaurant.service_charge',r.service_charge,'number')+'</div>'
+  +field('Commande minimale (XAF)','restaurant.min_order',r.min_order,'number')
+  +'</div>';
+}
+
+function renderNotifs(){
+  var n=S.notifs;
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>',
+    'Notifications', 'Alertes email et SMS')
+  +'<div class="card">'
+  +field('Email de réception des rapports','notifs.alert_email',n.alert_email,'email',
+    '→ Rapports journaliers, hebdomadaires et alertes critiques envoyés à cet email (géré depuis le Canada)')
+  +'</div>'
+  +'<div class="card"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Email</div>'
+  +toggle('Nouvelle réservation','Email à chaque booking confirmé','notifs.email_reservations',n.email_reservations)
+  +toggle('Paiement reçu','Confirmation de paiement','notifs.email_payments',n.email_payments)
+  +toggle('Check-in','Notification à l\'arrivée d\'un client','notifs.email_checkin',n.email_checkin)
+  +toggle('Check-out','Notification au départ','notifs.email_checkout',n.email_checkout)
+  +'</div>'
+  +'<div class="card"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Alertes automatiques</div>'
+  +toggle('Rapport journalier','Envoyé chaque matin à 07h00','notifs.daily_report',n.daily_report)
+  +toggle('Rapport hebdomadaire','Chaque lundi à 08h00','notifs.weekly_report',n.weekly_report)
+  +toggle('Alerte stock faible','Quand le stock restaurant est bas','notifs.low_stock_alert',n.low_stock_alert)
+  +toggle('Alerte paiements en attente','Si > 5 paiements non validés','notifs.payment_alert',n.payment_alert)
+  +'</div>';
+}
+
+function renderPermissions(){
+  var p=S.permissions;
+  var roles=['admin','gerant','receptionist','housekeeping','restaurant'];
+  var mods=['reservations','paiements','housekeeping','restaurant','rh','finance','analytics','audit','settings'];
+  var modLabels={reservations:'Réservations',paiements:'Paiements',housekeeping:'Housekeeping',
+    restaurant:'Restaurant',rh:'RH',finance:'Finance',analytics:'Analytics',audit:'Audit',settings:'Paramètres'};
+  var roleLabels={admin:'Admin',gerant:'Gérant',receptionist:'Réception',housekeeping:'Housekeeping',restaurant:'Restaurant'};
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+    'Permissions & Accès', 'Matrice d\'accès par rôle — appliquée immédiatement au Core après sauvegarde')
+  +'<div class="card" style="background:rgba(34,211,165,.05);border-color:rgba(34,211,165,.2);">'
+  +'<p style="font-size:11px;color:var(--acc);">→ Après sauvegarde, la barre de navigation se met à jour en temps réel pour chaque utilisateur selon son rôle. Différent de AUTH (qui gère <em>qui est</em> l\'utilisateur).</p>'
+  +'</div>'
+  +'<div class="card"><div style="overflow-x:auto;">'
+  +'<table class="perm-table"><thead><tr><th>Module</th>'
+  +roles.map(function(r){return '<th>'+roleLabels[r]+'</th>';}).join('')
+  +'</tr></thead><tbody>'
+  +mods.map(function(mod){
+    return '<tr><td>'+modLabels[mod]+'</td>'
+    +roles.map(function(role){
+      var chk = p[role] && p[role][mod];
+      return '<td><input type="checkbox" '+(chk?'checked':'')+' onchange="onPermChange(this,\''+role+'\',\''+mod+'\')" '
+        +(role==='admin'?'disabled title="Admin a toujours accès complet"':'')+' /></td>';
+    }).join('')+'</tr>';
+  }).join('')
+  +'</tbody></table>'
+  +'</div>'
+  +'<div class="btn-group"><button class="btn btn-p" onclick="saveAll()">Appliquer les permissions</button>'
+  +'<button class="btn btn-o" onclick="resetPerms()">Réinitialiser</button></div>'
+  +'</div>';
+}
+
+function renderIntegrations(){
+  var i=S.integrations;
+  function integCard(icon,name,desc,keyField,keyVal,active,dfn){
+    return '<div class="integ-card"><div class="integ-icon">'+icon+'</div>'
+    +'<div class="integ-body"><div class="integ-name">'+name+'</div>'
+    +'<div class="integ-desc">'+desc+'</div>'
+    +'<div class="integ-status">'
+    +(active?'<span class="bdg bdg-g">● Actif</span>':'<span class="bdg" style="background:var(--bg4);color:var(--text3);">○ Inactif</span>')
+    +'</div>'
+    +(keyField?'<div style="margin-top:8px;"><input type="text" placeholder="Clé API..." style="width:100%;background:var(--bg4);border:1px solid var(--bg3);border-radius:6px;padding:6px 10px;color:var(--text);font-size:12px;" data-field="'+keyField+'" value="'+escH(keyVal||'')+'" oninput="markDirty()"></div>':'')
+    +'</div>'
+    +'<label class="toggle" style="margin-top:6px;flex-shrink:0;"><input type="checkbox" data-field="'+dfn+'"'+(active?' checked':'')+' onchange="markDirty()"><div class="toggle-track"></div></label>'
+    +'</div>';
+  }
+  var linkIcon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>';
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>',
+    'Intégrations', 'Services tiers connectés à Veraluz OS')
+  +'<div class="card">'
+  +integCard(linkIcon,'Booking.com','Synchronisation disponibilités & tarifs','integrations.booking_com_key',i.booking_com_key,i.booking_com,'integrations.booking_com')
+  +integCard(linkIcon,'Airbnb','Synchronisation calendrier et réservations','integrations.airbnb_key',i.airbnb_key,i.airbnb,'integrations.airbnb')
+  +integCard(linkIcon,'CinetPay','Paiements mobile money (Orange Money, MTN MoMo)','integrations.cinetpay_key',i.cinetpay_key,i.cinetpay,'integrations.cinetpay')
+  +integCard(linkIcon,'WhatsApp Business','Notifications et confirmations par WhatsApp','integrations.whatsapp_number',i.whatsapp_number,i.whatsapp,'integrations.whatsapp')
+  +'</div>';
+}
+
+function renderSysteme(){
+  var sys=S.systeme;
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>',
+    'Système', 'Configuration technique et maintenance')
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>Sauvegarde</div>'
+  +toggle('Sauvegarde automatique','Sauvegarde quotidienne des paramètres','systeme.auto_backup',sys.auto_backup)
+  +sel('Fréquence de sauvegarde','systeme.backup_freq',sys.backup_freq,[
+    ['daily','Quotidienne'],['weekly','Hebdomadaire'],['monthly','Mensuelle'],
+  ])
+  +field('Rétention des logs (jours)','systeme.log_retention',sys.log_retention,'number')
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Session & Sécurité</div>'
+  +field('Timeout session (minutes)','systeme.session_timeout',sys.session_timeout,'number','Durée avant déconnexion automatique')
+  +toggle('Mode maintenance','Rend l\'application inaccessible aux non-admins','systeme.maintenance_mode',sys.maintenance_mode)
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>Réinitialisation</div>'
+  +'<div style="display:flex;gap:10px;flex-wrap:wrap;">'
+  +'<button class="btn btn-o" onclick="exportSettings()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exporter JSON</button>'
+  +'<button class="btn btn-o" onclick="document.getElementById(\'import-file\').click()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>Importer JSON</button>'
+  +'<button class="btn btn-r" onclick="confirmReset()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>Réinitialiser défauts</button>'
+  +'</div>'
+  +'<input type="file" id="import-file" accept=".json" style="display:none" onchange="importSettings(this)">'
+  +'</div>';
+}
+
+/* ── Render dispatcher ── */
+function renderSection(id){
+  var el=document.getElementById('s-'+id);
+  if(!el) return;
+  var html='';
+  if(id==='hotel')        html=renderHotel();
+  else if(id==='branding')html=renderBranding();
+  else if(id==='chambres')html=renderChambres();
+  else if(id==='tarifs')  html=renderTarifs();
+  else if(id==='devises') html=renderDevises();
+  else if(id==='restaurant')html=renderRestaurant();
+  else if(id==='notifs')  html=renderNotifs();
+  else if(id==='permissions')html=renderPermissions();
+  else if(id==='integrations')html=renderIntegrations();
+  else if(id==='systeme') html=renderSysteme();
+  el.innerHTML=html;
+}
+
+/* ── Actions ── */
+function onPermChange(el, role, mod){
+  if(!S.permissions[role]) S.permissions[role]={};
+  S.permissions[role][mod]=el.checked; markDirty();
+}
+function resetPerms(){
+  S.permissions=JSON.parse(JSON.stringify(DEFAULTS.permissions));
+  renderSection('permissions'); toast('Permissions réinitialisées');
+}
+function previewLogo(url){
+  var prev=document.getElementById('logo-preview');
+  if(!prev) return;
+  prev.innerHTML=url?'<img src="'+escH(url)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;lp-placeholder&quot;>Image introuvable</div>\'">'
+    :'<div class="lp-placeholder">Cliquer pour définir<br>le logo</div>';
+}
+function updateRoom(i, key, val){ S.chambres[i][key]=val; markDirty(); }
+function addRoom(){
+  S.chambres.push({id:'rm_'+Date.now(),name:'Nouvelle catégorie',count:1,capacity:2,price:50000,amenities:'WiFi, Climatisation'});
+  renderSection('chambres'); markDirty();
+}
+function removeRoom(i){ S.chambres.splice(i,1); renderSection('chambres'); markDirty(); }
+function exportSettings(){
+  var blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='veraluz_settings_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+}
+function importSettings(input){
+  var file=input.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{ S=JSON.parse(e.target.result); localStorage.setItem(LS_KEY,JSON.stringify(S));
+      renderSection(currentSection); toast('✓ Paramètres importés'); markClean(); }
+    catch(err){ toast('❌ Fichier JSON invalide',false); }
+  }; reader.readAsText(file);
+}
+function confirmReset(){
+  if(confirm('Réinitialiser tous les paramètres aux valeurs par défaut ?')){
+    S=JSON.parse(JSON.stringify(DEFAULTS));
+    localStorage.removeItem(LS_KEY);
+    renderSection(currentSection); markClean();
+    toast('✓ Paramètres réinitialisés');
+  }
+}
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('show'); }
+
+/* ── Collect form values ── */
+function collectForm(){
+  var inputs=document.querySelectorAll('#s-'+currentSection+' [data-field]');
+  inputs.forEach(function(el){
+    var path=el.getAttribute('data-field').split('.'); var obj=S;
+    for(var i=0;i<path.length-1;i++){ if(!obj[path[i]]) obj[path[i]]={};  obj=obj[path[i]]; }
+    var last=path[path.length-1];
+    if(el.type==='checkbox') obj[last]=el.checked;
+    else if(el.type==='number') obj[last]=parseFloat(el.value)||0;
+    else obj[last]=el.value;
+  });
+}
+
+/* ── Auth-context from Core ── */
+window.addEventListener('message', function(ev){
+  if(!ev.data || ev.data.source !== 'veraluz-core') return;
+  var msg=ev.data;
+  if(msg.type==='auth-context'){
+    var d=msg.data||{};
+    var adminRoles=['admin','gerant','manager','super_admin'];
+    if(d.role && !adminRoles.includes(d.role)){
+      document.getElementById('app').innerHTML='<div style="padding:40px;text-align:center;color:var(--red);"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg><br><br><strong>Accès réservé aux administrateurs</strong><br><p style="color:var(--text3);font-size:12px;margin-top:8px;">Contactez votre administrateur pour accéder aux paramètres.</p></div>';
     }
     return;
   }
-  if (msg.type === 'refresh') { loadSettings(); renderSection(currentSection); }
-  if (msg.type === 'navigate-tab' && msg.data && msg.data.tab) goSection(msg.data.tab);
+  if(msg.type==='refresh'){ loadSettings(); renderSection(currentSection); }
 });
-window.addEventListener('load', function() {
+
+/* ── Init ── */
+window.addEventListener('load', function(){
   loadSettings();
   goSection('hotel');
-  emit('module-ready', { module:'settings', version:'1.0' });
+  emit('module-ready', {module:'settings', version:'3.0'});
 });
-
-/* ── Helpers ─────────────────────────────────────────────── */
-function toast(msg, ok) {
-  var el = document.getElementById('toast');
-  el.textContent = msg;
-  el.style.borderColor = ok === false ? 'var(--red)' : 'var(--acc)';
-  el.style.color       = ok === false ? 'var(--red)' : 'var(--acc)';
-  el.classList.add('show');
-  setTimeout(function(){ el.classList.remove('show'); }, 2800);
-}
-function markDirty() {
-  _dirty = true;
-  document.getElementById('unsaved-bar').classList.add('show');
-}
-function markClean() {
-  _dirty = false;
-  document.getElementById('unsaved-bar').classList.remove('show');
-}
-function showModal(title, body, btns) {
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-body').innerHTML    = body;
-  document.getElementById('modal-btns').innerHTML    = btns;
-  document.getElementById('modal-overlay').classList.add('show');
-}
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('show');
-}
-
-/* ── Navigation ──────────────────────────────────────────── */
-function goSection(id) {
-  currentSection = id;
-  /* desktop nav */
-  document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.remove('active'); });
-  var n = document.getElementById('nav-' + id);
-  if (n) n.classList.add('active');
-  /* mobile tabs */
-  document.querySelectorAll('.m-tab').forEach(function(b){ b.classList.remove('active'); });
-  var mt = document.getElementById('mtab-' + id);
-  if (mt) {
-    mt.classList.add('active');
-    mt.scrollIntoView({ behavior:'smooth', block:'nearest', inline:'center' });
-  }
-  renderSection(id);
-  document.getElementById('content').scrollTop = 0;
-}
-
-/* ── Save / Discard ──────────────────────────────────────── */
-function saveAll() {
-  collectCurrentForm();
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(S));
-    markClean();
-    toast('✅ Paramètres enregistrés');
-    emit('settings-updated', { section: currentSection, ts: new Date().toISOString() });
-    /* Émettre les permissions au Core pour mise à jour des droits d'accès */
-    if (S.permissions) {
-      emit('permissions-updated', { permissions: S.permissions, ts: new Date().toISOString() });
-    }
-  } catch(e) {
-    toast('❌ Erreur sauvegarde', false);
-  }
-}
-function discardChanges() {
-  loadSettings();
-  renderSection(currentSection);
-  markClean();
-  toast('↩️ Modifications annulées');
-}
-
-/* Collect values from current visible form */
-function collectCurrentForm() {
-  var inputs = document.querySelectorAll('[data-key]');
-  inputs.forEach(function(el) {
-    var key  = el.dataset.key;
-    var sect = el.dataset.sect;
-    if (!key || !sect || !S[sect]) return;
-    var val = el.type === 'checkbox' ? el.checked : el.value;
-    /* nested key support: "tax_tva.rate" */
-    if (key.includes('.')) {
-      var parts = key.split('.');
-      if (S[sect][parts[0]]) S[sect][parts[0]][parts[1]] = el.type === 'checkbox' ? el.checked : (isNaN(val) ? val : parseFloat(val));
-    } else {
-      S[sect][key] = el.type === 'checkbox' ? val : (el.type === 'number' ? parseFloat(val) : val);
-    }
-  });
-}
-
-/* ── Toggle helper ───────────────────────────────────────── */
-function toggleRow(label, desc, sect, key, val) {
-  var id = 'tog_' + sect + '_' + key.replace('.','_');
-  return '<div class="toggle-row">'
-    + '<div class="toggle-info">'
-    + '<div class="toggle-label">' + label + '</div>'
-    + (desc ? '<div class="toggle-desc">' + desc + '</div>' : '')
-    + '</div>'
-    + '<label class="toggle"><input type="checkbox" id="' + id + '" data-sect="' + sect + '" data-key="' + key + '" '
-    + (val ? 'checked' : '') + ' onchange="markDirty()">'
-    + '<span class="toggle-slider"></span></label>'
-    + '</div>';
-}
-function inputRow(label, hint, type, sect, key, val, placeholder) {
-  var id = 'inp_' + sect + '_' + key.replace('.','_');
-  return '<div class="form-row">'
-    + '<label class="form-label" for="' + id + '">' + label + '</label>'
-    + '<input class="form-input" id="' + id + '" type="' + (type||'text') + '"'
-    + ' data-sect="' + sect + '" data-key="' + key + '" value="' + (val||'') + '"'
-    + (placeholder ? ' placeholder="' + placeholder + '"' : '') + ' oninput="markDirty()">'
-    + (hint ? '<div class="form-hint">' + hint + '</div>' : '')
-    + '</div>';
-}
-function selectRow(label, sect, key, val, options) {
-  var id = 'sel_' + sect + '_' + key;
-  return '<div class="form-row">'
-    + '<label class="form-label" for="' + id + '">' + label + '</label>'
-    + '<select class="form-select" id="' + id + '" data-sect="' + sect + '" data-key="' + key + '" onchange="markDirty()">'
-    + options.map(function(o){
-        return '<option value="' + o.v + '"' + (o.v === val ? ' selected' : '') + '>' + o.l + '</option>';
-      }).join('')
-    + '</select></div>';
-}
-
-/* ══════════════════════════════════════════════════════════
-   SECTIONS
-   ══════════════════════════════════════════════════════════ */
-
-/* ── Hôtel ───────────────────────────────────────────────── */
-function sHotel() {
-  var h = S.hotel;
-  return page('🏨','Paramètres Hôtel','Informations générales de l\'établissement',
-    '<div class="card"><div class="card-title">🏢 <span>Identité</span></div>'
-    + '<div class="form-grid">'
-    + inputRow('Nom de l\'hôtel<span>*</span>','','text','hotel','name',h.name)
-    + inputRow('Tagline / Slogan','S\'affiche sous le nom','text','hotel','tagline',h.tagline)
-    + '</div>'
-    + inputRow('Adresse complète','','text','hotel','address',h.address)
-    + '<div class="form-grid">'
-    + inputRow('Téléphone','','tel','hotel','phone',h.phone,'+237 6XX XXX XXX')
-    + inputRow('Email','','email','hotel','email',h.email)
-    + '</div>'
-    + inputRow('Site web','','url','hotel','website',h.website)
-    + '</div>'
-    + '<div class="card"><div class="card-title">🕐 <span>Horaires</span></div>'
-    + '<div class="form-grid">'
-    + inputRow('Check-in à partir de','','time','hotel','checkin',h.checkin)
-    + inputRow('Check-out avant','','time','hotel','checkout',h.checkout)
-    + '</div>'
-    + '<div class="form-grid">'
-    + inputRow('Nombre total de chambres','','number','hotel','total_rooms',h.total_rooms)
-    + selectRow('Fuseau horaire','hotel','timezone',h.timezone,[
-        {v:'Africa/Douala',l:'Africa/Douala (UTC+1)'},{v:'Europe/Paris',l:'Europe/Paris (UTC+2)'},
-        {v:'America/Montreal',l:'America/Montréal (UTC-5)'},{v:'UTC',l:'UTC'}])
-    + '</div></div>'
-    + saveBtnRow()
-  );
-}
-
-/* ── Branding ────────────────────────────────────────────── */
-function sBranding() {
-  var b = S.branding;
-  return page('🎨','Branding & Apparence','Couleurs, logo et thème visuel',
-    '<div class="card"><div class="card-title">🎨 <span>Couleurs</span></div>'
-    + colorRow('Couleur principale','branding','primary_color',b.primary_color)
-    + colorRow('Couleur secondaire','branding','secondary_color',b.secondary_color)
-    + colorRow('Couleur fond','branding','bg_color',b.bg_color)
-    + '</div>'
-    + '<div class="card"><div class="card-title">🖋️ <span>Typographie</span></div>'
-    + selectRow('Police principale','branding','font',b.font,[
-        {v:'Inter',l:'Inter (défaut)'},{v:'Roboto',l:'Roboto'},{v:'Poppins',l:'Poppins'},
-        {v:'Lato',l:'Lato'},{v:'Montserrat',l:'Montserrat'}])
-    + '</div>'
-    + '<div class="card"><div class="card-title">⚙️ <span>Options</span></div>'
-    + toggleRow('Mode sombre','Interface en thème dark',       'branding','dark_mode',   b.dark_mode)
-    + toggleRow('Afficher le logo','Logo visible dans la navbar','branding','show_logo',b.show_logo)
-    + '</div>'
-    + '<div class="card"><div class="card-title">🖼️ <span>Logo</span></div>'
-    + '<div class="form-row"><label class="form-label">URL du logo</label>'
-    + '<input class="form-input" type="url" data-sect="branding" data-key="logo_url" value="'
-    + (b.logo_url||'') + '" placeholder="https://veraluz.cm/logo.png" oninput="markDirty()">'
-    + '<div class="form-hint">Formats acceptés: PNG, SVG, WebP (fond transparent recommandé)</div></div>'
-    + (b.logo_url ? '<img src="' + b.logo_url + '" style="height:50px;margin-top:8px;border-radius:6px" onerror="this.style.display=\'none\'">' : '')
-    + '</div>'
-    + saveBtnRow()
-  );
-}
-function colorRow(label, sect, key, val) {
-  var id = 'clr_' + sect + '_' + key;
-  return '<div class="form-row"><label class="form-label">' + label + '</label>'
-    + '<div class="color-row">'
-    + '<input type="color" class="color-swatch" id="' + id + '" data-sect="' + sect + '" data-key="' + key + '" value="' + val + '" oninput="markDirty();this.nextElementSibling.textContent=this.value">'
-    + '<span class="color-val">' + val + '</span>'
-    + '</div></div>';
-}
-
-/* ── Chambres ────────────────────────────────────────────── */
-function sChambres() {
-  var rooms = S.chambres;
-  var cards = rooms.map(function(r) {
-    return '<div class="room-card">'
-      + '<div class="room-name">🛏️ ' + r.name + '</div>'
-      + '<div class="room-count">' + r.count + ' chambre(s) · ' + r.capacity + ' pers. max</div>'
-      + '<div class="room-price">' + r.price.toLocaleString('fr-FR') + ' XAF/nuit</div>'
-      + '<div style="font-size:10px;color:var(--text3);margin-top:4px">' + r.amenities + '</div>'
-      + '<button class="room-edit btn btn-sm btn-secondary" style="margin-top:8px;width:100%" onclick="editRoom(\'' + r.id + '\')">✏️ Modifier</button>'
-      + '</div>';
-  }).join('');
-
-  return page('🛏️','Gestion des chambres','Types, capacités, équipements et tarifs',
-    '<div class="card"><div class="card-title">🏗️ <span>Types de chambres</span></div>'
-    + '<div class="room-grid">' + cards + '</div>'
-    + '<button class="btn btn-secondary" style="margin-top:14px;width:100%" onclick="addRoom()">+ Ajouter un type</button>'
-    + '</div>'
-    + '<div class="card"><div class="card-title">📊 <span>Résumé capacité</span></div>'
-    + rooms.map(function(r){
-        return '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--bg3);font-size:12px">'
-          + '<span>' + r.name + '</span>'
-          + '<span style="color:var(--text2)">' + r.count + ' × ' + r.price.toLocaleString('fr-FR') + ' XAF = <strong style="color:var(--acc)">' + (r.count*r.price).toLocaleString('fr-FR') + ' XAF/nuit (plein)</strong></span>'
-          + '</div>';
-      }).join('')
-    + '<div style="display:flex;justify-content:space-between;padding:10px 0;font-size:13px;font-weight:700">'
-    + '<span>Total ' + rooms.reduce(function(a,r){return a+r.count;},0) + ' chambres</span>'
-    + '<span style="color:var(--acc)">' + rooms.reduce(function(a,r){return a+r.count*r.price;},0).toLocaleString('fr-FR') + ' XAF max/nuit</span>'
-    + '</div></div>'
-  );
-}
-function editRoom(id) {
-  var r = S.chambres.find(function(x){ return x.id===id; });
-  if (!r) return;
-  showModal('✏️ Modifier ' + r.name,
-    '<div class="form-row"><label class="form-label">Nom</label><input class="form-input" id="er-name" value="' + r.name + '"></div>'
-    + '<div class="form-grid"><div><label class="form-label">Nb chambres</label><input class="form-input" id="er-count" type="number" value="' + r.count + '"></div>'
-    + '<div><label class="form-label">Capacité max</label><input class="form-input" id="er-cap" type="number" value="' + r.capacity + '"></div></div>'
-    + '<div class="form-row"><label class="form-label">Prix/nuit (XAF)</label><input class="form-input" id="er-price" type="number" value="' + r.price + '"></div>'
-    + '<div class="form-row"><label class="form-label">Équipements</label><input class="form-input" id="er-amen" value="' + r.amenities + '"></div>',
-    '<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>'
-    + '<button class="btn btn-primary" onclick="saveRoom(\'' + id + '\')">Enregistrer</button>'
-  );
-}
-function saveRoom(id) {
-  var r = S.chambres.find(function(x){ return x.id===id; });
-  if (!r) return;
-  r.name      = document.getElementById('er-name').value;
-  r.count     = parseInt(document.getElementById('er-count').value)||0;
-  r.capacity  = parseInt(document.getElementById('er-cap').value)||1;
-  r.price     = parseInt(document.getElementById('er-price').value)||0;
-  r.amenities = document.getElementById('er-amen').value;
-  closeModal();
-  saveAll();
-  renderSection('chambres');
-}
-function addRoom() {
-  toast('ℹ️ Contactez le support pour ajouter un type de chambre');
-}
-
-/* ── Tarifs & Taxes ──────────────────────────────────────── */
-function sTarifs() {
-  var t = S.tarifs;
-  var taxes = [
-    { key:'tax_tva',       label:'TVA',                   type:'pct',  field:'rate' },
-    { key:'tax_tourist',   label:'Taxe touristique',       type:'xaf',  field:'rate' },
-    { key:'tax_service',   label:'Charge de service',      type:'pct',  field:'rate' },
-    { key:'tax_municipal', label:'Taxe communale',         type:'xaf',  field:'rate' },
-  ];
-
-  return page('💰','Tarifs & Taxes','Prix additionnels, taxes applicables et frais',
-    '<div class="card"><div class="card-title">🏦 <span>Devise principale</span></div>'
-    + selectRow('Devise de facturation','tarifs','currency',t.currency,[
-        {v:'XAF',l:'XAF — Franc CFA'},{v:'EUR',l:'EUR — Euro'},{v:'USD',l:'USD — Dollar'}])
-    + '</div>'
-    + '<div class="card"><div class="card-title">📋 <span>Taxes applicables</span></div>'
-    + taxes.map(function(tx){
-        var obj = t[tx.key];
-        return '<div class="tax-row">'
-          + '<div class="tax-name"><div style="font-size:13px;font-weight:500">' + obj.name + '</div>'
-          + '<div style="font-size:11px;color:var(--text3)">' + tx.type + '</div></div>'
-          + '<div class="tax-rate">'
-          + '<input class="form-input" type="number" data-sect="tarifs" data-key="' + tx.key + '.rate" value="' + obj.rate + '" style="width:80px;text-align:right;padding:5px 8px" oninput="markDirty()">'
-          + '</div>'
-          + '<label class="toggle" style="margin-left:8px"><input type="checkbox" data-sect="tarifs" data-key="' + tx.key + '.active" ' + (obj.active?'checked':'') + ' onchange="markDirty()">'
-          + '<span class="toggle-slider"></span></label>'
-          + '</div>';
-      }).join('')
-    + '</div>'
-    + '<div class="card"><div class="card-title">➕ <span>Frais additionnels (XAF)</span></div>'
-    + '<div class="form-grid">'
-    + inputRow('Early check-in','Avant 14h','number','tarifs','early_checkin',t.early_checkin)
-    + inputRow('Late check-out','Après 11h','number','tarifs','late_checkout',t.late_checkout)
-    + inputRow('Lit supplémentaire','Par nuit','number','tarifs','extra_bed',t.extra_bed)
-    + inputRow('Animal de compagnie','Par nuit','number','tarifs','pet_fee',t.pet_fee)
-    + '</div>'
-    + inputRow('Pénalité annulation (%)','Pourcentage du montant total','number','tarifs','cancellation_pct',t.cancellation_pct)
-    + '</div>'
-    + saveBtnRow()
-  );
-}
-
-/* ── Langue & Région ─────────────────────────────────────── */
-function sDevises() {
-  var d = S.devises;
-  return page('🌐','Langue & Région','Localisation, formats et fuseaux horaires',
-    '<div class="card"><div class="card-title">🗣️ <span>Langue</span></div>'
-    + selectRow('Langue interface','devises','language',d.language,[
-        {v:'fr',l:'Français'},{v:'en',l:'English'},{v:'es',l:'Español'}])
-    + '</div>'
-    + '<div class="card"><div class="card-title">💱 <span>Devises</span></div>'
-    + selectRow('Devise principale','devises','primary',d.primary,[
-        {v:'XAF',l:'XAF — Franc CFA BEAC'},{v:'EUR',l:'EUR — Euro'},{v:'USD',l:'USD — Dollar US'}])
-    + selectRow('Devise secondaire (conversion)','devises','secondary',d.secondary,[
-        {v:'EUR',l:'EUR — Euro'},{v:'USD',l:'USD — Dollar US'},{v:'XAF',l:'XAF — Franc CFA'}])
-    + '</div>'
-    + '<div class="card"><div class="card-title">📅 <span>Formats</span></div>'
-    + selectRow('Format de date','devises','date_format',d.date_format,[
-        {v:'DD/MM/YYYY',l:'DD/MM/YYYY (31/12/2025)'},{v:'MM/DD/YYYY',l:'MM/DD/YYYY (12/31/2025)'},
-        {v:'YYYY-MM-DD',l:'YYYY-MM-DD (2025-12-31)'}])
-    + selectRow('Format heure','devises','time_format',d.time_format,[
-        {v:'24h',l:'24h (14:30)'},{v:'12h',l:'12h (2:30 PM)'}])
-    + selectRow('Fuseau horaire','devises','timezone',d.timezone,[
-        {v:'Africa/Douala',l:'Africa/Douala (UTC+1)'},{v:'Europe/Paris',l:'Europe/Paris (UTC+2)'},
-        {v:'America/Montreal',l:'America/Montréal (UTC-5)'},{v:'UTC',l:'UTC'}])
-    + '</div>'
-    + saveBtnRow()
-  );
-}
-
-/* ── Restaurant & Bar ────────────────────────────────────── */
-function sRestaurant() {
-  var r = S.restaurant;
-  return page('🍽️','Restaurant & Bar','Configuration de la restauration et du bar',
-    '<div class="card"><div class="card-title">🍽️ <span>Restaurant</span></div>'
-    + '<div class="form-grid">'
-    + inputRow('Nom du restaurant','','text','restaurant','name',r.name)
-    + inputRow('Capacité (couverts)','','number','restaurant','capacity',r.capacity)
-    + '</div>'
-    + '<div class="form-grid">'
-    + inputRow('Ouverture','','time','restaurant','open_time',r.open_time)
-    + inputRow('Fermeture','','time','restaurant','close_time',r.close_time)
-    + '</div>'
-    + '</div>'
-    + '<div class="card"><div class="card-title">☀️ <span>Services repas</span></div>'
-    + '<div class="form-grid-3">'
-    + inputRow('Petit-déj début','','time','restaurant','breakfast_start',r.breakfast_start)
-    + inputRow('Petit-déj fin','','time','restaurant','breakfast_end',r.breakfast_end)
-    + inputRow('Déjeuner début','','time','restaurant','lunch_start',r.lunch_start)
-    + inputRow('Déjeuner fin','','time','restaurant','lunch_end',r.lunch_end)
-    + inputRow('Dîner début','','time','restaurant','dinner_start',r.dinner_start)
-    + inputRow('Dîner fin','','time','restaurant','dinner_end',r.dinner_end)
-    + '</div></div>'
-    + '<div class="card"><div class="card-title">⚙️ <span>Options restaurant</span></div>'
-    + toggleRow('Room Service','Livraison en chambre disponible',  'restaurant','room_service',r.room_service)
-    + inputRow('Commande minimum (XAF)','Room Service uniquement','number','restaurant','min_order',r.min_order)
-    + '<div class="form-grid">'
-    + inputRow('TVA restaurant (%)','','number','restaurant','tva_restaurant',r.tva_restaurant)
-    + inputRow('Charge de service (%)','','number','restaurant','service_charge',r.service_charge)
-    + '</div></div>'
-    + '<div class="card"><div class="card-title">🍸 <span>Bar Lounge</span></div>'
-    + toggleRow('Bar actif','Le bar est opérationnel','restaurant','bar_active',r.bar_active)
-    + '<div class="form-grid">'
-    + inputRow('Ouverture bar','','time','restaurant','bar_open',r.bar_open)
-    + inputRow('Fermeture bar','','time','restaurant','bar_close',r.bar_close)
-    + '</div></div>'
-    + saveBtnRow()
-  );
-}
-
-/* ── Notifications ───────────────────────────────────────── */
-function sNotifs() {
-  var n = S.notifs;
-  return page('🔔','Paramètres Notifications','Canaux, alertes et rapports automatiques',
-    '<div class="card"><div class="card-title">📧 <span>Email</span></div>'
-    + toggleRow('Réservations',    'Notif. à chaque nouvelle résa',     'notifs','email_reservations',n.email_reservations)
-    + toggleRow('Paiements',       'Notif. à chaque transaction',        'notifs','email_payments',    n.email_payments)
-    + toggleRow('Check-in',        'Notif. à chaque arrivée',            'notifs','email_checkin',     n.email_checkin)
-    + toggleRow('Check-out',       'Notif. à chaque départ',             'notifs','email_checkout',    n.email_checkout)
-    + '</div>'
-    + '<div class="card"><div class="card-title">📱 <span>SMS</span></div>'
-    + toggleRow('SMS Réservations','Confirmation par SMS',                'notifs','sms_reservations', n.sms_reservations)
-    + toggleRow('SMS Paiements',   'Alerte paiement par SMS',             'notifs','sms_payments',     n.sms_payments)
-    + '</div>'
-    + '<div class="card"><div class="card-title">🔔 <span>Push & WhatsApp</span></div>'
-    + toggleRow('Notifications push','App mobile (bientôt)',             'notifs','push_enabled',     n.push_enabled)
-    + toggleRow('WhatsApp Business', 'Intégration WhatsApp (bientôt)',   'notifs','whatsapp_enabled', n.whatsapp_enabled)
-    + '</div>'
-    + '<div class="card"><div class="card-title">📊 <span>Rapports automatiques</span></div>'
-    + toggleRow('Rapport journalier','Envoyé chaque matin par email',    'notifs','daily_report',     n.daily_report)
-    + inputRow('Heure d\'envoi','','time','notifs','daily_report_time',n.daily_report_time)
-    + toggleRow('Alerte chute revenus','Si revenus < seuil',             'notifs','alert_revenue_drop',n.alert_revenue_drop)
-    + inputRow('Seuil occupation alerte (%)','Alerte si taux > seuil','number','notifs','alert_occupancy',n.alert_occupancy)
-    + '</div>'
-    + saveBtnRow()
-  );
-}
-
-/* ── Permissions ─────────────────────────────────────────── */
-function sPermissions() {
-  var p = S.permissions;
-  var roles   = Object.keys(p);
-  var modules = ['reservations','paiements','housekeeping','restaurant','finance','rh','settings','audit'];
-  var mIcons  = {reservations:'🛏️',paiements:'💳',housekeeping:'🧹',restaurant:'🍽️',finance:'📊',rh:'👥',settings:'⚙️',audit:'🔍'};
-
-  var table = '<div style="overflow-x:auto"><table class="perm-table"><thead><tr>'
-    + '<th>Rôle</th>'
-    + modules.map(function(m){ return '<th>' + mIcons[m] + '</th>'; }).join('')
-    + '</tr></thead><tbody>'
-    + roles.map(function(role){
-        return '<tr><td>' + role.charAt(0).toUpperCase() + role.slice(1) + '</td>'
-          + modules.map(function(mod){
-              var checked = p[role][mod];
-              return '<td><input type="checkbox" class="perm-check"'
-                + ' data-role="' + role + '" data-mod="' + mod + '"'
-                + (checked ? ' checked' : '')
-                + ' onchange="onPermChange(this)">'
-                + '</td>';
-            }).join('')
-          + '</tr>';
-      }).join('')
-    + '</tbody></table></div>';
-
-  return page('🔐','Permissions & Accès','Contrôle d\'accès par rôle et module',
-    '<div class="card"><div class="card-title">📋 <span>Matrice des permissions</span></div>'
-    + '<div class="form-hint" style="margin-bottom:12px">Les changements sont appliqués immédiatement après enregistrement.</div>'
-    + table + '</div>'
-    + '<div class="card"><div class="card-title">👥 <span>Rôles disponibles</span></div>'
-    + roles.map(function(r){
-        var cnt = Object.values(p[r]).filter(Boolean).length;
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--bg3);font-size:12px">'
-          + '<span style="font-weight:600">' + r.charAt(0).toUpperCase() + r.slice(1) + '</span>'
-          + '<span class="badge badge-acc">' + cnt + ' module(s)</span>'
-          + '</div>';
-      }).join('')
-    + '</div>'
-    + saveBtnRow()
-  );
-}
-function onPermChange(el) {
-  var role = el.dataset.role;
-  var mod  = el.dataset.mod;
-  if (S.permissions[role]) {
-    S.permissions[role][mod] = el.checked;
-    markDirty();
-  }
-}
-
-/* ── Intégrations ────────────────────────────────────────── */
-function sIntegrations() {
-  var ints = [
-    { id:'supabase',  icon:'🗄️',  name:'Supabase',          desc:'Base de données cloud — tables, auth, realtime',           status:'connected' },
-    { id:'cinetpay',  icon:'📱',  name:'CinetPay',           desc:'Paiements mobiles — Orange Money, MTN MoMo',               status:'pending'   },
-    { id:'whatsapp',  icon:'💬',  name:'WhatsApp Business',  desc:'Notifications et confirmations via WhatsApp',               status:'soon'      },
-    { id:'smtp_email',icon:'📧',  name:'Email SMTP',         desc:'Envoi d\'emails transactionnels',                           status:'soon'      },
-    { id:'booking',   icon:'🌐',  name:'Booking.com',        desc:'Synchronisation disponibilités et réservations',           status:'soon'      },
-    { id:'airbnb',    icon:'🏠',  name:'Airbnb',             desc:'Synchronisation calendrier et tarifs',                     status:'soon'      },
-  ];
-  var statusLabel = { connected:'Connecté', pending:'En cours', soon:'Bientôt' };
-  var statusClass = { connected:'int-connected', pending:'int-pending', soon:'int-soon' };
-
-  return page('🔌','Intégrations API','Connexions aux services tiers et passerelles',
-    ints.map(function(it){
-      var st = S.integrations[it.id] ? S.integrations[it.id].status : 'soon';
-      return '<div class="int-card">'
-        + '<div class="int-icon">' + it.icon + '</div>'
-        + '<div class="int-info">'
-        + '<div class="int-name">' + it.name + '</div>'
-        + '<div class="int-desc">' + it.desc + '</div>'
-        + '<span class="int-status ' + statusClass[st] + '">' + statusLabel[st] + '</span>'
-        + '<div class="int-actions">'
-        + (st === 'connected'
-          ? '<button class="btn btn-sm btn-secondary">⚙️ Configurer</button>'
-          + '<button class="btn btn-sm btn-danger">🔌 Déconnecter</button>'
-          : st === 'pending'
-          ? '<button class="btn btn-sm btn-primary" onclick="toast(\'ℹ️ Vérifiez votre tableau de bord CinetPay\')">🔄 Finaliser</button>'
-          : '<button class="btn btn-sm btn-secondary" onclick="toast(\'ℹ️ Disponible prochainement\')">🔔 M\'avertir</button>')
-        + '</div></div></div>';
-    }).join('')
-  );
-}
-
-/* ── Système ─────────────────────────────────────────────── */
-function sSysteme() {
-  return page('⚙️','Paramètres Système','Maintenance, sauvegardes et informations techniques',
-    '<div class="card"><div class="card-title">ℹ️ <span>Informations système</span></div>'
-    + '<div class="sys-row"><span class="sys-key">Version Veraluz OS</span><span class="sys-val">v2.0.0-beta</span></div>'
-    + '<div class="sys-row"><span class="sys-key">Modules actifs</span><span class="sys-val">9 / 9</span></div>'
-    + '<div class="sys-row"><span class="sys-key">Supabase Project</span><span class="sys-val">dfdmasejso…</span></div>'
-    + '<div class="sys-row"><span class="sys-key">GitHub repo</span><span class="sys-val">ngams237/veraluz-os</span></div>'
-    + '<div class="sys-row"><span class="sys-key">Dernière mise à jour</span><span class="sys-val">' + new Date().toLocaleDateString('fr-FR') + '</span></div>'
-    + '<div class="sys-row"><span class="sys-key">Storage utilisé</span><span class="sys-val" id="storage-size">—</span></div>'
-    + '</div>'
-    + '<div class="card"><div class="card-title">💾 <span>Sauvegarde</span></div>'
-    + '<div class="form-hint" style="margin-bottom:12px">Les paramètres sont sauvegardés localement. Exportez une copie pour les conserver en cas de réinitialisation.</div>'
-    + '<div class="btn-row">'
-    + '<button class="btn btn-primary" onclick="exportSettings()">📤 Exporter paramètres</button>'
-    + '<button class="btn btn-secondary" onclick="importSettings()">📥 Importer</button>'
-    + '</div></div>'
-    + '<div class="card" style="border-color:rgba(239,68,68,.3)">'
-    + '<div class="card-title" style="color:var(--red)">⚠️ <span>Zone dangereuse</span></div>'
-    + '<div class="form-hint" style="margin-bottom:12px">Ces actions sont irréversibles. Procédez avec prudence.</div>'
-    + '<div class="btn-row">'
-    + '<button class="btn btn-danger" onclick="confirmReset()">🔄 Réinitialiser les paramètres</button>'
-    + '<button class="btn btn-danger" onclick="confirmClearLogs()">🗑️ Vider les logs locaux</button>'
-    + '</div></div>'
-  );
-}
-
-/* ── Helpers ─────────────────────────────────────────────── */
-function page(icon, title, sub, body) {
-  return '<div class="page-header"><div class="page-title">' + icon + ' ' + title + '</div>'
-    + '<div class="page-sub">' + sub + '</div></div>' + body;
-}
-function saveBtnRow() {
-  return '<div class="btn-row"><button class="btn btn-primary" onclick="saveAll()">💾 Enregistrer</button>'
-    + '<button class="btn btn-secondary" onclick="discardChanges()">↩️ Annuler</button></div>';
-}
-
-/* ── System actions ──────────────────────────────────────── */
-function exportSettings() {
-  var json = JSON.stringify(S, null, 2);
-  var blob = new Blob([json],{type:'application/json'});
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href = url; a.download = 'veraluz_settings_' + new Date().toISOString().slice(0,10) + '.json';
-  a.click(); URL.revokeObjectURL(url);
-  toast('✅ Paramètres exportés');
-}
-function importSettings() {
-  toast('ℹ️ Glissez votre fichier JSON ici (bientôt)');
-}
-function confirmReset() {
-  showModal('⚠️ Réinitialiser les paramètres',
-    'Cette action va effacer TOUS les paramètres personnalisés et revenir aux valeurs par défaut. Cette action est irréversible.',
-    '<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>'
-    + '<button class="btn btn-danger" onclick="doReset()">Réinitialiser</button>'
-  );
-}
-function doReset() {
-  S = JSON.parse(JSON.stringify(DEFAULTS));
-  localStorage.removeItem(LS_KEY);
-  closeModal();
-  renderSection(currentSection);
-  markClean();
-  toast('🔄 Paramètres réinitialisés');
-  emit('settings-reset', {});
-}
-function confirmClearLogs() {
-  showModal('🗑️ Vider les logs locaux',
-    'Les logs stockés localement seront supprimés. Les données Supabase ne sont pas affectées.',
-    '<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>'
-    + '<button class="btn btn-danger" onclick="doClearLogs()">Vider</button>'
-  );
-}
-function doClearLogs() {
-  var keys = Object.keys(localStorage).filter(function(k){ return k.startsWith('veraluz_'); });
-  keys.forEach(function(k){ if (k !== LS_KEY) localStorage.removeItem(k); });
-  closeModal();
-  toast('🗑️ Logs locaux vidés (' + keys.length + ' entrées)');
-  emit('logs-cleared', { count: keys.length });
-}
-
-/* ── Storage size display ────────────────────────────────── */
-function updateStorageInfo() {
-  try {
-    var total = 0;
-    Object.keys(localStorage).forEach(function(k){
-      if (k.startsWith('veraluz_')) total += localStorage.getItem(k).length;
-    });
-    var el = document.getElementById('storage-size');
-    if (el) el.textContent = (total / 1024).toFixed(1) + ' KB';
-  } catch(e) {}
-}
-
-/* ── Main render ─────────────────────────────────────────── */
-function renderSection(id) {
-  var c = document.getElementById('content');
-  var html = '';
-  if      (id==='hotel')        html = sHotel();
-  else if (id==='branding')     html = sBranding();
-  else if (id==='chambres')     html = sChambres();
-  else if (id==='tarifs')       html = sTarifs();
-  else if (id==='devises')      html = sDevises();
-  else if (id==='restaurant')   html = sRestaurant();
-  else if (id==='notifs')       html = sNotifs();
-  else if (id==='permissions')  html = sPermissions();
-  else if (id==='integrations') html = sIntegrations();
-  else if (id==='systeme')      html = sSysteme();
-  c.innerHTML = html;
-  if (id==='systeme') setTimeout(updateStorageInfo, 50);
-}
 </script>
 </body>
 </html>

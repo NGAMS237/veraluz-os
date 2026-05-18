@@ -368,6 +368,7 @@ textarea.fi{resize:vertical;min-height:78px}
 .pmbtn .pmn{font-size:11px;font-weight:700;color:var(--text2)}
 .pinstr{border-radius:14px;padding:14px;margin-bottom:4px;font-size:13px}
 .pinstr.orange{background:#fff3e0;border:1px solid #ffb74d}
+.pinstr.card{background:linear-gradient(135deg,#f0f4ff,#e8f0fe);border:1px solid #6366f1;color:#1e293b}
 .pinstr.mtn{background:#fffde7;border:1px solid #ffd54f}
 .pinstr.arrival{background:#e8f5e9;border:1px solid #81c784}
 .pinstr.transfer{background:#e3f2fd;border:1px solid #64b5f6}
@@ -678,6 +679,7 @@ textarea.fi{resize:vertical;min-height:78px}
         <button class="pmbtn" id="pm-m" onclick="sPm('m')"><div class="pmic"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div class="pmn">MTN MoMo</div></button>
         <button class="pmbtn" id="pm-a" onclick="sPm('a')"><div class="pmic"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="pmn">A l'arrivée</div></button>
         <button class="pmbtn" id="pm-t" onclick="sPm('t')"><div class="pmic"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div><div class="pmn">Virement</div></button>
+        <button class="pmbtn" id="pm-c" onclick="sPm('c')"><div class="pmic"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg></div><div class="pmn">Carte bancaire</div></button>
       </div>
       <div id="piEl"></div>
       <div class="ferr" id="e4"></div>
@@ -944,7 +946,7 @@ function p3nx() {
 }
 
 function sAmt(v){_bk.amt=v;document.getElementById('ab-d').classList.toggle('sel',v==='d');document.getElementById('ab-f').classList.toggle('sel',v==='f');rndrPi();}
-function sPm(v){_bk.pm=v;['o','m','a','t'].forEach(function(x){document.getElementById('pm-'+x).classList.toggle('sel',x===v);});rndrPi();}
+function sPm(v){_bk.pm=v;['o','m','a','t','c'].forEach(function(x){var el=document.getElementById('pm-'+x);if(el)el.classList.toggle('sel',x===v);});rndrPi();}
 
 function rndrPay() {
   var bk=_bk,r=bk.room;
@@ -965,6 +967,7 @@ function rndrPi() {
   if(pm==='o') h='<div class="pinstr orange"><div class="pi-tit">Orange Money</div><div class="pi-r">1. Composez #150# sur votre téléphone Orange</div><div class="pi-r">2. Envoyez <b>'+s+'</b></div><div class="pi-num">'+omNum+'</div><div class="pi-r">Référence: VERALUZ-BK</div><div class="pi-note">Conservez votre reçu SMS.</div></div>';
   else if(pm==='m') h='<div class="pinstr mtn"><div class="pi-tit">MTN Mobile Money</div><div class="pi-r">1. Ouvrez votre app MTN MoMo</div><div class="pi-r">2. Transférez <b>'+s+'</b></div><div class="pi-num">'+mtnNum+'</div><div class="pi-r">Référence: VERALUZ-BK</div><div class="pi-note">Transaction sécurisée MTN.</div></div>';
   else if(pm==='a') h='<div class="pinstr arrival"><div class="pi-tit">Paiement à l\'arrivée</div><div class="pi-r">Réservation confirmée sans paiement immédiat.</div><div class="pi-r">Montant dû à l\'arrivée: <b>'+tot+'</b></div><div class="pi-note">Espèces ou mobile money à la réception.</div></div>';
+  else if(pm==='c') h='<div class="pinstr card"><div class="pi-tit">💳 Carte bancaire</div><div class="pi-r">Visa · Mastercard · Paiement sécurisé</div><div class="pi-r">Montant: <b>'+s+'</b></div><div class="pi-note">Notre équipe vous enverra un lien de paiement sécurisé par email dans les 2h.</div></div>';
   else h='<div class="pinstr transfer"><div class="pi-tit">Virement bancaire</div><div class="pi-r">Banque: <b>Afriland First Bank</b></div><div class="pi-r">Titulaire: <b>Résidence Veraluz SARL</b></div><div class="pi-r">Montant: <b>'+s+'</b></div><div class="pi-note">Envoyez votre reçu par WhatsApp.</div></div>';
   document.getElementById('piEl').innerHTML=h;
 }
@@ -972,7 +975,7 @@ function rndrPi() {
 function confRes() {
   var btn=document.getElementById('payBtn'); btn.disabled=true; btn.innerHTML='En cours…';
   var bk=_bk, ref='VLZ-'+Date.now().toString(36).toUpperCase();
-  var pm_labels={'o':'Orange Money','m':'MTN MoMo','a':'Paiement à l\'arrivée','t':'Virement bancaire'};
+  var pm_labels={'o':'Orange Money','m':'MTN MoMo','a':'Paiement à l\'arrivée','t':'Virement bancaire','c':'Carte bancaire (lien envoyé)'};
   var d={reference:ref,unit_id:bk.room.id,unit_name:bk.room.name,
     client_name:bk.guest.name,client_email:bk.guest.email,client_phone:bk.guest.phone,
     guests:parseInt(bk.guest.count)||1,notes:bk.guest.requests||'',
@@ -1029,7 +1032,7 @@ function rndrConf(ref,d) {
     '<div class="conf-row"><span>Montant payé</span><span>'+Number(d.amount_paid).toLocaleString('fr-FR')+' FCFA</span></div>';
   document.getElementById('cNext').innerHTML='📧 Téléchargez votre reçu PDF ci-dessous.<br>💬 Notre équipe vous contactera sur WhatsApp.';
   var msg=encodeURIComponent('Bonjour! Reservation confirmee a la Residence Veraluz.\nReference: '+ref+'\nLogement: '+d.unit_name+'\nArrivee: '+fd(d.check_in)+'\nDepart: '+fd(d.check_out)+'\nMontant: '+Number(d.amount_paid).toLocaleString('fr-FR')+' FCFA');
-  document.getElementById('confWA').href='https://wa.me/237600000000?text='+msg;
+  var _hcWA=getHotelPay(); var _waNum=(_hcWA.phone||'237600000000').replace(/[^0-9]/g,''); document.getElementById('confWA').href='https://wa.me/'+_waNum+'?text='+msg;
 }
 
 // ── PDF Generation ──

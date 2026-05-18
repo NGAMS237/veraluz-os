@@ -301,6 +301,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     <div id="sb-coming"></div>
   </div>
   <div class="sb-bottom">
+    <div id="sb-pointage-wrap" style="display:none;padding:0 8px 10px;">
+      <button class="sb-btn" id="sb-pointage-btn"
+        style="background:rgba(34,211,165,.1);color:var(--accent);border:1px solid rgba(34,211,165,.2);"
+        onclick="openPointagePanel()">
+        <span class="sb-icon">⏱</span> Mon Pointage
+      </button>
+    </div>
     <div class="sb-user">
       <div class="sb-avatar">S</div>
       <div>
@@ -330,6 +337,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
         🔔
         <span class="notif-badge" id="notif-badge"></span>
       </button>
+      <button class="tb-btn" id="tb-pointage-btn" onclick="openPointagePanel()"
+        style="display:none;" title="Mon Pointage">⏱</button>
       <button class="tb-btn" onclick="refreshCurrent()">&#8635;</button>
     </div>
   </div>
@@ -675,15 +684,15 @@ var ROLES = {
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
              'notifications','analytics','auth'] },
   reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981', primaryModule:'reservations',
-    modules:['reservations','paiements','notifications'] },
+    modules:['reservations','paiements','notifications','rh'] },
   rh:          { label:'RH',               icon:'👥',  color:'#f59e0b', primaryModule:'rh',
     modules:['rh','notifications','analytics'] },
   comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'finance',
     modules:['finance','paiements','analytics','audit','notifications'] },
   restaurant:  { label:'Restaurant',       icon:'🍽️',  color:'#f97316', primaryModule:'restaurant',
-    modules:['restaurant','notifications'] },
+    modules:['restaurant','notifications','rh'] },
   housekeeping:{ label:'Housekeeping',     icon:'🧹',  color:'#84cc16', primaryModule:'housekeeping',
-    modules:['housekeeping','notifications'] }
+    modules:['housekeeping','notifications','rh'] }
 };
 
 /* ── Admin fallback users (accès admin uniquement) ─────────────────── */
@@ -828,9 +837,10 @@ function doLoginPin() {
     return;
   }
   var empId   = sel.value;
-  var empName = sel.options[sel.selectedIndex].dataset.name;
-  var empRole = sel.options[sel.selectedIndex].dataset.role;
-  var empPin  = sel.options[sel.selectedIndex].dataset.pin || '1234';
+  var selOpt  = sel.options[sel.selectedIndex];
+  var empName = selOpt.getAttribute('data-name') || selOpt.textContent;
+  var empRole = selOpt.getAttribute('data-role') || 'femme_chambre';
+  var empPin  = selOpt.getAttribute('data-pin')  || '1234';
 
   if (_pinBuffer !== empPin) {
     errEl.textContent = 'NIP incorrect. Réessayez.';
@@ -906,6 +916,8 @@ function doLogin() {
   loadDashboardData();
 }
 
+function navigateTo(id) { goTo(id); }
+
 function toggleAdminMode() {
   var emp = document.getElementById('auth-emp-mode');
   var adm = document.getElementById('auth-admin-mode');
@@ -968,6 +980,12 @@ function updateTopbarUser() {
   } else {
     info.style.display = 'none';
   }
+  // Afficher le bouton pointage uniquement pour les employés (pas les admins purs)
+  var isEmployee = currentUser && currentUser.employee_id;
+  var sbWrap = document.getElementById('sb-pointage-wrap');
+  var tbBtn  = document.getElementById('tb-pointage-btn');
+  if (sbWrap) sbWrap.style.display = isEmployee ? 'block' : 'none';
+  if (tbBtn)  tbBtn.style.display  = isEmployee ? 'flex'  : 'none';
 }
 
 function sendAuthContext(iframe) {
@@ -1182,12 +1200,12 @@ window.addEventListener('message', function(ev) {
     </div>
     <div class="auth-error" id="auth-error"></div>
 
-    <!-- ── Employee mode (default) ── -->
+    <!-- ── Mode employé (par défaut) ── -->
     <div id="auth-emp-mode">
       <div class="auth-emp-pick">
         <label>Qui êtes-vous ?</label>
         <select class="auth-emp-select" id="auth-emp-select">
-          <option value="">— Chargement... —</option>
+          <option value="">⏳ Chargement des employés...</option>
         </select>
       </div>
       <span class="auth-pin-lbl">Votre NIP (4 chiffres)</span>
@@ -1213,15 +1231,102 @@ window.addEventListener('message', function(ev) {
       <button class="auth-btn" onclick="doLoginPin()">✅ Se connecter</button>
     </div>
 
-    <!-- ── Admin mode (secondary) ── -->
+    <!-- ── Mode admin (secondaire) ── -->
     <div id="auth-admin-mode" style="display:none;">
       <div class="auth-field">
         <label>Identifiant admin</label>
         <input type="text" id="auth-username" placeholder="admin"
-               autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+               autocomplete="username"
+               onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
       </div>
       <div class="auth-field">
         <label>Mot de passe</label>
         <input type="password" id="auth-password" placeholder="••••••••"
-               autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
- 
+               autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div class="auth-field" style="flex-direction:row;align-items:center;gap:8px;">
+        <input type="checkbox" id="auth-remember" style="width:auto;">
+        <label for="auth-remember" style="font-size:12px;color:var(--text2);">Se souvenir de moi (7 jours)</label>
+      </div>
+      <button class="auth-btn" onclick="doLogin()">🔐 Connexion admin</button>
+    </div>
+
+    <!-- ── Toggle mode ── -->
+    <div class="auth-mode-toggle">
+      <a id="auth-mode-lnk" onclick="toggleAdminMode()">🔐 Accès administrateur</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Panneau Pointage Rapide ──────────────────────────────── -->
+<style>
+#pointage-panel {
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+#pointage-panel.hidden{display:none;}
+.pp-box {
+  background:var(--bg2);border-radius:16px;width:100%;max-width:420px;
+  padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.pp-hdr {display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.pp-hdr h3 {font-size:18px;font-weight:700;}
+.pp-close {background:transparent;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px;}
+.pp-time {font-size:36px;font-weight:800;color:var(--accent);text-align:center;margin:8px 0;}
+.pp-date {font-size:13px;color:var(--text2);text-align:center;margin-bottom:16px;}
+.pp-status {text-align:center;font-size:14px;margin-bottom:16px;min-height:20px;}
+.pp-btns {display:flex;gap:10px;margin-bottom:20px;}
+.pp-btn-in  {flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;
+  background:rgba(34,211,165,.15);color:var(--accent);font-weight:700;font-size:15px;}
+.pp-btn-out {flex:1;padding:12px;border-radius:10px;border:none;cursor:pointer;
+  background:rgba(244,63,94,.15);color:var(--err);font-weight:700;font-size:15px;}
+.pp-btn-in:hover  {background:rgba(34,211,165,.25);}
+.pp-btn-out:hover {background:rgba(244,63,94,.25);}
+.pp-section {font-size:11px;color:var(--text3);text-transform:uppercase;
+  letter-spacing:.7px;margin-bottom:8px;font-weight:600;}
+.att-history {max-height:220px;overflow-y:auto;}
+.att-row {display:flex;justify-content:space-between;align-items:center;
+  padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);}
+.att-row:last-child{border:none;}
+</style>
+
+<div id="pointage-panel" class="hidden">
+  <div class="pp-box">
+    <div class="pp-hdr">
+      <h3>⏱ Mon Pointage</h3>
+      <button class="pp-close" onclick="closePointagePanel()">✕</button>
+    </div>
+    <div class="pp-time" id="punch-clock">--:--</div>
+    <div class="pp-date" id="punch-date"></div>
+    <div class="pp-status" id="punch-status">Chargement...</div>
+    <div class="pp-btns">
+      <button class="pp-btn-in"  id="punch-btn-in"  onclick="doPunchIn()"  style="display:none">▶ Arrivée</button>
+      <button class="pp-btn-out" id="punch-btn-out" onclick="doPunchOut()" style="display:none">⏹ Départ</button>
+    </div>
+    <div class="pp-section">Présences récentes (14 jours)</div>
+    <div class="att-history" id="att-history">
+      <div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Chargement...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Horloge en temps réel dans le panneau pointage
+setInterval(function(){
+  var el = document.getElementById('punch-clock');
+  if (el && document.getElementById('pointage-panel') &&
+      !document.getElementById('pointage-panel').classList.contains('hidden')) {
+    el.textContent = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+}, 1000);
+// Date dans le panneau
+(function(){
+  var el = document.getElementById('punch-date');
+  if (el) el.textContent = new Date().toLocaleDateString('fr-FR',
+    {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+})();
+</script>
+
+</body>
+</html>

@@ -726,30 +726,469 @@ function renderIntegrations(){
   +'</div>';
 }
 
+/* ── Email Hub state ── */
+var _emailTab = 'config';
+
 function renderEmail(){
-  var e=S.email||{};
-  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
-    'Configuration Email', 'EmailJS connecté à residenceveraluz@gmail.com')
-  +'<div class="card" style="background:rgba(34,211,165,.05);border-color:rgba(34,211,165,.2);">'
-  +'<p style="font-size:11px;color:var(--acc);">ℹ Service : <strong>service_mwiart1</strong><br>'
-  +'Créez un template sur <a href="https://dashboard.emailjs.com/admin/templates" target="_blank" style="color:var(--acc);">emailjs.com → Templates</a>.<br>'
-  +'Variables requises : <code style="background:var(--bg3);padding:1px 4px;border-radius:3px;">{{to_email}}</code> '
-  +'<code style="background:var(--bg3);padding:1px 4px;border-radius:3px;">{{subject}}</code> '
-  +'<code style="background:var(--bg3);padding:1px 4px;border-radius:3px;">{{{body_html}}}</code> (triple accolades pour HTML)</p>'
-  +'</div>'
-  +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>Template EmailJS</div>'
-  +field('Template ID','email.template_id',e.template_id||'','text',"Copiez l'ID depuis EmailJS dashboard → Email Templates")
-  +'<div class="btn-group" style="margin-top:12px;">'
-  +'<button class="btn btn-p" onclick="testEmail()">📧 Envoyer un email de test</button>'
-  +'</div></div>'
-  +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Envois automatiques</div>'
-  +toggle('Confirmation réservation','Email automatique au client à chaque réservation','email.auto_booking',e.auto_booking!==false)
-  +toggle('Alertes critiques admin','Envoyer les alertes critiques par email','email.auto_alert',e.auto_alert!==false)
-  +toggle('Rapport quotidien','Rapport automatique chaque soir','email.auto_report',e.auto_report||false)
-  +field('Email admin (réception alertes & rapports)','email.test_address',e.test_address||'residenceveraluz@gmail.com','email')
-  +'</div>';
+  return renderEmailHub();
+}
+
+function goEmailTab(tab){
+  _emailTab = tab;
+  renderSection('email');
+}
+
+function renderEmailHub(){
+  var tabs = [
+    {id:'config',   label:'Configuration'},
+    {id:'modeles',  label:'Modèles'},
+    {id:'campagnes',label:'Campagnes'},
+    {id:'historique',label:'Historique'}
+  ];
+  var tabBar = '<div class="email-tabs" style="display:flex;gap:4px;margin-bottom:16px;background:var(--bg3);border-radius:10px;padding:4px;">'
+    + tabs.map(function(t){
+        var active = _emailTab === t.id;
+        return '<button onclick="goEmailTab(\''+t.id+'\')" style="flex:1;padding:8px 4px;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;transition:.15s;'
+          +(active ? 'background:var(--acc);color:#000;' : 'background:transparent;color:var(--text2);')
+          +'">'+t.label+'</button>';
+      }).join('')
+    + '</div>';
+
+  var ph_html = ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+    'Email Hub', 'Configuration, modèles, campagnes et historique');
+
+  var body = '';
+  if(_emailTab === 'config')      body = renderEmailConfig();
+  else if(_emailTab === 'modeles')  body = renderEmailTemplates();
+  else if(_emailTab === 'campagnes') body = renderEmailCampagnes();
+  else if(_emailTab === 'historique') body = renderEmailHistorique();
+
+  return ph_html + tabBar + body;
+}
+
+function renderEmailConfig(){
+  var e = S.email || {};
+  return '<div class="card" style="background:rgba(34,211,165,.05);border-color:rgba(34,211,165,.2);">'
+    +'<p style="font-size:11px;color:var(--acc);">ℹ Service : <strong>service_mwiart1</strong> &nbsp;|&nbsp; Public Key : <strong>MqrKcqvO952CD5HOA</strong><br>'
+    +'Créez un template sur <a href="https://dashboard.emailjs.com/admin/templates" target="_blank" style="color:var(--acc);">emailjs.com → Templates</a>.<br>'
+    +'Variables requises : <code style="background:var(--bg3);padding:1px 4px;border-radius:3px;">{{to_email}}</code> '
+    +'<code style="background:var(--bg3);padding:1px 4px;border-radius:3px;">{{subject}}</code> '
+    +'<code style="background:var(--bg3);padding:1px 4px;border-radius:3px;">{{{body_html}}}</code> (triple accolades pour HTML)</p>'
+    +'</div>'
+    +'<div class="card">'
+    +'<div class="card-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>Identifiants EmailJS (lecture seule)</div>'
+    +'<div class="row"><label>Service ID</label><input type="text" value="service_mwiart1" readonly style="background:var(--bg4);color:var(--text3);cursor:default;"></div>'
+    +'<div class="row"><label>Public Key</label><input type="text" value="MqrKcqvO952CD5HOA" readonly style="background:var(--bg4);color:var(--text3);cursor:default;"></div>'
+    +field('Template ID (modifiable)','email.template_id',e.template_id||'','text',"Copiez l’ID depuis EmailJS dashboard → Email Templates")
+    +'</div>'
+    +'<div class="card">'
+    +'<div class="card-title"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Envois automatiques</div>'
+    +toggle('Confirmation réservation','Email automatique au client à chaque réservation','email.auto_booking',e.auto_booking!==false)
+    +toggle('Alertes critiques admin','Envoyer les alertes critiques par email','email.auto_alert',e.auto_alert!==false)
+    +toggle('Rapport quotidien','Rapport automatique chaque soir','email.auto_report',e.auto_report||false)
+    +field('Email de test / admin','email.test_address',e.test_address||'residenceveraluz@gmail.com','email')
+    +'<div class="btn-group" style="margin-top:12px;">'
+    +'<button class="btn btn-p" onclick="testEmail()">📧 Envoyer un email de test</button>'
+    +'</div></div>';
+}
+
+/* ── Built-in templates ── */
+function getBuiltinTemplates(){
+  return [
+    {id:'tpl_confirm', name:'Confirmation réservation', category:'Réservation',
+     subject:'Votre réservation est confirmée — Résidence Veraluz',
+     body:'<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0f1117;color:#e8eaf0;">'
+       +'<h1 style="color:#22d3a5;font-size:22px;">Résidence Veraluz</h1>'
+       +'<h2 style="font-size:18px;">Votre réservation est confirmée !</h2>'
+       +'<p>Chèr(e) <strong>{{NOM_CLIENT}}</strong>,</p>'
+       +'<p>Nous sommes ravis de vous accueillir à la Résidence Veraluz à Kribi.</p>'
+       +'<table style="width:100%;background:#1e2535;border-radius:8px;padding:16px;margin:16px 0;">'
+       +'<tr><td><strong>Chambre :</strong></td><td>{{TYPE_CHAMBRE}}</td></tr>'
+       +'<tr><td><strong>Arrivée :</strong></td><td>{{DATE_ARRIVEE}}</td></tr>'
+       +'<tr><td><strong>Départ :</strong></td><td>{{DATE_DEPART}}</td></tr>'
+       +'<tr><td><strong>Montant :</strong></td><td>{{MONTANT}} XAF</td></tr>'
+       +'</table>'
+       +'<p>Check-in à partir de 14h00. Besoin d\'aide ? Répondez à cet email.</p>'
+       +'<p style="color:#22d3a5;font-weight:bold;">L\'équipe Veraluz</p>'
+       +'</div>',
+     created_at: new Date().toISOString()},
+    {id:'tpl_bienvenue', name:'Bienvenue retour', category:'Fidélité',
+     subject:'Nous avons hâte de vous revoir !',
+     body:'<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0f1117;color:#e8eaf0;">'
+       +'<h1 style="color:#22d3a5;">Bon retour, {{NOM_CLIENT}} !</h1>'
+       +'<p>Chaque séjour à la Résidence Veraluz est unique, et nous avons hâte de vous retrouver.</p>'
+       +'<p>Votre chambre est prête, la vue sur l\'océan vous attend, et notre équipe est impatiente de prendre soin de vous.</p>'
+       +'<p style="color:#22d3a5;font-weight:bold;">A très bientôt,<br>L\'équipe Veraluz, Kribi</p>'
+       +'</div>',
+     created_at: new Date().toISOString()},
+    {id:'tpl_offre', name:'Offre spéciale', category:'Marketing',
+     subject:'Une offre exclusive pour vous',
+     body:'<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0f1117;color:#e8eaf0;">'
+       +'<h1 style="color:#22d3a5;">Offre exclusive Veraluz</h1>'
+       +'<p>Chèr(e) {{NOM_CLIENT}},</p>'
+       +'<div style="background:#1e2535;border-left:4px solid #22d3a5;padding:16px;margin:16px 0;border-radius:0 8px 8px 0;">'
+       +'<h2 style="color:#22d3a5;margin:0;">[OFFRE]</h2>'
+       +'</div>'
+       +'<p>Cette offre est valable pour une durée limitée. Répondez à cet email pour en profiter.</p>'
+       +'<p style="color:#22d3a5;font-weight:bold;">L\'équipe Veraluz</p>'
+       +'</div>',
+     created_at: new Date().toISOString()},
+    {id:'tpl_merci', name:'Merci pour votre séjour', category:'Post-séjour',
+     subject:'Merci pour votre séjour à Kribi !',
+     body:'<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0f1117;color:#e8eaf0;">'
+       +'<h1 style="color:#22d3a5;">Merci, {{NOM_CLIENT}} !</h1>'
+       +'<p>C\'était un plaisir de vous accueillir à la Résidence Veraluz.</p>'
+       +'<p>Nous espérons que votre séjour à Kribi a été mémorable. Votre avis compte énormalement pour nous.</p>'
+       +'<p>Revenez nous voir très bientôt !</p>'
+       +'<p style="color:#22d3a5;font-weight:bold;">Avec chaleur,<br>L\'équipe Veraluz, Kribi</p>'
+       +'</div>',
+     created_at: new Date().toISOString()},
+    {id:'tpl_paie', name:'Bulletin de paie', category:'RH',
+     subject:'Votre bulletin de paie — [MOIS]',
+     body:'<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#0f1117;color:#e8eaf0;">'
+       +'<h1 style="color:#22d3a5;">Résidence Veraluz — RH</h1>'
+       +'<h2>Bulletin de paie — [MOIS]</h2>'
+       +'<p>Bonjour {{NOM_EMPLOYE}},</p>'
+       +'<p>Veuillez trouver ci-joint votre bulletin de paie pour la période [MOIS].</p>'
+       +'<p>Pour toute question, contactez la direction.</p>'
+       +'<p style="color:#22d3a5;font-weight:bold;">Direction RH,<br>Résidence Veraluz</p>'
+       +'</div>',
+     created_at: new Date().toISOString()}
+  ];
+}
+
+function loadEmailTemplates(){
+  try{
+    var raw = localStorage.getItem('vz_email_templates_lib');
+    if(raw){ var arr = JSON.parse(raw); if(arr && arr.length) return arr; }
+  }catch(e){}
+  var defaults = getBuiltinTemplates();
+  try{ localStorage.setItem('vz_email_templates_lib', JSON.stringify(defaults)); }catch(e){}
+  return defaults;
+}
+
+function saveEmailTemplate(tpl){
+  var lib = loadEmailTemplates();
+  var idx = -1;
+  for(var i=0;i<lib.length;i++){ if(lib[i].id===tpl.id){ idx=i; break; } }
+  if(idx>=0) lib[idx]=tpl; else lib.push(tpl);
+  try{ localStorage.setItem('vz_email_templates_lib', JSON.stringify(lib)); }catch(e){}
+}
+
+function renderEmailTemplates(){
+  var lib = loadEmailTemplates();
+  var catColors = {
+    'Réservation':'bdg-g','Fidélité':'bdg-b','Marketing':'bdg-a',
+    'Post-séjour':'bdg-g','RH':'bdg-b','Autre':'bdg-b'
+  };
+  var cards = lib.map(function(t){
+    var cat = t.category || 'Autre';
+    var cc = catColors[cat] || 'bdg-b';
+    return '<div style="background:var(--bg3);border:1px solid var(--bg4);border-radius:10px;padding:14px;">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">'
+      +'<div><div style="font-size:13px;font-weight:700;margin-bottom:4px;">'+escH(t.name)+'</div>'
+      +'<span class="bdg '+cc+'">'+escH(cat)+'</span></div>'
+      +'<div style="display:flex;gap:6px;flex-shrink:0;">'
+      +'<button class="btn btn-o btn-sm" onclick="openTemplateEditor(\''+escH(t.id)+'\')">&#9999; Modifier</button>'
+      +'<button class="btn btn-o btn-sm" onclick="copyTemplate(\''+escH(t.id)+'\')">&#128203; Copier</button>'
+      +'</div></div>'
+      +'<div style="font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escH(t.subject)+'</div>'
+      +'</div>';
+  }).join('');
+
+  return '<div class="card">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+    +'<div class="card-title" style="margin:0;"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Bibliothèque de modèles</div>'
+    +'<button class="btn btn-p btn-sm" onclick="openTemplateEditor(null)">+ Nouveau</button>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">'+cards+'</div>'
+    +'</div>'
+    +'<div id="tpl-editor-wrap"></div>';
+}
+
+function openTemplateEditor(tplId){
+  var lib = loadEmailTemplates();
+  var tpl = null;
+  if(tplId){ for(var i=0;i<lib.length;i++){ if(lib[i].id===tplId){ tpl=lib[i]; break; } } }
+  if(!tpl) tpl = {id:'tpl_'+Date.now(), name:'', subject:'', body:'', category:'Autre', created_at:new Date().toISOString()};
+
+  var wrap = document.getElementById('tpl-editor-wrap');
+  if(!wrap) return;
+  var safeId = escH(tpl.id);
+  var safeName = escH(tpl.name);
+  var safeSubj = escH(tpl.subject);
+  var safeBody = escH(tpl.body);
+  var safeCat = escH(tpl.category||'Autre');
+
+  wrap.innerHTML = '<div class="card" style="border-color:var(--acc);">'
+    +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Éditer le modèle</div>'
+    +'<input type="hidden" id="et-id" value="'+safeId+'">'
+    +'<div class="row"><label>Nom du modèle</label><input type="text" id="et-name" value="'+safeName+'"></div>'
+    +'<div class="row"><label>Catégorie</label>'
+    +'<select id="et-cat">'
+    +['Réservation','Fidélité','Marketing','Post-séjour','RH','Autre'].map(function(c){
+        return '<option value="'+escH(c)+'"'+(c===tpl.category?' selected':'')+'>'+escH(c)+'</option>';
+      }).join('')
+    +'</select></div>'
+    +'<div class="row"><label>Sujet</label><input type="text" id="et-subj" value="'+safeSubj+'"></div>'
+    +'<div class="row"><label>Corps (HTML)</label><textarea id="et-body" style="min-height:160px;font-family:monospace;font-size:11px;">'+safeBody+'</textarea></div>'
+    +'<div class="btn-group">'
+    +'<button class="btn btn-p" onclick="commitTemplateEditor()">&#128190; Enregistrer</button>'
+    +'<button class="btn btn-o" onclick="document.getElementById(\'tpl-editor-wrap\').innerHTML=\'\'">Annuler</button>'
+    +'</div></div>';
+}
+
+function commitTemplateEditor(){
+  var tpl = {
+    id: document.getElementById('et-id').value,
+    name: document.getElementById('et-name').value,
+    subject: document.getElementById('et-subj').value,
+    body: document.getElementById('et-body').value,
+    category: document.getElementById('et-cat').value,
+    created_at: new Date().toISOString()
+  };
+  if(!tpl.name){ toast('Entrez un nom de modèle'); return; }
+  saveEmailTemplate(tpl);
+  toast('✓ Modèle enregistré');
+  _emailTab = 'modeles';
+  renderSection('email');
+}
+
+function copyTemplate(tplId){
+  var lib = loadEmailTemplates();
+  for(var i=0;i<lib.length;i++){
+    if(lib[i].id===tplId){
+      var copy = JSON.parse(JSON.stringify(lib[i]));
+      copy.id = 'tpl_'+Date.now();
+      copy.name = 'Copie — '+copy.name;
+      copy.created_at = new Date().toISOString();
+      saveEmailTemplate(copy);
+      toast('✓ Modèle copié');
+      _emailTab = 'modeles';
+      renderSection('email');
+      return;
+    }
+  }
+}
+
+/* ── Campagnes ── */
+var _campagne = {segment: null, tplId: null, subject: '', step: 1};
+
+function getSegments(){
+  var rezRaw = null;
+  try{ rezRaw = localStorage.getItem('vlz_cache_rez'); }catch(e){}
+  var rez = [];
+  try{ if(rezRaw) rez = JSON.parse(rezRaw); }catch(e){}
+  if(!Array.isArray(rez)) rez = [];
+
+  var now = Date.now();
+  var day90 = 90*24*3600*1000;
+  var day90ago = now - day90;
+
+  var clientMap = {};
+  rez.forEach(function(r){
+    var em = r.email || r.client_email || '';
+    var nm = r.guest_name || r.nom || r.client_name || '';
+    if(!em) return;
+    if(!clientMap[em]) clientMap[em] = {email:em, name:nm, stays:0, lastStay:0};
+    clientMap[em].stays++;
+    var d = r.checkout_date || r.check_out || r.date_depart || '';
+    if(d){ var t = new Date(d).getTime(); if(t > clientMap[em].lastStay) clientMap[em].lastStay = t; }
+  });
+  var clients = Object.values(clientMap);
+
+  var tous       = clients.filter(function(c){ return !!c.email; });
+  var vip        = clients.filter(function(c){ return c.stays >= 4; });
+  var fideles    = clients.filter(function(c){ return c.stays >= 2 && c.stays <= 3; });
+  var nouveaux   = clients.filter(function(c){ return c.lastStay > day90ago; });
+  var relance    = clients.filter(function(c){ return c.lastStay && c.lastStay < day90ago; });
+
+  return [
+    {id:'tous',    label:'Tous les clients avec email', clients: tous},
+    {id:'vip',     label:'VIP (4+ séjours)',       clients: vip},
+    {id:'fideles', label:'Fidèles (2-3 séjours)', clients: fideles},
+    {id:'nouveaux',label:'Nouveaux (< 90 jours)',      clients: nouveaux},
+    {id:'relance', label:'Relance (séjour ≥ 3 mois)', clients: relance}
+  ];
+}
+
+function renderEmailCampagnes(){
+  var segs = getSegments();
+  var lib = loadEmailTemplates();
+
+  var step = _campagne.step || 1;
+
+  var out = '<div class="card"><div class="card-title"><svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2L15 22 11 13 2 9l20-7z"/></svg>Nouvelle campagne email</div>';
+
+  /* Step 1 — segment */
+  out += '<div style="margin-bottom:16px;"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">1. Choisir un segment</div>'
+    +'<div style="display:flex;flex-direction:column;gap:6px;">'
+    + segs.map(function(s){
+        var active = _campagne.segment === s.id;
+        return '<button onclick="selectCampagneSegment(\''+s.id+'\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:8px;border:1px solid '+(active?'var(--acc)':'var(--bg4)')+';background:'+(active?'rgba(34,211,165,.1)':'var(--bg3)')+';color:var(--text);cursor:pointer;font-size:12px;text-align:left;">'
+          +'<span>'+(active?'&#10003; ':'')+escH(s.label)+'</span>'
+          +'<span style="background:var(--bg4);border-radius:10px;padding:2px 8px;font-size:11px;color:var(--text2);">'+s.clients.length+' contacts</span>'
+          +'</button>';
+      }).join('')
+    +'</div></div>';
+
+  /* Step 2 — template */
+  out += '<div style="margin-bottom:16px;"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">2. Choisir un modèle</div>'
+    +'<select id="camp-tpl" onchange="selectCampagneTpl(this.value)" style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--bg4);border-radius:8px;color:var(--text);font-size:13px;">'
+    +'<option value="">-- Sélectionnez un modèle --</option>'
+    + lib.map(function(t){
+        return '<option value="'+escH(t.id)+'"'+(_campagne.tplId===t.id?' selected':'')+'>'+escH(t.name)+'</option>';
+      }).join('')
+    +'</select></div>';
+
+  /* Step 3 — sujet */
+  var selTpl = null;
+  if(_campagne.tplId){ for(var i=0;i<lib.length;i++){ if(lib[i].id===_campagne.tplId){ selTpl=lib[i]; break; } } }
+  out += '<div style="margin-bottom:16px;"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">3. Personnaliser le sujet</div>'
+    +'<input type="text" id="camp-subject" value="'+escH(_campagne.subject || (selTpl?selTpl.subject:''))+'" placeholder="Sujet de l\'email..." style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--bg4);border-radius:8px;color:var(--text);font-size:13px;" oninput="_campagne.subject=this.value">'
+    +(selTpl?'<div style="margin-top:10px;padding:10px;background:var(--bg4);border-radius:6px;font-size:11px;color:var(--text2);max-height:80px;overflow:auto;">'+escH(selTpl.subject)+'</div>':'')
+    +'</div>';
+
+  /* Step 4 — envoyer */
+  var canSend = _campagne.segment && _campagne.tplId;
+  var segCount = 0;
+  if(canSend){ for(var j=0;j<segs.length;j++){ if(segs[j].id===_campagne.segment){ segCount=segs[j].clients.length; break; } } }
+
+  out += '<div style="margin-bottom:8px;"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;">4. Envoyer</div>'
+    +'<div id="camp-progress" style="margin-bottom:10px;font-size:12px;color:var(--text2);display:none;"></div>'
+    +(canSend
+      ? '<button class="btn btn-p" onclick="runCampagne()" style="width:100%;">&#128640; Envoyer à '+segCount+' contact'+(segCount>1?'s':'')+'</button>'
+      : '<button class="btn btn-o" disabled style="width:100%;opacity:.5;">Sélectionnez un segment et un modèle</button>')
+    +'</div>';
+
+  out += '</div>';
+  return out;
+}
+
+function selectCampagneSegment(segId){
+  _campagne.segment = segId;
+  renderSection('email');
+}
+
+function selectCampagneTpl(tplId){
+  _campagne.tplId = tplId || null;
+  var lib = loadEmailTemplates();
+  for(var i=0;i<lib.length;i++){
+    if(lib[i].id===tplId){ _campagne.subject = lib[i].subject; break; }
+  }
+  renderSection('email');
+}
+
+function runCampagne(){
+  var segs = getSegments();
+  var lib = loadEmailTemplates();
+  var seg = null;
+  for(var i=0;i<segs.length;i++){ if(segs[i].id===_campagne.segment){ seg=segs[i]; break; } }
+  var tpl = null;
+  for(var j=0;j<lib.length;j++){ if(lib[j].id===_campagne.tplId){ tpl=lib[j]; break; } }
+
+  if(!seg || !tpl){ toast('Sélectionnez un segment et un modèle'); return; }
+  var clients = seg.clients;
+  if(!clients.length){ toast('Aucun contact dans ce segment'); return; }
+
+  var subject = _campagne.subject || tpl.subject;
+  var tplId = (S.email && S.email.template_id) || '';
+  if(!tplId){ toast('Template ID EmailJS manquant (onglet Configuration)'); return; }
+
+  var progress = document.getElementById('camp-progress');
+  if(progress){ progress.style.display='block'; progress.textContent='Préparation...'; }
+
+  var sent = 0; var total = clients.length; var errors = 0;
+  var campaign_log = {
+    id: 'camp_'+Date.now(), segment: _campagne.segment, tpl_id: tpl.id, tpl_name: tpl.name,
+    subject: subject, total: total, sent: 0, errors: 0, started_at: new Date().toISOString()
+  };
+
+  function sendNext(idx){
+    if(idx >= total){
+      campaign_log.sent = sent; campaign_log.errors = errors;
+      campaign_log.finished_at = new Date().toISOString();
+      try{
+        var logs = JSON.parse(localStorage.getItem('vz_email_campaigns_log')||'[]');
+        logs.unshift(campaign_log);
+        localStorage.setItem('vz_email_campaigns_log', JSON.stringify(logs.slice(0,50)));
+      }catch(e){}
+      if(progress) progress.textContent = '✓ Campagne terminée : '+sent+'/'+total+' envoyés'+(errors?' ('+errors+' erreurs)':'');
+      toast('✓ Campagne : '+sent+'/'+total+' emails envoyés');
+      return;
+    }
+    var c = clients[idx];
+    if(progress) progress.textContent = 'Envoi '+( idx+1)+'/'+total+' — '+c.email;
+
+    fetch('https://api.emailjs.com/api/v1.0/email/send',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        service_id:'service_mwiart1', template_id: tplId, user_id:'MqrKcqvO952CD5HOA',
+        template_params:{
+          to_email: c.email, to_name: c.name || c.email,
+          subject: subject, body_html: tpl.body,
+          from_name:'Résidence Veraluz', reply_to:'residenceveraluz@gmail.com'
+        }
+      })
+    }).then(function(r){
+      if(r.ok){ sent++; logEmailSent(c.email, subject, 'ok'); }
+      else { errors++; logEmailSent(c.email, subject, 'error'); }
+      setTimeout(function(){ sendNext(idx+1); }, 300);
+    }).catch(function(){
+      errors++; logEmailSent(c.email, subject, 'error');
+      setTimeout(function(){ sendNext(idx+1); }, 300);
+    });
+  }
+
+  sendNext(0);
+}
+
+/* ── Historique ── */
+function logEmailSent(to, subject, status){
+  try{
+    var log = JSON.parse(localStorage.getItem('vz_email_log')||'[]');
+    log.unshift({to:to, subject:subject, sent_at:new Date().toISOString(), status:status||'ok'});
+    localStorage.setItem('vz_email_log', JSON.stringify(log.slice(0,200)));
+  }catch(e){}
+}
+
+function renderEmailHistorique(){
+  var log = [];
+  try{ log = JSON.parse(localStorage.getItem('vz_email_log')||'[]'); }catch(e){}
+
+  var rows = log.length
+    ? log.map(function(entry){
+        var icon = entry.status==='ok' ? '✅' : '❌';
+        var d = entry.sent_at ? new Date(entry.sent_at) : null;
+        var dateStr = d ? d.toLocaleDateString('fr-FR')+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : '—';
+        return '<tr>'
+          +'<td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escH(entry.to||'')+'</td>'
+          +'<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escH(entry.subject||'')+'</td>'
+          +'<td style="white-space:nowrap;color:var(--text2);font-size:11px;">'+dateStr+'</td>'
+          +'<td style="text-align:center;">'+icon+'</td>'
+          +'</tr>';
+      }).join('')
+    : '<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:24px;">Aucun email envoyé</td></tr>';
+
+  return '<div class="card">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+    +'<div class="card-title" style="margin:0;"><svg viewBox="0 0 24 24"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 9 9 9"/></svg>Historique des envois</div>'
+    +'<button class="btn btn-r btn-sm" onclick="clearEmailLog()">Effacer l\'historique</button>'
+    +'</div>'
+    +'<div style="overflow-x:auto;"><table class="tbl">'
+    +'<thead><tr><th>Destinataire</th><th>Objet</th><th>Date/heure</th><th>Statut</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'</table></div>'
+    +'<div style="font-size:11px;color:var(--text3);margin-top:8px;">'+log.length+' enregistrement'+(log.length>1?'s':'')+' (max 200)</div>'
+    +'</div>';
+}
+
+function clearEmailLog(){
+  if(confirm('Effacer tout l\'historique des emails ?')){
+    try{ localStorage.removeItem('vz_email_log'); }catch(e){}
+    toast('✓ Historique effacé');
+    renderSection('email');
+  }
 }
 function testEmail(){
   collectForm();
@@ -776,7 +1215,7 @@ function testEmail(){
     })
   }).then(function(r){
     if(btn){ btn.disabled=false; btn.textContent='Envoyer un email de test'; }
-    if(r.ok){ toast('Email envoye a '+to+' - verifiez votre boite !'); }
+    if(r.ok){ toast('Email envoye a '+to+' - verifiez votre boite !'); logEmailSent(to,'Test - Residence Veraluz OS','ok'); }
     else{ r.text().then(function(t){ toast('Erreur EmailJS: '+t.slice(0,100)); }); }
   }).catch(function(e){
     if(btn){ btn.disabled=false; btn.textContent='Envoyer un email de test'; }
@@ -918,6 +1357,7 @@ window.addEventListener('message', function(ev){
     return;
   }
   if(msg.type==='refresh'){ loadSettings(); renderSection(currentSection); }
+  if(msg.type==='email-sent'){ var d=msg.data||{}; logEmailSent(d.to||'', d.subject||'', d.status||'ok'); }
 });
 
 /* ── Init ── */

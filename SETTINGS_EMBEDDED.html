@@ -220,6 +220,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);
     <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
     <span class="tab-label">Intégrations</span>
   </button>
+  <button class="tab-btn" onclick="goSection('email')" id="tab-email">
+    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    <span class="tab-label">Email</span>
+  </button>
   <button class="tab-btn" onclick="goSection('systeme')" id="tab-systeme">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
     <span class="tab-label">Système</span>
@@ -318,6 +322,10 @@ var DEFAULTS = {
     booking_com:false, airbnb:false, cinetpay:true, whatsapp:false,
     booking_com_key:'', airbnb_key:'', cinetpay_key:'', whatsapp_number:''
   },
+  email: {
+    template_id:'', test_address:'residenceveraluz@gmail.com',
+    auto_booking:true, auto_alert:true, auto_report:false
+  },
   systeme: {
     auto_backup:true, backup_freq:'daily', log_retention:90,
     session_timeout:480, maintenance_mode:false
@@ -393,6 +401,10 @@ function saveAll(){
     if(S.branding && S.branding.logo_url){
       emit('logo-updated', {logo_url:S.branding.logo_url, ts:new Date().toISOString()});
       try{ localStorage.setItem('vz_logo_data', S.branding.logo_url); }catch(e2){}
+    }
+    /* Sauvegarder Template ID EmailJS */
+    if(S.email && S.email.template_id){
+      try{ localStorage.setItem('vz_email_template', S.email.template_id); }catch(e2){}
     }
     /* Propager langue/devise/taxes aux modules */
     emit('locale-updated', {
@@ -726,6 +738,47 @@ function renderIntegrations(){
   +'</div>';
 }
 
+function renderEmail(){
+  var e=S.email||{};
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>',
+    'Configuration Email', 'EmailJS connecté à residenceveraluz@gmail.com')
+  +'<div class="card" style="background:rgba(34,211,165,.05);border-color:rgba(34,211,165,.2);">'
+  +'<p style="font-size:11px;color:var(--acc);">ℹ Service : <strong>service_mwiart1</strong><br>'
+  +'Créez un template sur <a href="https://dashboard.emailjs.com/admin/templates" target="_blank" style="color:var(--acc);">emailjs.com → Templates</a>.<br>'
+  +'Variables requises : <code style="background:var(--bg3);padding:1px 4px;border-radius:3px;">{{to_email}}</code> '
+  +'<code style="background:var(--bg3);padding:1px 4px;border-radius:3px;">{{subject}}</code> '
+  +'<code style="background:var(--bg3);padding:1px 4px;border-radius:3px;">{{{body_html}}}</code> (triple accolades pour HTML)</p>'
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>Template EmailJS</div>'
+  +field('Template ID','email.template_id',e.template_id||'','text',"Copiez l'ID depuis EmailJS dashboard → Email Templates")
+  +'<div class="btn-group" style="margin-top:12px;">'
+  +'<button class="btn btn-p" onclick="testEmail()">📧 Envoyer un email de test</button>'
+  +'</div></div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Envois automatiques</div>'
+  +toggle('Confirmation réservation','Email automatique au client à chaque réservation','email.auto_booking',e.auto_booking!==false)
+  +toggle('Alertes critiques admin','Envoyer les alertes critiques par email','email.auto_alert',e.auto_alert!==false)
+  +toggle('Rapport quotidien','Rapport automatique chaque soir','email.auto_report',e.auto_report||false)
+  +field('Email admin (réception alertes & rapports)','email.test_address',e.test_address||'residenceveraluz@gmail.com','email')
+  +'</div>';
+}
+function testEmail(){
+  collectForm();
+  var tpl=(S.email&&S.email.template_id)||'';
+  if(!tpl){ toast('⚠ Entrez le Template ID d\'abord',false); return; }
+  try{ localStorage.setItem('vz_email_template',tpl); }catch(ex){}
+  var to=(S.email&&S.email.test_address)||'residenceveraluz@gmail.com';
+  emit('send-email',{
+    to_email:to, to_name:'Admin Veraluz', subject:'✅ Test email — Veraluz OS',
+    body_html:'<div style="font-family:Arial;padding:24px;background:#0f1117;color:#e2e8f0;border-radius:12px;">'
+      +'<h2 style="color:#22d3a5;">✅ Email opérationnel</h2>'
+      +'<p>Le système email de Veraluz OS fonctionne correctement.</p>'
+      +'<p style="color:#94a3b8;font-size:12px;">Service: service_mwiart1 · Template: '+tpl+'</p></div>'
+  });
+  toast('📧 Test envoyé à '+to);
+}
+
 function renderSysteme(){
   var sys=S.systeme;
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>',
@@ -768,6 +821,7 @@ function renderSection(id){
   else if(id==='notifs')     html=renderNotifs();
   else if(id==='permissions')html=renderPermissions();
   else if(id==='integrations')html=renderIntegrations();
+  else if(id==='email')      html=renderEmail();
   else if(id==='systeme')    html=renderSysteme();
   wrap.innerHTML = html;
   wrap.scrollTop = 0;

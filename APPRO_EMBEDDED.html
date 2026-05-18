@@ -40,10 +40,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn{border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:all .12s;}
 .btn-primary{background:#10b981;color:#fff;}.btn-primary:hover{background:#059669;}
 .btn-secondary{background:#1e293b;color:#e2e8f0;border:1px solid #334155;}.btn-secondary:hover{background:#334155;}
-.btn-danger{background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;}.btn-danger:hover{background:#991b1b;}
+.btn-danger{background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;}
 .btn-sm{padding:5px 11px;font-size:12px;}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:flex-end;justify-content:center;}
-.modal{background:#1e293b;border-radius:16px 16px 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;padding:20px;}
+.modal{background:#1e293b;border-radius:16px 16px 0 0;width:100%;max-width:580px;max-height:92vh;overflow-y:auto;padding:20px;}
 .modal-title{font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;}
 .modal input,.modal textarea,.modal select{width:100%;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;padding:9px 12px;font-size:13px;margin-bottom:10px;outline:none;font-family:inherit;}
 .modal input:focus,.modal textarea:focus,.modal select:focus{border-color:#10b981;}
@@ -62,15 +62,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .mv-in{background:#064e3b;}.mv-out{background:#7f1d1d;}.mv-adj{background:#1e3a5f;}.mv-loss{background:#451a03;}
 .chart-wrap{background:#1e293b;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #334155;}
 .chart-title{font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:10px;}
-.upload-zone{border:2px dashed #334155;border-radius:10px;padding:24px;text-align:center;cursor:pointer;transition:border .2s;margin-bottom:10px;}
+.upload-zone{border:2px dashed #334155;border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:border .2s;margin-bottom:10px;}
 .upload-zone:hover{border-color:#10b981;}
-.uz-icon{font-size:28px;margin-bottom:6px;}.uz-text{font-size:13px;color:#64748b;}
+.uz-icon{font-size:28px;margin-bottom:4px;}.uz-text{font-size:12px;color:#64748b;}
 .empty{text-align:center;padding:40px 20px;color:#475569;}
 .empty-icon{font-size:38px;margin-bottom:10px;opacity:.5;}
 .urg-high{color:#ef4444;font-weight:700;}.urg-med{color:#f59e0b;}.urg-low{color:#94a3b8;}
-.detail-panel{background:#1e293b;border-radius:12px;padding:16px;margin-top:10px;border:1px solid #334155;}
-.dp-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #1e293b;font-size:13px;}
+.dp-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #0f172a;font-size:13px;}
 .dp-lbl{color:#64748b;}.dp-val{color:#f1f5f9;font-weight:500;text-align:right;}
+.detail-panel{background:#0f172a;border-radius:10px;padding:12px;margin-top:10px;}
+.prix-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;margin-bottom:6px;background:#1e293b;border:1px solid #334155;}
+.prix-badge{background:#064e3b;color:#34d399;font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+.amount-row{display:flex;gap:8px;}
+.amount-box{flex:1;background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;text-align:center;}
+.amount-box .amt-val{font-size:16px;font-weight:700;color:#f1f5f9;}
+.amount-box .amt-lbl{font-size:10px;color:#64748b;margin-top:2px;}
+.amount-box.real .amt-val{color:#10b981;}
+.info-box{background:#0f172a;border-radius:8px;padding:10px 12px;font-size:12px;color:#64748b;margin-bottom:10px;border-left:3px solid #10b981;}
 @media(min-width:600px){.kpi-grid{grid-template-columns:repeat(4,1fr);}}
 </style>
 </head>
@@ -92,57 +100,74 @@ function sbGet(p){return fetch(SB+'/rest/v1/'+p,{headers:{'apikey':KEY,'Authoriz
 function sbPost(t,b){return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return null;});}
 function sbPatch(t,id,b){return fetch(SB+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(b)}).then(function(r){return r.json();}).catch(function(){return null;});}
 
+/* ── Résidence info ── */
+function getHotel(){
+  try{ var s=JSON.parse(localStorage.getItem('vz_hotel_settings')||'{}');
+    return {name:s.hotel_name||'Résidence Veraluz',address:s.address||'Kribi, Région du Sud, Cameroun',phone:s.phone||'+237 6XX XXX XXX',email:s.email||'info@veraluz.cm',bp:s.bp||'BP 000 Kribi'}; }
+  catch(e){ return {name:'Résidence Veraluz',address:'Kribi, Région du Sud, Cameroun',phone:'+237 6XX XXX XXX',email:'info@veraluz.cm',bp:'BP 000 Kribi'}; }
+}
+function getCurrentUser(){
+  try{ var s=JSON.parse(localStorage.getItem('vlz_session')||'{}'); return s.name||s.username||'Utilisateur'; }
+  catch(e){ return 'Utilisateur'; }
+}
+
+/* ── State ── */
 var currentTab='dashboard';
-var allItems=[],allRequests=[],allOrders=[],allReceptions=[],allSuppliers=[],allMovements=[];
-var filterStatus='all',filterCat='all',searchQ='';
+var allItems=[],allRequests=[],allOrders=[],allReceptions=[],allSuppliers=[],allMovements=[],allPrices=[];
+var filterStatus='all',searchQ='';
 
 var TABS=[
-  {id:'dashboard',label:'Dashboard',icon:'D'},
-  {id:'inventaire',label:'Inventaire',icon:'I'},
-  {id:'demandes',label:'Demandes',icon:'R'},
-  {id:'bons',label:'Bons cmde',icon:'B'},
-  {id:'receptions',label:'Receptions',icon:'V'},
-  {id:'fournisseurs',label:'Fournisseurs',icon:'F'},
-  {id:'mouvements',label:'Mouvements',icon:'M'},
-  {id:'rapports',label:'Rapports',icon:'S'}
+  {id:'dashboard',label:'Dashboard'},
+  {id:'inventaire',label:'Inventaire'},
+  {id:'demandes',label:'Demandes'},
+  {id:'bons',label:'Bons cmde'},
+  {id:'receptions',label:'Réceptions'},
+  {id:'prix',label:'Prix actuels'},
+  {id:'fournisseurs',label:'Fournisseurs'},
+  {id:'mouvements',label:'Mouvements'},
+  {id:'rapports',label:'Rapports'}
 ];
-var TAB_ICONS={dashboard:'📊',inventaire:'📦',demandes:'📋',bons:'🧾',receptions:'✅',fournisseurs:'🏭',mouvements:'🔄',rapports:'📈'};
-var CATS=['Housekeeping','Maintenance','Reception','Chambres','Nettoyage','Equipements','Fournitures'];
-var UNITS=['pcs','kg','L','m','boite','carton','sac','rouleau','lot'];
-var STATUS_LABELS={pending:'En attente',approved:'Approuvee',rejected:'Refusee',ordered:'Commandee',received:'Recue',draft:'Brouillon'};
-var URGENCY_LABELS={high:'Urgent',med:'Normal',low:'Faible'};
+var TAB_ICONS={dashboard:'📊',inventaire:'📦',demandes:'📋',bons:'🧾',receptions:'✅',prix:'🏷️',fournisseurs:'🏭',mouvements:'🔄',rapports:'📈'};
+var CATS=['Housekeeping','Maintenance','Réception','Chambres','Nettoyage','Équipements','Fournitures'];
+var UNITS=['pcs','kg','L','m','boîte','carton','sac','rouleau','lot'];
+var STATUS_LBL={pending:'En attente',approved:'Approuvée',rejected:'Refusée',ordered:'Commandée',received:'Reçue',draft:'Brouillon'};
+var URG_LBL={high:'Urgent',med:'Normal',low:'Faible'};
 
 var MOCK_ITEMS=[
   {id:1,name:'Serviettes blanches',category:'Housekeeping',quantity:24,min_quantity:10,unit:'pcs',location:'Buanderie',notes:''},
-  {id:2,name:'Gel douche 250ml',category:'Housekeeping',quantity:6,min_quantity:20,unit:'pcs',location:'Reserve RDC',notes:'Rupture imminente'},
-  {id:3,name:'Papier hygienique',category:'Chambres',quantity:48,min_quantity:30,unit:'rouleaux',location:'Reserve RDC',notes:''},
-  {id:4,name:'Ampoules LED E27',category:'Maintenance',quantity:3,min_quantity:10,unit:'pcs',location:'Local technique',notes:'Stock critique'},
+  {id:2,name:'Gel douche 250ml',category:'Housekeeping',quantity:6,min_quantity:20,unit:'pcs',location:'Réserve RDC',notes:''},
+  {id:3,name:'Papier hygiénique',category:'Chambres',quantity:48,min_quantity:30,unit:'rouleaux',location:'Réserve RDC',notes:''},
+  {id:4,name:'Ampoules LED E27',category:'Maintenance',quantity:3,min_quantity:10,unit:'pcs',location:'Local technique',notes:''},
   {id:5,name:'Produit WC',category:'Nettoyage',quantity:8,min_quantity:5,unit:'L',location:'Buanderie',notes:''},
-  {id:6,name:'Savon main 500ml',category:'Reception',quantity:12,min_quantity:6,unit:'pcs',location:'Reception',notes:''},
+  {id:6,name:'Savon main 500ml',category:'Réception',quantity:12,min_quantity:6,unit:'pcs',location:'Réception',notes:''},
   {id:7,name:'Draps 2 places',category:'Housekeeping',quantity:18,min_quantity:10,unit:'pcs',location:'Buanderie',notes:''},
-  {id:8,name:'Piles AA',category:'Maintenance',quantity:4,min_quantity:12,unit:'pcs',location:'Local technique',notes:'Faible'}
+  {id:8,name:'Piles AA',category:'Maintenance',quantity:4,min_quantity:12,unit:'pcs',location:'Local technique',notes:''}
 ];
 var MOCK_REQUESTS=[
-  {id:1,item_name:'Gel douche 250ml',quantity:30,justification:'Rupture de stock imminente',urgency:'high',status:'pending',requested_by:'Fatima H.',created_at:'2026-05-17T09:00:00'},
-  {id:2,item_name:'Ampoules LED E27',quantity:20,justification:'Plusieurs chambres sans lumiere',urgency:'high',status:'approved',requested_by:'Jean-Paul M.',created_at:'2026-05-16T14:30:00'},
-  {id:3,item_name:'Piles AA',quantity:24,justification:'Telecommandes climatiseurs',urgency:'med',status:'ordered',requested_by:'Marie N.',created_at:'2026-05-15T10:00:00'},
-  {id:4,item_name:'Nattes de sol',quantity:5,justification:'Entree glissante saison pluies',urgency:'low',status:'pending',requested_by:'Claude B.',created_at:'2026-05-14T16:00:00'}
+  {id:1,item_name:'Gel douche 250ml',quantity:30,justification:'Rupture imminente',urgency:'high',status:'pending',requested_by:'Fatima H.',created_at:'2026-05-17T09:00:00'},
+  {id:2,item_name:'Ampoules LED E27',quantity:20,justification:'Chambres sans lumière',urgency:'high',status:'approved',requested_by:'Jean-Paul M.',created_at:'2026-05-16T14:30:00'},
+  {id:3,item_name:'Piles AA',quantity:24,justification:'Télécommandes clim.',urgency:'med',status:'ordered',requested_by:'Marie N.',created_at:'2026-05-15T10:00:00'}
 ];
 var MOCK_ORDERS=[
-  {id:1,po_number:'PO-2026-001',supplier:'Marche Central Kribi',items:'Ampoules LED E27 x20',total_amount:15000,status:'draft',created_at:'2026-05-16T15:00:00'},
-  {id:2,po_number:'PO-2026-002',supplier:'Huileries du Cameroun',items:'Piles AA x24',total_amount:8500,status:'ordered',created_at:'2026-05-15T11:00:00'}
+  {id:1,po_number:'PO-2026-001',supplier:'Marché Central Kribi',items:'Ampoules LED E27 x20',items_detail:[{name:'Ampoules LED E27',qty:20,unit:'pcs'}],total_amount:15000,status:'received',created_by:'Admin',created_at:'2026-05-16T15:00:00',notes:''},
+  {id:2,po_number:'PO-2026-002',supplier:'Huileries du Cameroun',items:'Piles AA x24',items_detail:[{name:'Piles AA',qty:24,unit:'pcs'}],total_amount:8500,status:'ordered',created_by:'Manager',created_at:'2026-05-15T11:00:00',notes:''},
+  {id:3,po_number:'PO-2026-003',supplier:'BRECAM Electricité',items:'Gel douche 250ml x30',items_detail:[{name:'Gel douche 250ml',qty:30,unit:'pcs'}],total_amount:12000,status:'draft',created_by:'Admin',created_at:'2026-05-18T09:00:00',notes:''}
 ];
 var MOCK_SUPPLIERS=[
-  {id:1,name:'Marche Central Kribi',phone:'+237 699 001 001',email:'',category:'Consommables',notes:'Livraison mardi et jeudi'},
-  {id:2,name:'Huileries du Cameroun',phone:'+237 677 002 002',email:'contact@huileries-cmr.com',category:'Produits menagers',notes:''},
-  {id:3,name:'BRECAM Electricite',phone:'+237 655 003 003',email:'',category:'Maintenance',notes:'Urgences 24h/24'}
+  {id:1,name:'Marché Central Kribi',phone:'+237 699 001 001',email:'',category:'Consommables',notes:'Livraison mardi et jeudi'},
+  {id:2,name:'Huileries du Cameroun',phone:'+237 677 002 002',email:'contact@huileries-cmr.com',category:'Produits ménagers',notes:''},
+  {id:3,name:'BRECAM Electricité',phone:'+237 655 003 003',email:'',category:'Maintenance',notes:'Urgences 24h/24'}
 ];
 var MOCK_MOVEMENTS=[
   {id:1,item_name:'Serviettes blanches',type:'out',quantity:6,user_name:'Fatima H.',note:'Housekeeping ch. 3,4,5',created_at:'2026-05-18T07:30:00'},
-  {id:2,item_name:'Gel douche 250ml',type:'out',quantity:3,user_name:'Fatima H.',note:'Housekeeping recharge',created_at:'2026-05-18T07:32:00'},
-  {id:3,item_name:'Piles AA',type:'in',quantity:24,user_name:'Jean-Paul M.',note:'Reception commande PO-2026-002',created_at:'2026-05-17T14:00:00'},
-  {id:4,item_name:'Savon main 500ml',type:'out',quantity:2,user_name:'Marie N.',note:'Reception bureau',created_at:'2026-05-17T10:15:00'},
-  {id:5,item_name:'Ampoules LED E27',type:'adj',quantity:-1,user_name:'Claude B.',note:'Cassee lors installation',created_at:'2026-05-16T16:00:00'}
+  {id:2,item_name:'Ampoules LED E27',type:'in',quantity:20,user_name:'Jean-Paul M.',note:'Réception PO-2026-001',created_at:'2026-05-17T14:00:00'},
+  {id:3,item_name:'Piles AA',type:'out',quantity:2,user_name:'Marie N.',note:'Bureau réception',created_at:'2026-05-17T10:15:00'}
+];
+var MOCK_RECEPTIONS=[
+  {id:1,po_id:1,po_number:'PO-2026-001',items:'Ampoules LED E27 x20',supplier_name:'Marché Central Kribi',estimated_amount:15000,real_amount:14500,received_by:'Jean-Paul M.',received_at:'2026-05-17T14:00:00',notes:'Conforme',price_entries:[{item_name:'Ampoules LED E27',qty:20,unit:'pcs',unit_price:725,total_price:14500,supplier:'Marché Central Kribi'}]}
+];
+var MOCK_PRICES=[
+  {id:1,item_name:'Ampoules LED E27',supplier_name:'Marché Central Kribi',unit_price:725,unit:'pcs',quantity:20,total_price:14500,date:'2026-05-17',reception_id:1}
 ];
 
 window.addEventListener('load',function(){ buildTabs(); loadAll(); goTab('dashboard'); });
@@ -153,163 +178,139 @@ function buildTabs(){
     return '<button class="tb" id="tab_'+t.id+'" data-id="'+t.id+'" onclick="goTab(this.dataset.id)">'+TAB_ICONS[t.id]+' '+t.label+'</button>';
   }).join('');
 }
-
-function goTab(id){
-  currentTab=id; filterStatus='all'; searchQ='';
-  TABS.forEach(function(t){
-    var el=document.getElementById('tab_'+t.id);
-    if(el) el.className='tb'+(t.id===id?' on':'');
-  });
-  render();
-}
+function goTab(id){ currentTab=id; filterStatus='all'; searchQ=''; TABS.forEach(function(t){ var el=document.getElementById('tab_'+t.id); if(el) el.className='tb'+(t.id===id?' on':''); }); render(); }
 
 async function loadAll(){
-  try{ var it=await sbGet('vz_inventory_items?order=name.asc'); if(Array.isArray(it)&&it.length) allItems=it; else allItems=MOCK_ITEMS; }catch(e){ allItems=MOCK_ITEMS; }
-  try{ var rq=await sbGet('vz_purchase_requests?order=created_at.desc'); if(Array.isArray(rq)&&rq.length) allRequests=rq; else allRequests=MOCK_REQUESTS; }catch(e){ allRequests=MOCK_REQUESTS; }
-  try{ var od=await sbGet('vz_purchase_orders?order=created_at.desc'); if(Array.isArray(od)&&od.length) allOrders=od; else allOrders=MOCK_ORDERS; }catch(e){ allOrders=MOCK_ORDERS; }
-  try{ var sp=await sbGet('vz_appro_suppliers?order=name.asc'); if(Array.isArray(sp)&&sp.length) allSuppliers=sp; else allSuppliers=MOCK_SUPPLIERS; }catch(e){ allSuppliers=MOCK_SUPPLIERS; }
-  try{ var mv=await sbGet('vz_inventory_movements?order=created_at.desc&limit=100'); if(Array.isArray(mv)&&mv.length) allMovements=mv; else allMovements=MOCK_MOVEMENTS; }catch(e){ allMovements=MOCK_MOVEMENTS; }
+  try{ var it=await sbGet('vz_inventory_items?order=name.asc'); allItems=Array.isArray(it)&&it.length?it:MOCK_ITEMS; }catch(e){ allItems=MOCK_ITEMS; }
+  try{ var rq=await sbGet('vz_purchase_requests?order=created_at.desc'); allRequests=Array.isArray(rq)&&rq.length?rq:MOCK_REQUESTS; }catch(e){ allRequests=MOCK_REQUESTS; }
+  try{ var od=await sbGet('vz_purchase_orders?order=created_at.desc'); allOrders=Array.isArray(od)&&od.length?od:MOCK_ORDERS; }catch(e){ allOrders=MOCK_ORDERS; }
+  try{ var rc=await sbGet('vz_receptions?order=received_at.desc'); allReceptions=Array.isArray(rc)&&rc.length?rc:MOCK_RECEPTIONS; }catch(e){ allReceptions=MOCK_RECEPTIONS; }
+  try{ var sp=await sbGet('vz_appro_suppliers?order=name.asc'); allSuppliers=Array.isArray(sp)&&sp.length?sp:MOCK_SUPPLIERS; }catch(e){ allSuppliers=MOCK_SUPPLIERS; }
+  try{ var mv=await sbGet('vz_inventory_movements?order=created_at.desc&limit=100'); allMovements=Array.isArray(mv)&&mv.length?mv:MOCK_MOVEMENTS; }catch(e){ allMovements=MOCK_MOVEMENTS; }
+  /* Prix: Supabase ou localStorage cache */
+  try{ var pr=await sbGet('vz_price_catalog?order=date.desc'); allPrices=Array.isArray(pr)&&pr.length?pr:loadPricesLocal(); }catch(e){ allPrices=loadPricesLocal(); }
+  if(!allPrices.length) allPrices=MOCK_PRICES;
   render();
 }
+function loadPricesLocal(){ try{ return JSON.parse(localStorage.getItem('vz_price_catalog')||'[]'); }catch(e){ return []; } }
+function savePricesLocal(){ try{ localStorage.setItem('vz_price_catalog',JSON.stringify(allPrices)); }catch(e){} }
 
 function render(){
-  if(currentTab==='dashboard') renderDashboard();
-  else if(currentTab==='inventaire') renderInventaire();
-  else if(currentTab==='demandes') renderDemandes();
-  else if(currentTab==='bons') renderBons();
-  else if(currentTab==='receptions') renderReceptions();
-  else if(currentTab==='fournisseurs') renderFournisseurs();
-  else if(currentTab==='mouvements') renderMouvements();
-  else if(currentTab==='rapports') renderRapports();
+  var map={dashboard:renderDashboard,inventaire:renderInventaire,demandes:renderDemandes,bons:renderBons,receptions:renderReceptions,prix:renderPrix,fournisseurs:renderFournisseurs,mouvements:renderMouvements,rapports:renderRapports};
+  if(map[currentTab]) map[currentTab]();
 }
 
-/* ── UTILS ── */
+/* ══ UTILS ══ */
 function setContent(h){ document.getElementById('content').innerHTML=h; }
 function showModal(h){ document.getElementById('modals').innerHTML=h; }
 function closeModal(){ document.getElementById('modals').innerHTML=''; }
 function kpiCard(icon,val,lbl,cls){ return '<div class="kpi'+(cls?' '+cls:'')+'"><div class="kpi-icon">'+icon+'</div><div class="kpi-val">'+val+'</div><div class="kpi-lbl">'+lbl+'</div></div>'; }
 function dpRow(lbl,val){ return '<div class="dp-row"><span class="dp-lbl">'+lbl+'</span><span class="dp-val">'+val+'</span></div>'; }
-function catIcon(c){ var m={Housekeeping:'🛏️',Maintenance:'🔧',Reception:'🛎️',Chambres:'🚪',Nettoyage:'🧴',Equipements:'⚙️',Fournitures:'📁'}; return m[c]||'📦'; }
+function catIcon(c){ var m={Housekeeping:'🛏️',Maintenance:'🔧','Réception':'🛎️',Chambres:'🚪',Nettoyage:'🧴','Équipements':'⚙️',Fournitures:'📁'}; return m[c]||'📦'; }
 function fmtXAF(n){ return Number(n||0).toLocaleString('fr-FR')+' FCFA'; }
-function fmtDate(s){ if(!s) return '—'; try{ return new Date(s).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }catch(e){ return s; } }
+function fmtDate(s){ if(!s) return '—'; try{ return new Date(s).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}); }catch(e){ return s; } }
+function fmtDateTime(s){ if(!s) return '—'; try{ return new Date(s).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); }catch(e){ return s; } }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function stockLvl(i){ return i.quantity===0?'crit':i.quantity<=i.min_quantity?'low':'ok'; }
-// Filter helpers — no string args in onclick needed
 function setFilter(el){ filterStatus=el.dataset.fs||'all'; render(); }
-function setFilterMvt(el){ filterStatus=el.dataset.fs||'all'; renderMouvements(); }
 
-/* ── DASHBOARD ── */
+/* ══ DASHBOARD ══ */
 function renderDashboard(){
   var low=allItems.filter(function(i){return i.quantity<=i.min_quantity;});
   var crit=allItems.filter(function(i){return i.quantity===0;});
   var pending=allRequests.filter(function(r){return r.status==='pending';});
   var ordered=allOrders.filter(function(o){return o.status==='ordered';});
-  var totalSpend=allOrders.reduce(function(a,o){return a+(o.total_amount||0);},0);
-
+  var totalSpend=allOrders.filter(function(o){return o.status==='received';}).reduce(function(a,o){return a+(o.total_amount||0);},0);
   var h='<div class="kpi-grid">';
   h+=kpiCard('🔴',''+crit.length,'Ruptures','alert');
   h+=kpiCard('🟡',''+low.length,'Stock faible','warn');
-  h+=kpiCard('📋',''+pending.length,'Demandes en attente','');
-  h+=kpiCard('💰',fmtXAF(totalSpend),'Total commandes','ok');
+  h+=kpiCard('📋',''+pending.length,'Demandes','');
+  h+=kpiCard('💰',fmtXAF(totalSpend),'Dépenses','ok');
   h+='</div>';
-
   if(low.length){
-    h+='<div class="sec-title">Alertes stock</div>';
-    low.forEach(function(i){
-      var lvl=stockLvl(i);
+    h+='<div class="sec-title">⚠️ Alertes stock</div>';
+    low.forEach(function(i){ var lvl=stockLvl(i);
       h+='<div class="item-card" data-tab="inventaire" onclick="goTab(this.dataset.tab)">';
       h+='<div class="ic-icon">'+catIcon(i.category)+'</div>';
-      h+='<div class="ic-body"><div class="ic-name">'+esc(i.name)+'</div>';
-      h+='<div class="ic-sub">'+esc(i.category)+'</div></div>';
+      h+='<div class="ic-body"><div class="ic-name">'+esc(i.name)+'</div><div class="ic-sub">'+esc(i.category)+'</div></div>';
       h+='<div class="ic-right"><span class="stock-badge stock-'+lvl+'">'+i.quantity+' '+esc(i.unit)+'</span></div></div>';
     });
   }
-
-  if(pending.length){
-    h+='<div class="sec-title">Demandes en attente</div>';
-    pending.slice(0,3).forEach(function(r){
-      h+='<div class="item-card" data-tab="demandes" onclick="goTab(this.dataset.tab)">';
-      h+='<div class="ic-icon">📋</div>';
-      h+='<div class="ic-body"><div class="ic-name">'+esc(r.item_name)+'</div>';
-      h+='<div class="ic-sub">'+esc(r.requested_by||'')+'</div></div>';
-      h+='<div class="ic-right"><span class="urg-'+r.urgency+'">'+URGENCY_LABELS[r.urgency]+'</span></div></div>';
-    });
-  }
-
   if(ordered.length){
-    h+='<div class="sec-title">Commandes en cours</div>';
+    h+='<div class="sec-title">🚚 Commandes en cours</div>';
     ordered.forEach(function(o){
       h+='<div class="item-card" data-tab="bons" onclick="goTab(this.dataset.tab)">';
       h+='<div class="ic-icon">🧾</div>';
-      h+='<div class="ic-body"><div class="ic-name">'+esc(o.po_number||'PO-'+o.id)+'</div>';
-      h+='<div class="ic-sub">'+esc(o.supplier||'')+'</div></div>';
+      h+='<div class="ic-body"><div class="ic-name">'+esc(o.po_number||'PO-'+o.id)+'</div><div class="ic-sub">'+esc(o.supplier||'')+'</div></div>';
       h+='<div class="ic-right" style="font-size:12px;color:#10b981;font-weight:700;">'+fmtXAF(o.total_amount)+'</div></div>';
     });
   }
-
-  h+='<div class="sec-title">Derniers mouvements</div>';
-  allMovements.slice(0,5).forEach(function(m){
+  h+='<div class="sec-title">🔄 Derniers mouvements</div>';
+  allMovements.slice(0,4).forEach(function(m){
     var cls=m.type==='in'?'mv-in':m.type==='out'?'mv-out':m.type==='adj'?'mv-adj':'mv-loss';
     var ic=m.type==='in'?'↑':m.type==='out'?'↓':m.type==='adj'?'≈':'!';
     h+='<div class="mv-row"><div class="mv-type '+cls+'">'+ic+'</div>';
     h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:#f1f5f9">'+esc(m.item_name)+'</div>';
     h+='<div style="font-size:11px;color:#64748b">'+esc(m.user_name||'')+'</div></div>';
-    h+='<div style="font-size:12px;color:#94a3b8;text-align:right">'+m.quantity+' · '+fmtDate(m.created_at)+'</div></div>';
+    h+='<div style="font-size:12px;color:#94a3b8">'+m.quantity+' · '+fmtDateTime(m.created_at)+'</div></div>';
   });
   setContent(h);
 }
 
-/* ── INVENTAIRE ── */
+/* ══ INVENTAIRE ══ */
 function renderInventaire(){
   var filtered=allItems.filter(function(i){
-    var lvl=stockLvl(i);
     return (filterStatus==='all'||(filterStatus==='low'&&i.quantity<=i.min_quantity)||(filterStatus==='ok'&&i.quantity>i.min_quantity))
-      && (!searchQ||i.name.toLowerCase().indexOf(searchQ.toLowerCase())>=0);
+      &&(!searchQ||i.name.toLowerCase().indexOf(searchQ.toLowerCase())>=0);
   });
   var h='<div class="filter-bar">';
   h+='<div class="search-box"><span>🔍</span><input placeholder="Rechercher..." oninput="searchQ=this.value;renderInventaire()" value="'+esc(searchQ)+'"></div>';
   h+='</div><div class="filter-bar">';
-  [{fs:'all',lbl:'Tous'},{fs:'low',lbl:'Faible'},{fs:'ok',lbl:'OK'}].forEach(function(f){
+  [{fs:'all',lbl:'Tous'},{fs:'low',lbl:'⚠️ Faible'},{fs:'ok',lbl:'✅ OK'}].forEach(function(f){
     h+='<button class="fbtn'+(filterStatus===f.fs?' on':'')+'" data-fs="'+f.fs+'" onclick="setFilter(this)">'+f.lbl+'</button>';
   });
   h+='<button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="openItemModal(0)">+ Article</button>';
   h+='</div>';
-
   if(!filtered.length){ h+='<div class="empty"><div class="empty-icon">📦</div><div>Aucun article</div></div>'; }
-  else {
-    filtered.forEach(function(i){
-      var lvl=stockLvl(i);
-      var pct=i.min_quantity>0?Math.min(100,Math.round(i.quantity/i.min_quantity*100)):100;
-      var barC=lvl==='crit'?'#ef4444':lvl==='low'?'#f59e0b':'#10b981';
-      h+='<div class="item-card" data-iid="'+i.id+'" onclick="openItemDetail(this.dataset.iid)">';
-      h+='<div class="ic-icon">'+catIcon(i.category)+'</div>';
-      h+='<div class="ic-body"><div class="ic-name">'+esc(i.name)+'</div>';
-      h+='<div class="ic-sub">'+esc(i.category)+' · '+esc(i.location||'')+'</div>';
-      h+='<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:'+barC+'"></div></div></div>';
-      h+='<div class="ic-right"><span class="stock-badge stock-'+lvl+'">'+i.quantity+' '+esc(i.unit)+'</span>';
-      h+='<div style="font-size:10px;color:#475569;margin-top:3px">min: '+i.min_quantity+'</div></div></div>';
-    });
-  }
+  else { filtered.forEach(function(i){
+    var lvl=stockLvl(i),pct=i.min_quantity>0?Math.min(100,Math.round(i.quantity/i.min_quantity*100)):100;
+    var barC=lvl==='crit'?'#ef4444':lvl==='low'?'#f59e0b':'#10b981';
+    h+='<div class="item-card" data-iid="'+i.id+'" onclick="openItemDetail(this.dataset.iid)">';
+    h+='<div class="ic-icon">'+catIcon(i.category)+'</div>';
+    h+='<div class="ic-body"><div class="ic-name">'+esc(i.name)+'</div>';
+    h+='<div class="ic-sub">'+esc(i.category)+' · '+esc(i.location||'')+'</div>';
+    h+='<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:'+barC+'"></div></div></div>';
+    h+='<div class="ic-right"><span class="stock-badge stock-'+lvl+'">'+i.quantity+' '+esc(i.unit)+'</span>';
+    h+='<div style="font-size:10px;color:#475569;margin-top:3px">min: '+i.min_quantity+'</div></div></div>';
+  }); }
   setContent(h);
 }
-
 function openItemDetail(id){
-  var i=allItems.find(function(x){return x.id==id;});
-  if(!i) return;
+  var i=allItems.find(function(x){return x.id==id;}); if(!i) return;
   var lvl=stockLvl(i);
+  /* Derniers prix pour cet article */
+  var itemPrices=allPrices.filter(function(p){return p.item_name===i.name;}).slice(0,3);
   var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
   h+='<div class="modal"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
   h+='<div class="modal-title">'+catIcon(i.category)+' '+esc(i.name)+'</div>';
   h+='<span class="stock-badge stock-'+lvl+'">'+i.quantity+' '+esc(i.unit)+'</span></div>';
   h+='<div class="detail-panel">';
-  h+=dpRow('Categorie',esc(i.category));
+  h+=dpRow('Catégorie',esc(i.category));
   h+=dpRow('Emplacement',esc(i.location||'—'));
   h+=dpRow('Stock actuel',''+i.quantity+' '+esc(i.unit));
   h+=dpRow('Stock minimum',''+i.min_quantity+' '+esc(i.unit));
   if(i.notes) h+=dpRow('Notes',esc(i.notes));
   h+='</div>';
+  if(itemPrices.length){
+    h+='<div class="sec-title" style="margin-top:12px">Derniers prix connus</div>';
+    itemPrices.forEach(function(p){
+      h+='<div class="prix-row"><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:600;color:#f1f5f9">'+esc(p.supplier_name)+'</div>';
+      h+='<div style="font-size:11px;color:#64748b">'+fmtDate(p.date)+'  ·  x'+p.quantity+'</div></div>';
+      h+='<span class="prix-badge">'+fmtXAF(p.unit_price)+'/u.</span></div>';
+    });
+  }
   h+='<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">';
-  h+='<button class="btn btn-primary btn-sm" data-iid="'+i.id+'" onclick="openMvtModal(this.dataset.iid,&apos;in&apos;)">+ Entree</button>';
+  h+='<button class="btn btn-primary btn-sm" data-iid="'+i.id+'" onclick="openMvtModal(this.dataset.iid,&apos;in&apos;)">+ Entrée</button>';
   h+='<button class="btn btn-secondary btn-sm" data-iid="'+i.id+'" onclick="openMvtModal(this.dataset.iid,&apos;out&apos;)">- Sortie</button>';
   h+='<button class="btn btn-secondary btn-sm" data-iid="'+i.id+'" onclick="openItemModal(this.dataset.iid)">Modifier</button>';
   h+='</div>';
@@ -318,249 +319,509 @@ function openItemDetail(id){
   showModal(h);
 }
 
-/* ── DEMANDES ── */
+/* ══ DEMANDES ══ */
 function renderDemandes(){
   var filtered=allRequests.filter(function(r){ return filterStatus==='all'||r.status===filterStatus; });
   var h='<div class="filter-bar">';
-  [{fs:'all',lbl:'Toutes'},{fs:'pending',lbl:'En attente'},{fs:'approved',lbl:'Approuvees'},{fs:'ordered',lbl:'Commandees'},{fs:'received',lbl:'Recues'}].forEach(function(f){
+  [{fs:'all',lbl:'Toutes'},{fs:'pending',lbl:'En attente'},{fs:'approved',lbl:'Approuvées'},{fs:'ordered',lbl:'Commandées'},{fs:'received',lbl:'Reçues'}].forEach(function(f){
     h+='<button class="fbtn'+(filterStatus===f.fs?' on':'')+'" data-fs="'+f.fs+'" onclick="setFilter(this)">'+f.lbl+'</button>';
   });
   h+='</div>';
   h+='<button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="openDemande()">+ Nouvelle demande</button>';
-
   if(!filtered.length){ h+='<div class="empty"><div class="empty-icon">📋</div><div>Aucune demande</div></div>'; }
-  else {
-    filtered.forEach(function(r){
-      h+='<div class="item-card" data-rid="'+r.id+'" onclick="openRequestDetail(this.dataset.rid)">';
-      h+='<div class="ic-icon">📋</div>';
-      h+='<div class="ic-body"><div class="ic-name">'+esc(r.item_name)+'</div>';
-      h+='<div class="ic-sub">'+esc(r.requested_by||'')+'  ·  '+fmtDate(r.created_at)+'</div>';
-      h+='<div style="font-size:12px;color:#94a3b8;margin-top:3px">'+esc(r.justification||'')+'</div></div>';
-      h+='<div class="ic-right"><span class="status-badge s-'+r.status+'">'+STATUS_LABELS[r.status]+'</span>';
-      h+='<div class="urg-'+r.urgency+'" style="font-size:10px;margin-top:3px">'+URGENCY_LABELS[r.urgency]+'</div></div></div>';
-    });
-  }
+  else { filtered.forEach(function(r){
+    h+='<div class="item-card" data-rid="'+r.id+'" onclick="openRequestDetail(this.dataset.rid)">';
+    h+='<div class="ic-icon">📋</div>';
+    h+='<div class="ic-body"><div class="ic-name">'+esc(r.item_name)+'</div>';
+    h+='<div class="ic-sub">'+esc(r.requested_by||'')+'  ·  '+fmtDateTime(r.created_at)+'</div>';
+    h+='<div style="font-size:12px;color:#94a3b8;margin-top:3px">'+esc((r.justification||'').substring(0,60))+'</div></div>';
+    h+='<div class="ic-right"><span class="status-badge s-'+r.status+'">'+STATUS_LBL[r.status]+'</span>';
+    h+='<div class="urg-'+r.urgency+'" style="font-size:10px;margin-top:3px">'+URG_LBL[r.urgency]+'</div></div></div>';
+  }); }
   setContent(h);
 }
-
 function openRequestDetail(id){
-  var r=allRequests.find(function(x){return x.id==id;});
-  if(!r) return;
+  var r=allRequests.find(function(x){return x.id==id;}); if(!r) return;
   var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
-  h+='<div class="modal"><div class="modal-title">Demande #'+r.id+'</div>';
+  h+='<div class="modal"><div class="modal-title">Demande d&#39;achat #'+r.id+'</div>';
   h+='<div class="detail-panel">';
   h+=dpRow('Article',esc(r.item_name));
-  h+=dpRow('Quantite',''+r.quantity);
-  h+=dpRow('Urgence',URGENCY_LABELS[r.urgency]||r.urgency);
-  h+=dpRow('Statut',STATUS_LABELS[r.status]||r.status);
-  h+=dpRow('Demande par',esc(r.requested_by||'—'));
-  h+=dpRow('Date',fmtDate(r.created_at));
+  h+=dpRow('Quantité',''+r.quantity);
+  h+=dpRow('Urgence',URG_LBL[r.urgency]);
+  h+=dpRow('Statut',STATUS_LBL[r.status]);
+  h+=dpRow('Demandé par',esc(r.requested_by||'—'));
+  h+=dpRow('Date',fmtDateTime(r.created_at));
   if(r.justification) h+=dpRow('Justification',esc(r.justification));
   h+='</div>';
   if(r.status==='pending'){
     h+='<div style="display:flex;gap:8px;margin-top:14px">';
-    h+='<button class="btn btn-primary" data-rid="'+r.id+'" onclick="updateReqStatus(this.dataset.rid,&apos;approved&apos;)">Approuver</button>';
-    h+='<button class="btn btn-danger" data-rid="'+r.id+'" onclick="updateReqStatus(this.dataset.rid,&apos;rejected&apos;)">Refuser</button>';
+    h+='<button class="btn btn-primary" data-rid="'+r.id+'" onclick="updateReqStatus(this.dataset.rid,&apos;approved&apos;)">✅ Approuver</button>';
+    h+='<button class="btn btn-danger" data-rid="'+r.id+'" onclick="updateReqStatus(this.dataset.rid,&apos;rejected&apos;)">❌ Refuser</button>';
     h+='</div>';
   }
   if(r.status==='approved'){
-    h+='<div style="margin-top:14px">';
-    h+='<button class="btn btn-primary" style="width:100%" data-rid="'+r.id+'" onclick="createBonFromRequest(this.dataset.rid)">Creer bon de commande</button>';
-    h+='</div>';
+    h+='<div style="margin-top:14px"><button class="btn btn-primary" style="width:100%" data-rid="'+r.id+'" onclick="createBonFromRequest(this.dataset.rid)">🧾 Créer bon de commande</button></div>';
   }
   h+='<div class="modal-footer" style="margin-top:12px"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>';
   h+='</div></div>';
   showModal(h);
 }
-
 async function updateReqStatus(id,status){
-  var r=allRequests.find(function(x){return x.id==id;});
-  if(!r) return;
-  r.status=status;
-  await sbPatch('vz_purchase_requests',id,{status:status});
+  var r=allRequests.find(function(x){return x.id==id;}); if(!r) return;
+  r.status=status; await sbPatch('vz_purchase_requests',id,{status:status});
   closeModal(); renderDemandes();
 }
+function createBonFromRequest(reqId){ closeModal(); goTab('bons'); setTimeout(function(){ openBonModal(reqId); },200); }
 
-function createBonFromRequest(reqId){
-  closeModal();
-  goTab('bons');
-  setTimeout(function(){ openBonModal(reqId); },200);
-}
-
-/* ── BONS DE COMMANDE ── */
+/* ══ BONS DE COMMANDE ══ */
 function renderBons(){
-  var h='<button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="openBonModal(0)">+ Nouveau bon de commande</button>';
-  if(!allOrders.length){ h+='<div class="empty"><div class="empty-icon">🧾</div><div>Aucun bon de commande</div></div>'; }
-  else {
-    allOrders.forEach(function(o){
-      h+='<div class="item-card" data-oid="'+o.id+'" onclick="openBonDetail(this.dataset.oid)">';
-      h+='<div class="ic-icon">🧾</div>';
-      h+='<div class="ic-body"><div class="ic-name">'+esc(o.po_number||'PO-'+o.id)+'</div>';
-      h+='<div class="ic-sub">'+esc(o.supplier||o.supplier_name||'—')+'</div>';
-      h+='<div style="font-size:12px;color:#94a3b8;margin-top:3px">'+esc(o.items||'')+'</div></div>';
-      h+='<div class="ic-right"><div style="font-size:13px;font-weight:700;color:#10b981">'+fmtXAF(o.total_amount)+'</div>';
-      h+='<span class="status-badge s-'+(o.status||'draft')+'">'+STATUS_LABELS[o.status||'draft']+'</span></div></div>';
-    });
-  }
+  var filtered=allOrders.filter(function(o){ return filterStatus==='all'||o.status===filterStatus; });
+  var h='<div class="filter-bar">';
+  [{fs:'all',lbl:'Tous'},{fs:'draft',lbl:'Brouillons'},{fs:'ordered',lbl:'Commandés'},{fs:'received',lbl:'Reçus'}].forEach(function(f){
+    h+='<button class="fbtn'+(filterStatus===f.fs?' on':'')+'" data-fs="'+f.fs+'" onclick="setFilter(this)">'+f.lbl+'</button>';
+  });
+  h+='</div>';
+  h+='<button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="openBonModal(0)">+ Nouveau bon de commande</button>';
+  if(!filtered.length){ h+='<div class="empty"><div class="empty-icon">🧾</div><div>Aucun bon</div></div>'; }
+  else { filtered.forEach(function(o){
+    var st=o.status||'draft';
+    h+='<div class="item-card" data-oid="'+o.id+'" onclick="openBonDetail(this.dataset.oid)">';
+    h+='<div class="ic-icon">🧾</div>';
+    h+='<div class="ic-body"><div class="ic-name">'+esc(o.po_number||'PO-'+o.id)+'</div>';
+    h+='<div class="ic-sub">'+esc(o.supplier||o.supplier_name||'—')+'  ·  Créé par: '+esc(o.created_by||'—')+'</div>';
+    h+='<div style="font-size:11px;color:#64748b;margin-top:2px">'+esc((o.items||'').substring(0,50))+'</div></div>';
+    h+='<div class="ic-right"><div style="font-size:13px;font-weight:700;color:#10b981;margin-bottom:3px">'+fmtXAF(o.total_amount)+'</div>';
+    h+='<span class="status-badge s-'+st+'">'+STATUS_LBL[st]+'</span></div></div>';
+  }); }
   setContent(h);
 }
 
 function openBonDetail(id){
-  var o=allOrders.find(function(x){return x.id==id;});
-  if(!o) return;
+  var o=allOrders.find(function(x){return x.id==id;}); if(!o) return;
+  var st=o.status||'draft';
   var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
-  h+='<div class="modal"><div class="modal-title">'+esc(o.po_number||'PO-'+o.id)+'</div>';
+  h+='<div class="modal">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">';
+  h+='<div class="modal-title">'+esc(o.po_number||'PO-'+o.id)+'</div>';
+  h+='<span class="status-badge s-'+st+'">'+STATUS_LBL[st]+'</span></div>';
   h+='<div class="detail-panel">';
   h+=dpRow('Fournisseur',esc(o.supplier||o.supplier_name||'—'));
   h+=dpRow('Articles',esc(o.items||'—'));
-  h+=dpRow('Montant',fmtXAF(o.total_amount));
-  h+=dpRow('Statut',STATUS_LABELS[o.status||'draft']||o.status);
-  h+=dpRow('Date',fmtDate(o.created_at));
+  h+=dpRow('Montant estimé',fmtXAF(o.total_amount));
+  h+=dpRow('Créé par',esc(o.created_by||'—'));
+  h+=dpRow('Date création',fmtDate(o.created_at));
+  if(o.notes) h+=dpRow('Notes',esc(o.notes));
   h+='</div>';
-  if((o.status||'draft')==='draft'){
-    h+='<div style="margin-top:14px">';
-    h+='<button class="btn btn-primary" style="width:100%;margin-bottom:8px" data-oid="'+o.id+'" onclick="updateBonStatus(this.dataset.oid,&apos;ordered&apos;)">Marquer Commande</button>';
-    h+='<button class="btn btn-secondary" style="width:100%" data-oid="'+o.id+'" onclick="printBon(this.dataset.oid)">Imprimer PDF</button>';
-    h+='</div>';
+  h+='<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">';
+  /* Imprimer disponible à tout moment */
+  h+='<button class="btn btn-secondary btn-sm" data-oid="'+o.id+'" onclick="printBon(this.dataset.oid)">🖨️ Imprimer PDF</button>';
+  if(st==='draft'){
+    h+='<button class="btn btn-primary btn-sm" data-oid="'+o.id+'" onclick="updateBonStatus(this.dataset.oid,&apos;ordered&apos;)">📤 Marquer commandé</button>';
   }
-  if((o.status||'draft')==='ordered'){
-    h+='<div style="margin-top:14px">';
-    h+='<button class="btn btn-primary" style="width:100%" data-tab="receptions" onclick="closeModal();goTab(this.dataset.tab)">Enregistrer reception</button>';
-    h+='</div>';
+  if(st==='ordered'){
+    h+='<button class="btn btn-primary btn-sm" data-tab="receptions" data-oid="'+o.id+'" onclick="closeModal();goTab(this.dataset.tab)">✅ Enregistrer réception</button>';
   }
+  h+='</div>';
   h+='<div class="modal-footer" style="margin-top:12px"><button class="btn btn-secondary" onclick="closeModal()">Fermer</button></div>';
   h+='</div></div>';
   showModal(h);
 }
 
 async function updateBonStatus(id,status){
-  var o=allOrders.find(function(x){return x.id==id;});
-  if(!o) return;
-  o.status=status;
-  await sbPatch('vz_purchase_orders',id,{status:status});
+  var o=allOrders.find(function(x){return x.id==id;}); if(!o) return;
+  o.status=status; await sbPatch('vz_purchase_orders',id,{status:status});
   closeModal(); renderBons();
 }
 
 function printBon(id){
-  var o=allOrders.find(function(x){return x.id==id;});
-  if(!o) return;
+  var o=allOrders.find(function(x){return x.id==id;}); if(!o) return;
+  var hotel=getHotel();
   var w=window.open('','_blank');
-  w.document.write('<html><head><title>'+esc(o.po_number||'BON')+'</title><style>body{font-family:sans-serif;padding:30px;}table{width:100%;border-collapse:collapse;}td,th{border:1px solid #ccc;padding:8px;}th{background:#f5f5f5;}.foot{margin-top:40px;font-size:12px;color:#666;}</style></head><body>');
-  w.document.write('<h2>BON DE COMMANDE</h2><table>');
-  w.document.write('<tr><th>N</th><td>'+esc(o.po_number||'PO-'+o.id)+'</td></tr>');
-  w.document.write('<tr><th>Fournisseur</th><td>'+esc(o.supplier||o.supplier_name||'—')+'</td></tr>');
-  w.document.write('<tr><th>Articles</th><td>'+esc(o.items||'')+'</td></tr>');
-  w.document.write('<tr><th>Montant</th><td>'+fmtXAF(o.total_amount)+'</td></tr>');
-  w.document.write('<tr><th>Date</th><td>'+fmtDate(o.created_at)+'</td></tr></table>');
-  w.document.write('<div class="foot">Residence Veraluz · Kribi, Cameroun</div></body></html>');
-  w.document.close(); w.print();
+  var d=w.document;
+  d.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+esc(o.po_number||'BON')+'</title>');
+  d.write('<style>body{font-family:Arial,sans-serif;margin:0;padding:30px;color:#1a1a1a;font-size:13px;}');
+  d.write('.header{display:flex;justify-content:space-between;margin-bottom:30px;padding-bottom:20px;border-bottom:2px solid #10b981;}');
+  d.write('.hotel-name{font-size:20px;font-weight:800;color:#10b981;}.hotel-info{font-size:11px;color:#666;line-height:1.6;}');
+  d.write('.po-title{text-align:right;}.po-num{font-size:18px;font-weight:800;}.po-date{font-size:11px;color:#666;}');
+  d.write('.status-pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#e0fdf4;color:#065f46;margin-top:6px;}');
+  d.write('table{width:100%;border-collapse:collapse;margin-top:20px;}');
+  d.write('th{background:#f0fdf4;padding:10px 12px;text-align:left;font-size:12px;border:1px solid #d1fae5;}');
+  d.write('td{padding:10px 12px;border:1px solid #e5e7eb;font-size:12px;}');
+  d.write('.total-row td{font-weight:700;background:#f8fafc;font-size:14px;}');
+  d.write('.footer{margin-top:40px;display:flex;justify-content:space-between;font-size:11px;color:#666;}');
+  d.write('.sig-box{border-top:1px solid #ccc;width:180px;text-align:center;padding-top:6px;}');
+  d.write('.ocr-note{margin-top:30px;padding:10px;background:#f0fdf4;border-radius:6px;font-size:11px;color:#065f46;}');
+  d.write('</style></head><body>');
+  d.write('<div class="header">');
+  d.write('<div><div class="hotel-name">'+esc(hotel.name)+'</div>');
+  d.write('<div class="hotel-info">'+esc(hotel.address)+'<br>Tél: '+esc(hotel.phone)+'<br>'+esc(hotel.email)+'</div></div>');
+  d.write('<div class="po-title"><div class="po-num">BON DE COMMANDE</div>');
+  d.write('<div class="po-num" style="color:#10b981">'+esc(o.po_number||'PO-'+o.id)+'</div>');
+  d.write('<div class="po-date">Date: '+fmtDate(o.created_at)+'</div>');
+  d.write('<div class="status-pill">'+STATUS_LBL[o.status||'draft']+'</div></div></div>');
+  d.write('<table><thead><tr><th>Champ</th><th>Détail</th></tr></thead><tbody>');
+  d.write('<tr><td>Fournisseur</td><td><strong>'+esc(o.supplier||o.supplier_name||'—')+'</strong></td></tr>');
+  d.write('<tr><td>Articles commandés</td><td>'+esc(o.items||'—')+'</td></tr>');
+  d.write('<tr><td>Créé par</td><td>'+esc(o.created_by||'—')+'</td></tr>');
+  if(o.notes) d.write('<tr><td>Notes</td><td>'+esc(o.notes)+'</td></tr>');
+  d.write('<tr class="total-row"><td>Montant estimé</td><td>'+fmtXAF(o.total_amount)+'</td></tr>');
+  d.write('</tbody></table>');
+  d.write('<div class="footer">');
+  d.write('<div><div class="sig-box">Signature responsable</div></div>');
+  d.write('<div style="text-align:right;font-size:11px;color:#888">Imprimé le '+fmtDate(new Date().toISOString())+'</div>');
+  d.write('</div></body></html>');
+  d.close(); w.print();
 }
 
-/* ── RECEPTIONS ── */
+function openBonModal(reqId){
+  var req=reqId&&reqId!=0?allRequests.find(function(x){return x.id==reqId;}):null;
+  var user=getCurrentUser();
+  /* Suggérer un prix de référence si on a des données */
+  var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
+  h+='<div class="modal"><div class="modal-title">Nouveau bon de commande</div>';
+  h+='<div class="modal-row"><div><label>Fournisseur</label><select id="b_sup"><option value="">-- Choisir --</option>';
+  allSuppliers.forEach(function(s){ h+='<option value="'+esc(s.name)+'">'+esc(s.name)+'</option>'; });
+  h+='</select></div>';
+  h+='<div><label>Créé par</label><input id="b_by" value="'+esc(user)+'" placeholder="Nom"></div></div>';
+  h+='<label>Articles commandés</label><textarea id="b_items" rows="3" placeholder="Ex: Ampoules LED E27 x20, Gel douche x30...">'+(req?esc(req.item_name)+' x'+req.quantity:'')+'</textarea>';
+  h+='<label>Montant estimé (FCFA)</label><input type="number" id="b_amt" placeholder="0" min="0">';
+  h+='<label>Notes / Instructions livraison</label><input id="b_notes" placeholder="Délai souhaité, point de livraison...">';
+  if(allPrices.length){
+    h+='<div class="info-box">💡 Consultez l&#39;onglet <strong>Prix actuels</strong> pour les tarifs des dernières commandes.</div>';
+  }
+  h+='<div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Annuler</button>';
+  h+='<button class="btn btn-primary" data-rid="'+(req?req.id:0)+'" onclick="saveBon(this.dataset.rid)">Créer bon</button></div>';
+  h+='</div></div>';
+  showModal(h);
+}
+
+async function saveBon(reqId){
+  var sup=document.getElementById('b_sup').value;
+  var by=document.getElementById('b_by').value||getCurrentUser();
+  var items=document.getElementById('b_items').value;
+  var amt=parseInt(document.getElementById('b_amt').value)||0;
+  var notes=document.getElementById('b_notes').value;
+  if(!items){alert('Articles requis');return;}
+  var poNum='PO-'+new Date().getFullYear()+'-'+String(allOrders.length+1).padStart(3,'0');
+  var bon={id:Date.now(),po_number:poNum,supplier:sup,items:items,total_amount:amt,notes:notes,status:'draft',created_by:by,created_at:new Date().toISOString()};
+  allOrders.unshift(bon);
+  await sbPost('vz_purchase_orders',bon);
+  if(reqId&&reqId!=0) await sbPatch('vz_purchase_requests',reqId,{status:'ordered'});
+  closeModal(); goTab('bons');
+}
+
+/* ══ RÉCEPTIONS ══ */
 function renderReceptions(){
-  var h='<button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="openReceptionModal()">+ Enregistrer une reception</button>';
+  var h='<button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="openReceptionModal()">+ Enregistrer une réception</button>';
   if(!allReceptions.length){
-    h+='<div class="empty"><div class="empty-icon">✅</div>';
-    h+='<div>Aucune reception enregistree</div>';
-    h+='<div style="font-size:12px;color:#475569;margin-top:8px">Enregistrez les achats avec photo de recu</div></div>';
+    h+='<div class="empty"><div class="empty-icon">✅</div><div>Aucune réception</div>';
+    h+='<div style="font-size:12px;color:#475569;margin-top:8px">Enregistrez les livraisons avec photo de reçu</div></div>';
   } else {
     allReceptions.forEach(function(r){
-      h+='<div class="item-card"><div class="ic-icon">'+(r.receipt_url?'🖼️':'📦')+'</div>';
-      h+='<div class="ic-body"><div class="ic-name">'+esc(r.items||'Reception #'+r.id)+'</div>';
-      h+='<div class="ic-sub">'+esc(r.received_by||'')+'  ·  '+fmtDate(r.received_at||r.created_at)+'</div></div>';
-      h+='<div class="ic-right" style="font-size:13px;font-weight:700;color:#10b981">'+fmtXAF(r.total_amount)+'</div></div>';
+      var diff=r.real_amount&&r.estimated_amount&&r.real_amount!==r.estimated_amount;
+      h+='<div class="item-card">';
+      h+='<div class="ic-icon">'+(r.receipt_url?'🖼️':'✅')+'</div>';
+      h+='<div class="ic-body">';
+      h+='<div class="ic-name">'+esc(r.po_number||'Réception #'+r.id)+'</div>';
+      h+='<div class="ic-sub">'+esc(r.supplier_name||'')+'  ·  '+fmtDate(r.received_at||r.created_at)+'</div>';
+      h+='<div style="font-size:11px;color:#64748b;margin-top:2px">'+esc((r.items||'').substring(0,50))+'</div>';
+      h+='</div>';
+      h+='<div class="ic-right">';
+      if(diff){
+        h+='<div style="font-size:11px;color:#94a3b8;text-decoration:line-through">'+fmtXAF(r.estimated_amount)+'</div>';
+        h+='<div style="font-size:13px;font-weight:700;color:#10b981">'+fmtXAF(r.real_amount)+'</div>';
+      } else {
+        h+='<div style="font-size:13px;font-weight:700;color:#10b981">'+fmtXAF(r.real_amount||r.total_amount||0)+'</div>';
+      }
+      h+='<div style="font-size:10px;color:#64748b">par '+esc(r.received_by||'—')+'</div>';
+      h+='</div></div>';
     });
   }
   setContent(h);
 }
 
-/* ── FOURNISSEURS ── */
+function openReceptionModal(){
+  /* Récupérer les POs ordonnés ou tous */
+  var orderedPOs=allOrders.filter(function(o){return o.status==='ordered';});
+  var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
+  h+='<div class="modal"><div class="modal-title">Enregistrer une réception</div>';
+
+  /* Dropdown POs */
+  h+='<label>Bon de commande associé</label>';
+  h+='<select id="r_po" onchange="prefillFromPO(this.value)">';
+  h+='<option value="">-- Achat direct (sans PO) --</option>';
+  allOrders.forEach(function(o){
+    var lbl=esc(o.po_number||'PO-'+o.id)+' — '+esc(o.supplier||'')+' — '+fmtXAF(o.total_amount);
+    h+='<option value="'+o.id+'" '+(o.status==='ordered'?'':'style="color:#64748b"')+'>'+lbl+(o.status!=='ordered'?' ('+STATUS_LBL[o.status]+')':'')+'</option>';
+  });
+  h+='</select>';
+
+  h+='<label>Fournisseur</label>';
+  h+='<select id="r_sup"><option value="">-- Choisir --</option>';
+  allSuppliers.forEach(function(s){ h+='<option value="'+esc(s.name)+'">'+esc(s.name)+'</option>'; });
+  h+='</select>';
+
+  h+='<label>Articles reçus</label>';
+  h+='<textarea id="r_items" rows="2" placeholder="Ex: Ampoules LED E27 x20, Gel douche x30..."></textarea>';
+
+  /* Quantité + unité pour calcul prix unitaire */
+  h+='<div class="modal-row">';
+  h+='<div><label>Qté totale reçue</label><input type="number" id="r_qty" value="1" min="1" oninput="calcUnitPrice()"></div>';
+  h+='<div><label>Unité</label><select id="r_unit">';
+  ['pcs','kg','L','m','boîte','carton','sac','rouleau','lot'].forEach(function(u){ h+='<option>'+u+'</option>'; });
+  h+='</select></div></div>';
+
+  /* Montants côte à côte */
+  h+='<div class="modal-row">';
+  h+='<div><label>Montant estimé (FCFA)</label><input type="number" id="r_est" placeholder="Depuis le bon" min="0" oninput="calcUnitPrice()"></div>';
+  h+='<div><label>Montant réel payé (FCFA)</label><input type="number" id="r_real" placeholder="Prix réel" min="0" oninput="calcUnitPrice()"></div>';
+  h+='</div>';
+  h+='<div id="r_unitprice" style="font-size:12px;color:#10b981;margin-bottom:10px;min-height:18px"></div>';
+
+  h+='<label>Photo reçu / Facture</label>';
+  h+='<div class="upload-zone" onclick="document.getElementById(&apos;r_file&apos;).click()">';
+  h+='<input type="file" id="r_file" accept="image/*" style="display:none" onchange="previewReceipt(this)">';
+  h+='<div class="uz-icon">📷</div><div class="uz-text">Appuyer pour photo ou fichier</div>';
+  h+='<div id="r_preview"></div></div>';
+
+  h+='<label>Reçu par</label><input id="r_by" value="'+esc(getCurrentUser())+'" placeholder="Votre nom">';
+  h+='<label>Notes</label><input id="r_notes" placeholder="Conforme, problèmes...">';
+
+  h+='<div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Annuler</button>';
+  h+='<button class="btn btn-primary" onclick="saveReception()">Enregistrer</button></div>';
+  h+='</div></div>';
+  showModal(h);
+}
+
+function prefillFromPO(poId){
+  if(!poId) return;
+  var o=allOrders.find(function(x){return x.id==poId;});
+  if(!o) return;
+  var supEl=document.getElementById('r_sup');
+  var itemsEl=document.getElementById('r_items');
+  var estEl=document.getElementById('r_est');
+  var realEl=document.getElementById('r_real');
+  if(supEl && o.supplier){ for(var i=0;i<supEl.options.length;i++){ if(supEl.options[i].value===o.supplier){ supEl.selectedIndex=i; break; } } }
+  if(itemsEl) itemsEl.value=o.items||'';
+  if(estEl) estEl.value=o.total_amount||'';
+  if(realEl && !realEl.value) realEl.value=o.total_amount||'';
+  calcUnitPrice();
+}
+
+function calcUnitPrice(){
+  var real=parseFloat(document.getElementById('r_real').value)||0;
+  var qty=parseFloat(document.getElementById('r_qty').value)||1;
+  var el=document.getElementById('r_unitprice');
+  if(el && real>0 && qty>0){
+    var unit=document.getElementById('r_unit').value;
+    el.innerHTML='Prix unitaire calculé: <strong>'+fmtXAF(Math.round(real/qty))+'</strong> / '+esc(unit);
+  } else if(el){ el.innerHTML=''; }
+}
+
+function previewReceipt(input){
+  if(!input.files||!input.files[0]) return;
+  var reader=new FileReader();
+  reader.onload=function(e){ document.getElementById('r_preview').innerHTML='<img src="'+e.target.result+'" style="max-width:100%;max-height:130px;border-radius:8px;margin-top:8px">'; };
+  reader.readAsDataURL(input.files[0]);
+}
+
+async function saveReception(){
+  var poId=document.getElementById('r_po').value;
+  var sup=document.getElementById('r_sup').value;
+  var items=document.getElementById('r_items').value;
+  var qty=parseFloat(document.getElementById('r_qty').value)||1;
+  var unit=document.getElementById('r_unit').value;
+  var est=parseFloat(document.getElementById('r_est').value)||0;
+  var real=parseFloat(document.getElementById('r_real').value)||est;
+  var by=document.getElementById('r_by').value||getCurrentUser();
+  var notes=document.getElementById('r_notes').value;
+  if(!items){alert('Articles requis');return;}
+
+  var po=poId?allOrders.find(function(x){return x.id==poId;}):null;
+  var poNum=po?po.po_number:'';
+
+  /* Construire entrée prix */
+  var itemName=items.split(' x')[0].trim()||items.trim();
+  var unitPrice=qty>0?Math.round(real/qty):0;
+  var priceEntry={
+    id:Date.now(),
+    item_name:itemName,
+    supplier_name:sup,
+    unit_price:unitPrice,
+    unit:unit,
+    quantity:qty,
+    total_price:real,
+    date:new Date().toISOString().split('T')[0],
+    reception_id:Date.now(),
+    po_number:poNum
+  };
+
+  var rec={
+    id:Date.now(),
+    po_id:poId||null,
+    po_number:poNum,
+    items:items,
+    supplier_name:sup,
+    estimated_amount:est,
+    real_amount:real,
+    received_by:by,
+    notes:notes,
+    received_at:new Date().toISOString(),
+    price_entries:[priceEntry]
+  };
+
+  allReceptions.unshift(rec);
+
+  /* Mettre à jour catalogue prix */
+  var existIdx=allPrices.findIndex(function(p){ return p.item_name===itemName&&p.supplier_name===sup; });
+  if(existIdx>=0){ allPrices[existIdx]=priceEntry; }
+  else { allPrices.unshift(priceEntry); }
+  savePricesLocal();
+
+  /* Marquer PO comme reçu */
+  if(po){ po.status='received'; await sbPatch('vz_purchase_orders',po.id,{status:'received'}); }
+
+  await sbPost('vz_receptions',rec);
+  try{ await sbPost('vz_price_catalog',priceEntry); }catch(e){}
+
+  /* Notifier Finance */
+  window.parent.postMessage({veraluzEvent:true,source:MID,type:'expense-created',data:{label:'Appro: '+items,amount:real,date:new Date().toISOString()}},'*');
+
+  closeModal(); goTab('receptions');
+}
+
+/* ══ PRIX ACTUELS ══ */
+function renderPrix(){
+  var filtered=allPrices.filter(function(p){
+    return !searchQ||p.item_name.toLowerCase().indexOf(searchQ.toLowerCase())>=0||
+      (p.supplier_name||'').toLowerCase().indexOf(searchQ.toLowerCase())>=0;
+  });
+  var h='<div class="filter-bar">';
+  h+='<div class="search-box"><span>🔍</span><input placeholder="Article ou fournisseur..." oninput="searchQ=this.value;renderPrix()" value="'+esc(searchQ)+'"></div>';
+  h+='</div>';
+  h+='<div class="info-box" style="margin-bottom:12px">Ces prix proviennent de vos réceptions enregistrées. Ils servent de référence pour les prochaines commandes.</div>';
+
+  if(!filtered.length){
+    h+='<div class="empty"><div class="empty-icon">🏷️</div>';
+    h+='<div>Aucun prix enregistré</div>';
+    h+='<div style="font-size:12px;color:#475569;margin-top:8px">Enregistrez une réception pour alimenter ce catalogue.</div></div>';
+  } else {
+    /* Trier par date décroissante */
+    filtered.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+    filtered.forEach(function(p){
+      h+='<div class="prix-row">';
+      h+='<div style="flex:1;min-width:0">';
+      h+='<div style="font-size:13px;font-weight:600;color:#f1f5f9">'+esc(p.item_name)+'</div>';
+      h+='<div style="font-size:11px;color:#64748b;margin-top:2px">'+esc(p.supplier_name||'—')+'  ·  '+fmtDate(p.date)+'  ·  x'+p.quantity+' '+esc(p.unit||'')+'</div>';
+      h+='<div style="font-size:11px;color:#475569;margin-top:1px">Total payé: '+fmtXAF(p.total_price)+'</div>';
+      h+='</div>';
+      h+='<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">';
+      h+='<span class="prix-badge">'+fmtXAF(p.unit_price)+' / '+esc(p.unit||'u.')+'</span>';
+      h+='<button class="btn btn-secondary btn-sm" data-pname="'+esc(p.item_name)+'" data-psup="'+esc(p.supplier_name||'')+'" onclick="commanderDepuisPrix(this.dataset.pname,this.dataset.psup)">Commander</button>';
+      h+='</div></div>';
+    });
+  }
+  setContent(h);
+}
+
+function commanderDepuisPrix(itemName,supplierName){
+  goTab('bons');
+  setTimeout(function(){
+    openBonModal(0);
+    setTimeout(function(){
+      var items=document.getElementById('b_items');
+      var sup=document.getElementById('b_sup');
+      if(items) items.value=itemName;
+      if(sup){ for(var i=0;i<sup.options.length;i++){ if(sup.options[i].value===supplierName){ sup.selectedIndex=i; break; } } }
+      /* Pré-remplir avec dernier prix connu */
+      var lastP=allPrices.find(function(p){return p.item_name===itemName&&p.supplier_name===supplierName;});
+      if(lastP){
+        var amt=document.getElementById('b_amt');
+        if(amt) amt.value=lastP.total_price||lastP.unit_price||'';
+      }
+    },100);
+  },200);
+}
+
+/* ══ FOURNISSEURS ══ */
 function renderFournisseurs(){
   var h='<button class="btn btn-primary" style="width:100%;margin-bottom:12px" onclick="openSupplierModal(0)">+ Nouveau fournisseur</button>';
   allSuppliers.forEach(function(s){
+    /* Historique achats par ce fournisseur */
+    var total=allReceptions.filter(function(r){return r.supplier_name===s.name;}).reduce(function(a,r){return a+(r.real_amount||0);},0);
     h+='<div class="item-card" data-sid="'+s.id+'" onclick="openSupplierModal(this.dataset.sid)">';
     h+='<div class="ic-icon">🏭</div>';
     h+='<div class="ic-body"><div class="ic-name">'+esc(s.name)+'</div>';
     h+='<div class="ic-sub">'+esc(s.category||'')+'</div>';
     if(s.phone) h+='<div style="font-size:12px;color:#60a5fa;margin-top:2px">'+esc(s.phone)+'</div>';
     if(s.notes) h+='<div style="font-size:11px;color:#475569;margin-top:2px">'+esc(s.notes)+'</div>';
-    h+='</div><div class="ic-right" style="font-size:18px">›</div></div>';
+    h+='</div>';
+    h+='<div class="ic-right">';
+    if(total>0) h+='<div style="font-size:11px;color:#10b981;font-weight:600">'+fmtXAF(total)+'</div><div style="font-size:10px;color:#64748b">total acheté</div>';
+    h+='</div></div>';
   });
   setContent(h);
 }
 
-/* ── MOUVEMENTS ── */
+/* ══ MOUVEMENTS ══ */
 function renderMouvements(){
   var h='<div class="filter-bar">';
-  [{fs:'all',lbl:'Tous'},{fs:'in',lbl:'Entrees'},{fs:'out',lbl:'Sorties'},{fs:'adj',lbl:'Ajustements'},{fs:'loss',lbl:'Pertes'}].forEach(function(f){
+  [{fs:'all',lbl:'Tous'},{fs:'in',lbl:'↑ Entrées'},{fs:'out',lbl:'↓ Sorties'},{fs:'adj',lbl:'Ajustements'}].forEach(function(f){
     h+='<button class="fbtn'+(filterStatus===f.fs?' on':'')+'" data-fs="'+f.fs+'" onclick="setFilter(this)">'+f.lbl+'</button>';
   });
   h+='</div>';
   var filtered=allMovements.filter(function(m){ return filterStatus==='all'||m.type===filterStatus; });
   if(!filtered.length){ h+='<div class="empty"><div class="empty-icon">🔄</div><div>Aucun mouvement</div></div>'; }
-  else {
-    filtered.forEach(function(m){
-      var cls=m.type==='in'?'mv-in':m.type==='out'?'mv-out':m.type==='adj'?'mv-adj':'mv-loss';
-      var ic=m.type==='in'?'↑':m.type==='out'?'↓':m.type==='adj'?'≈':'!';
-      h+='<div class="mv-row"><div class="mv-type '+cls+'">'+ic+'</div>';
-      h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:#f1f5f9">'+esc(m.item_name)+'</div>';
-      h+='<div style="font-size:11px;color:#64748b">'+esc(m.user_name||'')+'  ·  '+esc(m.note||'')+'</div></div>';
-      h+='<div style="text-align:right;font-size:12px;color:#94a3b8;flex-shrink:0">'+(m.type==='in'?'+':'')+m.quantity+'<br>'+fmtDate(m.created_at)+'</div></div>';
-    });
-  }
+  else { filtered.forEach(function(m){
+    var cls=m.type==='in'?'mv-in':m.type==='out'?'mv-out':m.type==='adj'?'mv-adj':'mv-loss';
+    var ic=m.type==='in'?'↑':m.type==='out'?'↓':m.type==='adj'?'≈':'!';
+    h+='<div class="mv-row"><div class="mv-type '+cls+'">'+ic+'</div>';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:#f1f5f9">'+esc(m.item_name)+'</div>';
+    h+='<div style="font-size:11px;color:#64748b">'+esc(m.user_name||'')+'  ·  '+esc(m.note||'')+'</div></div>';
+    h+='<div style="text-align:right;font-size:12px;color:#94a3b8;flex-shrink:0">'+(m.type==='in'?'+':'')+m.quantity+'<br>'+fmtDateTime(m.created_at)+'</div></div>';
+  }); }
   setContent(h);
 }
 
-/* ── RAPPORTS ── */
+/* ══ RAPPORTS ══ */
 function renderRapports(){
-  var totalSpend=allOrders.reduce(function(a,o){return a+(o.total_amount||0);},0);
-  var low=allItems.filter(function(i){return i.quantity<=i.min_quantity;}).length;
-  var outMov=allMovements.filter(function(m){return m.type==='out';}).length;
-
+  var totalSpend=allReceptions.reduce(function(a,r){return a+(r.real_amount||0);},0);
+  var avgPrice=allPrices.length>0?Math.round(allPrices.reduce(function(a,p){return a+p.unit_price;},0)/allPrices.length):0;
   var h='<div class="kpi-grid">';
-  h+=kpiCard('💰',fmtXAF(totalSpend),'Total commandes','ok');
+  h+=kpiCard('💰',fmtXAF(totalSpend),'Total dépenses','ok');
   h+=kpiCard('📦',''+allItems.length,'Articles','');
-  h+=kpiCard('⚠️',''+low,'Stock faible','warn');
-  h+=kpiCard('🔄',''+outMov,'Sorties','');
+  h+=kpiCard('🏷️',''+allPrices.length,'Prix référencés','');
+  h+=kpiCard('🔄',''+allMovements.filter(function(m){return m.type==='out';}).length,'Sorties','');
   h+='</div>';
 
   var catMap={};
   allItems.forEach(function(i){ catMap[i.category]=(catMap[i.category]||0)+1; });
-  var cats=Object.keys(catMap).sort(function(a,b){return catMap[b]-catMap[a];});
-
-  h+='<div class="chart-wrap"><div class="chart-title">Articles par categorie</div>';
-  cats.forEach(function(c){
-    var pct=allItems.length>0?Math.round(catMap[c]/allItems.length*100):0;
-    h+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;color:#94a3b8;margin-bottom:3px">';
-    h+='<span>'+catIcon(c)+' '+c+'</span><span>'+catMap[c]+'  ('+pct+'%)</span></div>';
-    h+='<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:#10b981"></div></div></div>';
+  h+='<div class="chart-wrap"><div class="chart-title">Articles par catégorie</div>';
+  Object.keys(catMap).sort(function(a,b){return catMap[b]-catMap[a];}).forEach(function(c){
+    var p=Math.round(catMap[c]/allItems.length*100);
+    h+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;color:#94a3b8;margin-bottom:3px"><span>'+catIcon(c)+' '+c+'</span><span>'+catMap[c]+'</span></div>';
+    h+='<div class="prog-wrap"><div class="prog-bar" style="width:'+p+'%;background:#10b981"></div></div></div>';
   });
   h+='</div>';
 
-  var cMap={};
-  allMovements.filter(function(m){return m.type==='out';}).forEach(function(m){ cMap[m.item_name]=(cMap[m.item_name]||0)+Math.abs(m.quantity||1); });
-  var top=Object.keys(cMap).sort(function(a,b){return cMap[b]-cMap[a];}).slice(0,5);
-  h+='<div class="chart-wrap"><div class="chart-title">Top consommations</div>';
-  if(top.length){
-    var mx=cMap[top[0]]||1;
-    top.forEach(function(n){
-      var p=Math.round(cMap[n]/mx*100);
-      h+='<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;color:#94a3b8;margin-bottom:3px">';
-      h+='<span>'+esc(n)+'</span><span>'+cMap[n]+' u.</span></div>';
-      h+='<div class="prog-wrap"><div class="prog-bar" style="width:'+p+'%;background:#6366f1"></div></div></div>';
+  h+='<div class="chart-wrap"><div class="chart-title">Historique réceptions</div>';
+  if(allReceptions.length){
+    allReceptions.slice(0,5).forEach(function(r){
+      h+='<div class="dp-row"><span class="dp-lbl">'+esc(r.po_number||'Direct')+'</span><span class="dp-val">'+fmtXAF(r.real_amount||0)+'</span></div>';
     });
-  } else { h+='<div style="color:#475569;font-size:13px">Aucun mouvement</div>'; }
+  } else { h+='<div style="color:#475569;font-size:13px">Aucune réception</div>'; }
   h+='</div>';
   setContent(h);
 }
 
-/* ── MODALS ── */
+/* ══ MODALS CRUD ══ */
 function openQuickAdd(){
   var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
-  h+='<div class="modal"><div class="modal-title">Que voulez-vous faire ?</div>';
-  h+='<button class="btn btn-secondary" style="width:100%;margin-bottom:8px;text-align:left;padding:12px" onclick="closeModal();openItemModal(0)">📦 Ajouter un article inventaire</button>';
-  h+='<button class="btn btn-secondary" style="width:100%;margin-bottom:8px;text-align:left;padding:12px" onclick="closeModal();openDemande()">📋 Creer une demande d&#39;achat</button>';
-  h+='<button class="btn btn-secondary" style="width:100%;margin-bottom:8px;text-align:left;padding:12px" onclick="closeModal();openReceptionModal()">✅ Enregistrer une reception</button>';
+  h+='<div class="modal"><div class="modal-title">Que souhaitez-vous faire ?</div>';
+  h+='<button class="btn btn-secondary" style="width:100%;margin-bottom:8px;text-align:left;padding:12px" onclick="closeModal();openItemModal(0)">📦 Ajouter un article</button>';
+  h+='<button class="btn btn-secondary" style="width:100%;margin-bottom:8px;text-align:left;padding:12px" onclick="closeModal();openDemande()">📋 Créer une demande d&#39;achat</button>';
+  h+='<button class="btn btn-secondary" style="width:100%;margin-bottom:8px;text-align:left;padding:12px" onclick="closeModal();openBonModal(0)">🧾 Nouveau bon de commande</button>';
+  h+='<button class="btn btn-secondary" style="width:100%;margin-bottom:8px;text-align:left;padding:12px" onclick="closeModal();openReceptionModal()">✅ Enregistrer une réception</button>';
   h+='<button class="btn btn-secondary" style="width:100%;text-align:left;padding:12px" onclick="closeModal();openSupplierModal(0)">🏭 Ajouter un fournisseur</button>';
   h+='<div class="modal-footer" style="margin-top:12px"><button class="btn btn-secondary" onclick="closeModal()">Annuler</button></div>';
   h+='</div></div>';
@@ -572,13 +833,12 @@ function openItemModal(id){
   var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
   h+='<div class="modal"><div class="modal-title">'+(i?'Modifier article':'Nouvel article')+'</div>';
   h+='<label>Nom</label><input id="m_name" value="'+(i?esc(i.name):'')+'" placeholder="Ex: Serviettes blanches">';
-  h+='<div class="modal-row"><div><label>Categorie</label><select id="m_cat">';
+  h+='<div class="modal-row"><div><label>Catégorie</label><select id="m_cat">';
   CATS.forEach(function(c){ h+='<option'+(i&&i.category===c?' selected':'')+'>'+c+'</option>'; });
-  h+='</select></div>';
-  h+='<div><label>Unite</label><select id="m_unit">';
+  h+='</select></div><div><label>Unité</label><select id="m_unit">';
   UNITS.forEach(function(u){ h+='<option'+(i&&i.unit===u?' selected':'')+'>'+u+'</option>'; });
   h+='</select></div></div>';
-  h+='<div class="modal-row"><div><label>Quantite</label><input type="number" id="m_qty" value="'+(i?i.quantity:0)+'" min="0"></div>';
+  h+='<div class="modal-row"><div><label>Quantité</label><input type="number" id="m_qty" value="'+(i?i.quantity:0)+'" min="0"></div>';
   h+='<div><label>Stock min</label><input type="number" id="m_min" value="'+(i?i.min_quantity:5)+'" min="0"></div></div>';
   h+='<label>Emplacement</label><input id="m_loc" value="'+(i?esc(i.location||''):'')+'" placeholder="Ex: Buanderie...">';
   h+='<label>Notes</label><textarea id="m_notes" rows="2">'+(i?esc(i.notes||''):'')+'</textarea>';
@@ -587,48 +847,33 @@ function openItemModal(id){
   h+='</div></div>';
   showModal(h);
 }
-
 async function saveItem(id){
-  var body={name:document.getElementById('m_name').value,category:document.getElementById('m_cat').value,
-    unit:document.getElementById('m_unit').value,quantity:parseInt(document.getElementById('m_qty').value)||0,
-    min_quantity:parseInt(document.getElementById('m_min').value)||0,
-    location:document.getElementById('m_loc').value,notes:document.getElementById('m_notes').value};
+  var body={name:document.getElementById('m_name').value,category:document.getElementById('m_cat').value,unit:document.getElementById('m_unit').value,quantity:parseInt(document.getElementById('m_qty').value)||0,min_quantity:parseInt(document.getElementById('m_min').value)||0,location:document.getElementById('m_loc').value,notes:document.getElementById('m_notes').value};
   if(!body.name){alert('Nom requis');return;}
-  if(id&&id!=0){
-    await sbPatch('vz_inventory_items',id,body);
-    var idx=allItems.findIndex(function(x){return x.id==id;});
-    if(idx>=0) allItems[idx]=Object.assign(allItems[idx],body);
-  } else {
-    body.id=Date.now();
-    var res=await sbPost('vz_inventory_items',body);
-    allItems.push(res&&res[0]?res[0]:body);
-  }
+  if(id&&id!=0){ await sbPatch('vz_inventory_items',id,body); var idx=allItems.findIndex(function(x){return x.id==id;}); if(idx>=0) allItems[idx]=Object.assign(allItems[idx],body); }
+  else { body.id=Date.now(); var res=await sbPost('vz_inventory_items',body); allItems.push(res&&res[0]?res[0]:body); }
   closeModal(); render();
 }
 
 function openMvtModal(itemId,type){
-  var i=allItems.find(function(x){return x.id==itemId;});
-  if(!i) return;
-  var lbl=type==='in'?'Entree stock':'Sortie stock';
+  var i=allItems.find(function(x){return x.id==itemId;}); if(!i) return;
+  var lbl=type==='in'?'Entrée stock':'Sortie stock';
   var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
   h+='<div class="modal"><div class="modal-title">'+lbl+' — '+esc(i.name)+'</div>';
-  h+='<label>Quantite</label><input type="number" id="mv_qty" value="1" min="1" style="font-size:24px;text-align:center;padding:14px">';
+  h+='<label>Quantité</label><input type="number" id="mv_qty" value="1" min="1" style="font-size:24px;text-align:center;padding:14px">';
   h+='<label>Note</label><input id="mv_note" placeholder="Raison, destination...">';
   h+='<div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Annuler</button>';
   h+='<button class="btn btn-primary" data-iid="'+i.id+'" data-type="'+type+'" onclick="saveMvt(this.dataset.iid,this.dataset.type)">Confirmer</button></div>';
   h+='</div></div>';
   showModal(h);
 }
-
 async function saveMvt(itemId,type){
   var qty=parseInt(document.getElementById('mv_qty').value)||1;
   var note=document.getElementById('mv_note').value;
-  var i=allItems.find(function(x){return x.id==itemId;});
-  if(!i) return;
-  var mvt={id:Date.now(),item_id:itemId,item_name:i.name,type:type,quantity:type==='out'?-qty:qty,note:note,user_name:'Utilisateur',created_at:new Date().toISOString()};
+  var i=allItems.find(function(x){return x.id==itemId;}); if(!i) return;
+  var mvt={id:Date.now(),item_id:itemId,item_name:i.name,type:type,quantity:type==='out'?-qty:qty,note:note,user_name:getCurrentUser(),created_at:new Date().toISOString()};
   allMovements.unshift(mvt);
-  if(type==='in') i.quantity+=qty;
-  else i.quantity=Math.max(0,i.quantity-qty);
+  if(type==='in') i.quantity+=qty; else i.quantity=Math.max(0,i.quantity-qty);
   await sbPost('vz_inventory_movements',mvt);
   await sbPatch('vz_inventory_items',itemId,{quantity:i.quantity});
   closeModal(); render();
@@ -637,102 +882,24 @@ async function saveMvt(itemId,type){
 function openDemande(){
   var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
   h+='<div class="modal"><div class="modal-title">Nouvelle demande d&#39;achat</div>';
-  h+='<label>Article</label><input id="d_item" placeholder="Nom de l&#39;article a commander">';
-  h+='<div class="modal-row"><div><label>Quantite</label><input type="number" id="d_qty" value="1" min="1"></div>';
+  h+='<label>Article</label><input id="d_item" placeholder="Nom de l&#39;article à commander">';
+  h+='<div class="modal-row"><div><label>Quantité</label><input type="number" id="d_qty" value="1" min="1"></div>';
   h+='<div><label>Urgence</label><select id="d_urg"><option value="low">Faible</option><option value="med" selected>Normal</option><option value="high">Urgent</option></select></div></div>';
-  h+='<label>Justification</label><textarea id="d_just" rows="3" placeholder="Pourquoi cet achat est necessaire..."></textarea>';
-  h+='<label>Demande par</label><input id="d_by" placeholder="Votre nom">';
+  h+='<label>Justification</label><textarea id="d_just" rows="3" placeholder="Pourquoi cet achat..."></textarea>';
+  h+='<label>Demandé par</label><input id="d_by" value="'+esc(getCurrentUser())+'">';
   h+='<div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Annuler</button>';
   h+='<button class="btn btn-primary" onclick="saveDemande()">Envoyer</button></div>';
   h+='</div></div>';
   showModal(h);
 }
-
 async function saveDemande(){
-  var item=document.getElementById('d_item').value;
-  var qty=parseInt(document.getElementById('d_qty').value)||1;
-  var urg=document.getElementById('d_urg').value;
-  var just=document.getElementById('d_just').value;
-  var by=document.getElementById('d_by').value||'Inconnu';
+  var item=document.getElementById('d_item').value,qty=parseInt(document.getElementById('d_qty').value)||1,urg=document.getElementById('d_urg').value,just=document.getElementById('d_just').value,by=document.getElementById('d_by').value||getCurrentUser();
   if(!item){alert('Article requis');return;}
   var req={id:Date.now(),item_name:item,quantity:qty,urgency:urg,justification:just,requested_by:by,status:'pending',created_at:new Date().toISOString()};
   allRequests.unshift(req);
   await sbPost('vz_purchase_requests',req);
-  window.parent.postMessage({veraluzEvent:true,source:MID,type:'notification',data:{title:'Nouvelle demande achat',message:item+' x'+qty,level:urg==='high'?'alert':'info'}},'*');
+  window.parent.postMessage({veraluzEvent:true,source:MID,type:'notification',data:{title:'Demande achat',message:item+' x'+qty,level:urg==='high'?'alert':'info'}},'*');
   closeModal(); goTab('demandes');
-}
-
-function openBonModal(reqId){
-  var req=reqId&&reqId!=0?allRequests.find(function(x){return x.id==reqId;}):null;
-  var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
-  h+='<div class="modal"><div class="modal-title">Nouveau bon de commande</div>';
-  h+='<label>Fournisseur</label><select id="b_sup"><option value="">-- Choisir --</option>';
-  allSuppliers.forEach(function(s){ h+='<option value="'+esc(s.name)+'">'+esc(s.name)+'</option>'; });
-  h+='</select>';
-  h+='<label>Articles</label><textarea id="b_items" rows="3" placeholder="Ex: Ampoules LED x20...">'+(req?esc(req.item_name)+' x'+req.quantity:'')+'</textarea>';
-  h+='<label>Montant estime (FCFA)</label><input type="number" id="b_amt" placeholder="0" min="0">';
-  h+='<label>Notes</label><input id="b_notes" placeholder="Instructions livraison...">';
-  h+='<div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Annuler</button>';
-  h+='<button class="btn btn-primary" data-rid="'+(req?req.id:0)+'" onclick="saveBon(this.dataset.rid)">Creer bon</button></div>';
-  h+='</div></div>';
-  showModal(h);
-}
-
-async function saveBon(reqId){
-  var sup=document.getElementById('b_sup').value;
-  var items=document.getElementById('b_items').value;
-  var amt=parseInt(document.getElementById('b_amt').value)||0;
-  var notes=document.getElementById('b_notes').value;
-  if(!items){alert('Articles requis');return;}
-  var poNum='PO-'+new Date().getFullYear()+'-'+String(allOrders.length+1).padStart(3,'0');
-  var bon={id:Date.now(),po_number:poNum,supplier:sup,items:items,total_amount:amt,notes:notes,status:'draft',created_at:new Date().toISOString()};
-  allOrders.unshift(bon);
-  await sbPost('vz_purchase_orders',bon);
-  if(reqId&&reqId!=0) await sbPatch('vz_purchase_requests',reqId,{status:'ordered'});
-  closeModal(); goTab('bons');
-}
-
-function openReceptionModal(){
-  var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
-  h+='<div class="modal"><div class="modal-title">Enregistrer une reception</div>';
-  h+='<label>Articles recus</label><textarea id="r_items" rows="2" placeholder="Ex: Ampoules LED x20..."></textarea>';
-  h+='<label>Fournisseur</label><select id="r_sup"><option value="">-- Choisir --</option>';
-  allSuppliers.forEach(function(s){ h+='<option value="'+esc(s.name)+'">'+esc(s.name)+'</option>'; });
-  h+='</select>';
-  h+='<label>Montant paye (FCFA)</label><input type="number" id="r_amt" placeholder="0" min="0">';
-  h+='<label>Photo recu / Facture</label>';
-  h+='<div class="upload-zone" onclick="document.getElementById(&apos;r_file&apos;).click()">';
-  h+='<input type="file" id="r_file" accept="image/*" style="display:none" onchange="previewReceipt(this)">';
-  h+='<div class="uz-icon">📷</div><div class="uz-text">Appuyer pour photo ou fichier</div>';
-  h+='<div id="r_preview"></div></div>';
-  h+='<label>Recu par</label><input id="r_by" placeholder="Votre nom">';
-  h+='<label>Notes</label><input id="r_notes" placeholder="Commentaires...">';
-  h+='<div style="font-size:11px;color:#475569;padding:8px;background:#0f172a;border-radius:6px;margin-bottom:10px">OCR automatique prevu dans une prochaine version.</div>';
-  h+='<div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Annuler</button>';
-  h+='<button class="btn btn-primary" onclick="saveReception()">Enregistrer</button></div>';
-  h+='</div></div>';
-  showModal(h);
-}
-
-function previewReceipt(input){
-  if(!input.files||!input.files[0]) return;
-  var reader=new FileReader();
-  reader.onload=function(e){ document.getElementById('r_preview').innerHTML='<img src="'+e.target.result+'" style="max-width:100%;max-height:150px;border-radius:8px;margin-top:8px">'; };
-  reader.readAsDataURL(input.files[0]);
-}
-
-async function saveReception(){
-  var items=document.getElementById('r_items').value;
-  var sup=document.getElementById('r_sup').value;
-  var amt=parseInt(document.getElementById('r_amt').value)||0;
-  var by=document.getElementById('r_by').value||'Inconnu';
-  var notes=document.getElementById('r_notes').value;
-  if(!items){alert('Articles requis');return;}
-  var rec={id:Date.now(),items:items,supplier_name:sup,total_amount:amt,received_by:by,notes:notes,received_at:new Date().toISOString()};
-  allReceptions.unshift(rec);
-  await sbPost('vz_receptions',rec);
-  window.parent.postMessage({veraluzEvent:true,source:MID,type:'expense-created',data:{label:'Approvisionnement: '+items,amount:amt,date:new Date().toISOString()}},'*');
-  closeModal(); goTab('receptions');
 }
 
 function openSupplierModal(id){
@@ -740,30 +907,20 @@ function openSupplierModal(id){
   var h='<div class="overlay" onclick="if(event.target===this)closeModal()">';
   h+='<div class="modal"><div class="modal-title">'+(s?'Modifier fournisseur':'Nouveau fournisseur')+'</div>';
   h+='<label>Nom</label><input id="s_name" value="'+(s?esc(s.name):'')+'" placeholder="Nom du fournisseur">';
-  h+='<div class="modal-row"><div><label>Telephone</label><input id="s_phone" value="'+(s?esc(s.phone||''):'')+'" placeholder="+237..."></div>';
+  h+='<div class="modal-row"><div><label>Téléphone</label><input id="s_phone" value="'+(s?esc(s.phone||''):'')+'" placeholder="+237..."></div>';
   h+='<div><label>Email</label><input id="s_email" value="'+(s?esc(s.email||''):'')+'" placeholder="email@..."></div></div>';
-  h+='<label>Categorie</label><input id="s_cat" value="'+(s?esc(s.category||''):'')+'" placeholder="Ex: Consommables...">';
+  h+='<label>Catégorie</label><input id="s_cat" value="'+(s?esc(s.category||''):'')+'" placeholder="Ex: Consommables...">';
   h+='<label>Notes</label><textarea id="s_notes" rows="2">'+(s?esc(s.notes||''):'')+'</textarea>';
   h+='<div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal()">Annuler</button>';
   h+='<button class="btn btn-primary" data-sid="'+(s?s.id:0)+'" onclick="saveSupplier(this.dataset.sid)">Enregistrer</button></div>';
   h+='</div></div>';
   showModal(h);
 }
-
 async function saveSupplier(id){
-  var body={name:document.getElementById('s_name').value,phone:document.getElementById('s_phone').value,
-    email:document.getElementById('s_email').value,category:document.getElementById('s_cat').value,
-    notes:document.getElementById('s_notes').value};
+  var body={name:document.getElementById('s_name').value,phone:document.getElementById('s_phone').value,email:document.getElementById('s_email').value,category:document.getElementById('s_cat').value,notes:document.getElementById('s_notes').value};
   if(!body.name){alert('Nom requis');return;}
-  if(id&&id!=0){
-    await sbPatch('vz_appro_suppliers',id,body);
-    var idx=allSuppliers.findIndex(function(x){return x.id==id;});
-    if(idx>=0) allSuppliers[idx]=Object.assign(allSuppliers[idx],body);
-  } else {
-    body.id=Date.now();
-    var res=await sbPost('vz_appro_suppliers',body);
-    allSuppliers.push(res&&res[0]?res[0]:body);
-  }
+  if(id&&id!=0){ await sbPatch('vz_appro_suppliers',id,body); var idx=allSuppliers.findIndex(function(x){return x.id==id;}); if(idx>=0) allSuppliers[idx]=Object.assign(allSuppliers[idx],body); }
+  else { body.id=Date.now(); var res=await sbPost('vz_appro_suppliers',body); allSuppliers.push(res&&res[0]?res[0]:body); }
   closeModal(); render();
 }
 </script>

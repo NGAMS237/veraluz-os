@@ -719,11 +719,11 @@ textarea.fi{resize:vertical;min-height:78px}
 <footer class="footer">
   <div class="footer-logo">
     <svg viewBox="0 0 34 40" width="28" height="33" fill="none"><path d="M17 1.5L31 7V20C31 29 24.5 36.5 17 39C9.5 36.5 3 29 3 20V7Z" fill="#023047" stroke="#c9a84c" stroke-width="1.8"/><path d="M17 9C17 9 12.5 13.5 12.5 17.5C12.5 20 14.5 22 17 22C19.5 22 21.5 20 21.5 17.5C21.5 13.5 17 9 17 9Z" fill="#c9a84c" opacity="0.9"/></svg>
-    <span>Résidence Veraluz</span>
+    <span id="ft-name">Résidence Veraluz</span>
   </div>
-  <p>Kribi, Cameroun · Face à l'océan Atlantique</p>
-  <p>📞 +237 6XX XXX XXX &nbsp;|&nbsp; <a href="https://wa.me/237600000000" class="fgold">WhatsApp</a> &nbsp;|&nbsp; ✉️ contact@veraluz.com</p>
-  <p class="footer-copy">© 2025 Résidence Veraluz · Tous droits réservés</p>
+  <p id="ft-location">Kribi, Cameroun · Face à l'océan Atlantique</p>
+  <p id="ft-contact">📞 +237 6XX XXX XXX &nbsp;|&nbsp; <a href="https://wa.me/237600000000" class="fgold">WhatsApp</a> &nbsp;|&nbsp; ✉️ contact@veraluz.com</p>
+  <p class="footer-copy" id="ft-copy">© 2025 Résidence Veraluz · Tous droits réservés</p>
 </footer>
 </body>
 <script>
@@ -1125,6 +1125,31 @@ function genPDF() {
 
   doc.save('Recu_Veraluz_'+d.reference+'.pdf');
 }
+
+// ── Apply hotel info from Settings (localStorage sync) ──
+function applyHotelInfo(h){
+  if(!h) return;
+  var fn = document.getElementById('ft-name');
+  var fl = document.getElementById('ft-location');
+  var fc = document.getElementById('ft-contact');
+  var fy = document.getElementById('ft-copy');
+  if(fn && h.name)    fn.textContent = h.name;
+  if(fl && h.address) fl.textContent = h.address;
+  if(fc){
+    var phone = h.phone || '';
+    var email = h.email || '';
+    var wa    = h.phone ? 'https://wa.me/'+h.phone.replace(/[^0-9]/g,'') : 'https://wa.me/237600000000';
+    fc.innerHTML = (phone ? '📞 '+phone+' &nbsp;|&nbsp; <a href="'+wa+'" class="fgold">WhatsApp</a>' : '')
+      + (email ? ' &nbsp;|&nbsp; ✉️ '+email : '');
+  }
+  if(fy && h.name) fy.textContent = '© '+new Date().getFullYear()+' '+h.name+' · Tous droits réservés';
+}
+(function(){
+  try{
+    var saved = localStorage.getItem('vz_hotel_info');
+    if(saved) applyHotelInfo(JSON.parse(saved));
+  }catch(e){}
+})();
 
 // ── Send by email ──
 function sendMail() {

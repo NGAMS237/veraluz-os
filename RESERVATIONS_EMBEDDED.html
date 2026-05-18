@@ -131,6 +131,7 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .btn-checkin{background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)}
 .btn-checkout{background:rgba(107,114,128,.2);color:var(--text2);border:1px solid var(--border)}
 .btn-cancel{background:rgba(239,68,68,.1);color:var(--danger);border:1px solid rgba(239,68,68,.2)}
+.btn-wa{background:rgba(37,211,102,.12);color:#25d366;border:1px solid rgba(37,211,102,.3)}
 
 /* New form */
 .form-steps{padding:4px 0}
@@ -754,6 +755,35 @@ function unitName(id){ var r=_rooms.find(function(r){return r.id===id;}); return
 
 /* ── Workflow ── */
 
+function sendWA(rezId, tplType) {
+  var r = (typeof REZS!=='undefined'?REZS:[]).concat(_rez||[]).find(function(x){return x.id===rezId;});
+  if (!r) { toast && toast('Réservation introuvable','err'); return; }
+  var phone = (r.guest_phone||r.client_phone||'').replace(/[^0-9+]/g,'').replace(/^\+/,'');
+  if (!phone) { toast && toast('Aucun téléphone pour ce client','warn'); return; }
+  var waSettings = {}; try{ waSettings=JSON.parse(localStorage.getItem('vz_whatsapp_settings')||'{}'); }catch(e){}
+  var templates = waSettings.templates || {};
+  var hotel = {}; try{ hotel=JSON.parse(localStorage.getItem('vz_hotel_settings')||'{}'); }catch(e){}
+  var DEF = {
+    reservation: 'Bonjour {client_name}, votre réservation à la Résidence Veraluz est confirmée du {checkin} au {checkout}. Chambre: {room}. Montant: {amount} FCFA. À bientôt !',
+    acompte:     'Bonjour {client_name}, nous avons bien reçu votre acompte de {amount} FCFA pour votre séjour du {checkin} au {checkout}. Merci !',
+    checkin:     'Bonjour {client_name}, nous vous attendons demain pour votre check-in à la Résidence Veraluz Kribi. N\'hésitez pas à nous contacter. À demain !',
+    checkout:    'Bonjour {client_name}, nous espérons que votre séjour à Veraluz Kribi vous a plu. Merci et à bientôt !',
+    support:     'Bonjour, bienvenue à la Résidence Veraluz Kribi. Comment pouvons-nous vous aider ?'
+  };
+  var tpl = templates[tplType] || DEF[tplType] || DEF.support;
+  var msg = tpl
+    .replace(/\{client_name\}/g, r.guest_name||r.client_name||'')
+    .replace(/\{checkin\}/g, fmtDate(r.check_in)||'')
+    .replace(/\{checkout\}/g, fmtDate(r.check_out)||'')
+    .replace(/\{room\}/g, r.unit_name||unitName(r.unit_id)||'')
+    .replace(/\{amount\}/g, r.total||'')
+    .replace(/\{hotel_name\}/g, hotel.name||'Résidence Veraluz');
+  window.parent.postMessage({
+    veraluzEvent:true, source:'veraluz-reservations', type:'whatsapp-open',
+    data:{ phone:phone, message:msg, client_name:r.guest_name||r.client_name, template_type:tplType, reservation_id:rezId }
+  }, '*');
+}
+
 function sendConfirmEmail(rid){
   var r=REZS.find(function(x){return x.id===rid;});
   if(!r){toast('Réservation introuvable','err');return;}
@@ -948,6 +978,7 @@ function openRezModal(rezId,_tab){
   if(r.status==='checkedin'||r.status==='checked_in') actions+='<button class="act-btn btn-checkout" data-rid="'+r.id+'" onclick="doCheckOut(this.dataset.rid)">Check-out</button>';
   if(['pending','confirmed','checkedin','checked_in'].includes(r.status)) actions+='<button class="act-btn btn-cancel" data-rid="'+r.id+'" onclick="doCancel(this.dataset.rid)">Annuler</button>';
   if(r.guest_email) actions+='<button class="act-btn" style="background:var(--bg3);color:var(--text1);border:1px solid var(--border);" data-rid="'+r.id+'" onclick="sendConfirmEmail(this.dataset.rid)">&#9993; Email</button>';
+  if(r.guest_phone){var waT=r.status==='checkedin'||r.status==='checked_in'?'checkin':r.status==='checkedout'||r.status==='checked_out'?'checkout':r.status==='confirmed'?'acompte':'reservation';actions+='<button class="act-btn btn-wa" data-rid="'+r.id+'" data-tpl="'+waT+'" onclick="sendWA(this.dataset.rid,this.dataset.tpl)">💬 WhatsApp</button>';}
 
   var balance = (r.total||0)-(r.paid||0);
   var balCls = balance<=0 ? 'balance-ok' : 'balance-due';

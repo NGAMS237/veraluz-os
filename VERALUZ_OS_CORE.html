@@ -707,12 +707,12 @@ var ROLE_MAP = {
 var ROLES = {
   superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'rh',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
-             'notifications','analytics','audit','settings','eventbus','auth'] },
+             'notifications','analytics','audit','settings','eventbus','auth','clients'] },
   manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'rh',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
-             'notifications','analytics','auth'] },
+             'notifications','analytics','auth','clients'] },
   reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981', primaryModule:'reservations',
-    modules:['reservations','paiements','notifications','rh'] },
+    modules:['reservations','paiements','notifications','rh','clients'] },
   rh:          { label:'RH',               icon:'👥',  color:'#f59e0b', primaryModule:'rh',
     modules:['rh','notifications','analytics'] },
   comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'finance',
@@ -1118,6 +1118,26 @@ function updateNotifBadge(count) {
 }
 function openNotifications() { loadModule('notifications'); }
 
+/* ── Core Toast ─────────────────────────────────────── */
+function showCoreToast(msg, type){
+  var el = document.getElementById('core-toast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'core-toast';
+    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);'
+      +'background:#1e2535;border:1px solid #22d3a5;color:#e2e8f0;padding:10px 20px;'
+      +'border-radius:10px;font-size:13px;z-index:9999;display:none;max-width:80%;text-align:center;'
+      +'box-shadow:0 4px 20px rgba(0,0,0,.4);';
+    document.body.appendChild(el);
+  }
+  if(type==='err'){ el.style.borderColor='#ef4444'; el.style.color='#fca5a5'; }
+  else { el.style.borderColor='#22d3a5'; el.style.color='#e2e8f0'; }
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.style.display='none'; }, 4000);
+}
+
 /* ── EventBus Engine ─────────────────────────────────────── */
 /* ══════════════════════════════════════════════════════════════
    VZ_Email — Moteur email centralisé (EmailJS REST API)
@@ -1332,13 +1352,25 @@ var EventBus = {
 
     /* ── Envoi email depuis modules ── */
     if (type === 'send-email' && data && data.to_email) {
+      var _src = source;
       VZ_Email.send(
         data.to_email,
         data.to_name || data.to_email,
         data.subject || 'Message — Résidence Veraluz',
         data.body_html || data.message || '',
-        function(){ console.log('[Core] Email envoyé à', data.to_email); },
-        function(err){ console.warn('[Core] Email error:', err); }
+        function(){
+          console.log('[Core] Email envoyé à', data.to_email);
+          showCoreToast('✉ Email envoyé à ' + data.to_email, 'ok');
+          // Broadcast back so modules can show feedback too
+          MODULES.forEach(function(m){
+            var fr = document.getElementById('frame-'+m.id);
+            if(fr) try{ fr.contentWindow.postMessage({veraluzEvent:true,source:'__core__',type:'email-sent',data:{to:data.to_email}},'*'); }catch(e){}
+          });
+        },
+        function(err){
+          console.warn('[Core] Email error:', err);
+          showCoreToast('⚠ Erreur email : ' + String(err).slice(0,80), 'err');
+        }
       );
     }
 

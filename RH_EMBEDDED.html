@@ -1074,6 +1074,7 @@ function renderDosPaie(){
       +'<div style="font-size:11px;color:var(--text3);margin-top:4px;">Base: '+fmt(p.base_salary||0)+' · Prime: +'+fmt(p.bonus||0)+' · Retenue: -'+fmt(p.deductions||0)+'</div>'
       +'<div class="btn-row" style="margin-top:8px;margin-bottom:0;">'
       +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; PDF</button>'
+      +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="sendPayslipEmail(this.dataset.pid)">&#128140; Email</button>'
       +(p.status!=='paye'?'<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">&#9989; Marquer pay&#233;</button>':'')
       +'</div>'
       +'</div>';
@@ -1307,6 +1308,7 @@ function renderPay(){
       +'<div style="font-size:16px;font-weight:800;color:var(--acc1);margin-top:4px;">'+fmt(netOf(p))+' FCFA</div>'
       +'<div class="btn-row" style="margin-top:8px;margin-bottom:0;">'
       +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; PDF</button>'
+      +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="sendPayslipEmail(this.dataset.pid)">&#128140; Email</button>'
       +(p.status!=='paye'?'<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">&#9989; Payer</button>':'')
       +'</div>'
       +'</div>';
@@ -1504,6 +1506,47 @@ function printPayslip(pid){
     +'</div></body></html>';
   var w=window.open('','_blank','width=750,height=1050');
   w.document.write(htm);w.document.close();setTimeout(function(){w.print();},700);
+}
+
+
+function sendPayslipEmail(pid){
+  var p=PAYROLLS.find(function(x){return x.id===pid;});if(!p)return;
+  var emp=EMPS.find(function(e){return e.id===p.employee_id;});
+  if(!emp||!emp.email){toast('Aucun email enregistr\u00e9 pour cet employ\u00e9','warn');return;}
+  var hotel=SETTINGS.hotel_name||'R\u00e9sidence Veraluz';
+  var addr=SETTINGS.hotel_address||'Kribi, Cameroun';
+  var gross=p.gross_salary||((p.base_salary||0)+(p.bonus||0));
+  var net=netOf(p);
+  var per=payM(p)||'';
+  var stxt=p.status==='paye'?'Pay\u00e9':'En attente de paiement';
+  var body='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'
+    +'body{font-family:Arial,sans-serif;font-size:14px;color:#222;max-width:580px;margin:0 auto;padding:24px;}'
+    +'.hdr{background:#0d7a5f;color:#fff;padding:18px 24px;border-radius:8px 8px 0 0;}'
+    +'.hdr h2{margin:0;font-size:20px;} .hdr p{margin:4px 0 0;font-size:12px;opacity:.8;}'
+    +'.body{background:#f9f9f9;padding:20px 24px;border:1px solid #e0e0e0;}'
+    +'.row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #eee;font-size:13px;}'
+    +'.total{background:#0d7a5f;color:#fff;padding:12px 16px;border-radius:6px;display:flex;justify-content:space-between;font-size:17px;font-weight:800;margin-top:12px;}'
+    +'.ftr{font-size:11px;color:#888;text-align:center;padding:14px;border-top:1px solid #ddd;}'
+    +'</style></head><body>'
+    +'<div class="hdr"><h2>'+hotel+'</h2><p>Bulletin de paie \u2014 '+per+'</p></div>'
+    +'<div class="body">'
+    +'<p>Bonjour <strong>'+esc(emp.full_name)+'</strong>,</p>'
+    +'<p style="margin-bottom:14px;">Veuillez trouver ci-dessous votre bulletin de paie pour la p\u00e9riode de <strong>'+per+'</strong>.</p>'
+    +'<div class="row"><span>Salaire de base</span><span>'+fmt(p.base_salary||0)+' FCFA</span></div>'
+    +(p.bonus?'<div class="row" style="color:#0d7a5f;"><span>+ Primes</span><span>+'+fmt(p.bonus||0)+' FCFA</span></div>':'')
+    +(p.deductions&&p.deductions>0?'<div class="row" style="color:#c0392b;"><span>\u2212 Retenues</span><span>-'+fmt(p.deductions||0)+' FCFA</span></div>':'')
+    +'<div class="total"><span>NET \u00c0 PAYER</span><span>'+fmt(net)+' FCFA</span></div>'
+    +'<div class="row" style="margin-top:8px;"><span>Statut</span><span><strong>'+stxt+'</strong></span></div>'
+    +'</div>'
+    +'<div class="ftr">'+hotel+' \u2014 '+addr+'<br>Ce document est g\u00e9n\u00e9r\u00e9 automatiquement, merci de ne pas r\u00e9pondre \u00e0 cet email.</div>'
+    +'</body></html>';
+  window.parent.postMessage({veraluzEvent:true,source:'rh',type:'send-email',data:{
+    to_email:emp.email,
+    to_name:emp.full_name,
+    subject:'Bulletin de paie \u2014 '+per+' \u2014 '+hotel,
+    body_html:body
+  }},'*');
+  toast('Bulletin envoy\u00e9 \u00e0 '+emp.email+' \u2709\ufe0f','ok');
 }
 
 /* ═══════════════ AVANCES ═══════════════ */
@@ -1794,6 +1837,7 @@ function renderEpPaie(){
       +'</div>'
       +'<div style="font-size:18px;font-weight:800;color:var(--acc1);margin-top:6px;">'+fmt(netOf(p))+' FCFA</div>'
       +'<button class="btn btn-sec btn-sm" style="margin-top:8px;" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; Voir le bulletin PDF</button>'
+      +'<button class="btn btn-sec btn-sm" style="margin-top:8px;" data-pid="'+esc(p.id)+'" onclick="sendPayslipEmail(this.dataset.pid)">&#128140; Recevoir par email</button>'
       +'</div>';
   }).join('');
 }

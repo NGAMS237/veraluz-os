@@ -753,6 +753,54 @@ function statusInfo(s){ return STATUS_MAP[s]||{label:s||'?',color:'var(--text3)'
 function unitName(id){ var r=_rooms.find(function(r){return r.id===id;}); return r?r.name:''; }
 
 /* ── Workflow ── */
+
+function sendConfirmEmail(rid){
+  var r=REZS.find(function(x){return x.id===rid;});
+  if(!r){toast('Réservation introuvable','err');return;}
+  if(!r.guest_email){toast('Aucun email pour ce client','warn');return;}
+  var hotel=localStorage.getItem('vz_hotel_info')?JSON.parse(localStorage.getItem('vz_hotel_info')):{}; 
+  var hotelName=hotel.name||'Résidence Veraluz';
+  var hotelAddr=hotel.city||'Kribi, Cameroun';
+  var hotelPhone=hotel.phone||'';
+  var nights=r.nights||diffDays(r.check_in,r.check_out)||1;
+  var stMap={pending:'En attente de confirmation',confirmed:'Confirmée ✓',checkedin:'En cours de séjour',checked_in:'En cours de séjour',checkedout:'Terminée',checked_out:'Terminée',cancelled:'Annulée'};
+  var stLabel=stMap[r.status]||r.status||'—';
+  var body='<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'
+    +'body{font-family:Arial,sans-serif;font-size:14px;color:#222;max-width:580px;margin:0 auto;padding:24px;}'
+    +'.hdr{background:#0d7a5f;color:#fff;padding:20px 24px;border-radius:8px 8px 0 0;}'
+    +'.hdr h2{margin:0;font-size:22px;} .hdr p{margin:5px 0 0;font-size:12px;opacity:.85;}'
+    +'.body{background:#f9f9f9;padding:20px 24px;border:1px solid #e0e0e0;border-top:none;}'
+    +'.badge{display:inline-block;background:#e6f4f1;color:#0d7a5f;font-weight:700;padding:4px 12px;border-radius:20px;font-size:13px;margin-bottom:16px;}'
+    +'.row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:13px;}'
+    +'.total{background:#0d7a5f;color:#fff;padding:12px 16px;border-radius:6px;display:flex;justify-content:space-between;font-size:16px;font-weight:800;margin-top:12px;}'
+    +'.info{font-size:12px;color:#666;background:#fff8e6;border:1px solid #f0c040;border-radius:6px;padding:10px 14px;margin-top:14px;}'
+    +'.ftr{font-size:11px;color:#888;text-align:center;padding:16px;border-top:1px solid #ddd;line-height:1.6;}'
+    +'</style></head><body>'
+    +'<div class="hdr"><h2>'+hotelName+'</h2><p>Confirmation de réservation</p></div>'
+    +'<div class="body">'
+    +'<p>Bonjour <strong>'+esc(r.guest_name||'')+'</strong>,</p>'
+    +'<p style="margin-bottom:14px;">Voici le récapitulatif de votre réservation à <strong>'+hotelName+'</strong>.</p>'
+    +'<div class="badge">'+stLabel+'</div>'
+    +'<div class="row"><span>Logement</span><span><strong>'+esc(r.unit_name||unitName(r.unit_id)||'—')+'</strong></span></div>'
+    +'<div class="row"><span>Arrivée</span><span>'+fmtFull(r.check_in)+'</span></div>'
+    +'<div class="row"><span>Départ</span><span>'+fmtFull(r.check_out)+'</span></div>'
+    +'<div class="row"><span>Durée</span><span>'+nights+' nuit'+(nights>1?'s':'')+'</span></div>'
+    +'<div class="row"><span>Voyageurs</span><span>'+(r.guests||1)+' personne'+(r.guests>1?'s':'')+'</span></div>'
+    +'<div class="total"><span>Total</span><span>'+fmtMoney(r.total||0)+'</span></div>'
+    +(r.paid>0?'<div class="row" style="color:#0d7a5f;margin-top:4px;"><span>Acompte reçu</span><span>'+fmtMoney(r.paid)+'</span></div>':'')
+    +'<div class="info">Pour toute question, contactez-nous'+(hotelPhone?' au <strong>'+hotelPhone+'</strong>':'')+' ou répondez à cet email.</div>'
+    +'</div>'
+    +'<div class="ftr">'+hotelName+' &mdash; '+hotelAddr+'<br>Merci de votre confiance &mdash; À très bientôt !</div>'
+    +'</body></html>';
+  window.parent.postMessage({veraluzEvent:true,source:'reservations',type:'send-email',data:{
+    to_email:r.guest_email,
+    to_name:r.guest_name||r.guest_email,
+    subject:'Votre réservation — '+hotelName+' · '+fmtFull(r.check_in),
+    body_html:body
+  }},'*');
+  toast('Email envoyé à '+r.guest_email+' ✉','ok');
+}
+
 function doConfirm(id){
   var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
   sbPatch('veraluz_reservations?id=eq.'+id,{status:'confirmed'}).then(function(){
@@ -899,6 +947,7 @@ function openRezModal(rezId,_tab){
   if(r.status==='confirmed') actions+='<button class="act-btn btn-checkin" data-rid="'+r.id+'" onclick="doCheckIn(this.dataset.rid)">Check-in</button>';
   if(r.status==='checkedin'||r.status==='checked_in') actions+='<button class="act-btn btn-checkout" data-rid="'+r.id+'" onclick="doCheckOut(this.dataset.rid)">Check-out</button>';
   if(['pending','confirmed','checkedin','checked_in'].includes(r.status)) actions+='<button class="act-btn btn-cancel" data-rid="'+r.id+'" onclick="doCancel(this.dataset.rid)">Annuler</button>';
+  if(r.guest_email) actions+='<button class="act-btn" style="background:var(--bg3);color:var(--text1);border:1px solid var(--border);" data-rid="'+r.id+'" onclick="sendConfirmEmail(this.dataset.rid)">&#9993; Email</button>';
 
   var balance = (r.total||0)-(r.paid||0);
   var balCls = balance<=0 ? 'balance-ok' : 'balance-due';

@@ -163,6 +163,34 @@ mark{background:rgba(34,211,165,.25);color:var(--acc);border-radius:2px;}
 .mrow-lbl{color:var(--text2);}
 .mrow-val{font-weight:600;}
 </style>
+
+<style data-injected="embedded-mode">
+/* ═══ EMBEDDED MODE — Audit module ═══ */
+html, body {
+  margin: 0 !important; padding: 0 !important;
+  height: 100% !important; overflow: hidden !important;
+}
+#app {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+#tabbar {
+  flex-shrink: 0 !important;
+}
+#content {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+#toast {
+  position: fixed !important;
+  bottom: 16px !important;
+  right: 16px !important;
+  z-index: 9999 !important;
+}
+</style>
 </head>
 <body>
 <div id="app">
@@ -234,8 +262,14 @@ var expandedIds   = {};
 
 /* ── Event Bus ───────────────────────────────────────────── */
 function emit(type, data) {
-  try { window.parent.postMessage({ source: MODULE_ID, type: type, data: data || {} }, '*'); }
-  catch(e) {}
+  try {
+    window.parent.postMessage({
+      veraluzEvent: true,
+      source: MODULE_ID,
+      type: type,
+      data: data || {}
+    }, '*');
+  } catch(e) {}
 }
 
 window.addEventListener('message', function(ev) {
@@ -245,6 +279,18 @@ window.addEventListener('message', function(ev) {
   if (msg.type === 'navigate-tab' && msg.data && msg.data.tab) { goTab(msg.data.tab); return; }
   if (msg.type === 'module-event') {
     captureEvent(msg.data);
+    return;
+  }
+  /* auth-context — mettre à jour l'utilisateur connecté */
+  if (msg.type === 'auth-context') {
+    var d = msg.data || {};
+    if (d.name) {
+      var uname = document.getElementById('au-user-name');
+      var urole = document.getElementById('au-user-role');
+      if (uname) uname.textContent = d.name;
+      if (urole) urole.textContent = d.roleLabel || d.role || '';
+    }
+    return;
   }
 });
 

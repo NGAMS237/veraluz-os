@@ -162,36 +162,70 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 /* ── Auth Overlay ────────────────────────────────────────────── */
 #auth-overlay {
   position:fixed; inset:0; z-index:9999;
-  background:linear-gradient(135deg,#0d1117 0%,#1a1f2e 50%,#0d1117 100%);
+  background:linear-gradient(160deg,#0d1117 0%,#0f1e1a 50%,#0d1117 100%);
   display:flex; align-items:center; justify-content:center;
   font-family:'Inter',system-ui,sans-serif;
+  padding:16px;
 }
 #auth-overlay.hidden { display:none; }
 .auth-box {
   background:var(--bg2); border:1px solid var(--border);
-  border-radius:20px; padding:40px 36px; width:100%; max-width:400px;
+  border-radius:20px; padding:28px 24px; width:100%; max-width:380px;
   box-shadow:0 24px 64px rgba(0,0,0,.6);
   animation:authIn .4s cubic-bezier(.16,1,.3,1);
 }
 @keyframes authIn { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
-.auth-logo { text-align:center; margin-bottom:28px; }
-.auth-logo .al-icon { font-size:48px; display:block; margin-bottom:8px; }
-.auth-logo .al-title { font-size:22px; font-weight:700; color:var(--fg); }
-.auth-logo .al-sub   { font-size:13px; color:var(--fg2); margin-top:4px; }
-.auth-field { margin-bottom:16px; }
-.auth-field label { display:block; font-size:12px; font-weight:600;
+.auth-logo { text-align:center; margin-bottom:20px; }
+.auth-logo .al-icon { font-size:40px; display:block; margin-bottom:6px; }
+.auth-logo .al-title { font-size:20px; font-weight:700; color:var(--fg); }
+.auth-logo .al-sub   { font-size:12px; color:var(--fg2); margin-top:3px; }
+
+/* Employee picker */
+.auth-emp-pick { margin-bottom:16px; }
+.auth-emp-pick label { display:block; font-size:11px; font-weight:600;
   color:var(--fg2); margin-bottom:6px; text-transform:uppercase; letter-spacing:.06em; }
-.auth-field input {
+.auth-emp-select {
   width:100%; box-sizing:border-box;
   background:var(--bg); border:1.5px solid var(--border); border-radius:10px;
   padding:11px 14px; font-size:15px; color:var(--fg); outline:none;
-  transition:border-color .2s;
+  transition:border-color .2s; cursor:pointer; appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center;
+  padding-right:36px;
 }
-.auth-field input:focus { border-color:var(--acc); }
-.auth-field input::placeholder { color:var(--fg2); }
-.auth-remember { display:flex; align-items:center; gap:8px;
-  font-size:13px; color:var(--fg2); margin-bottom:20px; cursor:pointer; }
-.auth-remember input[type=checkbox] { accent-color:var(--acc); width:15px; height:15px; cursor:pointer; }
+.auth-emp-select:focus { border-color:var(--acc); }
+.auth-emp-select option { background:var(--bg2); }
+
+/* PIN display */
+.auth-pin-lbl { font-size:11px; font-weight:600; color:var(--fg2);
+  text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; display:block; }
+.auth-pin-display {
+  display:flex; gap:10px; justify-content:center; margin-bottom:16px;
+}
+.auth-pin-dot {
+  width:18px; height:18px; border-radius:50%;
+  border:2px solid var(--border); background:transparent;
+  transition:all .15s;
+}
+.auth-pin-dot.filled { background:var(--acc); border-color:var(--acc); }
+
+/* PIN pad */
+.auth-pin-pad {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+  margin-bottom:14px;
+}
+.auth-pin-btn {
+  aspect-ratio:1; border:1.5px solid var(--border); border-radius:12px;
+  background:var(--bg3); color:var(--fg); font-size:22px; font-weight:600;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all .12s; user-select:none; -webkit-user-select:none;
+}
+.auth-pin-btn:hover { background:var(--bg4); border-color:var(--acc); }
+.auth-pin-btn:active { transform:scale(.93); background:var(--acc); color:#000; }
+.auth-pin-btn.del { font-size:18px; }
+.auth-pin-btn.zero { grid-column:2; }
+
+/* Connect btn */
 .auth-btn {
   width:100%; padding:13px; border:none; border-radius:12px;
   background:var(--acc); color:#fff; font-size:15px; font-weight:600;
@@ -199,13 +233,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
 .auth-btn:hover  { opacity:.9; }
 .auth-btn:active { transform:scale(.98); }
+.auth-btn:disabled { opacity:.4; cursor:not-allowed; }
+
+/* Admin mode fields */
+.auth-field { margin-bottom:14px; }
+.auth-field label { display:block; font-size:11px; font-weight:600;
+  color:var(--fg2); margin-bottom:5px; text-transform:uppercase; letter-spacing:.06em; }
+.auth-field input {
+  width:100%; box-sizing:border-box;
+  background:var(--bg); border:1.5px solid var(--border); border-radius:10px;
+  padding:10px 13px; font-size:14px; color:var(--fg); outline:none;
+  transition:border-color .2s;
+}
+.auth-field input:focus { border-color:var(--acc); }
+.auth-field input::placeholder { color:var(--fg2); }
+.auth-remember { display:flex; align-items:center; gap:8px;
+  font-size:13px; color:var(--fg2); margin-bottom:16px; cursor:pointer; }
+.auth-remember input[type=checkbox] { accent-color:var(--acc); width:15px; height:15px; cursor:pointer; }
+
 .auth-error {
   background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3);
   color:#f87171; border-radius:8px; padding:10px 14px;
   font-size:13px; margin-bottom:14px; display:none;
 }
 .auth-error.show { display:block; }
-.auth-hint { text-align:center; margin-top:16px; font-size:12px; color:var(--fg2); }
+.auth-hint { text-align:center; margin-top:12px; font-size:11px; color:var(--fg2); }
+.auth-mode-toggle {
+  text-align:center; margin-top:10px; font-size:12px; color:var(--fg2);
+}
+.auth-mode-toggle a { color:var(--acc); cursor:pointer; text-decoration:none; }
+#auth-admin-mode { display:none; }
 /* topbar user chip */
 .tb-user { display:flex; align-items:center; gap:8px; }
 .tb-user-name { font-size:13px; font-weight:600; color:var(--fg); max-width:90px;
@@ -585,34 +642,85 @@ function closeMobileSidebar(){
 /* ================================================================
    AUTH ENGINE — Veraluz OS v2.0
    ================================================================ */
+/* ── Supabase config ───────────────────────────────────────────────── */
+var SUPA_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+
+/* ── Role mapping: Supabase role → Core role ──────────────────────── */
+var ROLE_MAP = {
+  gerant:         'superadmin',
+  directeur:      'superadmin',
+  manager:        'manager',
+  superviseur:    'manager',
+  receptionniste: 'reception',
+  agent_accueil:  'reception',
+  comptable:      'comptable',
+  financier:      'comptable',
+  barman:         'restaurant',
+  cuisinier:      'restaurant',
+  serveur:        'restaurant',
+  femme_chambre:  'housekeeping',
+  agent_menage:   'housekeeping',
+  technicien:     'housekeeping',
+  agent_securite: 'housekeeping',
+  rh:             'rh',
+  admin:          'superadmin'
+};
+
 var ROLES = {
-  superadmin:  { label:'Super Admin',      icon:'👑', color:'#a855f7',
+  superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'rh',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
              'notifications','analytics','audit','settings','eventbus','auth'] },
-  manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6',
+  manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'rh',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
              'notifications','analytics','auth'] },
-  reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981',
+  reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981', primaryModule:'reservations',
     modules:['reservations','paiements','notifications'] },
-  rh:          { label:'RH',              icon:'👥',  color:'#f59e0b',
+  rh:          { label:'RH',               icon:'👥',  color:'#f59e0b', primaryModule:'rh',
     modules:['rh','notifications','analytics'] },
-  comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4',
+  comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'finance',
     modules:['finance','paiements','analytics','audit','notifications'] },
-  restaurant:  { label:'Restaurant Staff', icon:'🍽️',  color:'#f97316',
+  restaurant:  { label:'Restaurant',       icon:'🍽️',  color:'#f97316', primaryModule:'restaurant',
     modules:['restaurant','notifications'] },
-  housekeeping:{ label:'Housekeeping',     icon:'🧹',  color:'#84cc16',
+  housekeeping:{ label:'Housekeeping',     icon:'🧹',  color:'#84cc16', primaryModule:'housekeeping',
     modules:['housekeeping','notifications'] }
 };
 
+/* ── Admin fallback users (accès admin uniquement) ─────────────────── */
 var DEFAULT_USERS = [
-  { username:'admin',      password:'admin123',    role:'superadmin',  name:'Administrateur',     active:true },
-  { username:'manager',    password:'manager123',  role:'manager',     name:'Chef de Projet',     active:true },
-  { username:'reception',  password:'recep123',    role:'reception',   name:'Agent Réception',    active:true },
-  { username:'rh',         password:'rh123',       role:'rh',          name:'Responsable RH',     active:true },
-  { username:'comptable',  password:'compt123',    role:'comptable',   name:'Comptable',          active:true },
-  { username:'resto',      password:'resto123',    role:'restaurant',  name:'Staff Restaurant',   active:true },
-  { username:'hk',         password:'hk123',       role:'housekeeping',name:'Agent Housekeeping', active:true }
+  { username:'admin',   password:'admin123',   role:'superadmin', name:'Administrateur', active:true },
+  { username:'manager', password:'manager123', role:'manager',    name:'Manager',        active:true }
 ];
+
+/* ── Employee cache ─────────────────────────────────────────────────── */
+var _empCache = [];
+
+function getEmployeesFromSupabase(cb) {
+  var cached = localStorage.getItem('vlz_emp_login_cache');
+  if (cached) {
+    try {
+      var data = JSON.parse(cached);
+      if (data.ts && (Date.now() - data.ts) < 5 * 60 * 1000) {
+        _empCache = data.employees;
+        if (cb) cb(_empCache);
+        return;
+      }
+    } catch(e) {}
+  }
+  fetch(SUPA_URL + '/rest/v1/veraluz_employees?select=id,full_name,role,pin_code,status&status=eq.actif&order=full_name.asc', {
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    _empCache = Array.isArray(data) ? data : [];
+    localStorage.setItem('vlz_emp_login_cache', JSON.stringify({ ts: Date.now(), employees: _empCache }));
+    if (cb) cb(_empCache);
+  })
+  .catch(function() {
+    _empCache = [];
+    if (cb) cb([]);
+  });
+}
 
 var currentUser = null;
 
@@ -627,6 +735,51 @@ function getUsers() {
   return DEFAULT_USERS;
 }
 
+/* PIN input state */
+var _pinBuffer = '';
+var _pinMax = 4;
+
+function pinPress(d) {
+  if (_pinBuffer.length >= _pinMax) return;
+  _pinBuffer += d;
+  updatePinDisplay();
+  if (_pinBuffer.length === _pinMax) {
+    setTimeout(doLoginPin, 200);
+  }
+}
+function pinDel() {
+  _pinBuffer = _pinBuffer.slice(0, -1);
+  updatePinDisplay();
+}
+function updatePinDisplay() {
+  for (var i = 0; i < _pinMax; i++) {
+    var dot = document.getElementById('pin-dot-' + i);
+    if (dot) dot.className = 'auth-pin-dot' + (i < _pinBuffer.length ? ' filled' : '');
+  }
+}
+
+function showAuthOverlay() {
+  _pinBuffer = '';
+  var ov = document.getElementById('auth-overlay');
+  if (ov) ov.classList.remove('hidden');
+  // Load employees for dropdown
+  getEmployeesFromSupabase(function(emps) {
+    var sel = document.getElementById('auth-emp-select');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Sélectionnez votre nom —</option>';
+    emps.forEach(function(e) {
+      var opt = document.createElement('option');
+      opt.value = e.id;
+      opt.dataset.pin = e.pin_code || '1234';
+      opt.dataset.role = e.role || 'femme_chambre';
+      opt.dataset.name = e.full_name || '';
+      opt.textContent = e.full_name || '';
+      sel.appendChild(opt);
+    });
+    updatePinDisplay();
+  });
+}
+
 function checkAuth() {
   try {
     var sessionStr = localStorage.getItem('veraluz_auth_v1');
@@ -636,27 +789,76 @@ function checkAuth() {
       localStorage.removeItem('veraluz_auth_v1');
       showAuthOverlay(); return;
     }
-    var users = getUsers();
-    var user = users.find(function(u){ return u.username === session.username; });
-    if (!user || user.active === false) {
-      localStorage.removeItem('veraluz_auth_v1');
-      showAuthOverlay(); return;
-    }
-    currentUser = { username:user.username, name:user.name, role:user.role };
+    currentUser = { username: session.username, name: session.name, role: session.role,
+                    employee_id: session.employee_id || null };
+    if (!currentUser.name || !currentUser.role) { showAuthOverlay(); return; }
     hideAuthOverlay();
     updateTopbarUser();
     buildNav();
     initGreeting();
     loadDashboardData();
+    // Auto-navigate to primary module for employee roles
+    if (session.primaryModule) {
+      setTimeout(function() { navigateTo(session.primaryModule); }, 500);
+    }
   } catch(e) {
     showAuthOverlay();
   }
 }
 
+/* ── PIN Login (employees) ───────────────────────────────────────── */
+function doLoginPin() {
+  var errEl = document.getElementById('auth-error');
+  errEl.classList.remove('show');
+
+  var sel = document.getElementById('auth-emp-select');
+  if (!sel || !sel.value) {
+    errEl.textContent = 'Veuillez sélectionner votre nom.';
+    errEl.classList.add('show');
+    _pinBuffer = ''; updatePinDisplay();
+    return;
+  }
+  var empId   = sel.value;
+  var empName = sel.options[sel.selectedIndex].dataset.name;
+  var empRole = sel.options[sel.selectedIndex].dataset.role;
+  var empPin  = sel.options[sel.selectedIndex].dataset.pin || '1234';
+
+  if (_pinBuffer !== empPin) {
+    errEl.textContent = 'NIP incorrect. Réessayez.';
+    errEl.classList.add('show');
+    _pinBuffer = ''; updatePinDisplay();
+    return;
+  }
+
+  // Map Supabase role to Core role
+  var coreRole = ROLE_MAP[empRole] || 'housekeeping';
+  var roleConf = ROLES[coreRole] || ROLES['housekeeping'];
+  var primaryModule = roleConf.primaryModule || 'housekeeping';
+
+  var expires = Date.now() + 8 * 60 * 60 * 1000; // 8h session
+  var session = {
+    username: empId, name: empName, role: coreRole,
+    employee_id: empId, primaryModule: primaryModule,
+    loginAt: Date.now(), expires: expires
+  };
+  localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+  logAuthEvent('pin-login', empName, coreRole);
+
+  currentUser = { username: empId, name: empName, role: coreRole, employee_id: empId };
+  hideAuthOverlay();
+  updateTopbarUser();
+  buildNav();
+  initGreeting();
+  loadDashboardData();
+  // Navigate to their primary module
+  setTimeout(function() { navigateTo(primaryModule); }, 400);
+}
+
+/* ── Admin Login (email + password) ──────────────────────────────── */
 function doLogin() {
   var username = (document.getElementById('auth-username').value || '').trim();
   var password = (document.getElementById('auth-password').value || '').trim();
-  var remember = document.getElementById('auth-remember').checked;
+  var remember = document.getElementById('auth-remember') && document.getElementById('auth-remember').checked;
   var errEl    = document.getElementById('auth-error');
   errEl.classList.remove('show');
 
@@ -673,19 +875,21 @@ function doLogin() {
   if (!user) {
     errEl.textContent = 'Identifiants incorrects. Réessayez.';
     errEl.classList.add('show');
-    document.getElementById('auth-password').value = '';
-    document.getElementById('auth-password').focus();
+    var pw = document.getElementById('auth-password');
+    if (pw) { pw.value = ''; pw.focus(); }
     logAuthEvent('failed', username, '?');
     return;
   }
 
+  var roleConf = ROLES[user.role] || ROLES['superadmin'];
   var expires = remember ? Date.now() + 7*24*60*60*1000 : Date.now() + 8*60*60*1000;
-  var session = { username:user.username, role:user.role, name:user.name,
-                  loginAt:Date.now(), expires:expires };
+  var session = { username: user.username, role: user.role, name: user.name,
+                  primaryModule: roleConf.primaryModule || null,
+                  loginAt: Date.now(), expires: expires };
   localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
-  logAuthEvent('login', user.username, user.role);
+  logAuthEvent('admin-login', user.username, user.role);
 
-  currentUser = { username:user.username, name:user.name, role:user.role };
+  currentUser = { username: user.username, name: user.name, role: user.role };
   hideAuthOverlay();
   updateTopbarUser();
   buildNav();
@@ -693,20 +897,34 @@ function doLogin() {
   loadDashboardData();
 }
 
+function toggleAdminMode() {
+  var emp = document.getElementById('auth-emp-mode');
+  var adm = document.getElementById('auth-admin-mode');
+  var lnk = document.getElementById('auth-mode-lnk');
+  if (!emp || !adm) return;
+  var showAdmin = adm.style.display === 'none';
+  adm.style.display = showAdmin ? 'block' : 'none';
+  emp.style.display  = showAdmin ? 'none'  : 'block';
+  if (lnk) lnk.textContent = showAdmin ? '← Retour connexion employé' : '🔐 Accès administrateur';
+  _pinBuffer = ''; updatePinDisplay();
+  document.getElementById('auth-error').classList.remove('show');
+}
+
 function logout() {
   if (!confirm('Confirmer la déconnexion ?')) return;
-  logAuthEvent('logout', currentUser ? currentUser.username : '?',
+  logAuthEvent('logout', currentUser ? currentUser.name||currentUser.username : '?',
                          currentUser ? currentUser.role : '?');
   localStorage.removeItem('veraluz_auth_v1');
   currentUser = null;
+  _pinBuffer = '';
   updateTopbarUser();
-  // Clear nav
   var ids = ['sb-modules','sb-coming','bn-modules','dash-grid'];
   ids.forEach(function(id){ var el=document.getElementById(id); if(el) el.innerHTML=''; });
+  // Reset admin fields if they exist
+  var pu = document.getElementById('auth-username'); if (pu) pu.value = '';
+  var pp = document.getElementById('auth-password'); if (pp) pp.value = '';
+  // Ensure employee mode is shown on next open
   showAuthOverlay();
-  document.getElementById('auth-username').value = '';
-  document.getElementById('auth-password').value = '';
-  document.getElementById('auth-error').classList.remove('show');
 }
 
 function logAuthEvent(type, username, role) {
@@ -959,21 +1177,60 @@ window.addEventListener('message', function(ev) {
       <div class="al-title">Veraluz OS</div>
       <div class="al-sub">Residence · Kribi · Cameroun</div>
     </div>
-    <div class="auth-error" id="auth-error">Identifiants incorrects. Réessayez.</div>
-    <div class="auth-field">
-      <label>Identifiant</label>
-      <input type="text" id="auth-username" placeholder="Votre identifiant"
-             autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+    <div class="auth-error" id="auth-error"></div>
+
+    <!-- ── Employee mode (default) ── -->
+    <div id="auth-emp-mode">
+      <div class="auth-emp-pick">
+        <label>Qui êtes-vous ?</label>
+        <select class="auth-emp-select" id="auth-emp-select">
+          <option value="">— Chargement... —</option>
+        </select>
+      </div>
+      <span class="auth-pin-lbl">Votre NIP (4 chiffres)</span>
+      <div class="auth-pin-display">
+        <div class="auth-pin-dot" id="pin-dot-0"></div>
+        <div class="auth-pin-dot" id="pin-dot-1"></div>
+        <div class="auth-pin-dot" id="pin-dot-2"></div>
+        <div class="auth-pin-dot" id="pin-dot-3"></div>
+      </div>
+      <div class="auth-pin-pad">
+        <button class="auth-pin-btn" onclick="pinPress('1')">1</button>
+        <button class="auth-pin-btn" onclick="pinPress('2')">2</button>
+        <button class="auth-pin-btn" onclick="pinPress('3')">3</button>
+        <button class="auth-pin-btn" onclick="pinPress('4')">4</button>
+        <button class="auth-pin-btn" onclick="pinPress('5')">5</button>
+        <button class="auth-pin-btn" onclick="pinPress('6')">6</button>
+        <button class="auth-pin-btn" onclick="pinPress('7')">7</button>
+        <button class="auth-pin-btn" onclick="pinPress('8')">8</button>
+        <button class="auth-pin-btn" onclick="pinPress('9')">9</button>
+        <button class="auth-pin-btn del" onclick="pinDel()">⌫</button>
+        <button class="auth-pin-btn zero" onclick="pinPress('0')">0</button>
+      </div>
+      <button class="auth-btn" onclick="doLoginPin()">✅ Se connecter</button>
     </div>
-    <div class="auth-field">
-      <label>Mot de passe</label>
-      <input type="password" id="auth-password" placeholder="••••••••"
-             autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+
+    <!-- ── Admin mode (secondary) ── -->
+    <div id="auth-admin-mode" style="display:none;">
+      <div class="auth-field">
+        <label>Identifiant admin</label>
+        <input type="text" id="auth-username" placeholder="admin"
+               autocomplete="username" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+      </div>
+      <div class="auth-field">
+        <label>Mot de passe</label>
+        <input type="password" id="auth-password" placeholder="••••••••"
+               autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <label class="auth-remember">
+        <input type="checkbox" id="auth-remember"> Se souvenir de moi (7 jours)
+      </label>
+      <button class="auth-btn" onclick="doLogin()">🔐 Connexion Admin</button>
     </div>
-    <label class="auth-remember">
-      <input type="checkbox" id="auth-remember"> Se souvenir de moi (7 jours)
-    </label>
-    <button class="auth-btn" onclick="doLogin()">🔐 Se connecter</button>
+
+    <div class="auth-mode-toggle">
+      <a id="auth-mode-lnk" onclick="toggleAdminMode()">🔐 Accès administrateur</a>
+    </div>
     <div class="auth-hint">Veraluz Property Management · v2.0</div>
   </div>
 </div>

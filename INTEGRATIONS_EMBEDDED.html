@@ -31,6 +31,19 @@ input.cp:focus,select.cp:focus{border-color:#f97316;}
 .btn-wa{background:#25d366;color:#fff;}.btn-wa:hover{background:#128c7e;}
 .btn-cp{background:#f97316;color:#fff;}.btn-cp:hover{background:#ea6c0a;}
 .btn-secondary{background:#1e293b;color:#e2e8f0;border:1px solid #334155;}.btn-secondary:hover{background:#334155;}
+.wa-composer{background:linear-gradient(135deg,rgba(37,211,102,.08),rgba(37,211,102,.04));border:1.5px solid rgba(37,211,102,.4);border-radius:8px;padding:16px;margin-top:12px;display:none}
+.wa-composer-phone{font-size:13px;color:#25d366;font-weight:700;margin-bottom:8px}
+.wa-composer-msg{background:rgba(0,0,0,.2);border-radius:6px;padding:12px;font-size:13px;line-height:1.5;color:#e2e8f0;white-space:pre-wrap;word-break:break-word;border:1px solid #334155;min-height:60px;max-height:150px;overflow-y:auto}
+.wa-composer-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn-wa-copy{padding:8px 14px;background:rgba(37,211,102,.15);color:#25d366;border:1px solid rgba(37,211,102,.4);border-radius:6px;font-size:12px;font-weight:700;cursor:pointer}
+.btn-wa-open{padding:8px 14px;background:#25d366;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.wa-note{font-size:11px;color:#64748b;margin-top:8px}
+.sim-step{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:12px;color:#64748b}
+.sim-step.active{color:#f97316;font-weight:700}
+.sim-step.done{color:#25d366}
+.sim-dot{width:8px;height:8px;border-radius:50%;background:#334155;flex-shrink:0}
+.sim-step.active .sim-dot{background:#f97316}
+.sim-step.done .sim-dot{background:#25d366}
 .btn-danger{background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b;}
 .btn-sm{padding:6px 12px;font-size:12px;}
 .btn-full{width:100%;}
@@ -215,8 +228,18 @@ function renderWhatsApp(){
   h+='<textarea id="wa_test_msg" rows="4" style="font-size:12px"></textarea>';
   h+='<div style="display:flex;gap:8px">';
   h+='<button class="btn btn-secondary btn-sm" onclick="previewWAMessage()">👁️ Prévisualiser</button>';
-  h+='<button class="btn btn-wa" onclick="sendTestWA()">📤 Ouvrir WhatsApp</button>';
-  h+='</div></div></div>';
+  h+='<button class="btn btn-wa" onclick="sendTestWA()">📤 Préparer message</button>';
+  h+='</div>';
+  h+='<div class="wa-composer" id="wa-composer">';
+  h+='<div class="wa-composer-phone" id="wa-composer-phone"></div>';
+  h+='<div class="wa-composer-msg" id="wa-composer-msg"></div>';
+  h+='<div class="wa-composer-actions">';
+  h+='<button class="btn-wa-copy" onclick="copyWAMsg()">📋 Copier le message</button>';
+  h+='<a class="btn-wa-open" id="wa-composer-link" href="#" target="_blank" rel="noopener noreferrer">💬 Ouvrir WhatsApp Web</a>';
+  h+='</div>';
+  h+='<div class="wa-note">💡 Cliquez le bouton vert — WhatsApp Web s\'ouvre avec le message pré-rempli</div>';
+  h+='</div>';
+  h+='</div></div>';
 
   /* Scénarios démo */
   h+='<div class="card"><div class="card-title">🎭 Scénarios de démonstration</div>';
@@ -301,15 +324,46 @@ function launchScenario(idx){
   openWhatsApp(phone,msg,'Scénario: '+s.key);
 }
 
+var _lastWA=null;
 function openWhatsApp(phone,message,context){
-  var clean=phone.replace(/[^0-9+]/g,'');
+  var clean=phone.replace(/[^0-9+]/g,'').replace(/^00/,'+');
   if(!clean.startsWith('+')) clean='+'+clean;
   var url='https://wa.me/'+clean+'?text='+encodeURIComponent(message);
-  window.open(url,'_blank');
-  addToJournal({id:Date.now(),type:'whatsapp',icon:'💬',label:context||'Message WhatsApp',detail:message.substring(0,80),to:phone,date:new Date().toISOString(),status:'sent'});
-  showToast('WhatsApp ouvert',true);
-  /* Notifier Core */
-  window.parent.postMessage({veraluzEvent:true,source:MID,type:'wa-log',data:{phone:phone,message:message,context:context}},'*');
+  _lastWA={phone:clean,url:url,message:message};
+  showWAComposer(clean,url,message);
+  addToJournal({id:Date.now(),type:'whatsapp',icon:'💬',label:context||'Message WhatsApp',detail:message.substring(0,80),to:clean,date:new Date().toISOString(),status:'sent'});
+  showToast('Message prêt — cliquez le bouton vert pour envoyer',true);
+  window.parent.postMessage({veraluzEvent:true,source:MID,type:'wa-log',data:{phone:clean,message:message,context:context}},'*');
+}
+function showWAComposer(phone,url,message){
+  var panel=document.getElementById('wa-composer');
+  var ph=document.getElementById('wa-composer-phone');
+  var msg=document.getElementById('wa-composer-msg');
+  var lnk=document.getElementById('wa-composer-link');
+  if(!panel){
+    /* Panel absent (autre tab active) — on switche vers WA */
+    switchTab('whatsapp');
+    setTimeout(function(){showWAComposer(phone,url,message);},200);
+    return;
+  }
+  if(ph) ph.textContent='📞 '+phone;
+  if(msg) msg.textContent=message;
+  if(lnk){ lnk.href=url; }
+  panel.style.display='block';
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function copyWAMsg(){
+  var el=document.getElementById('wa-composer-msg');
+  if(!el) return;
+  var text=el.textContent;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){showToast('Message copié !',true);});
+  } else {
+    var ta=document.createElement('textarea');
+    ta.value=text; document.body.appendChild(ta); ta.select();
+    try{document.execCommand('copy');showToast('Message copié !',true);}catch(e){}
+    document.body.removeChild(ta);
+  }
 }
 
 /* ════════════════════════════════════════
@@ -445,16 +499,18 @@ function launchCinetPay(){
   var desc=document.getElementById('cp_desc').value||'Paiement Veraluz';
   var method=document.getElementById('cp_method').value;
   if(amount<100){showToast('Montant minimum 100 FCFA',false);return;}
-
   var txId='VLZ-'+Date.now();
-
-  /* Vérifier si SDK chargé */
+  /* Sandbox ou pas de clés → simulation in-module directe */
+  if(cfg.sandbox || !cfg.apikey || cfg.apikey.length<8){
+    runSimulation(txId,amount,cname,desc,method);
+    return;
+  }
+  /* Production avec vraies clés → SDK CinetPay */
   if(typeof CinetPay==='undefined'){
-    /* Charger le SDK CinetPay */
     var script=document.createElement('script');
     script.src='https://cdn.cinetpay.com/seamless/main.js';
     script.onload=function(){ initCinetPay(cfg,txId,amount,cname,email,phone,desc,method); };
-    script.onerror=function(){ simulateCinetPayFallback(txId,amount,cname,desc); };
+    script.onerror=function(){ runSimulation(txId,amount,cname,desc,method); };
     document.head.appendChild(script);
   } else {
     initCinetPay(cfg,txId,amount,cname,email,phone,desc,method);
@@ -496,25 +552,57 @@ function initCinetPay(cfg,txId,amount,cname,email,phone,desc,method){
 }
 
 function simulateCinetPayFallback(txId,amount,cname,desc){
-  /* Mode démo sans SDK */
-  showModal(
-    '<div class="modal-title">💳 Simulation Paiement CinetPay</div>'+
-    '<div class="info-box cp">SDK non chargé — Mode démonstration</div>'+
-    '<div style="text-align:center;padding:20px 0">'+
-    '<div style="font-size:32px;margin-bottom:8px">📱</div>'+
-    '<div style="font-size:18px;font-weight:800;color:#f97316;margin-bottom:4px">'+fmtXAF(amount)+'</div>'+
-    '<div style="font-size:13px;color:#94a3b8;margin-bottom:16px">'+esc(desc)+'</div>'+
-    '<div style="font-size:11px;color:#64748b;margin-bottom:16px">TX: '+txId+'</div>'+
-    '<div style="display:flex;gap:8px;justify-content:center">'+
-    '<button class="btn btn-cp" data-txid="'+txId+'" data-amt="'+amount+'" data-desc="'+esc(desc)+'" onclick="confirmSimulatedPay(this.dataset.txid,this.dataset.amt,this.dataset.desc)">✅ Confirmer (démo)</button>'+
-    '<button class="btn btn-secondary" onclick="closeModal()">Annuler</button>'+
-    '</div></div>'
-  );
+  runSimulation(txId,amount,cname,desc,'ALL');
 }
-
-function confirmSimulatedPay(txId,amount,desc){
-  closeModal();
-  handlePaymentSuccess(txId,parseInt(amount),desc);
+function runSimulation(txId,amount,cname,desc,method){
+  var STEPS=[
+    {n:1,icon:'🔒',label:'Connexion sécurisée'},
+    {n:2,icon:'📋',label:'Validation du montant'},
+    {n:3,icon:'📱',label:'Envoi code OTP'},
+    {n:4,icon:'✍️',label:'Confirmation client'},
+    {n:5,icon:'⚙️',label:'Traitement bancaire'},
+    {n:6,icon:'✅',label:'Paiement confirmé'}
+  ];
+  /* Afficher le stepper dans un conteneur in-module */
+  var methodLabel={'ALL':'Orange Money / MTN / Carte','MOBILE_MONEY':'Orange Money / MTN','CREDIT_CARD':'Carte bancaire','WALLET':'Portefeuille'}[method]||'Mobile Money';
+  var html='<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:12px 0" id="sim-panel">';
+  html+='<div style="font-weight:800;font-size:14px;color:#f97316;margin-bottom:4px">💳 Simulation — '+methodLabel+'</div>';
+  html+='<div style="font-size:12px;color:var(--text2);margin-bottom:12px">'+fmtXAF(amount)+' · '+esc(desc)+'</div>';
+  html+='<div class="sim-progress" id="sim-steps">';
+  STEPS.forEach(function(s){
+    html+='<div class="sim-step" id="sim-step-'+s.n+'"><div class="sim-dot"></div>'+s.icon+' '+s.label+'</div>';
+  });
+  html+='</div>';
+  html+='<div style="font-size:11px;color:var(--text3)" id="sim-note">Simulation en cours…</div>';
+  html+='</div>';
+  /* Insérer dans le tab CinetPay si visible */
+  var cont=document.querySelector('#tab-cinetpay .card:last-child') || document.getElementById('tab-cinetpay');
+  if(cont){ cont.insertAdjacentHTML('afterend',html); }
+  else { /* fallback scroll */ }
+  /* Journal + notif */
+  addToJournal({id:Date.now(),type:'cinetpay',icon:'💳',label:'Simulation initiée',detail:desc+' — '+fmtXAF(amount),to:cname,date:new Date().toISOString(),status:'pending',txId:txId,amount:amount});
+  notifyPayment(txId,amount,desc,'pending');
+  cpPayStep=1; renderCinetPay();
+  /* Animer les étapes */
+  [1,2,3,4,5].forEach(function(s,i){
+    setTimeout(function(){
+      cpPayStep=s+1; renderCinetPay();
+      var el=document.getElementById('sim-step-'+( s+1));
+      if(el){ el.className='sim-step active'; }
+      /* Marquer précédentes done */
+      for(var j=1;j<=s;j++){
+        var prev=document.getElementById('sim-step-'+j);
+        if(prev) prev.className='sim-step done';
+      }
+    },(i+1)*1000);
+  });
+  setTimeout(function(){
+    handlePaymentSuccess(txId,amount,desc);
+    var note=document.getElementById('sim-note');
+    if(note) note.textContent='✅ Simulation terminée avec succès';
+    var simP=document.getElementById('sim-panel');
+    if(simP) simP.style.borderColor='#25d366';
+  },6200);
 }
 
 function simulateCPSuccess(){

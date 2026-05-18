@@ -700,7 +700,9 @@ function getEmployeesFromSupabase(cb) {
   if (cached) {
     try {
       var data = JSON.parse(cached);
-      if (data.ts && (Date.now() - data.ts) < 5 * 60 * 1000) {
+      // Cache valide 5 min ET doit contenir au moins 1 employé
+      if (data.ts && (Date.now() - data.ts) < 5 * 60 * 1000 &&
+          Array.isArray(data.employees) && data.employees.length > 0) {
         _empCache = data.employees;
         if (cb) cb(_empCache);
         return;
@@ -760,23 +762,30 @@ function updatePinDisplay() {
 
 function showAuthOverlay() {
   _pinBuffer = '';
+  updatePinDisplay();
   var ov = document.getElementById('auth-overlay');
   if (ov) ov.classList.remove('hidden');
-  // Load employees for dropdown
+  // Afficher un état de chargement pendant la requête Supabase
+  var sel = document.getElementById('auth-emp-select');
+  if (sel) sel.innerHTML = '<option value="">⏳ Chargement des employés...</option>';
+  // Charger la liste des employés actifs depuis Supabase
   getEmployeesFromSupabase(function(emps) {
-    var sel = document.getElementById('auth-emp-select');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">— Sélectionnez votre nom —</option>';
+    var sel2 = document.getElementById('auth-emp-select');
+    if (!sel2) return;
+    if (!emps || emps.length === 0) {
+      sel2.innerHTML = '<option value="">⚠ Aucun employé trouvé</option>';
+      return;
+    }
+    sel2.innerHTML = '<option value="">— Sélectionnez votre nom —</option>';
     emps.forEach(function(e) {
       var opt = document.createElement('option');
       opt.value = e.id;
-      opt.dataset.pin = e.pin_code || '1234';
-      opt.dataset.role = e.role || 'femme_chambre';
-      opt.dataset.name = e.full_name || '';
-      opt.textContent = e.full_name || '';
-      sel.appendChild(opt);
+      opt.setAttribute('data-pin',  e.pin_code  || '1234');
+      opt.setAttribute('data-role', e.role      || 'femme_chambre');
+      opt.setAttribute('data-name', e.full_name || '');
+      opt.textContent = e.full_name || e.id;
+      sel2.appendChild(opt);
     });
-    updatePinDisplay();
   });
 }
 
@@ -937,14 +946,7 @@ function logAuthEvent(type, username, role) {
   } catch(e){}
 }
 
-function showAuthOverlay() {
-  var ov = document.getElementById('auth-overlay');
-  if (ov) ov.classList.remove('hidden');
-  setTimeout(function(){
-    var el = document.getElementById('auth-username');
-    if (el) el.focus();
-  }, 150);
-}
+/* showAuthOverlay() est définie plus haut avec la logique de chargement Supabase */
 
 function hideAuthOverlay() {
   var ov = document.getElementById('auth-overlay');
@@ -1222,14 +1224,4 @@ window.addEventListener('message', function(ev) {
         <label>Mot de passe</label>
         <input type="password" id="auth-password" placeholder="••••••••"
                autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
-      </div>
-      <label class="auth-remember">
-        <input type="checkbox" id="auth-remember"> Se souvenir de moi (7 jours)
-      </label>
-      <button class="auth-btn" onclick="doLogin()">🔐 Connexion Admin</button>
-    </div>
-
-    <div class="auth-mode-toggle">
-      <a id="auth-mode-lnk" onclick="toggleAdminMode()">🔐 Accès administrateur</a>
-    </div>
-    <div class="auth-hint">Veraluz 
+ 

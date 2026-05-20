@@ -548,7 +548,9 @@ function loadAll(cb){
       if(!r._images.length) seedRoomImages(r);
     });
     try{ localStorage.setItem('vlz_cache_rooms', JSON.stringify(_rooms.map(function(r){
-      return {id:r.id,name:r.name,type:r.type,capacity:r.capacity,price:r.price,status:r.status,description:r.description};
+      return {id:r.id,name:r.name,type:r.type,capacity:r.capacity,price:r.price,
+              status:r.status,description:r.description,
+              amenities:r.amenities||[],images:r.images||[],floor:r.floor||1};
     }))); }catch(e){}
     check();
   }).catch(function(){
@@ -1667,6 +1669,18 @@ function closeUnitForm(){
   if(w){ w.style.display='none'; w.innerHTML=''; }
   _editUnitId=null; _editPhotos=[];
 }
+function syncRoomsCache(){
+  /* Notifie tous les modules (dont Booking Engine) que les unités ont changé */
+  try{
+    localStorage.setItem('vlz_cache_rooms', JSON.stringify(_rooms.map(function(r){
+      return {id:r.id,name:r.name,type:r.type,capacity:r.capacity,price:r.price||0,
+              status:r.status||'active',description:r.description||'',
+              amenities:r.amenities||[],images:r.images||[],floor:r.floor||1};
+    })));
+    localStorage.setItem('vlz_units_updated', String(Date.now()));
+    try{ window.parent.postMessage({veraluzEvent:true,source:'veraluz-reservations',type:'units_updated'},'*'); }catch(e){}
+  }catch(e){}
+}
 
 function saveUnitFull(){
   var name  = (document.getElementById('uf-name')||{}).value||'';
@@ -1697,7 +1711,7 @@ function saveUnitFull(){
       var r=_rooms.find(function(r){return r.id===_editUnitId;});
       if(r) Object.assign(r,body);
       try{localStorage.setItem('vlz_room_images_'+_editUnitId,JSON.stringify(_editPhotos));}catch(e){}
-      try{localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms));}catch(e){}
+      syncRoomsCache();
       toast('Unité mise à jour ✓','success');
       closeUnitForm(); renderParams(); renderRooms();
     }).catch(function(){
@@ -1712,7 +1726,7 @@ function saveUnitFull(){
         saved._images=_editPhotos; saved._dynStatus='available';
         seedRoomImages(saved); _rooms.push(saved);
         try{localStorage.setItem('vlz_room_images_'+saved.id,JSON.stringify(_editPhotos));}catch(e){}
-        try{localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms));}catch(e){}
+        syncRoomsCache();
         toast('Unité créée ✓','success');
         closeUnitForm(); renderParams(); renderRooms(); updateBadges();
       } else {
@@ -1731,7 +1745,7 @@ function deleteUnit(uid, name){
   sbFetch('veraluz_units?id=eq.'+uid,{method:'DELETE'}).then(function(r){
     if(r.ok||r.status===204){
       _rooms=_rooms.filter(function(r){return r.id!==uid;});
-      try{localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms));}catch(e){}
+      syncRoomsCache();
       toast('Unité supprimée','success'); renderParams(); renderRooms(); updateBadges();
     } else { toast('Erreur suppression','danger'); }
   }).catch(function(){toast('Erreur réseau','danger');});

@@ -1627,7 +1627,7 @@ function loadRooms(){
     return;
   }
   cont.innerHTML='<div class="bk-loading"><svg viewBox="0 0 24 24" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Chargement des disponibilités...</div>';
-  fetch(SB+'/rest/v1/veraluz_units?select=*&status=eq.available&order=price_per_night.asc',{
+  fetch(SB+'/rest/v1/veraluz_units?select=*&status=eq.active&order=price.asc,id.asc',{
     headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'}
   })
   .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
@@ -1640,13 +1640,16 @@ function loadRooms(){
 }
 
 function renderFallbackRooms(){
+  /* Fallback si Supabase indisponible — utilise UNIT_DATA comme source de vérité */
   _rooms=[
-    {id:'f1',type:'std',   price_per_night:35000,  capacity:2},
-    {id:'f2',type:'sea',   price_per_night:50000,  capacity:2},
-    {id:'f3',type:'studio',price_per_night:45000,  capacity:3},
-    {id:'f4',type:'apt',   price_per_night:75000,  capacity:5},
-    {id:'f5',type:'suite', price_per_night:120000, capacity:2},
-    {id:'f6',type:'villa', price_per_night:200000, capacity:6}
+    {id:'fallback-std',   type:'std',       price:35000,  price_per_night:35000,  capacity:2},
+    {id:'fallback-sea',   type:'sea',       price:50000,  price_per_night:50000,  capacity:2},
+    {id:'fallback-studio',type:'studio',    price:45000,  price_per_night:45000,  capacity:3},
+    {id:'fallback-apt',   type:'apt',       price:75000,  price_per_night:75000,  capacity:5},
+    {id:'fallback-suite', type:'suite',     price:120000, price_per_night:120000, capacity:2},
+    {id:'fallback-villa', type:'villa',     price:200000, price_per_night:200000, capacity:6},
+    {id:'fallback-loft',  type:'loft',      price:80000,  price_per_night:80000,  capacity:2},
+    {id:'fallback-pent',  type:'penthouse', price:150000, price_per_night:150000, capacity:2}
   ];
   renderBkRooms();
 }
@@ -1659,7 +1662,7 @@ function renderBkRooms(){
 
   _rooms.forEach(function(r){
     var ud=UNIT_DATA[r.type]||{};
-    var nm=ud.name||ELEGANT_NAMES[r.type]||r.name||r.type;
+    var nm=r.name||ud.name||ELEGANT_NAMES[r.type]||r.type;
     var photo=ROOM_PHOTOS[r.type]||'https://ngams237.github.io/veraluz-os/assets/img/site_main.jpg';
     var price=fmtXAF(r.price_per_night||r.price||0);
     var ams=getAmenities(r);
@@ -1686,7 +1689,7 @@ function renderLandingRooms(container){
   container.innerHTML='';
   _rooms.forEach(function(r){
     var ud=UNIT_DATA[r.type]||{};
-    var nm=ud.name||ELEGANT_NAMES[r.type]||r.name||r.type;
+    var nm=r.name||ud.name||ELEGANT_NAMES[r.type]||r.type;
     var photo=ROOM_PHOTOS[r.type]||'https://ngams237.github.io/veraluz-os/assets/img/site_main.jpg';
     var price=fmtXAF(r.price_per_night||r.price||0);
     var ams=getAmenities(r);
@@ -1811,23 +1814,32 @@ function submitBooking(){
   var mode=document.querySelector('input[name="bk-mode"]:checked');
   if(!r||!ci||!co||!fn||!ln||!em||!ph){ showToast('Veuillez remplir tous les champs obligatoires.','warn'); return; }
 
+  var unitNm = r.name||ELEGANT_NAMES[r.type]||(UNIT_DATA[r.type]||{}).name||r.type;
   var payload={
+    /* Champs locaux (sync/affichage) */
     client_name:fn+' '+ln,
     client_first:fn,
     client_last:ln,
     client_email:em,
     client_phone:ph,
     nationality:nat,
-    unit_id:r.id,
+    unit_name:unitNm,
     unit_type:r.type,
-    unit_name:ELEGANT_NAMES[r.type]||r.name,
-    checkin:ci,
-    checkout:co,
-    nights:_bkData.nights||1,
-    guests:parseInt(document.getElementById('bk-guests').value)||2,
     total_amount:_bkData.total||0,
     acompte:_bkData.acompte||0,
     payment_mode:mode?mode.value:'mobile_money',
+    /* Champs Supabase (schéma veraluz_reservations) */
+    unit_id:r.id,
+    client_email:em,
+    client_phone:ph,
+    guests:parseInt(document.getElementById('bk-guests').value)||2,
+    check_in:ci,
+    check_out:co,
+    checkin:ci,
+    checkout:co,
+    nights:_bkData.nights||1,
+    total:_bkData.total||0,
+    paid:_bkData.acompte||0,
     notes:notes,
     source:'booking-engine',
     status:'pending',
@@ -1850,14 +1862,30 @@ function submitBooking(){
   };
 
   if(SB&&SK){
+    /* N'envoyer que les colonnes présentes dans le schéma Supabase */
+    var sbPayload={
+      unit_id:    payload.unit_id,
+      client_name:payload.client_name,
+      client_email:payload.client_email,
+      client_phone:payload.client_phone,
+      guests:     payload.guests,
+      check_in:   payload.check_in||payload.checkin,
+      check_out:  payload.check_out||payload.checkout,
+      nights:     payload.nights,
+      total:      payload.total||payload.total_amount||0,
+      paid:       payload.paid||payload.acompte||0,
+      status:     payload.status||'pending',
+      source:     payload.source||'booking-engine',
+      notes:      payload.notes||null
+    };
     fetch(SB+'/rest/v1/veraluz_reservations',{
       method:'POST',
       headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=representation'},
-      body:JSON.stringify(payload)
+      body:JSON.stringify(sbPayload)
     })
-    .then(function(res){ return res.json(); })
+    .then(function(res){ if(!res.ok) throw new Error(res.status); return res.json(); })
     .then(function(data){ doConfirm(data&&data[0]&&data[0].id); })
-    .catch(function(){ doConfirm(); });
+    .catch(function(e){ console.warn('BE Supabase insert failed:',e); doConfirm(); });
   } else {
     doConfirm();
   }

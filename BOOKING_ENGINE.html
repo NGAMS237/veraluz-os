@@ -1166,6 +1166,13 @@ var AM_LABELS = {
 };
 
 /* ── ROOM PHOTO MAP ── */
+function getBEPhoto(r){
+  /* Priorité: images Supabase/Paramètres (cache) → ROOM_PHOTOS par type → défaut */
+  var imgs = r.images || r._images || [];
+  if(typeof imgs==='string'){try{imgs=JSON.parse(imgs);}catch(e){imgs=[];}}
+  if(Array.isArray(imgs)&&imgs.length&&imgs[0]) return imgs[0];
+  return ROOM_PHOTOS[r.type]||'https://ngams237.github.io/veraluz-os/assets/img/site_main.jpg';
+}
 var ROOM_PHOTOS = {
   std:'https://ngams237.github.io/veraluz-os/assets/img/site_main.jpg',
   sea:'https://ngams237.github.io/veraluz-os/assets/img/beach1.jpg',
@@ -1628,6 +1635,14 @@ function loadFromCache(){
     if(cached&&cached.length){
       _rooms=cached.map(function(r){
         r._dynStatus=r.status==='active'?'available':r.status;
+        /* Fusionner les images: Supabase/cache + localStorage per-room */
+        var imgs = r.images||[];
+        if(typeof imgs==='string'){try{imgs=JSON.parse(imgs);}catch(e){imgs=[];}}
+        try{
+          var stored=JSON.parse(localStorage.getItem('vlz_room_images_'+r.id)||'[]');
+          imgs=imgs.concat(stored).filter(function(x,i,a){return x&&a.indexOf(x)===i;});
+        }catch(e){}
+        r.images=imgs; r._images=imgs;
         if(!Array.isArray(r.amenities)){
           try{r.amenities=JSON.parse(r.amenities||'[]');}catch(e){r.amenities=[];}
         }
@@ -1659,9 +1674,20 @@ function loadRooms(){
   .then(function(data){
     var active=(data||[]).filter(function(r){return r.status==='active'||r.status==='available';});
     if(!active.length){ loadFromCache(); return; }
-    _rooms=active;
+    _rooms=active.map(function(r){
+      /* Fusionner images Supabase + localStorage per-room */
+      var imgs = r.images||[];
+      if(typeof imgs==='string'){try{imgs=JSON.parse(imgs);}catch(e){imgs=[];}}
+      try{
+        var stored=JSON.parse(localStorage.getItem('vlz_room_images_'+r.id)||'[]');
+        imgs=imgs.concat(stored).filter(function(x,i,a){return x&&a.indexOf(x)===i;});
+      }catch(e){}
+      r.images=imgs; r._images=imgs;
+      if(typeof r.amenities==='string'){try{r.amenities=JSON.parse(r.amenities);}catch(e){r.amenities=[];}}
+      return r;
+    });
     /* Mettre à jour le cache pour les autres modules */
-    try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(active)); }catch(e){}
+    try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms)); }catch(e){}
     renderBkRooms();
   })
   .catch(function(){ loadFromCache(); });
@@ -1691,7 +1717,7 @@ function renderBkRooms(){
   _rooms.forEach(function(r){
     var ud=UNIT_DATA[r.type]||{};
     var nm=r.name||ud.name||ELEGANT_NAMES[r.type]||r.type;
-    var photo=ROOM_PHOTOS[r.type]||'https://ngams237.github.io/veraluz-os/assets/img/site_main.jpg';
+    var photo=getBEPhoto(r);
     var price=fmtXAF(r.price_per_night||r.price||0);
     var ams=getAmenities(r);
     var amHtml=renderAmBadges(ams,5);
@@ -1718,7 +1744,7 @@ function renderLandingRooms(container){
   _rooms.forEach(function(r){
     var ud=UNIT_DATA[r.type]||{};
     var nm=r.name||ud.name||ELEGANT_NAMES[r.type]||r.type;
-    var photo=ROOM_PHOTOS[r.type]||'https://ngams237.github.io/veraluz-os/assets/img/site_main.jpg';
+    var photo=getBEPhoto(r);
     var price=fmtXAF(r.price_per_night||r.price||0);
     var ams=getAmenities(r);
     var amHtml=renderAmBadges(ams,4);

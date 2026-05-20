@@ -761,6 +761,18 @@ function renderPlanning(){
 }
 
 /* ── CHAMBRES ── */
+function getRoomPhoto(room){
+  var imgs = room._images||[];
+  var fromDB = room.images||[];
+  if(typeof fromDB==='string'){try{fromDB=JSON.parse(fromDB);}catch(e){fromDB=[];}}
+  imgs = fromDB.concat(imgs).filter(function(x,i,a){return x&&a.indexOf(x)===i;});
+  return imgs.length ? imgs[0] : '';
+}
+function getRoomAmens(room){
+  var amens = room.amenities||[];
+  if(typeof amens==='string'){try{amens=JSON.parse(amens);}catch(e){amens=[];}}
+  return Array.isArray(amens)?amens:[];
+}
 function renderRooms(){
   var fval=(document.getElementById('roomFilter')||{}).value||'all';
   var list=fval==='all'?_rooms:_rooms.filter(function(r){return r._dynStatus===fval;});
@@ -769,20 +781,32 @@ function renderRooms(){
   if(!list.length){grid.innerHTML='<div class="empty-state"><p>Aucune chambre</p></div>';return;}
   grid.innerHTML=list.map(function(room){
     var st=room._dynStatus||'available', stI=ROOM_STATUS[st]||{label:st,css:'rs-available'};
-    var img=room._images&&room._images.length?'<img class="room-img" src="'+esc(room._images[0])+'" alt="" onerror="this.style.display=\'none\'">':'<div class="room-img-placeholder">🛏</div>';
+    var photo=getRoomPhoto(room);
+    var img=photo?('<img class="room-img" src="'+esc(photo)+'" alt="">'):('<div class="room-img-placeholder">🛏</div>');
     var price=room.price?fmtMoney(room.price):'';
+    var amens=getRoomAmens(room);
+    var amenHtml=amens.slice(0,5).map(function(k){
+      var a=AMENITIES.find(function(x){return x.k===k;});
+      return a?('<span class="amenity-chip">'+a.icon+' '+a.label+'</span>'):'';
+    }).join('')+(amens.length>5?('<span class="amenity-chip">+'+(amens.length-5)+'</span>'):'');
     var qbtns='';
-    if(st==='available') qbtns+='<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'maintenance\')">🔧</button>';
-    if(st==='cleaning'||st==='dirty') qbtns+='<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'available\')">✓ Propre</button>';
-    if(st==='maintenance') qbtns+='<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'available\')">✓ Disponible</button>';
+    if(st==='available') qbtns+='<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'maintenance\')">&#128295;</button>';
+    if(st==='cleaning'||st==='dirty') qbtns+='<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'available\')">&#10003; Propre</button>';
+    if(st==='maintenance') qbtns+='<button class="rq-btn" onclick="event.stopPropagation();setRoomStatus(\''+room.id+'\',\'available\')">&#10003; Disponible</button>';
     return '<div class="room-card" onclick="openRoomModal(\''+room.id+'\')">'
-      +img+'<div class="room-body"><div class="room-name">'+esc(room.name||'Chambre')+'</div>'
-      +'<div class="room-meta">'+(room.type||'Chambre')+' · '+(room.capacity||2)+' pers. · '+price+'</div>'
-      +'<div><span class="room-sbadge '+stI.css+'">'+stI.label+'</span></div>'
-      +(qbtns?'<div class="room-quick-btns">'+qbtns+'</div>':'')
+      +img
+      +'<div class="room-body">'
+      +'<div class="room-name">'+esc(room.name||'Chambre')+'</div>'
+      +'<div class="room-meta">'+(room.type||'Chambre')+' · '+(room.capacity||2)+' pers. · '+price+'/nuit</div>'
+      +(amenHtml?'<div class="unit-p-amenities" style="margin-top:6px;flex-wrap:wrap;display:flex;gap:4px">'+amenHtml+'</div>':'')
+      +'<div style="margin-top:8px;display:flex;align-items:center;gap:8px">'
+      +'<span class="room-sbadge '+stI.css+'">'+stI.label+'</span>'
+      +(qbtns?'<span style="margin-left:auto">'+qbtns+'</span>':'')
+      +'</div>'
       +'</div></div>';
   }).join('');
 }
+
 var ROOM_STATUS={
   available:{label:'Disponible',css:'rs-available'},
   reserved:{label:'Réservée',css:'rs-reserved'},
@@ -1709,7 +1733,7 @@ function saveUnitFull(){
     /* PATCH */
     sbPatch('veraluz_units?id=eq.'+_editUnitId, body).then(function(){
       var r=_rooms.find(function(r){return r.id===_editUnitId;});
-      if(r) Object.assign(r,body);
+      if(r){ Object.assign(r,body); r._images=_editPhotos.slice(); r.images=_editPhotos.slice(); }
       try{localStorage.setItem('vlz_room_images_'+_editUnitId,JSON.stringify(_editPhotos));}catch(e){}
       syncRoomsCache();
       toast('Unité mise à jour ✓','success');
@@ -1723,7 +1747,7 @@ function saveUnitFull(){
     sbPost('veraluz_units', body).then(function(data){
       var saved=Array.isArray(data)?data[0]:data;
       if(saved&&saved.id){
-        saved._images=_editPhotos; saved._dynStatus='available';
+        saved._images=_editPhotos.slice(); saved.images=_editPhotos.slice(); saved._dynStatus='available';
         seedRoomImages(saved); _rooms.push(saved);
         try{localStorage.setItem('vlz_room_images_'+saved.id,JSON.stringify(_editPhotos));}catch(e){}
         syncRoomsCache();

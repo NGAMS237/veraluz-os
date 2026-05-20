@@ -1673,7 +1673,24 @@ document.addEventListener('DOMContentLoaded', function(){
     enrichStatuses();
     refresh();
     checkBkSync();
+  
+  // postMessage listener — Core notifies us of new bookings
+  window.addEventListener('message', function(ev){
+    if(!ev.data) return;
+    var d=ev.data;
+    if(d.type==='new_booking'){
+      checkBkSync();
+      loadAll(function(){ checkBkSync(); updateBadges(); });
+    }
   });
+  // Storage listener — picks up vlz_booking_sync changes from Booking Engine
+  window.addEventListener('storage', function(ev){
+    if(ev.key==='vlz_booking_sync'||ev.key==='vlz_rez_ts'){
+      checkBkSync();
+      updateBadges();
+    }
+  });
+});
   // Auto-refresh when Booking Engine creates a reservation
   var _lastRezSync=0;
   setInterval(function(){

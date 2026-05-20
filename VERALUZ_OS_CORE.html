@@ -1451,7 +1451,33 @@ var EventBus = {
 
     /* ── Route to active iframe (for all except pure core events) ── */
     if (source !== 'veraluz-core') {
-      this.routeToIframe(source, type, data);
+      /* ── Booking Engine → navigate to module ── */
+    if (source === 'booking-engine' && type === 'navigate') {
+      var pageId = data.pageId || 'reservations';
+      try { goTo(pageId); } catch(e) {}
+      return;
+    }
+
+    /* ── Booking Engine → nouvelle réservation ── */
+    if (source === 'booking-engine' && type === 'new_booking') {
+      /* déjà dans vlz_booking_sync via localStorage (même origine) */
+      /* notifier le module réservations s'il est actif */
+      var rezFrame = document.getElementById('frame-reservations');
+      if (rezFrame) {
+        try {
+          rezFrame.contentWindow.postMessage({
+            veraluzEvent: true,
+            source: 'veraluz-core',
+            type: 'new_booking',
+            data: data
+          }, '*');
+        } catch(e) {}
+      }
+      showCoreToast('🛏 Nouvelle réservation reçue !', 'ok');
+      return;
+    }
+
+  this.routeToIframe(source, type, data);
     }
   }
 };

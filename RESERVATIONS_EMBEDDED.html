@@ -440,7 +440,9 @@ var UNIT_DATA = {
 };
 function elegantName(r){
   var type=r.unit_type||r.type||'';
-  return (UNIT_DATA[type]||{}).name||ELEGANT_NAMES[type]||r.unit_name||r.name||type||'—';
+  /* Chercher d'abord le nom dans UNIT_DATA (si type connu), sinon nom réel Supabase, sinon sync */
+  var fromData=(UNIT_DATA[type]||{}).name||ELEGANT_NAMES[type]||'';
+  return r.name||fromData||r.unit_name||type||'—';
 }
 function amenitiesStr(type){
   return ((UNIT_DATA[type]||{}).amenities||[]).map(function(a){return AM_LABELS[a]||a;}).join(' · ');
@@ -569,9 +571,17 @@ function loadAll(cb){
     check();
   });
 
+  /* Sauvegarder les entrées locales avant rechargement */
+  var _localEntries = (_rez||[]).filter(function(r){ return r._fromSync||r._local; });
+
   sbGet('veraluz_reservations?select=*&order=created_at.desc&limit=200').then(function(data){
-    _rez = Array.isArray(data) ? data.map(norm) : [];
-    /* Fusionner les réservations locales (booking engine hors Supabase) */
+    var fromSB = Array.isArray(data) ? data.map(norm) : [];
+    /* Réintégrer les entrées locales non-présentes dans Supabase */
+    var stillLocal = _localEntries.filter(function(loc){
+      return !fromSB.some(function(s){ return s.id && loc.id && s.id===loc.id; });
+    });
+    _rez = fromSB.concat(stillLocal);
+    /* Fusionner les notifications en attente (vlz_booking_sync non encore importées) */
     try{
       var pending=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
       pending.forEach(function(s){

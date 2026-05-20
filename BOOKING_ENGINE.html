@@ -1846,7 +1846,7 @@ function submitBooking(){
     goS(5);
     showConfirmation(payload);
     // Notify parent if in iframe
-    try{ window.parent.postMessage({type:'new_booking',data:payload},'*'); }catch(e){}
+    try{ window.parent.postMessage({veraluzEvent:true,source:'booking-engine',type:'new_booking',data:payload},'*'); }catch(e){}
   };
 
   if(SB&&SK){

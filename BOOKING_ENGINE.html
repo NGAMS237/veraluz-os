@@ -1140,7 +1140,151 @@ function fd(s){if(!s)return '—';try{return new Date(s+'T12:00:00').toLocaleDat
 function toggleMob(){document.getElementById('navmob').classList.toggle('open');document.getElementById('burger').classList.toggle('open');}
 function closeMob(){document.getElementById('navmob').classList.remove('open');document.getElementById('burger').classList.remove('open');}
 window.addEventListener('scroll',function(){document.getElementById('nav').classList.toggle('stuck',window.scrollY>50);},{passive:true});
-document.addEventListener('DOMContentLoaded',function(){loadRooms();});
+/* DOMContentLoaded moved to CMS reader below */
+/* ══════════════════════════════════════════════════════
+   CMS READER — lit vz_cms_content + vz_media_library
+   et met à jour le contenu dynamiquement
+   ══════════════════════════════════════════════════════ */
+function loadCMSContent(){
+  try{ return JSON.parse(localStorage.getItem('vz_cms_content')||'null'); }catch(e){ return null; }
+}
+function loadMediaLib(){
+  try{ return JSON.parse(localStorage.getItem('vz_media_library')||'{}'); }catch(e){ return {}; }
+}
+function applyCMS(){
+  var cms = loadCMSContent();
+  if(!cms) return;
+  /* Hero */
+  var h = cms.hero||{};
+  var h1 = document.querySelector('.hero-h1');
+  if(h1 && h.title){
+    /* Split title: first word normal, rest italic */
+    var parts = h.title.split(' ');
+    h1.innerHTML = parts[0]+'<br><em>'+parts.slice(1).join(' ')+'</em>';
+  }
+  var hs = document.querySelector('.hero-sub');
+  if(hs && h.desc) hs.textContent = h.desc;
+  if(h.stat1_n){ var s1n=document.querySelectorAll('.hero-stat-n')[0]; if(s1n)s1n.textContent=h.stat1_n; }
+  if(h.stat1_l){ var s1l=document.querySelectorAll('.hero-stat-l')[0]; if(s1l)s1l.textContent=h.stat1_l; }
+  if(h.stat2_n){ var s2n=document.querySelectorAll('.hero-stat-n')[1]; if(s2n)s2n.textContent=h.stat2_n; }
+  if(h.stat2_l){ var s2l=document.querySelectorAll('.hero-stat-l')[1]; if(s2l)s2l.textContent=h.stat2_l; }
+
+  /* Espaces section header */
+  var es = cms.espaces||{};
+  var esH2 = document.querySelector('#espaces .sec-h2');
+  if(esH2 && es.section_title){
+    var parts2=es.section_title.split(' ');
+    var mid=Math.floor(parts2.length/2);
+    esH2.innerHTML=parts2.slice(0,mid).join(' ')+' <em>'+parts2.slice(mid).join(' ')+'</em>';
+  }
+  var esLead=document.querySelector('#espaces .sec-lead');
+  if(esLead && es.section_lead) esLead.textContent=es.section_lead;
+
+  /* Expériences */
+  var exp = cms.experiences||{};
+  var expH2=document.querySelector('#experiences .sec-h2');
+  if(expH2 && exp.section_title){ expH2.innerHTML=exp.section_title.replace('autrement','<em>autrement</em>'); }
+  var expLead=document.querySelector('#experiences .sec-lead');
+  if(expLead && exp.section_lead) expLead.textContent=exp.section_lead;
+  /* Rebuild experiences cards if items changed */
+  if(exp.items && exp.items.length){
+    var expGrid=document.querySelector('.exp-grid');
+    if(expGrid){
+      var gradients=['linear-gradient(160deg,#0a4f6e,#023047)','linear-gradient(160deg,#1a3a1a,#0a2a0a)','linear-gradient(160deg,#2a1a0a,#1a0a05)','linear-gradient(160deg,#1a0a2a,#0a0520)','linear-gradient(160deg,#2a1505,#1a0a00)','linear-gradient(160deg,#0a2a1a,#051a10)','linear-gradient(160deg,#2a0a1a,#1a0510)','linear-gradient(160deg,#1a1a2a,#0a0a1a)'];
+      expGrid.innerHTML=exp.items.map(function(item,i){
+        var first=(i===0)?'grid-column:span 2;aspect-ratio:2/1':'';
+        return '<div class="exp-card" style="'+first+'"><div class="exp-bg" style="background:'+gradients[i%gradients.length]+'"></div><div class="exp-overlay"></div><div class="exp-icon">'+item.icon+'</div><div class="exp-body"><div class="exp-title">'+item.title+'</div><div class="exp-desc">'+item.desc+'</div></div></div>';
+      }).join('');
+    }
+  }
+
+  /* Restaurant */
+  var rest = cms.restaurant||{};
+  var restH2=document.querySelector('#restaurant .sec-h2');
+  if(restH2 && rest.section_title){ var rp=rest.section_title.split('&'); restH2.innerHTML=(rp[0]||'')+' & <em>'+(rp[1]||'Lounge').trim()+'</em>'; }
+  var restLead=document.querySelector('#restaurant .sec-lead');
+  if(restLead && rest.section_lead) restLead.textContent=rest.section_lead;
+  if(rest.items && rest.items.length){
+    var rfItems=document.querySelectorAll('.rf-item');
+    rest.items.forEach(function(item,i){
+      if(rfItems[i]){
+        var ico=rfItems[i].querySelector('.rf-icon'); if(ico)ico.textContent=item.icon;
+        var nm=rfItems[i].querySelector('.rf-name'); if(nm)nm.textContent=item.title;
+        var ds=rfItems[i].querySelector('.rf-desc'); if(ds)ds.textContent=item.desc||'';
+      }
+    });
+  }
+
+  /* Témoignages */
+  var testi = (cms.temoignages||{}).items||[];
+  if(testi.length){
+    var tg=document.querySelector('.testi-grid');
+    if(tg){
+      tg.innerHTML=testi.map(function(t){
+        var stars='';for(var s=0;s<(t.stars||5);s++)stars+='★';
+        return '<div class="testi-card"><div class="testi-stars">'+stars+'</div><p class="testi-text">"'+t.text+'"</p><div class="testi-author"><div class="testi-av">'+t.initials+'</div><div><div class="testi-name">'+t.name+'</div><div class="testi-from">'+t.from+'</div></div></div></div>';
+      }).join('');
+    }
+  }
+
+  /* Contact section */
+  var ct = cms.contact||{};
+  if(ct.address){ var ca=document.getElementById('c-addr'); if(ca)ca.textContent=ct.address; }
+  if(ct.phone){ var cp=document.getElementById('c-phone'); if(cp)cp.textContent=ct.phone; }
+  if(ct.email){ var ce=document.getElementById('c-email'); if(ce)ce.textContent=ct.email; }
+  var ch=ct.hours; if(ch){ var chdiv=document.querySelector('#contact .ci-val:last-of-type'); }
+
+  /* Branding */
+  var br = cms.branding||{};
+  if(br.site_name){ var fn=document.getElementById('ft-name'); if(fn)fn.textContent=br.site_name; document.querySelectorAll('.nav-name').forEach(function(el){el.textContent=br.site_name;}); }
+  if(br.footer_text){ var fl=document.getElementById('ft-location'); if(fl)fl.textContent=br.footer_text; }
+  if(br.color_primary){
+    document.documentElement.style.setProperty('--gd',br.color_primary);
+    /* Update CSS gradient var */
+    document.documentElement.style.setProperty('--gold-grad','linear-gradient(135deg,'+br.color_primary+','+br.color_primary+'cc,'+br.color_primary+')');
+  }
+  if(br.color_dark) document.documentElement.style.setProperty('--dk',br.color_dark);
+  if(br.color_ocean){ document.documentElement.style.setProperty('--oc',br.color_ocean); document.documentElement.style.setProperty('--ocean-grad','linear-gradient(135deg,'+br.color_ocean+','+br.color_ocean+'cc)'); }
+
+  /* Social & WhatsApp links */
+  var soc = cms.social||{};
+  if(soc.whatsapp){
+    var waNum=soc.whatsapp.replace(/[^0-9]/g,'');
+    var updateWA=function(id,msg){ var el=document.getElementById(id); if(el)el.href='https://wa.me/'+waNum+(msg?'?text='+msg:''); };
+    var waMsg=encodeURIComponent('Bonjour, je souhaite réserver à la Résidence Veraluz');
+    updateWA('hero-wa',waMsg); updateWA('cta-wa',waMsg); updateWA('contact-wa-btn',waMsg); updateWA('ft-wa','');
+  }
+
+  /* Elegant names override */
+  if(es.naming){
+    ELEGANT_NAMES = es.naming;
+  }
+
+  /* Media library — update gallery section */
+  var lib = loadMediaLib();
+  var allMedia = [];
+  Object.keys(lib).forEach(function(cat){ (lib[cat]||[]).forEach(function(img){ allMedia.push({cat:cat,url:img.url,name:img.name||cat}); }); });
+  if(allMedia.length){
+    var gg=document.querySelector('.gallery-grid');
+    if(gg){
+      var shuffled=allMedia.slice().sort(function(){return Math.random()-.5;}).slice(0,9);
+      gg.innerHTML=shuffled.map(function(img){
+        return '<div class="gallery-item"><img src="'+img.url+'" loading="lazy" alt="'+img.name+'" style="width:100%;height:100%;object-fit:cover;min-height:150px"></div>';
+      }).join('');
+    }
+  }
+}
+
+/* Run CMS apply after DOMContentLoaded */
+document.addEventListener('DOMContentLoaded',function(){
+  loadRooms();
+  applyCMS();
+  /* Listen for Settings updates via localStorage event */
+  window.addEventListener('storage', function(e){
+    if(e.key === 'vz_cms_content' || e.key === 'vz_media_library') applyCMS();
+  });
+});
+
 </script>
 </body>
 </html>

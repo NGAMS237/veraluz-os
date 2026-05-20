@@ -429,14 +429,14 @@ var AM_LABELS = {
   parking:'Parking', piscine:'Piscine', breakfast:'Petit-déj.'
 };
 var UNIT_DATA = {
-  std:   {name:'Chambre Azur',    beds:'1 lit double',    capacity:2, sqm:28,  amenities:['clim','wifi','tv','mer','terrasse']},
-  sea:   {name:'Chambre Lumière', beds:'1 lit king',      capacity:2, sqm:35,  amenities:['clim','wifi','tv','mer','terrasse','jacuzzi']},
-  studio:{name:'Studio Horizon',  beds:'1 lit + canapé',  capacity:3, sqm:38,  amenities:['clim','wifi','tv','cuisine','terrasse']},
-  apt:   {name:'Ocean Family',    beds:'2 chambres',      capacity:5, sqm:65,  amenities:['clim','wifi','tv','cuisine','mer','terrasse','parking']},
-  suite: {name:'Veraluz Royale',  beds:'1 lit king size', capacity:2, sqm:55,  amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast']},
-  villa: {name:'Villa Riviera',   beds:'3 chambres',      capacity:6, sqm:120, amenities:['clim','wifi','tv','cuisine','mer','terrasse','piscine','parking']},
-  loft:  {name:'Loft Horizon',    beds:'Mezzanine king',  capacity:2, sqm:50,  amenities:['clim','wifi','tv','cuisine','mer']},
-  penthouse:{name:'Suite Panorama',beds:'King + salon',   capacity:2, sqm:80,  amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast']}
+  std:      {name:'Chambre Azur',    beds:'1 lit double',    capacity:2, sqm:28,  price:35000,  amenities:['clim','wifi','tv','mer','terrasse']},
+  sea:      {name:'Chambre Lumière', beds:'1 lit king',      capacity:2, sqm:35,  price:50000,  amenities:['clim','wifi','tv','mer','terrasse','jacuzzi']},
+  studio:   {name:'Studio Horizon',  beds:'1 lit + canapé',  capacity:3, sqm:38,  price:45000,  amenities:['clim','wifi','tv','cuisine','terrasse']},
+  apt:      {name:'Ocean Family',    beds:'2 chambres',      capacity:5, sqm:65,  price:75000,  amenities:['clim','wifi','tv','cuisine','mer','terrasse','parking']},
+  suite:    {name:'Veraluz Royale',  beds:'1 lit king size', capacity:2, sqm:55,  price:120000, amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast']},
+  villa:    {name:'Villa Riviera',   beds:'3 chambres',      capacity:6, sqm:120, price:200000, amenities:['clim','wifi','tv','cuisine','mer','terrasse','piscine','parking']},
+  loft:     {name:'Loft Horizon',    beds:'Mezzanine king',  capacity:2, sqm:50,  price:80000,  amenities:['clim','wifi','tv','cuisine','mer']},
+  penthouse:{name:'Suite Panorama',  beds:'King + salon',    capacity:2, sqm:80,  price:150000, amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast']}
 };
 function elegantName(r){
   var type=r.unit_type||r.type||'';
@@ -490,13 +490,21 @@ function sbPost(path,data){
 /* Supabase: client_name, client_email, client_phone, guests, total, paid, status(checkedin/checkedout) */
 /* Interne:  guest_name,  guest_email,  guest_phone,  guests, total, paid, status(checkedin/checkedout) */
 function norm(r){
-  r.guest_name  = r.guest_name  || r.client_name  || '';
-  r.guest_email = r.guest_email || r.client_email || '';
-  r.guest_phone = r.guest_phone || r.client_phone || '';
-  r.unit_name   = elegantName(r) || r.unit_name || '';
-  r.total       = r.total       || r.total_amount  || 0;
-  r.paid        = r.paid        || r.amount_paid   || 0;
+  r.guest_name  = r.guest_name  || r.client_name   || '';
+  r.guest_email = r.guest_email || r.client_email  || '';
+  r.guest_phone = r.guest_phone || r.client_phone  || '';
+  r.check_in    = r.check_in    || r.checkin        || '';
+  r.check_out   = r.check_out   || r.checkout       || '';
+  r.unit_name   = elegantName(r) || r.unit_name     || r.name || '';
+  r.total       = r.total       || r.total_amount   || 0;
+  r.paid        = r.paid        || r.amount_paid    || 0;
   r.notes       = r.notes       || r.special_requests || '';
+  r.nights      = r.nights      || (function(){
+    if(!r.check_in||!r.check_out) return 1;
+    var d1=new Date(r.check_in),d2=new Date(r.check_out);
+    var n=Math.round((d2-d1)/(1000*60*60*24));
+    return n>0?n:1;
+  })();
   return r;
 }
 function toSb(r){
@@ -546,15 +554,43 @@ function loadAll(cb){
       var c=localStorage.getItem('vlz_cache_rooms');
       if(c){ _rooms=JSON.parse(c); _rooms.forEach(function(r){ r._images=[]; seedRoomImages(r); }); }
     }catch(e){}
+    /* Si toujours vide → seed depuis UNIT_DATA (même unités que Booking Engine) */
+    if(!_rooms.length){
+      var ORDER=['std','sea','studio','apt','suite','villa','loft','penthouse'];
+      _rooms = ORDER.map(function(k,i){
+        var u=UNIT_DATA[k]||{};
+        var r={id:'local-'+k, type:k, name:u.name||k, capacity:u.capacity||2,
+               price:u.price||35000, status:'active', _dynStatus:'available',
+               description:u.beds||'', amenities:u.amenities||[], _images:[]};
+        seedRoomImages(r);
+        return r;
+      });
+    }
     check();
   });
 
   sbGet('veraluz_reservations?select=*&order=created_at.desc&limit=200').then(function(data){
     _rez = Array.isArray(data) ? data.map(norm) : [];
+    /* Fusionner les réservations locales (booking engine hors Supabase) */
+    try{
+      var pending=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
+      pending.forEach(function(s){
+        var exists=_rez.some(function(r){return r.id&&s.id&&r.id===s.id;});
+        if(!exists) _rez.unshift(norm(Object.assign({},s,{_fromSync:true})));
+      });
+    }catch(e){}
     try{ localStorage.setItem('vlz_cache_rez', JSON.stringify(_rez)); }catch(e){}
     check();
   }).catch(function(){
     try{ var c=localStorage.getItem('vlz_cache_rez'); if(c) _rez=JSON.parse(c).map(norm); }catch(e){}
+    /* En mode hors-ligne: intégrer aussi vlz_booking_sync */
+    try{
+      var pending=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
+      pending.forEach(function(s){
+        var exists=_rez.some(function(r){return r.id&&s.id&&r.id===s.id;});
+        if(!exists) _rez.unshift(norm(Object.assign({},s,{_fromSync:true,status:'pending'})));
+      });
+    }catch(e){}
     check();
   });
 }
@@ -1367,19 +1403,28 @@ function openSyncModal(){
   }catch(e){}
 }
 function importSync(i){
-  /* La réservation est déjà dans Supabase (booking engine la sauvegarde directement).
-     On supprime la notification puis on recharge TOUT depuis Supabase (loadAll)
-     pour que client_name/total soient bien dans _rez avant d'afficher la liste. */
+  /* Ajouter immédiatement dans _rez (fallback si Supabase indisponible),
+     puis tenter de recharger depuis Supabase pour avoir les données complètes. */
   try{
     var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
+    var item=sync[i];
+    if(item){
+      /* Normaliser et insérer dans _rez s'il n'y est pas déjà */
+      var exists=_rez.some(function(r){return r.id&&item.id&&r.id===item.id;});
+      if(!exists){
+        var localRez=norm(Object.assign({},item,{_fromSync:true,status:item.status||'pending'}));
+        _rez.unshift(localRez);
+        try{ localStorage.setItem('vlz_cache_rez',JSON.stringify(_rez)); }catch(e){}
+      }
+    }
     sync.splice(i,1);
     localStorage.setItem('vlz_booking_sync',JSON.stringify(sync));
     closeModal('syncModal');
-    loadAll(function(){
-      goTab('liste');
-      checkBkSync();
-    });
-  }catch(e){}
+    goTab('liste');
+    refresh();
+    /* Puis tenter rechargement complet depuis Supabase */
+    loadAll(function(){ refresh(); checkBkSync(); });
+  }catch(e){ console.warn('importSync error',e); }
 }
 function dismissSync(i){
   try{

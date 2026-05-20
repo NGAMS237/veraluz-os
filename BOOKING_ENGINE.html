@@ -62,6 +62,9 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
 .nav-links a:hover{color:var(--gd)}
 .nav-cta{background:var(--gd);color:var(--dk);padding:10px 24px;border-radius:50px;font-size:.8rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;transition:all .25s}
 .nav-cta:hover{background:var(--gd2);transform:translateY(-1px)}
+.back-os-btn{display:flex;align-items:center;gap:7px;color:var(--text3);font-size:.78rem;font-weight:500;letter-spacing:.05em;padding:8px 14px;border-radius:50px;border:1px solid rgba(255,255,255,.1);transition:all .25s;background:transparent;cursor:pointer}
+.back-os-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.back-os-btn:hover{color:var(--sand);border-color:rgba(255,255,255,.25)}
 #burger{display:none;flex-direction:column;gap:5px;width:32px;padding:4px}
 #burger span{height:2px;background:var(--text1);border-radius:2px;transition:all .25s}
 #mobile-menu{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--dk);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:28px}
@@ -191,6 +194,22 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
 .avis-star{color:var(--dk3);font-size:1.1rem}
 .avis-star.lit{color:var(--gd)}
 .avis-text{font-size:.85rem;color:var(--text2);line-height:1.7;font-style:italic}
+/* Avis summary panel */
+.avis-summary{display:flex;gap:40px;align-items:center;background:var(--dk3);border:1px solid var(--border);border-radius:var(--rd2);padding:28px 32px;margin-bottom:36px;flex-wrap:wrap}
+.as-score{text-align:center;flex-shrink:0}
+.as-big{display:block;font-family:'Cormorant Garamond',serif;font-size:3.5rem;font-weight:300;color:var(--gd);line-height:1}
+.as-stars-row{font-size:1.3rem;margin:6px 0 4px;letter-spacing:2px}
+.as-total{font-size:.75rem;color:var(--text3);letter-spacing:.08em;text-transform:uppercase}
+.as-bars{flex:1;min-width:200px;display:flex;flex-direction:column;gap:8px}
+.as-bar-row{display:flex;align-items:center;gap:10px}
+.as-label{font-size:.75rem;color:var(--text3);width:22px;text-align:right;flex-shrink:0}
+.as-bar-track{flex:1;height:7px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+.as-bar-fill{height:100%;background:var(--gd);border-radius:4px;transition:width .6s ease}
+.as-count{font-size:.72rem;color:var(--text3);width:18px;text-align:left;flex-shrink:0}
+/* Toggle button */
+.avis-toggle-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--text3);border:1px solid var(--border);padding:11px 24px;border-radius:50px;font-size:.82rem;cursor:pointer;transition:all .25s}
+.avis-toggle-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.avis-toggle-btn:hover{color:var(--sand);border-color:rgba(255,255,255,.25)}
 
 /* Review form */
 .review-form-wrap{margin-top:40px}
@@ -419,6 +438,10 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
     <li><a href="#avis">Avis</a></li>
     <li><a href="#contact">Contact</a></li>
   </ul>
+  <button class="back-os-btn" onclick="returnToOS()" title="Retour au tableau de bord">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+    Veraluz OS
+  </button>
   <button class="nav-cta" onclick="openBk()">Réserver</button>
   <button id="burger" aria-label="Menu" onclick="toggleMobileMenu()">
     <span></span><span></span><span></span>
@@ -696,9 +719,9 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
       <h2 id="cms-avis-title">Témoignages</h2>
       <p class="sec-lead" id="cms-avis-lead">L'expérience Veraluz vue par nos hôtes.</p>
     </div>
-    <div class="avis-grid" id="avis-grid">
-      <!-- Injected by renderAvis() -->
-    </div>
+    <div id="avis-summary"></div>
+    <div class="avis-grid" id="avis-grid"></div>
+    <div id="avis-ctrl" style="display:none;justify-content:center;margin-top:28px"></div>
     <!-- ADD REVIEW FORM -->
     <div class="review-form-wrap" id="review-form-wrap">
       <button class="btn-ghost review-toggle-btn" onclick="toggleReviewForm()">
@@ -1117,6 +1140,21 @@ var DEFAULT_REVIEWS = [
 ];
 
 /* ═══ HOTEL INFO (from localStorage/Core) ═══ */
+function returnToOS(){
+  /* Envoie un message au Core (iframe parent) pour naviguer vers les réservations */
+  try{
+    window.parent.postMessage({
+      source: 'booking-engine',
+      type:   'navigate',
+      data:   {pageId: 'reservations'}
+    }, '*');
+  }catch(e){}
+  /* Si pas dans un iframe, essaie window.history.back() */
+  if(window.parent === window){
+    try{ window.history.back(); }catch(e){}
+  }
+}
+
 function applyHotelInfo(){
   try{
     var d=JSON.parse(localStorage.getItem('vz_hotel_info')||'{}');
@@ -1275,13 +1313,57 @@ function applyCMS(){
 /* ═══ REVIEWS / AVIS ═══ */
 var _reviews = [];
 
+var _avis_expanded = false;
+var _avis_per_page  = 3;
+var _currentAvisList = [];
+
 function renderAvis(items){
-  var grid=document.getElementById('avis-grid');
+  var list = items || DEFAULT_REVIEWS;
+  _currentAvisList = list;
+  renderAvisSummary(list);
+  renderAvisCards(list, _avis_expanded);
+}
+
+function renderAvisSummary(list){
+  var wrap = document.getElementById('avis-summary');
+  if(!wrap) return;
+  if(!list.length){ wrap.innerHTML=''; return; }
+  var total = list.length;
+  var avg = list.reduce(function(a,r){return a+(r.stars||5);},0)/total;
+  var counts = {5:0,4:0,3:0,2:0,1:0};
+  list.forEach(function(r){
+    var st=Math.min(5,Math.max(1,Math.round(r.stars||5)));
+    counts[st]++;
+  });
+  var starsDisplay='';
+  for(var i=1;i<=5;i++) starsDisplay+='<span style="color:'+(i<=Math.round(avg)?'var(--gd)':'rgba(212,148,58,.2)')+'">&#9733;</span>';
+  var bars='';
+  for(var st=5;st>=1;st--){
+    var pct=total?Math.round((counts[st]/total)*100):0;
+    bars+='<div class="as-bar-row">'
+      +'<span class="as-label">'+st+'&#9733;</span>'
+      +'<div class="as-bar-track"><div class="as-bar-fill" style="width:'+pct+'%"></div></div>'
+      +'<span class="as-count">'+counts[st]+'</span>'
+    +'</div>';
+  }
+  wrap.innerHTML='<div class="avis-summary">'
+    +'<div class="as-score">'
+    +'<span class="as-big">'+avg.toFixed(1)+'</span>'
+    +'<div class="as-stars-row">'+starsDisplay+'</div>'
+    +'<span class="as-total">'+total+' avis</span>'
+    +'</div>'
+    +'<div class="as-bars">'+bars+'</div>'
+    +'</div>';
+}
+
+function renderAvisCards(list, expanded){
+  var grid = document.getElementById('avis-grid');
   if(!grid) return;
-  grid.innerHTML='';
-  (items||DEFAULT_REVIEWS).forEach(function(r){
+  grid.innerHTML = '';
+  var visible = expanded ? list : list.slice(0, _avis_per_page);
+  visible.forEach(function(r){
     var stars='';
-    for(var i=1;i<=5;i++) stars+='<span class="avis-star'+(i<=r.stars?' lit':'')+'">★</span>';
+    for(var i=1;i<=5;i++) stars+='<span class="avis-star'+(i<=r.stars?' lit':'')+'">&#9733;</span>';
     var photoHTML = r.photo
       ? '<img class="avis-photo" src="'+r.photo+'" alt="'+r.name+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">'
         +'<div class="avis-photo-init" style="display:none">'+r.name.charAt(0).toUpperCase()+'</div>'
@@ -1292,9 +1374,25 @@ function renderAvis(items){
       +'<div><strong class="avis-name">'+r.name+'</strong><small class="avis-pays">'+r.pays+'</small></div>'
       +'<div class="avis-date">'+r.date+'</div></div>'
       +'<div class="avis-stars">'+stars+'</div>'
-      +'<p class="avis-text">"'+r.text+'"</p>'
+      +'<p class="avis-text">&laquo;&nbsp;'+(r.text||'')+'&nbsp;&raquo;</p>'
       +'</div>');
   });
+  var ctrl=document.getElementById('avis-ctrl');
+  if(ctrl){
+    if(list.length > _avis_per_page){
+      ctrl.style.display='flex';
+      ctrl.innerHTML = expanded
+        ? '<button class="avis-toggle-btn" onclick="toggleAvis()"><svg viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"/></svg> Masquer les avis</button>'
+        : '<button class="avis-toggle-btn" onclick="toggleAvis()"><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg> Voir tous les avis ('+list.length+')</button>';
+    } else {
+      ctrl.style.display='none';
+    }
+  }
+}
+
+function toggleAvis(){
+  _avis_expanded = !_avis_expanded;
+  renderAvisCards(_currentAvisList, _avis_expanded);
 }
 
 function toggleReviewForm(){
@@ -1639,7 +1737,7 @@ function submitBooking(){
     acompte:_bkData.acompte||0,
     payment_mode:mode?mode.value:'mobile_money',
     notes:notes,
-    source:'booking_engine',
+    source:'booking-engine',
     status:'pending',
     created_at:new Date().toISOString()
   };

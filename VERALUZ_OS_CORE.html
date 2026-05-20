@@ -25,8 +25,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   border-right:1px solid var(--border);display:flex;flex-direction:column;
   padding-top:var(--sat);flex-shrink:0;}
 .sb-logo{padding:20px 16px 12px;display:flex;align-items:center;gap:10px;}
-.sb-logo-icon{width:34px;height:34px;border-radius:9px;
-  background:linear-gradient(135deg,var(--accent),var(--acc2));
+.sb-logo-icon{width:36px;height:36px;border-radius:10px;flex-shrink:0;overflow:hidden;
+  background:linear-gradient(135deg,#d4943a,#e09b3a);
   display:flex;align-items:center;justify-content:center;font-size:16px;}
 .sb-logo-name{font-size:15px;font-weight:700;}
 .sb-logo-sub{font-size:10px;color:var(--text3);margin-top:1px;}
@@ -284,8 +284,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 <nav id="sidebar">
   <div class="sb-logo">
     <div class="sb-logo-icon" id="sb-logo-wrap">
-      <img id="sb-logo-img" src="" alt="Logo" style="width:34px;height:34px;border-radius:9px;object-fit:cover;display:none;">
-      <span id="sb-logo-emoji" style="font-size:22px;">🌊</span>
+      <img id="sb-logo-img" src="" alt="Logo" style="width:36px;height:36px;object-fit:cover;display:none;">
+      <svg id="sb-logo-emoji" width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <text x="11" y="16.5" font-family="Georgia,serif" font-size="17" font-weight="bold" fill="white" text-anchor="middle" letter-spacing="-0.5">V</text>
+      </svg>
     </div>
     <div>
       <div class="sb-logo-name" id="sb-hotel-name">Veraluz OS</div>
@@ -1386,6 +1388,8 @@ var EventBus = {
       var logoEmoji = document.getElementById('sb-logo-emoji');
       if (logoImg) {
         logoImg.src = data.logo_url;
+        logoImg.style.display = 'block';
+        if(logoEmoji) logoEmoji.style.display = 'none';
         logoImg.style.display = 'block';
         if (logoEmoji) logoEmoji.style.display = 'none';
         try { localStorage.setItem('vz_logo_url', data.logo_url); } catch(e){}

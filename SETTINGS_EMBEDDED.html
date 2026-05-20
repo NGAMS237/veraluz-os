@@ -228,6 +228,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
     <span class="tab-label">Système</span>
   </button>
+  <button class="tab-btn" onclick="goSection('website')" id="tab-website">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+    <span class="tab-label">Site Web</span>
+  </button>
+  <button class="tab-btn" onclick="goSection('medias')" id="tab-medias">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+    <span class="tab-label">Médias</span>
+  </button>
 </div>
 
 <!-- ── Unsaved changes bar ── -->
@@ -1278,6 +1286,8 @@ function renderSection(id){
   else if(id==='integrations')html=renderIntegrations();
   else if(id==='email')      html=renderEmail();
   else if(id==='systeme')    html=renderSysteme();
+  else if(id==='website')    html=renderWebsite();
+  else if(id==='medias')     html=renderMedias();
   wrap.innerHTML = html;
   wrap.scrollTop = 0;
 }
@@ -1377,6 +1387,357 @@ window.addEventListener('load', function(){
   goSection('hotel');
   emit('module-ready', {module:'settings', version:'3.0'});
 });
+
+
+/* ══════════════════════════════════════════════════════
+   WEBSITE CMS — vz_cms_content localStorage
+   ══════════════════════════════════════════════════════ */
+var CMS_KEY = 'vz_cms_content';
+var CMS_DEFAULTS = {
+  hero:{
+    title:'Résidences Veraluz',
+    subtitle:'Là où la lumière rencontre l\'océan.',
+    desc:'Séjournez à quelques pas des chutes de la Lobé dans une résidence moderne mêlant confort, élégance et hospitalité camerounaise.',
+    cta_label:'Réserver maintenant',
+    stat1_n:'8+', stat1_l:'Logements',
+    stat2_n:'★ 4.9', stat2_l:'Satisfaction',
+    stat3_n:'Vue Mer', stat3_l:'Atlantique'
+  },
+  espaces:{
+    section_title:'Des espaces conçus pour l\'exception',
+    section_lead:'Chaque logement est une invitation au luxe tropical. Vue sur l\'Atlantique, terrasses privées, climatisation et WiFi inclus.',
+    naming:{
+      std:'Chambre Azur', sea:'Chambre Lumière', apt:'Ocean Family',
+      suite:'Veraluz Royale', villa:'Villa Riviera', studio:'Studio Horizon'
+    }
+  },
+  experiences:{
+    section_title:'Vivez Kribi autrement',
+    section_lead:'Au-delà du confort de votre logement, Kribi vous offre des expériences inoubliables entre mer, forêt et culture camerounaise.',
+    items:[
+      {icon:'🌊', title:'Chutes de la Lobé', desc:'Les seules chutes d\'eau au monde qui se jettent directement dans l\'océan.'},
+      {icon:'🛶', title:'Excursions en Pirogue', desc:'Remontez la Lobé avec des piroguiers locaux. Nature sauvage et rencontres authentiques.'},
+      {icon:'🌅', title:'Couchers de Soleil', desc:'Depuis la terrasse, regardez l\'Atlantique s\'embraser chaque soir.'},
+      {icon:'🏄', title:'Jet Ski & Sports Nautiques', desc:'Jet ski, surf et plongée. Conditions idéales toute l\'année.'},
+      {icon:'🐟', title:'Gastronomie Locale', desc:'Poissons braisés sur la plage, makossa et kondre. Saveurs authentiques.'},
+      {icon:'🎭', title:'Culture & Marchés', desc:'Marchés artisanaux, villages Bassa et Bulu, artisanat local.'}
+    ]
+  },
+  restaurant:{
+    section_title:'Saveurs & Sunset Lounge',
+    section_lead:'Profitez d\'une cuisine locale raffinée, de cocktails tropicaux et d\'une ambiance élégante face à la mer.',
+    items:[
+      {icon:'🐟', title:'Poissons & Fruits de mer', desc:'Frais du jour, braisés sur charbon, sauce camerounaise maison'},
+      {icon:'🍹', title:'Cocktails Tropicaux', desc:'Bar lounge, ambiance sunset, spécialités maison aux fruits locaux'},
+      {icon:'☀️', title:'Petit-déjeuner Vue Mer', desc:'Servi en terrasse avec vue panoramique sur l\'Atlantique'},
+      {icon:'🔥', title:'Grillades & Barbecue', desc:'Soirées barbecue en bord de mer sur réservation'}
+    ]
+  },
+  temoignages:{
+    items:[
+      {initials:'AM', name:'Amina M.', from:'Douala · Suite Royale', stars:5, text:'Une expérience magnifique face à l\'océan. Le logement était impeccable, le personnel aux petits soins.'},
+      {initials:'JF', name:'Jean-François D.', from:'Paris · Appartement Vue Mer', stars:5, text:'Le rooftop et la terrasse étaient incroyables. Coucher de soleil exceptionnel.'},
+      {initials:'GN', name:'Grâce N.', from:'Yaoundé · Chambre Lumière', stars:5, text:'Accueil chaleureux et réservation très simple. Le système de paiement mobile est top.'},
+      {initials:'EB', name:'Emmanuel B.', from:'Lagos · Ocean Family', stars:5, text:'Parfait pour une escapade en famille. Les enfants ont adoré la piscine et la plage.'},
+      {initials:'SL', name:'Sophie L.', from:'Bruxelles · Studio Horizon', stars:5, text:'La cuisine était une révélation. Poissons braisés face à l\'Atlantique, cocktails tropicaux au coucher du soleil…'},
+      {initials:'DK', name:'David K.', from:'London · Chambre Riviera', stars:5, text:'Modern, clean, excellent WiFi. A true boutique experience in Kribi. The WhatsApp support was responsive.'}
+    ]
+  },
+  contact:{
+    address:'La Lobé, Kribi · Cameroun',
+    phone:'+237 6XX XXX XXX',
+    email:'contact@veraluz.cm',
+    hours:'7j/7 · 6h00 – 22h00'
+  },
+  branding:{
+    site_name:'Résidence Veraluz',
+    tagline:'Boutique résidence premium à La Lobé · Kribi',
+    color_primary:'#c9a84c',
+    color_dark:'#0c0c0c',
+    color_ocean:'#006994',
+    footer_text:'Kribi, Cameroun · Face à l\'océan Atlantique'
+  },
+  social:{
+    instagram:'', facebook:'', tiktok:'', youtube:'', whatsapp:'+237600000000'
+  }
+};
+
+function loadCMS(){
+  try{
+    var saved=localStorage.getItem(CMS_KEY);
+    if(saved){
+      var parsed=JSON.parse(saved);
+      /* Deep merge to not lose new defaults */
+      return deepMergeCMS(JSON.parse(JSON.stringify(CMS_DEFAULTS)), parsed);
+    }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(CMS_DEFAULTS));
+}
+function deepMergeCMS(target, source){
+  for(var k in source){
+    if(source[k]!==null && typeof source[k]==='object' && !Array.isArray(source[k]) && typeof target[k]==='object' && target[k]!==null && !Array.isArray(target[k])){
+      deepMergeCMS(target[k], source[k]);
+    } else {
+      target[k]=source[k];
+    }
+  }
+  return target;
+}
+function saveCMS(cms){ try{localStorage.setItem(CMS_KEY, JSON.stringify(cms)); toast('✅ Contenu site sauvegardé');}catch(e){toast('Erreur: '+e.message,'error');} }
+
+function renderWebsite(){
+  var cms = loadCMS();
+  var html = ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" width="22" height="22"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>',
+    'Contenu du Site Web', 'Modifiez les textes, titres et descriptions affichés sur le booking engine');
+  html += '<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">';
+  var sections_cms = [
+    ['hero','🏠 Hero'],['espaces','🛏 Espaces'],['experiences','🌊 Expériences'],
+    ['restaurant','🍽 Restaurant'],['temoignages','⭐ Témoignages'],['contact','📞 Contact'],
+    ['branding','✨ Branding'],['social','📱 Réseaux']
+  ];
+  sections_cms.forEach(function(s){
+    html+='<button class="btn btn-o" onclick="showCMSSec(\''+s[0]+'\')" id="cms-btn-'+s[0]+'" style="font-size:.78rem;padding:6px 14px">'+s[1]+'</button>';
+  });
+  html+='</div>';
+  html+='<div id="cms-section-content" style="animation:fadein .2s ease"></div>';
+  return html;
+}
+
+function showCMSSec(sec){
+  var cms = loadCMS();
+  /* Highlight active btn */
+  document.querySelectorAll('[id^="cms-btn-"]').forEach(function(el){el.classList.remove('active');});
+  var ab=document.getElementById('cms-btn-'+sec); if(ab) ab.classList.add('active');
+  var html='';
+  if(sec==='hero'){
+    html='<div class="card">'
+    +'<div class="card-title">🏠 Section Hero</div>'
+    +'<div class="field-group"><label class="field-label">Titre principal</label><input class="field-inp" id="cms-hero-title" value="'+escH(cms.hero.title)+'" oninput="patchCMS(\'hero\',\'title\',this.value)"></div>'
+    +'<div class="field-group"><label class="field-label">Sous-titre (accroche)</label><input class="field-inp" id="cms-hero-subtitle" value="'+escH(cms.hero.subtitle)+'" oninput="patchCMS(\'hero\',\'subtitle\',this.value)"></div>'
+    +'<div class="field-group"><label class="field-label">Description</label><textarea class="field-inp" rows="3" oninput="patchCMS(\'hero\',\'desc\',this.value)" style="resize:vertical">'+escH(cms.hero.desc)+'</textarea></div>'
+    +'<div class="field-group"><label class="field-label">Texte bouton principal</label><input class="field-inp" value="'+escH(cms.hero.cta_label)+'" oninput="patchCMS(\'hero\',\'cta_label\',this.value)"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px">'
+    +'<div><label class="field-label">Stat 1 — Chiffre</label><input class="field-inp" value="'+escH(cms.hero.stat1_n)+'" oninput="patchCMS(\'hero\',\'stat1_n\',this.value)"></div>'
+    +'<div><label class="field-label">Stat 1 — Label</label><input class="field-inp" value="'+escH(cms.hero.stat1_l)+'" oninput="patchCMS(\'hero\',\'stat1_l\',this.value)"></div>'
+    +'<div></div>'
+    +'<div><label class="field-label">Stat 2 — Chiffre</label><input class="field-inp" value="'+escH(cms.hero.stat2_n)+'" oninput="patchCMS(\'hero\',\'stat2_n\',this.value)"></div>'
+    +'<div><label class="field-label">Stat 2 — Label</label><input class="field-inp" value="'+escH(cms.hero.stat2_l)+'" oninput="patchCMS(\'hero\',\'stat2_l\',this.value)"></div>'
+    +'<div></div>'
+    +'</div>'
+    +'<div style="margin-top:16px"><button class="btn btn-s" onclick="saveCMSFromForm(\'hero\')">💾 Sauvegarder Hero</button></div>'
+    +'</div>';
+  } else if(sec==='espaces'){
+    html='<div class="card">'
+    +'<div class="card-title">🛏 Section Nos Espaces</div>'
+    +'<div class="field-group"><label class="field-label">Titre de section</label><input class="field-inp" value="'+escH(cms.espaces.section_title)+'" oninput="patchCMS(\'espaces\',\'section_title\',this.value)"></div>'
+    +'<div class="field-group"><label class="field-label">Description intro</label><textarea class="field-inp" rows="2" oninput="patchCMS(\'espaces\',\'section_lead\',this.value)" style="resize:vertical">'+escH(cms.espaces.section_lead)+'</textarea></div>'
+    +'<div class="card-title" style="margin-top:16px">Nommage élégant des unités</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +['std','sea','apt','suite','villa','studio'].map(function(k){
+      var labels={std:'Chambre Standard',sea:'Chambre Vue Mer',apt:'Appartement',suite:'Suite Présidentielle',villa:'Villa',studio:'Studio'};
+      return '<div><label class="field-label">'+labels[k]+'</label><input class="field-inp" value="'+escH((cms.espaces.naming||{})[k]||'')+'" oninput="patchCMSNested(\'espaces\',\'naming\',\''+k+'\',this.value)"></div>';
+    }).join('')
+    +'</div>'
+    +'<div style="margin-top:16px"><button class="btn btn-s" onclick="saveCMSFromForm(\'espaces\')">💾 Sauvegarder Espaces</button></div>'
+    +'</div>';
+  } else if(sec==='experiences'){
+    html='<div class="card">'
+    +'<div class="card-title">🌊 Section Expériences Kribi</div>'
+    +'<div class="field-group"><label class="field-label">Titre de section</label><input class="field-inp" value="'+escH(cms.experiences.section_title)+'" oninput="patchCMS(\'experiences\',\'section_title\',this.value)"></div>'
+    +'<div class="field-group"><label class="field-label">Description intro</label><textarea class="field-inp" rows="2" oninput="patchCMS(\'experiences\',\'section_lead\',this.value)" style="resize:vertical">'+escH(cms.experiences.section_lead)+'</textarea></div>'
+    +'<div class="card-title" style="margin-top:16px">Activités affichées</div>';
+    (cms.experiences.items||[]).forEach(function(item,i){
+      html+='<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:10px">'
+      +'<div style="display:grid;grid-template-columns:50px 1fr;gap:10px;margin-bottom:8px">'
+      +'<div><label class="field-label">Icône</label><input class="field-inp" value="'+escH(item.icon)+'" oninput="patchCMSItem(\'experiences\','+i+',\'icon\',this.value)" style="font-size:1.2rem;text-align:center"></div>'
+      +'<div><label class="field-label">Titre</label><input class="field-inp" value="'+escH(item.title)+'" oninput="patchCMSItem(\'experiences\','+i+',\'title\',this.value)"></div>'
+      +'</div>'
+      +'<div><label class="field-label">Description</label><textarea class="field-inp" rows="2" oninput="patchCMSItem(\'experiences\','+i+',\'desc\',this.value)" style="resize:vertical">'+escH(item.desc)+'</textarea></div>'
+      +'</div>';
+    });
+    html+='<div style="margin-top:12px"><button class="btn btn-s" onclick="saveCMSFromForm(\'experiences\')">💾 Sauvegarder Expériences</button></div>'
+    +'</div>';
+  } else if(sec==='restaurant'){
+    html='<div class="card">'
+    +'<div class="card-title">🍽 Restaurant & Lounge</div>'
+    +'<div class="field-group"><label class="field-label">Titre de section</label><input class="field-inp" value="'+escH(cms.restaurant.section_title)+'" oninput="patchCMS(\'restaurant\',\'section_title\',this.value)"></div>'
+    +'<div class="field-group"><label class="field-label">Description</label><textarea class="field-inp" rows="3" oninput="patchCMS(\'restaurant\',\'section_lead\',this.value)" style="resize:vertical">'+escH(cms.restaurant.section_lead)+'</textarea></div>'
+    +'<div class="card-title" style="margin-top:16px">Rubriques affichées</div>';
+    (cms.restaurant.items||[]).forEach(function(item,i){
+      html+='<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:10px;display:grid;grid-template-columns:50px 1fr;gap:10px">'
+      +'<div><label class="field-label">Icône</label><input class="field-inp" value="'+escH(item.icon)+'" oninput="patchCMSItem(\'restaurant\','+i+',\'icon\',this.value)" style="font-size:1.2rem;text-align:center"></div>'
+      +'<div><label class="field-label">Titre</label><input class="field-inp" value="'+escH(item.title)+'" oninput="patchCMSItem(\'restaurant\','+i+',\'title\',this.value)"></div>'
+      +'</div>';
+    });
+    html+='<div style="margin-top:12px"><button class="btn btn-s" onclick="saveCMSFromForm(\'restaurant\')">💾 Sauvegarder Restaurant</button></div>'
+    +'</div>';
+  } else if(sec==='temoignages'){
+    html='<div class="card"><div class="card-title">⭐ Témoignages clients</div>';
+    (cms.temoignages.items||[]).forEach(function(t,i){
+      html+='<div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:12px">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">'
+      +'<div><label class="field-label">Nom</label><input class="field-inp" value="'+escH(t.name)+'" oninput="patchCMSItem(\'temoignages\','+i+',\'name\',this.value)"></div>'
+      +'<div><label class="field-label">Provenance</label><input class="field-inp" value="'+escH(t.from)+'" oninput="patchCMSItem(\'temoignages\','+i+',\'from\',this.value)"></div>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:70px 1fr;gap:10px;margin-bottom:8px">'
+      +'<div><label class="field-label">Initiales</label><input class="field-inp" value="'+escH(t.initials)+'" oninput="patchCMSItem(\'temoignages\','+i+',\'initials\',this.value)" maxlength="3"></div>'
+      +'<div><label class="field-label">Étoiles (1–5)</label><select class="field-inp" onchange="patchCMSItem(\'temoignages\','+i+',\'stars\',parseInt(this.value))"><option value="5"'+(t.stars===5?' selected':'')+'>★★★★★</option><option value="4"'+(t.stars===4?' selected':'')+'>★★★★</option><option value="3"'+(t.stars===3?' selected':'')+'>★★★</option></select></div>'
+      +'</div>'
+      +'<div><label class="field-label">Témoignage</label><textarea class="field-inp" rows="2" oninput="patchCMSItem(\'temoignages\','+i+',\'text\',this.value)" style="resize:vertical">'+escH(t.text)+'</textarea></div>'
+      +'</div>';
+    });
+    html+='<div style="margin-top:12px;display:flex;gap:8px">'
+    +'<button class="btn btn-o" onclick="addCMSTestimonial()">+ Ajouter</button>'
+    +'<button class="btn btn-s" onclick="saveCMSFromForm(\'temoignages\')">💾 Sauvegarder</button></div></div>';
+  } else if(sec==='contact'){
+    html='<div class="card"><div class="card-title">📞 Contact & Coordonnées</div>'
+    +'<div class="field-group"><label class="field-label">Adresse</label><input class="field-inp" value="'+escH(cms.contact.address)+'" oninput="patchCMS(\'contact\',\'address\',this.value)"></div>'
+    +'<div class="field-group"><label class="field-label">Téléphone</label><input class="field-inp" value="'+escH(cms.contact.phone)+'" oninput="patchCMS(\'contact\',\'phone\',this.value)"></div>'
+    +'<div class="field-group"><label class="field-label">Email</label><input class="field-inp" value="'+escH(cms.contact.email)+'" oninput="patchCMS(\'contact\',\'email\',this.value)"></div>'
+    +'<div class="field-group"><label class="field-label">Horaires réception</label><input class="field-inp" value="'+escH(cms.contact.hours)+'" oninput="patchCMS(\'contact\',\'hours\',this.value)"></div>'
+    +'<div style="margin-top:12px"><button class="btn btn-s" onclick="saveCMSFromForm(\'contact\')">💾 Sauvegarder Contact</button></div></div>';
+  } else if(sec==='branding'){
+    html='<div class="card"><div class="card-title">✨ Branding & Identité</div>'
+    +'<div class="field-group"><label class="field-label">Nom du site</label><input class="field-inp" value="'+escH(cms.branding.site_name)+'" oninput="patchCMS(\'branding\',\'site_name\',this.value)"></div>'
+    +'<div class="field-group"><label class="field-label">Tagline (slogan)</label><input class="field-inp" value="'+escH(cms.branding.tagline)+'" oninput="patchCMS(\'branding\',\'tagline\',this.value)"></div>'
+    +'<div class="field-group"><label class="field-label">Texte footer</label><input class="field-inp" value="'+escH(cms.branding.footer_text)+'" oninput="patchCMS(\'branding\',\'footer_text\',this.value)"></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
+    +'<div><label class="field-label">Couleur or</label><div style="display:flex;gap:6px;align-items:center"><input type="color" value="'+escH(cms.branding.color_primary)+'" oninput="patchCMS(\'branding\',\'color_primary\',this.value)" style="width:36px;height:36px;border:none;border-radius:8px;cursor:pointer"><input class="field-inp" value="'+escH(cms.branding.color_primary)+'" style="flex:1" oninput="patchCMS(\'branding\',\'color_primary\',this.value)"></div></div>'
+    +'<div><label class="field-label">Couleur sombre</label><div style="display:flex;gap:6px;align-items:center"><input type="color" value="'+escH(cms.branding.color_dark)+'" oninput="patchCMS(\'branding\',\'color_dark\',this.value)" style="width:36px;height:36px;border:none;border-radius:8px;cursor:pointer"><input class="field-inp" value="'+escH(cms.branding.color_dark)+'" style="flex:1" oninput="patchCMS(\'branding\',\'color_dark\',this.value)"></div></div>'
+    +'<div><label class="field-label">Couleur océan</label><div style="display:flex;gap:6px;align-items:center"><input type="color" value="'+escH(cms.branding.color_ocean)+'" oninput="patchCMS(\'branding\',\'color_ocean\',this.value)" style="width:36px;height:36px;border:none;border-radius:8px;cursor:pointer"><input class="field-inp" value="'+escH(cms.branding.color_ocean)+'" style="flex:1" oninput="patchCMS(\'branding\',\'color_ocean\',this.value)"></div></div>'
+    +'</div>'
+    +'<div style="margin-top:16px"><button class="btn btn-s" onclick="saveCMSFromForm(\'branding\')">💾 Sauvegarder Branding</button></div></div>';
+  } else if(sec==='social'){
+    html='<div class="card"><div class="card-title">📱 Réseaux Sociaux</div>'
+    +'<div class="field-group"><label class="field-label">WhatsApp (numéro avec indicatif)</label><input class="field-inp" value="'+escH(cms.social.whatsapp)+'" oninput="patchCMS(\'social\',\'whatsapp\',this.value)" placeholder="+237600000000"></div>'
+    +'<div class="field-group"><label class="field-label">Instagram (URL profil)</label><input class="field-inp" value="'+escH(cms.social.instagram)+'" oninput="patchCMS(\'social\',\'instagram\',this.value)" placeholder="https://instagram.com/veraluz"></div>'
+    +'<div class="field-group"><label class="field-label">Facebook (URL page)</label><input class="field-inp" value="'+escH(cms.social.facebook)+'" oninput="patchCMS(\'social\',\'facebook\',this.value)" placeholder="https://facebook.com/veraluz"></div>'
+    +'<div class="field-group"><label class="field-label">TikTok (URL profil)</label><input class="field-inp" value="'+escH(cms.social.tiktok)+'" oninput="patchCMS(\'social\',\'tiktok\',this.value)" placeholder="https://tiktok.com/@veraluz"></div>'
+    +'<div class="field-group"><label class="field-label">YouTube</label><input class="field-inp" value="'+escH(cms.social.youtube)+'" oninput="patchCMS(\'social\',\'youtube\',this.value)" placeholder="https://youtube.com/@veraluz"></div>'
+    +'<div style="margin-top:12px"><button class="btn btn-s" onclick="saveCMSFromForm(\'social\')">💾 Sauvegarder Réseaux</button></div></div>';
+  }
+  var wrap = document.getElementById('cms-section-content');
+  if(wrap) wrap.innerHTML = html;
+}
+
+/* CMS patch helpers (real-time state tracking) */
+var _cms_draft = null;
+function getCMSDraft(){ if(!_cms_draft) _cms_draft = loadCMS(); return _cms_draft; }
+function patchCMS(sec, key, val){ getCMSDraft()[sec][key] = val; }
+function patchCMSNested(sec, sub, key, val){ getCMSDraft()[sec][sub][key] = val; }
+function patchCMSItem(sec, idx, key, val){ getCMSDraft()[sec].items[idx][key] = val; }
+function saveCMSFromForm(sec){ saveCMS(getCMSDraft()); _cms_draft=null; toast('✅ Section "'+sec+'" sauvegardée'); }
+function addCMSTestimonial(){
+  var cms=getCMSDraft();
+  cms.temoignages.items.push({initials:'??',name:'Nouveau client',from:'Ville · Logement',stars:5,text:'Témoignage à modifier…'});
+  showCMSSec('temoignages');
+}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* ══════════════════════════════════════════════════════
+   MÉDIAS — vz_media_library localStorage
+   ══════════════════════════════════════════════════════ */
+var MEDIA_KEY = 'vz_media_library';
+var MEDIA_CATS = [
+  {id:'chambres',  label:'🛏 Chambres',    desc:'Photos des logements'},
+  {id:'restaurant',label:'🍽 Restaurant',  desc:'Plats, cocktails, ambiance'},
+  {id:'activites', label:'🌊 Activités',   desc:'Kribi, chutes, excursions'},
+  {id:'rooftop',   label:'🌅 Rooftop',     desc:'Terrasses et couchers de soleil'},
+  {id:'lobby',     label:'🏨 Lobby',       desc:'Réception et espaces communs'},
+  {id:'plage',     label:'🏖 Plage',       desc:'Plage et bord de mer'}
+];
+var _media_cat = 'chambres';
+
+function loadMedia(){ try{return JSON.parse(localStorage.getItem(MEDIA_KEY)||'{}');}catch(e){return {};} }
+function saveMedia(lib){ try{localStorage.setItem(MEDIA_KEY, JSON.stringify(lib));}catch(e){toast('Erreur stockage: '+e.message,'error');} }
+
+function renderMedias(){
+  var html = ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" width="22" height="22"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
+    'Médiathèque', 'Gérez les images par catégorie. Les images sont stockées localement et synchronisées avec le site.');
+  /* Category tabs */
+  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">';
+  MEDIA_CATS.forEach(function(c){
+    html+='<button class="btn btn-o media-cat-btn" id="mcat-'+c.id+'" onclick="showMediaCat(\''+c.id+'\')" style="font-size:.78rem;padding:6px 14px">'+c.label+'</button>';
+  });
+  html+='</div>';
+  html+='<div id="media-cat-content"></div>';
+  return html;
+}
+
+function showMediaCat(catId){
+  _media_cat = catId;
+  document.querySelectorAll('.media-cat-btn').forEach(function(el){el.classList.remove('active');});
+  var ab=document.getElementById('mcat-'+catId); if(ab) ab.classList.add('active');
+  var cat = MEDIA_CATS.find(function(c){return c.id===catId;});
+  var lib = loadMedia();
+  var imgs = (lib[catId]||[]);
+  var html='<div class="card">'
+  +'<div class="card-title">'+cat.label+' <span style="font-size:.75rem;color:var(--text3);font-weight:400">'+cat.desc+'</span></div>'
+  +'<div style="margin-bottom:16px">'
+  +'<label style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:2px dashed var(--border);border-radius:12px;padding:28px;cursor:pointer;transition:border .2s;background:var(--bg3)" '
+  +'onmouseover="this.style.borderColor=\'var(--acc)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+  +'<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>'
+  +'<span style="font-size:.9rem;font-weight:500">Cliquer pour uploader des images</span>'
+  +'<span style="font-size:.75rem;color:var(--text3)">JPG, PNG, WebP · Max 2MB par image</span>'
+  +'<input type="file" accept="image/*" multiple style="display:none" onchange="uploadMediaFiles(this,\''+catId+'\')">'
+  +'</label></div>';
+  if(imgs.length===0){
+    html+='<div style="text-align:center;padding:40px;color:var(--text3);font-size:.85rem">Aucune image dans cette catégorie</div>';
+  } else {
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px">';
+    imgs.forEach(function(img,i){
+      html+='<div style="position:relative;border-radius:10px;overflow:hidden;aspect-ratio:1;background:var(--bg3)">'
+      +'<img src="'+img.url+'" alt="'+escH(img.name||'')+'" loading="lazy" style="width:100%;height:100%;object-fit:cover">'
+      +'<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);padding:6px;font-size:.65rem;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escH(img.name||'image')+'</div>'
+      +'<button onclick="deleteMediaImg(\''+catId+'\','+i+')" title="Supprimer" '
+      +'style="position:absolute;top:6px;right:6px;width:24px;height:24px;background:rgba(239,68,68,.9);border:none;border-radius:50%;color:#fff;cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center">×</button>'
+      +'</div>';
+    });
+    html+='</div>'
+    +'<div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:.8rem;color:var(--text3)">'+imgs.length+' image(s)</span>'
+    +'<button class="btn btn-r" onclick="clearMediaCat(\''+catId+'\')" style="font-size:.78rem;padding:5px 12px">🗑 Vider la catégorie</button></div>';
+  }
+  html+='</div>';
+  var wrap=document.getElementById('media-cat-content');
+  if(wrap) wrap.innerHTML=html;
+}
+
+function uploadMediaFiles(input, catId){
+  var files=Array.from(input.files);
+  if(!files.length) return;
+  var lib=loadMedia();
+  if(!lib[catId]) lib[catId]=[];
+  var pending=files.length;
+  files.forEach(function(file){
+    if(file.size>2*1024*1024){ toast('Image trop grande (max 2MB): '+file.name,'error'); if(--pending===0) finalizeUpload(lib,catId); return; }
+    var reader=new FileReader();
+    reader.onload=function(e){
+      lib[catId].push({url:e.target.result, name:file.name, size:file.size, cat:catId, ts:Date.now()});
+      if(--pending===0) finalizeUpload(lib,catId);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function finalizeUpload(lib, catId){
+  saveMedia(lib);
+  toast('✅ '+(lib[catId]||[]).length+' image(s) dans "'+catId+'"');
+  showMediaCat(catId);
+}
+function deleteMediaImg(catId, idx){
+  var lib=loadMedia();
+  if(lib[catId]) lib[catId].splice(idx,1);
+  saveMedia(lib);
+  showMediaCat(catId);
+}
+function clearMediaCat(catId){
+  if(!confirm('Vider toutes les images de cette catégorie ?')) return;
+  var lib=loadMedia();
+  lib[catId]=[];
+  saveMedia(lib);
+  toast('Catégorie vidée');
+  showMediaCat(catId);
+}
+
 </script>
 </body>
 </html>

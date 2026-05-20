@@ -177,6 +177,37 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 .modal-ft{padding:12px 20px;border-top:1px solid var(--bg4);display:flex;gap:8px;justify-content:flex-end;}
 
 ::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px;}
+
+/* ── CMS Site Web ── */
+.cms-topbar{display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border-radius:12px;padding:16px 20px;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+.cms-block{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.cms-block-head{display:flex;align-items:center;gap:14px;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg3)}
+.cms-block-icon{font-size:1.3rem;flex-shrink:0}
+.cms-block-title{font-size:.9rem;font-weight:600;color:var(--text)}
+.cms-block-where{font-size:.72rem;color:var(--acc);margin-top:2px}
+.cms-block-body{padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.cms-field{display:flex;flex-direction:column;gap:5px}
+.cms-field label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);font-weight:500}
+.cms-hint{font-size:.68rem;color:var(--text3);text-transform:none;letter-spacing:0;margin-left:6px;font-weight:400}
+.cms-color-field{}
+.tem-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+
+/* ── Médias ── */
+.med-cat{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.med-cat-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);background:var(--bg3);flex-wrap:wrap;gap:10px}
+.med-cat-info{display:flex;align-items:center;gap:12px}
+.med-cat-icon{font-size:1.4rem;flex-shrink:0}
+.med-cat-title{font-size:.9rem;font-weight:600;color:var(--text)}
+.med-cat-where{font-size:.7rem;color:var(--acc);margin-top:2px}
+.med-upload-btn{display:inline-flex;align-items:center;gap:6px;background:var(--acc);color:var(--bg);padding:6px 14px;border-radius:20px;font-size:.75rem;font-weight:600;cursor:pointer;transition:opacity .2s}
+.med-upload-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.med-upload-btn:hover{opacity:.85}
+.med-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;padding:14px 18px}
+.med-thumb{position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;background:var(--bg3)}
+.med-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.med-del{position:absolute;top:4px;right:4px;width:22px;height:22px;background:rgba(239,68,68,.9);color:#fff;border:none;border-radius:50%;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;line-height:1}
+.med-name{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.65);color:#fff;font-size:.6rem;padding:3px 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.med-empty{padding:20px 18px;font-size:.8rem;color:var(--text3);text-align:center}
 </style>
 </head>
 <body>
@@ -236,10 +267,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
     <span class="tab-label">Médias</span>
   </button>
-  <button class="tab-btn" onclick="goSection('staff')" id="tab-staff">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-    <span class="tab-label">Staff</span>
-  </button>
+
 </div>
 
 <!-- ── Unsaved changes bar ── -->
@@ -464,124 +492,6 @@ function toggle(label, desc, dfn, val){
   return '<div class="toggle-row"><div class="toggle-info"><div class="toggle-label">'+label+'</div>'+(desc?'<div class="toggle-desc">'+desc+'</div>':'')+'</div>'
     +'<label class="toggle"><input type="checkbox" data-field="'+dfn+'"'+(val?' checked':'')
     +' onchange="markDirty()"><div class="toggle-track"></div></label></div>';
-}
-
-function renderStaff(){
-  var hi = JSON.parse(localStorage.getItem('vz_hotel_info')||'{}');
-  var staff = JSON.parse(localStorage.getItem('vz_staff')||'[]');
-  var roles = ['admin','manager','reception','housekeeping','maintenance','restaurant'];
-  var roleLabels = {
-    admin:'Administrateur',manager:'Gestionnaire',
-    reception:'Réception',housekeeping:'Ménage',
-    maintenance:'Maintenance',restaurant:'Restaurant'
-  };
-  var html = ph(
-    '<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>',
-    'Gestion du Staff',
-    'Gérez les membres de votre équipe. Les accès au Booking Engine et au Core sont contrôlés par rôle.'
-  );
-
-  /* Summary card */
-  html += '<div class="card" style="margin-bottom:16px">';
-  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:16px">';
-  var byRole = {};
-  staff.forEach(function(m){ byRole[m.role]=(byRole[m.role]||0)+1; });
-  var summaryRoles = ['admin','manager','reception','housekeeping'];
-  summaryRoles.forEach(function(r){
-    html += '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center">'
-      + '<div style="font-size:1.4rem;font-weight:700;color:var(--acc)">'+(byRole[r]||0)+'</div>'
-      + '<div style="font-size:.72rem;color:var(--text3);margin-top:2px">'+roleLabels[r]+'</div>'
-      + '</div>';
-  });
-  html += '</div>';
-  html += '<button class="btn btn-s" onclick="addStaffMember()" style="margin-right:8px">+ Ajouter un membre</button>';
-  html += '</div>';
-
-  /* Staff list */
-  if(staff.length === 0){
-    html += '<div class="card" style="text-align:center;padding:40px;color:var(--text3)">'
-      + '<svg viewBox="0 0 24 24" fill="none" stroke="var(--text3)" stroke-width="1.4" width="48" height="48" style="display:block;margin:0 auto 12px"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>'
-      + '<p>Aucun membre du staff configuré.</p>'
-      + '<p style="font-size:.8rem">Cliquez sur "+ Ajouter un membre" pour commencer.</p>'
-      + '</div>';
-  } else {
-    html += '<div class="card"><div class="card-title">Membres de l\'équipe ('+staff.length+')</div>';
-    staff.forEach(function(m, i){
-      var initials = (m.name||'?').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().substring(0,2);
-      var hasBookingAccess = (m.access||[]).includes('booking');
-      var hasCoreAccess   = (m.access||[]).includes('core');
-      html += '<div style="display:flex;align-items:center;gap:14px;padding:14px;background:var(--bg3);border-radius:10px;margin-bottom:10px">'
-        + '<div style="width:44px;height:44px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.95rem;font-weight:700;flex-shrink:0">'+initials+'</div>'
-        + '<div style="flex:1;min-width:0">'
-        + '<div style="font-weight:600;font-size:.9rem">'+escH(m.name)+'</div>'
-        + '<div style="font-size:.75rem;color:var(--text3);margin-top:2px">'+escH(roleLabels[m.role]||m.role)+' · '+escH(m.email||'—')+'</div>'
-        + '<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">'
-        + '<span style="font-size:.7rem;padding:3px 8px;border-radius:20px;background:'+(hasBookingAccess?'var(--acc)':'var(--bg2)')+';color:'+(hasBookingAccess?'#fff':'var(--text3)')+'">Booking Engine</span>'
-        + '<span style="font-size:.7rem;padding:3px 8px;border-radius:20px;background:'+(hasCoreAccess?'#16a34a':'var(--bg2)')+';color:'+(hasCoreAccess?'#fff':'var(--text3)')+'">Core OS</span>'
-        + '</div></div>'
-        + '<div style="display:flex;gap:6px;flex-shrink:0">'
-        + '<button class="btn btn-o" onclick="editStaffMember('+i+')" style="padding:6px 10px;font-size:.75rem">Modifier</button>'
-        + '<button class="btn btn-r" onclick="removeStaffMember('+i+')" style="padding:6px 10px;font-size:.75rem">✕</button>'
-        + '</div></div>';
-    });
-    html += '</div>';
-  }
-
-  /* Access legend */
-  html += '<div class="card" style="margin-top:12px"><div class="card-title">Accès par rôle</div>'
-    + '<div style="font-size:.82rem;color:var(--text2);line-height:1.7">'
-    + '<div><strong>Administrateur</strong> — Accès complet : Core OS, Booking Engine, Paramètres, Réservations, Finances</div>'
-    + '<div><strong>Gestionnaire</strong> — Core OS + Booking Engine + Réservations (lecture/écriture)</div>'
-    + '<div><strong>Réception</strong> — Booking Engine uniquement : nouvelles réservations, check-in/out</div>'
-    + '<div><strong>M\u00e9nage / Maintenance</strong> \u2014 Acc\u00e8s limit\u00e9 : planning des chambres</div>'
-    + '<div><strong>Restaurant</strong> — Module Restaurant uniquement</div>'
-    + '</div></div>';
-
-  return html;
-}
-
-function addStaffMember(){
-  var name=prompt('Nom complet du membre :','');
-  if(!name) return;
-  var email=prompt('Email (optionnel) :','');
-  var roleList='admin, manager, reception, housekeeping, maintenance, restaurant';
-  var role=prompt('Rôle ('+roleList+') :','reception');
-  if(!role||!['admin','manager','reception','housekeeping','maintenance','restaurant'].includes(role)){
-    toast('Rôle invalide. Utilisez: '+roleList,'error'); return;
-  }
-  var access=[];
-  if(['admin','manager'].includes(role)) access=['booking','core'];
-  else if(role==='reception') access=['booking'];
-  var staff=JSON.parse(localStorage.getItem('vz_staff')||'[]');
-  staff.push({name:name.trim(),email:email.trim(),role:role,access:access,created:new Date().toISOString()});
-  localStorage.setItem('vz_staff',JSON.stringify(staff));
-  toast('\u2705 '+name+' ajout\u00e9(e) \u00e0 l\u2019\u00e9quipe');
-  renderSection('staff');
-}
-function editStaffMember(i){
-  var staff=JSON.parse(localStorage.getItem('vz_staff')||'[]');
-  var m=staff[i];
-  if(!m) return;
-  var newName=prompt('Nom :',m.name)||m.name;
-  var newEmail=prompt('Email :',m.email||'')||m.email||'';
-  var newRole=prompt('Rôle :',m.role)||m.role;
-  var accessStr=prompt('Accès (booking,core) séparés par virgule :',( m.access||[]).join(','));
-  staff[i].name=newName.trim();
-  staff[i].email=newEmail.trim();
-  staff[i].role=newRole;
-  staff[i].access=accessStr?accessStr.split(',').map(function(x){return x.trim();}):[];
-  localStorage.setItem('vz_staff',JSON.stringify(staff));
-  toast('\u2705 Membre mis \u00e0 jour');
-  renderSection('staff');
-}
-function removeStaffMember(i){
-  if(!confirm('Retirer ce membre du staff ?')) return;
-  var staff=JSON.parse(localStorage.getItem('vz_staff')||'[]');
-  var name=staff[i]&&staff[i].name||'?';
-  staff.splice(i,1);
-  localStorage.setItem('vz_staff',JSON.stringify(staff));
-  toast(name+' retir\u00e9(e)');
-  renderSection('staff');
 }
 
 function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -1411,7 +1321,6 @@ function renderSection(id){
   else if(id==='systeme')    html=renderSysteme();
   else if(id==='website')    html=renderWebsite();
   else if(id==='medias')     html=renderMedias();
-  else if(id==='staff')      html=renderStaff();
   wrap.innerHTML = html;
   wrap.scrollTop = 0;
 }
@@ -1611,19 +1520,140 @@ function saveCMS(cms){ try{localStorage.setItem(CMS_KEY, JSON.stringify(cms)); t
 
 function renderWebsite(){
   var cms = loadCMS();
-  var html = ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" width="22" height="22"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>',
-    'Contenu du Site Web', 'Modifiez les textes, titres et descriptions affichés sur le booking engine');
-  html += '<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">';
-  var sections_cms = [
-    ['hero','🏠 Hero'],['espaces','🛏 Espaces'],['experiences','🌊 Expériences'],
-    ['restaurant','🍽 Restaurant'],['temoignages','⭐ Témoignages'],['contact','📞 Contact'],
-    ['branding','✨ Branding'],['social','📱 Réseaux']
-  ];
-  sections_cms.forEach(function(s){
-    html+='<button class="btn btn-o" onclick="showCMSSec(\''+s[0]+'\')" id="cms-btn-'+s[0]+'" style="font-size:.78rem;padding:6px 14px">'+s[1]+'</button>';
+  var c = cms || {};
+  var h = c.hero||{}, es=c.espaces||{}, ex=c.experiences||{}, rs=c.restaurant||{};
+  var av=c.temoignages||{}, ct=c.contact||{}, br=c.branding||{}, sc=c.social||{};
+
+  function field(label, hint, val, path, type){
+    type=type||'text';
+    var tag=type==='textarea'?'textarea':'input';
+    var extra=type==='textarea'?'rows="2" style="resize:vertical"':'type="'+type+'"';
+    var close=type==='textarea'?'</textarea>':'';
+    return '<div class="cms-field"><label>'+label+'<span class="cms-hint">'+hint+'</span></label>'
+      +'<'+tag+' class="field-inp" '+extra+' value="'+escH(val||'')+'" oninput="patchCMSPath(\''+path+'\',this.value)">'+close+'</div>';
+  }
+  function colorField(label, hint, val, path){
+    return '<div class="cms-field cms-color-field"><label>'+label+'<span class="cms-hint">'+hint+'</span></label>'
+      +'<div style="display:flex;gap:8px;align-items:center">'
+      +'<input type="color" value="'+(val||'#d4943a')+'" oninput="patchCMSPath(\''+path+'\',this.value)" style="width:44px;height:36px;padding:2px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);cursor:pointer">'
+      +'<input type="text" class="field-inp" style="flex:1" value="'+escH(val||'')+'" oninput="patchCMSPath(\''+path+'\',this.value)">'
+      +'</div></div>';
+  }
+  function section(icon, title, where, content){
+    return '<div class="cms-block">'
+      +'<div class="cms-block-head"><span class="cms-block-icon">'+icon+'</span>'
+      +'<div><div class="cms-block-title">'+title+'</div>'
+      +'<div class="cms-block-where">→ '+where+'</div></div></div>'
+      +'<div class="cms-block-body">'+content+'</div>'
+      +'</div>';
+  }
+
+  var html = '<div class="cms-topbar">'
+    +'<div><h3 style="font-size:1rem;font-weight:600;margin-bottom:2px">Contenu du site</h3>'
+    +'<p style="font-size:.78rem;color:var(--text3)">Modifications sauvegardées automatiquement · visibles sur le Booking Engine</p></div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btn btn-o" onclick="previewSite()" style="font-size:.78rem;padding:7px 14px">Aperçu</button>'
+    +'<button class="btn btn-s" onclick="saveCMSAll()" style="font-size:.78rem;padding:7px 14px">Sauvegarder</button>'
+    +'</div></div>';
+
+  // HÉRO
+  html += section('🌊','Héro','Grande image d\'accueil · titre · sous-titre',
+    field('Accroche','Petite ligne au-dessus du titre',h.tag,'hero.tag')
+    +field('Titre principal (HTML ok)','Ex: Vivez l\'Océan<br>Autrement',h.title,'hero.title','textarea')
+    +field('Sous-titre','Description courte sous le titre',h.lead,'hero.lead','textarea')
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
+    +field('Stat 1 — chiffre','Ex: 7',h.stat1_n,'hero.stat1_n')
+    +field('Stat 1 — libellé','Ex: Appartements',h.stat1_l,'hero.stat1_l')
+    +field('Stat 2 — chiffre','Ex: 100m',h.stat2_n,'hero.stat2_n')
+    +field('Stat 2 — libellé','Ex: De la plage',h.stat2_l,'hero.stat2_l')
+    +field('Stat 3 — chiffre','Ex: 24/7',h.stat3_n,'hero.stat3_n')
+    +field('Stat 3 — libellé','Ex: Assistance',h.stat3_l,'hero.stat3_l')
+    +'</div>'
+    +field('Image de fond (URL)','Lien direct vers une photo .jpg (laisser vide = photo par défaut)',h.bg_url,'hero.bg_url')
+  );
+
+  // ESPACES
+  html += section('🛏','Nos Espaces','Section des appartements',
+    field('Sous-titre de section','Ex: Nos Hébergements',es.tag,'espaces.tag')
+    +field('Titre','Ex: Chaque Espace, une Sensation',es.title,'espaces.title')
+    +field('Description','Texte d\'introduction sous le titre',es.lead,'espaces.lead','textarea')
+  );
+
+  // EXPERIENCES
+  html += section('🌴','Expériences Kribi','Section des 4 activités',
+    field('Sous-titre','Ex: Vivez Kribi Autrement',ex.tag,'experiences.tag')
+    +field('Titre','Ex: Expériences Inoubliables',ex.title,'experiences.title')
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +field('Carte 1 — titre',(ex.card1||{}).title,'Ex: Chutes de la Lobe','experiences.card1.title')
+    +field('Carte 1 — texte',(ex.card1||{}).text,'Description courte','experiences.card1.text')
+    +field('Carte 2 — titre',(ex.card2||{}).title,'Ex: Kayak & Nautisme','experiences.card2.title')
+    +field('Carte 2 — texte',(ex.card2||{}).text,'Description courte','experiences.card2.text')
+    +field('Carte 3 — titre',(ex.card3||{}).title,'Ex: Pirogue Traditionnelle','experiences.card3.title')
+    +field('Carte 3 — texte',(ex.card3||{}).text,'Description courte','experiences.card3.text')
+    +field('Carte 4 — titre',(ex.card4||{}).title,'Ex: Couchers de Soleil','experiences.card4.title')
+    +field('Carte 4 — texte',(ex.card4||{}).text,'Description courte','experiences.card4.text')
+    +'</div>'
+  );
+
+  // RESTAURANT
+  html += section('🍽','Restaurant & Lounge','Section restaurant + rooftop',
+    field('Sous-titre','Ex: Saveurs & Sunset Lounge',rs.tag,'restaurant.tag')
+    +field('Titre','Ex: Restaurant & Rooftop Bar',rs.title,'restaurant.title')
+    +field('Description',rs.lead||'','Texte d\'introduction','restaurant.lead','textarea')
+  );
+
+  // TEMOIGNAGES
+  var temsHtml = '';
+  (av.items||[]).forEach(function(t,i){
+    temsHtml += '<div class="tem-item">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr 80px;gap:8px;margin-bottom:6px">'
+      +'<div class="cms-field"><label>Nom</label><input class="field-inp" value="'+escH(t.name||'')+'" oninput="patchCMSItem(\'temoignages\','+i+',\'name\',this.value)"></div>'
+      +'<div class="cms-field"><label>Provenance</label><input class="field-inp" value="'+escH(t.from||'')+'" oninput="patchCMSItem(\'temoignages\','+i+',\'from\',this.value)"></div>'
+      +'<div class="cms-field"><label>Étoiles</label><select class="field-inp" onchange="patchCMSItem(\'temoignages\','+i+',\'stars\',parseInt(this.value))">'
+      +'<option value="5"'+(t.stars>=5?' selected':'')+'>★★★★★</option>'
+      +'<option value="4"'+(t.stars===4?' selected':'')+'>★★★★</option>'
+      +'<option value="3"'+(t.stars===3?' selected':'')+'>★★★</option>'
+      +'</select></div></div>'
+      +'<div class="cms-field"><label>Commentaire</label><textarea class="field-inp" rows="2" oninput="patchCMSItem(\'temoignages\','+i+',\'text\',this.value)" style="resize:vertical">'+escH(t.text||'')+'</textarea></div>'
+      +'<div class="cms-field"><label>Photo URL <span class="cms-hint">(lien image profil, optionnel)</span></label><input class="field-inp" placeholder="https://..." value="'+escH(t.photo||'')+'" oninput="patchCMSItem(\'temoignages\','+i+',\'photo\',this.value)"></div>'
+      +'<div style="text-align:right;margin-top:4px"><button class="btn btn-r" onclick="removeCMSTem('+i+')" style="font-size:.72rem;padding:4px 10px">Supprimer</button></div>'
+      +'</div>';
   });
-  html+='</div>';
-  html+='<div id="cms-section-content" style="animation:fadein .2s ease"></div>';
+  html += section('⭐','Témoignages clients','Section avis + panneau étoiles',
+    temsHtml
+    +'<button class="btn btn-o" onclick="addCMSTestimonial()" style="font-size:.78rem;margin-top:8px">+ Ajouter un avis</button>'
+  );
+
+  // CONTACT
+  html += section('📞','Contact & WhatsApp','Section contact + boutons + footer',
+    field('WhatsApp (numéro)','Ex: +237 6XX XXX XXX',ct.whatsapp||ct.phone,'contact.whatsapp')
+    +field('Téléphone affiché',ct.phone||'','Numéro visible sur le site','contact.phone')
+    +field('Email',ct.email||'','Ex: contact@veraluz.cm','contact.email')
+    +field('Adresse',ct.address||'','Ex: Bord de Mer, Kribi','contact.address')
+    +field('Horaires',ct.hours||'','Ex: 7j/7 · 6h – 22h','contact.hours')
+  );
+
+  // COULEURS
+  html += section('🎨','Couleurs & Identité','Palette du site (boutons, accents, textes)',
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
+    +colorField('Or (boutons / prix)',br.color_primary||'#d4943a','Couleur principale','branding.color_primary')
+    +colorField('Océan (liens / icônes)',br.color_ocean||'#0096c7','Couleur secondaire','branding.color_ocean')
+    +colorField('Fond sombre',br.color_dark||'#08131f','Arrière-plan nuit','branding.color_dark')
+    +'</div>'
+    +field('Nom du site',br.site_name||'','Ex: Résidence Veraluz','branding.site_name')
+    +field('Slogan',br.tagline||'','Ex: Boutique résidence face à l\'Atlantique','branding.tagline')
+  );
+
+  // RÉSEAUX SOCIAUX
+  html += section('📱','Réseaux sociaux','Liens dans le footer + contact',
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    +field('Instagram',sc.instagram||'','https://instagram.com/...','social.instagram')
+    +field('Facebook',sc.facebook||'','https://facebook.com/...','social.facebook')
+    +field('TikTok',sc.tiktok||'','https://tiktok.com/...','social.tiktok')
+    +field('YouTube',sc.youtube||'','https://youtube.com/...','social.youtube')
+    +'</div>'
+  );
+
   return html;
 }
 
@@ -1751,6 +1781,28 @@ function getCMSDraft(){ if(!_cms_draft) _cms_draft = loadCMS(); return _cms_draf
 function patchCMS(sec, key, val){ getCMSDraft()[sec][key] = val; }
 function patchCMSNested(sec, sub, key, val){ getCMSDraft()[sec][sub][key] = val; }
 function patchCMSItem(sec, idx, key, val){ getCMSDraft()[sec].items[idx][key] = val; }
+function patchCMSPath(path, val){
+  var parts = path.split('.');
+  var obj = getCMSDraft();
+  for(var i=0; i<parts.length-1; i++){
+    if(!obj[parts[i]]) obj[parts[i]]={};
+    obj=obj[parts[i]];
+  }
+  obj[parts[parts.length-1]] = val;
+}
+function saveCMSAll(){
+  var d = getCMSDraft();
+  try{ localStorage.setItem('vz_cms_content', JSON.stringify(d)); }catch(e){ toast('Erreur stockage','error'); return; }
+  toast('\u2705 Contenu sauvegard\u00e9 · le site se met \u00e0 jour');
+}
+function previewSite(){
+  window.open('https://ngams237.github.io/veraluz-os/BOOKING_ENGINE.html','_blank');
+}
+function removeCMSTem(i){
+  var cms=getCMSDraft();
+  if(cms.temoignages&&cms.temoignages.items) cms.temoignages.items.splice(i,1);
+  showCMSSec('temoignages');
+}
 function saveCMSFromForm(sec){ saveCMS(getCMSDraft()); _cms_draft=null; toast('✅ Section "'+sec+'" sauvegardée'); }
 function addCMSTestimonial(){
   var cms=getCMSDraft();
@@ -1777,15 +1829,59 @@ function loadMedia(){ try{return JSON.parse(localStorage.getItem(MEDIA_KEY)||'{}
 function saveMedia(lib){ try{localStorage.setItem(MEDIA_KEY, JSON.stringify(lib));}catch(e){toast('Erreur stockage: '+e.message,'error');} }
 
 function renderMedias(){
-  var html = ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" width="22" height="22"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>',
-    'Médiathèque', 'Gérez les images par catégorie. Les images sont stockées localement et synchronisées avec le site.');
-  /* Category tabs */
-  html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">';
-  MEDIA_CATS.forEach(function(c){
-    html+='<button class="btn btn-o media-cat-btn" id="mcat-'+c.id+'" onclick="showMediaCat(\''+c.id+'\')" style="font-size:.78rem;padding:6px 14px">'+c.label+'</button>';
+  var lib = loadMedia();
+  var cats = [
+    {id:'plage',     icon:'🌊', label:'Plage & Mer',      where:'Héro · Galerie · CTA Réservation',  desc:'Photos de la plage, mer, couchers de soleil'},
+    {id:'chambres',  icon:'🛏', label:'Appartements',      where:'Section "Nos Espaces" · Modal réservation', desc:'Intérieurs, vues des chambres, terrasses'},
+    {id:'restaurant',icon:'🍽', label:'Restaurant',        where:'Section Restaurant & Lounge',        desc:'Plats, cocktails, ambiance rooftop'},
+    {id:'activites', icon:'🌴', label:'Activités',         where:'Section Expériences Kribi',          desc:'Chutes, kayak, pirogue, excursions'},
+    {id:'rooftop',   icon:'🌅', label:'Rooftop & Terrasses',where:'Galerie · Restaurant',             desc:'Couchers de soleil, vue panoramique'},
+    {id:'lobby',     icon:'🏨', label:'Espaces communs',   where:'Galerie · Section Pourquoi Veraluz', desc:'Lobby, allée, façade, piscine'}
+  ];
+
+  var total = 0;
+  cats.forEach(function(c){ total += (lib[c.id]||[]).length; });
+
+  var html = '<div class="cms-topbar">'
+    +'<div><h3 style="font-size:1rem;font-weight:600;margin-bottom:2px">Médiathèque</h3>'
+    +'<p style="font-size:.78rem;color:var(--text3)">'+total+' photo(s) · Uploadez par catégorie · Max 2MB par image</p></div>'
+    +'</div>';
+
+  cats.forEach(function(cat){
+    var imgs = lib[cat.id] || [];
+    html += '<div class="med-cat">'
+      +'<div class="med-cat-head">'
+      +'<div class="med-cat-info">'
+      +'<span class="med-cat-icon">'+cat.icon+'</span>'
+      +'<div>'
+      +'<div class="med-cat-title">'+cat.label+'</div>'
+      +'<div class="med-cat-where">→ '+cat.where+'</div>'
+      +'</div></div>'
+      +'<div style="display:flex;gap:8px;align-items:center">'
+      +'<span style="font-size:.72rem;color:var(--text3)">'+imgs.length+' photo(s)</span>'
+      +'<label class="med-upload-btn">'
+      +'<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>'
+      +'Ajouter'
+      +'<input type="file" accept="image/*" multiple style="display:none" onchange="uploadMediaFiles(this,\''+cat.id+'\')">'
+      +'</label>'
+      +(imgs.length?'<button class="btn btn-r" onclick="clearMediaCat(\''+cat.id+'\')" style="font-size:.72rem;padding:5px 10px">Tout supprimer</button>':'')
+      +'</div></div>';
+
+    if(imgs.length){
+      html += '<div class="med-grid">';
+      imgs.forEach(function(img,i){
+        html += '<div class="med-thumb">'
+          +'<img src="'+img.url+'" alt="" loading="lazy">'
+          +'<button class="med-del" onclick="deleteMediaImg(\''+cat.id+'\','+i+')" title="Supprimer">×</button>'
+          +'<div class="med-name">'+escH((img.name||'').replace(/\.[^.]+$/,'').substring(0,14))+'</div>'
+          +'</div>';
+      });
+      html += '</div>';
+    } else {
+      html += '<div class="med-empty">Aucune photo — cliquez sur "Ajouter" pour uploader</div>';
+    }
+    html += '</div>';
   });
-  html+='</div>';
-  html+='<div id="media-cat-content"></div>';
   return html;
 }
 

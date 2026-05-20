@@ -417,6 +417,35 @@ form-select{background:var(--bg3);border:1px solid var(--border);border-radius:v
 <div class="toast" id="toastEl" style="display:none"></div>
 
 <script>
+/* ── Noms élégants des unités ── */
+var ELEGANT_NAMES = {
+  std:'Chambre Azur', sea:'Chambre Lumière', apt:'Ocean Family',
+  suite:'Veraluz Royale', villa:'Villa Riviera', studio:'Studio Horizon',
+  loft:'Loft Horizon', penthouse:'Suite Panorama'
+};
+var AM_LABELS = {
+  wifi:'Wi-Fi', clim:'Climatisation', tv:'TV', mer:'Vue mer',
+  cuisine:'Cuisine', terrasse:'Terrasse', jacuzzi:'Jacuzzi',
+  parking:'Parking', piscine:'Piscine', breakfast:'Petit-déj.'
+};
+var UNIT_DATA = {
+  std:   {name:'Chambre Azur',    beds:'1 lit double',    capacity:2, sqm:28,  amenities:['clim','wifi','tv','mer','terrasse']},
+  sea:   {name:'Chambre Lumière', beds:'1 lit king',      capacity:2, sqm:35,  amenities:['clim','wifi','tv','mer','terrasse','jacuzzi']},
+  studio:{name:'Studio Horizon',  beds:'1 lit + canapé',  capacity:3, sqm:38,  amenities:['clim','wifi','tv','cuisine','terrasse']},
+  apt:   {name:'Ocean Family',    beds:'2 chambres',      capacity:5, sqm:65,  amenities:['clim','wifi','tv','cuisine','mer','terrasse','parking']},
+  suite: {name:'Veraluz Royale',  beds:'1 lit king size', capacity:2, sqm:55,  amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast']},
+  villa: {name:'Villa Riviera',   beds:'3 chambres',      capacity:6, sqm:120, amenities:['clim','wifi','tv','cuisine','mer','terrasse','piscine','parking']},
+  loft:  {name:'Loft Horizon',    beds:'Mezzanine king',  capacity:2, sqm:50,  amenities:['clim','wifi','tv','cuisine','mer']},
+  penthouse:{name:'Suite Panorama',beds:'King + salon',   capacity:2, sqm:80,  amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast']}
+};
+function elegantName(r){
+  var type=r.unit_type||r.type||'';
+  return (UNIT_DATA[type]||{}).name||ELEGANT_NAMES[type]||r.unit_name||r.name||type||'—';
+}
+function amenitiesStr(type){
+  return ((UNIT_DATA[type]||{}).amenities||[]).map(function(a){return AM_LABELS[a]||a;}).join(' · ');
+}
+
 /* ============================================================
    VERALUZ OS — RESERVATIONS v3 (JS validé, champ Supabase OK)
    ============================================================ */
@@ -464,7 +493,7 @@ function norm(r){
   r.guest_name  = r.guest_name  || r.client_name  || '';
   r.guest_email = r.guest_email || r.client_email || '';
   r.guest_phone = r.guest_phone || r.client_phone || '';
-  r.unit_name   = r.unit_name   || '';
+  r.unit_name   = elegantName(r) || r.unit_name || '';
   r.total       = r.total       || r.total_amount  || 0;
   r.paid        = r.paid        || r.amount_paid   || 0;
   r.notes       = r.notes       || r.special_requests || '';
@@ -634,7 +663,7 @@ function renderDash(){
   feed.innerHTML=recent.map(function(r){
     var s=statusInfo(r.status);
     return '<div class="act-item"><div class="act-dot" style="background:'+s.color+'"></div>'+
-      '<div><div class="act-text"><strong>'+esc(r.guest_name||'—')+'</strong> · '+esc(r.unit_name||unitName(r.unit_id))+'</div>'+
+      '<div><div class="act-text"><strong>'+esc(r.guest_name||'—')+'</strong> · '+esc(elegantName(r))+'</div>'+
       '<div class="act-time">'+fmtDate(r.check_in)+' → '+fmtDate(r.check_out)+' · <span style="color:'+s.color+'">'+s.label+'</span></div></div></div>';
   }).join('');
 }
@@ -728,7 +757,7 @@ function renderRezList(){
   q=q.toLowerCase();
   var list=_rez.filter(function(r){
     if(_filter!=='all'&&r.status!==_filter) return false;
-    if(q&&!(r.guest_name||'').toLowerCase().includes(q)&&!(r.guest_phone||'').toLowerCase().includes(q)&&!(r.unit_name||unitName(r.unit_id)||'').toLowerCase().includes(q)) return false;
+    if(q&&!(r.guest_name||'').toLowerCase().includes(q)&&!(r.guest_phone||'').toLowerCase().includes(q)&&!(elegantName(r)||'').toLowerCase().includes(q)) return false;
     return true;
   });
   var el=document.getElementById('rezList'); if(!el) return;
@@ -752,7 +781,7 @@ function renderRezList(){
     return '<div class="rez-card" onclick="openRezModal(\''+r.id+'\')">'+
       '<span class="rez-sbadge '+s.badge+'">'+s.label+'</span>'+
       '<div class="rez-info"><div class="rez-guest">'+esc(r.guest_name||'—')+'</div>'+
-      '<div class="rez-sub">'+esc(r.unit_name||unitName(r.unit_id)||'—')+' · '+fmtDate(r.check_in)+' → '+fmtDate(r.check_out)+(r.nights?' ('+r.nights+'n)':'')+'</div></div>'+
+      '<div class="rez-sub">'+esc(elegantName(r)||'—')+' · '+fmtDate(r.check_in)+' → '+fmtDate(r.check_out)+(r.nights?' ('+r.nights+'n)':'')+'</div></div>'+
       '<div class="rez-price">'+fmtMoney(r.total)+'</div>'+
       '<div class="rez-actions">'+actions+'</div></div>';
   }).join('');
@@ -770,7 +799,11 @@ var STATUS_MAP={
   no_show:{label:'No-show',color:'var(--sn)',badge:'rb-no_show'}
 };
 function statusInfo(s){ return STATUS_MAP[s]||{label:s||'?',color:'var(--text3)',badge:''}; }
-function unitName(id){ var r=_rooms.find(function(r){return r.id===id;}); return r?r.name:''; }
+function unitName(id){
+  var r=_rooms.find(function(r){return r.id===id;});
+  if(!r) return '';
+  return (UNIT_DATA[r.type]||{}).name||ELEGANT_NAMES[r.type]||r.name||'';
+}
 
 /* ── Workflow ── */
 
@@ -794,7 +827,7 @@ function sendWA(rezId, tplType) {
     .replace(/\{client_name\}/g, r.guest_name||r.client_name||'')
     .replace(/\{checkin\}/g, fmtDate(r.check_in)||'')
     .replace(/\{checkout\}/g, fmtDate(r.check_out)||'')
-    .replace(/\{room\}/g, r.unit_name||unitName(r.unit_id)||'')
+    .replace(/\{room\}/g, elegantName(r)||'')
     .replace(/\{amount\}/g, r.total||'')
     .replace(/\{hotel_name\}/g, hotel.name||'Résidence Veraluz');
   window.parent.postMessage({
@@ -830,7 +863,7 @@ function sendConfirmEmail(rid){
     +'<p>Bonjour <strong>'+esc(r.guest_name||'')+'</strong>,</p>'
     +'<p style="margin-bottom:14px;">Voici le récapitulatif de votre réservation à <strong>'+hotelName+'</strong>.</p>'
     +'<div class="badge">'+stLabel+'</div>'
-    +'<div class="row"><span>Logement</span><span><strong>'+esc(r.unit_name||unitName(r.unit_id)||'—')+'</strong></span></div>'
+    +'<div class="row"><span>Logement</span><span><strong>'+esc(elegantName(r)||'—')+'</strong></span></div>'
     +'<div class="row"><span>Arrivée</span><span>'+fmtFull(r.check_in)+'</span></div>'
     +'<div class="row"><span>Départ</span><span>'+fmtFull(r.check_out)+'</span></div>'
     +'<div class="row"><span>Durée</span><span>'+nights+' nuit'+(nights>1?'s':'')+'</span></div>'
@@ -1017,7 +1050,7 @@ function openRezModal(rezId,_tab){
     '</div>'+
     '<div id="rzpane-detail">'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:12px">'+
-    '<div><div style="color:var(--text2);font-size:11px">Logement</div><div style="font-weight:600">'+esc(r.unit_name||unitName(r.unit_id)||'—')+'</div></div>'+
+    '<div><div style="color:var(--text2);font-size:11px">Logement</div><div style="font-weight:600">'+esc(elegantName(r)||'—')+'</div></div>'+
     '<div><div style="color:var(--text2);font-size:11px">Voyageurs</div><div style="font-weight:600">'+(r.guests||1)+' pers.</div></div>'+
     '<div><div style="color:var(--text2);font-size:11px">Arrivée</div><div style="font-weight:600">'+fmtFull(r.check_in)+'</div></div>'+
     '<div><div style="color:var(--text2);font-size:11px">Départ</div><div style="font-weight:600">'+fmtFull(r.check_out)+'</div></div>'+
@@ -1325,7 +1358,7 @@ function openSyncModal(){
     list.innerHTML='<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#22c55e">✅ Ces réservations sont déjà enregistrées dans Supabase. Cliquez <b>Voir dans la liste</b> pour les consulter.</div>';
     list.innerHTML=sync.map(function(s,i){
       return '<div class="sync-item"><div class="sync-item-name">'+esc(s.guest_name||'—')+'</div>'+
-        '<div class="sync-item-sub">'+esc(s.unit_name||'—')+' · '+fmtDate(s.check_in)+' → '+fmtDate(s.check_out)+'</div>'+
+        '<div class="sync-item-sub">'+esc(elegantName(s)||s.unit_name||'—')+' · '+fmtDate(s.check_in)+' → '+fmtDate(s.check_out)+'</div>'+
         '<div class="sync-item-price">'+fmtMoney(s.total||s.paid||s.total_amount||0)+'</div>'+
         '<div class="sync-item-btns"><button class="btn-import" onclick="importSync('+i+')">✓ Voir dans la liste</button>'+
         '<button class="btn-dismiss" onclick="dismissSync('+i+')">✗ Ignorer</button></div></div>';

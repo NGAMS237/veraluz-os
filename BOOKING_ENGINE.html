@@ -1208,8 +1208,11 @@ var DEFAULT_REVIEWS = [
 /* ═══ HOTEL INFO (from localStorage/Core) ═══ */
 function getAmenities(unit){
   var data = UNIT_DATA[unit.type] || {};
-  var list = (unit.amenities && unit.amenities.length) ? unit.amenities : (data.amenities||[]);
-  return list;
+  var ams = unit.amenities;
+  /* Supabase peut retourner les amenities comme string JSON */
+  if(typeof ams === 'string'){ try{ ams=JSON.parse(ams); }catch(e){ ams=[]; } }
+  if(!Array.isArray(ams) || !ams.length) ams = data.amenities || [];
+  return ams;
 }
 
 function renderAmBadges(ams, max){
@@ -1618,25 +1621,50 @@ function syncDates(){
 }
 
 /* ── LOAD ROOMS ── */
+function loadFromCache(){
+  /* Niveau 2 — vlz_cache_rooms écrit par le module Réservations (Paramètres) */
+  try{
+    var cached=JSON.parse(localStorage.getItem('vlz_cache_rooms')||'[]');
+    if(cached&&cached.length){
+      _rooms=cached.map(function(r){
+        r._dynStatus=r.status==='active'?'available':r.status;
+        if(!Array.isArray(r.amenities)){
+          try{r.amenities=JSON.parse(r.amenities||'[]');}catch(e){r.amenities=[];}
+        }
+        return r;
+      });
+      renderBkRooms();
+      return;
+    }
+  }catch(e){}
+  /* Niveau 3 — UNIT_DATA fallback (aucune connexion ni cache) */
+  renderFallbackRooms();
+}
+
 function loadRooms(){
   var cont=document.getElementById('bk-rooms');
   if(!cont) return;
+  cont.innerHTML='<div class="bk-loading"><svg viewBox="0 0 24 24" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Chargement des disponibilités...</div>';
+
   if(!SB||!SK){
-    cont.innerHTML='<p class="bk-warn">Configuration Supabase manquante. Contactez-nous par WhatsApp.</p>';
-    renderFallbackRooms();
+    /* Pas de Supabase — essayer le cache du module Réservations */
+    loadFromCache();
     return;
   }
-  cont.innerHTML='<div class="bk-loading"><svg viewBox="0 0 24 24" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Chargement des disponibilités...</div>';
-  fetch(SB+'/rest/v1/veraluz_units?select=*&status=eq.active&order=price.asc,id.asc',{
+  /* Niveau 1 — Supabase (même source que le module Réservations) */
+  fetch(SB+'/rest/v1/veraluz_units?select=*&order=price.asc,id.asc',{
     headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'}
   })
   .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
   .then(function(data){
-    _rooms=data||[];
-    if(!_rooms.length){ cont.innerHTML='<p class="bk-warn">Aucun appartement disponible pour le moment. Contactez-nous.</p>'; return; }
+    var active=(data||[]).filter(function(r){return r.status==='active'||r.status==='available';});
+    if(!active.length){ loadFromCache(); return; }
+    _rooms=active;
+    /* Mettre à jour le cache pour les autres modules */
+    try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(active)); }catch(e){}
     renderBkRooms();
   })
-  .catch(function(){ renderFallbackRooms(); });
+  .catch(function(){ loadFromCache(); });
 }
 
 function renderFallbackRooms(){
@@ -1990,6 +2018,11 @@ document.addEventListener('DOMContentLoaded',function(){
   // Listen for Core storage updates
   window.addEventListener('storage',function(e){
     if(e.key==='vz_hotel_info') applyHotelInfo();
+    /* Rechargement des chambres si le module Réservations a modifié les unités */
+    if(e.key==='vlz_units_updated'||e.key==='vlz_cache_rooms'){
+      var sect=document.getElementById('espaces');
+      if(sect&&sect.getBoundingClientRect().top<window.innerHeight) loadRooms();
+    }
     if(e.key==='vz_cms_content'||e.key==='vz_media_library') applyCMS();
   });
 

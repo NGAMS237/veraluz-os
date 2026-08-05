@@ -2,1499 +2,984 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Messages — Veraluz OS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Messages — Veraluz</title>
 <script>if(localStorage.getItem('vl_theme')==='dark')document.documentElement.classList.add('vl-dark');</script>
 <style>
-/* ── Base ── */
-:root{
-  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;--bg4:#21262d;
-  --border:#30363d;--border2:#444c56;
-  --text:#c9d1d9;--text2:#8b949e;--text3:#6e7681;
-  --accent:#58a6ff;--ok:#3fb950;--warn:#d29922;--err:#f85149;
-  --blue:#58a6ff;--green:#3fb950;--purple:#bc8cff;--orange:#d29922;
-}
+/* ── Reset & base ───────────────────────────────────────────────────────── */
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  font-size:14px;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
-
-/* ── Topbar ── */
-.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);
-  background:var(--bg2);flex-shrink:0;}
-.topbar-title{font-weight:600;font-size:15px;flex:1;}
-.topbar-badge{background:var(--err);color:#fff;border-radius:10px;font-size:10px;font-weight:700;
-  padding:1px 6px;min-width:18px;text-align:center;}
-
-/* ── Tab bar ── */
-.tab-bar{display:flex;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--bg2);
-  flex-shrink:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.tab-bar::-webkit-scrollbar{display:none;}
-.tab-btn{flex-shrink:0;padding:9px 14px;font-size:12px;font-weight:500;color:var(--text2);
-  border:none;background:none;cursor:pointer;white-space:nowrap;position:relative;border-bottom:2px solid transparent;}
-.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
-.tab-btn:hover:not(.active){background:var(--bg3);color:var(--text);}
-.tbadge{position:absolute;top:6px;right:6px;background:var(--err);color:#fff;
-  border-radius:8px;font-size:9px;font-weight:800;padding:0 4px;min-width:14px;text-align:center;}
-
-/* ── Content area ── */
-.content{flex:1;overflow-y:auto;overflow-x:hidden;}
-.tab-pane{display:none;}
-.tab-pane.active{display:block;}
-
-/* ── Filters bar ── */
-.filters{display:flex;gap:8px;padding:10px 14px;align-items:center;flex-wrap:wrap;
-  border-bottom:1px solid var(--border);background:var(--bg);}
-.filter-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);
-  color:var(--text2);font-size:11px;cursor:pointer;white-space:nowrap;}
-.filter-btn.active{background:var(--accent);color:#0d1117;border-color:var(--accent);}
-.filter-search{flex:1;min-width:120px;background:var(--bg3);border:1px solid var(--border);
-  border-radius:6px;padding:5px 10px;color:var(--text);font-size:12px;outline:none;}
-.filter-search:focus{border-color:var(--accent);}
-
-/* ── Message card ── */
-.msg-list{display:flex;flex-direction:column;gap:0;}
-.msg-card{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;
-  transition:background .15s;position:relative;}
-.msg-card:hover{background:var(--bg2);}
-.msg-card.unread{background:rgba(88,166,255,.04);}
-.msg-card.unread::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);}
-.msg-card.urgent::before{background:var(--err);}
-.msg-card.high::before{background:var(--warn);}
-.mc-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
-.mc-from{font-weight:600;font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mc-time{font-size:11px;color:var(--text3);flex-shrink:0;}
-.mc-subject{font-size:12px;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mc-preview{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mc-meta{display:flex;gap:6px;margin-top:5px;align-items:center;flex-wrap:wrap;}
-.badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;
-  border-radius:10px;text-transform:uppercase;letter-spacing:.4px;}
-.bdg-dept{background:rgba(88,166,255,.12);color:var(--blue);}
-.bdg-type{background:rgba(188,140,255,.12);color:var(--purple);}
-.bdg-urgent{background:rgba(248,81,73,.15);color:var(--err);}
-.bdg-high{background:rgba(210,153,34,.15);color:var(--warn);}
-.bdg-normal{background:var(--bg3);color:var(--text3);}
-.bdg-ok{background:rgba(63,185,80,.12);color:var(--green);}
-.bdg-action{background:rgba(248,81,73,.12);color:var(--err);}
-.bdg-chloe{background:rgba(188,140,255,.15);color:var(--purple);}
-.bdg-read{background:var(--bg3);color:var(--text3);}
-
-/* ── Thread view ── */
-.thread-view{display:flex;flex-direction:column;height:100%;}
-.thread-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);
-  background:var(--bg2);flex-shrink:0;}
-.btn-back{background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;padding:4px 8px;
-  border-radius:6px;}
-.btn-back:hover{background:var(--bg3);}
-.thread-title{font-weight:600;font-size:13px;flex:1;}
-.thread-msgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
-.bubble{max-width:82%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.5;}
-.bubble.sent{background:rgba(88,166,255,.18);align-self:flex-end;border-bottom-right-radius:3px;}
-.bubble.recv{background:var(--bg3);align-self:flex-start;border-bottom-left-radius:3px;}
-.bubble.system{background:rgba(110,118,129,.12);align-self:center;text-align:center;
-  font-size:11px;color:var(--text2);border-radius:6px;padding:4px 10px;}
-.bubble.chloe{background:rgba(188,140,255,.15);align-self:flex-start;border-bottom-left-radius:3px;}
-.bubble.urgent-msg{border-left:3px solid var(--err);}
-.bub-meta{font-size:10px;color:var(--text3);margin-bottom:3px;}
-.thread-compose{flex-shrink:0;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg2);}
-.compose-qr{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
-.compose-qr::-webkit-scrollbar{display:none;}
-.qr-btn{flex-shrink:0;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);
-  padding:5px 10px;border-radius:16px;font-size:11px;cursor:pointer;white-space:nowrap;}
-.qr-btn:hover{background:var(--bg4);color:var(--text);}
-.compose-row{display:flex;gap:8px;align-items:flex-end;}
-.compose-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;
-  color:var(--text);padding:8px 12px;font-size:13px;outline:none;resize:none;max-height:80px;
-  font-family:inherit;}
-.compose-input:focus{border-color:var(--accent);}
-.btn-send{background:var(--accent);color:#0d1117;border:none;border-radius:8px;padding:8px 14px;
-  cursor:pointer;font-weight:600;font-size:13px;flex-shrink:0;}
-.btn-send:hover{background:#79b8ff;}
-.btn-send:disabled{opacity:.4;cursor:default;}
-
-/* ── New message modal ── */
-.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:100;}
-.modal-ov.open{display:block;}
-.modal-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-radius:14px 14px 0 0;
-  padding:0 16px 24px;z-index:101;max-height:80vh;overflow-y:auto;}
-.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:10px auto 14px;}
-.modal-title{font-weight:700;font-size:15px;margin-bottom:14px;}
-.form-row{margin-bottom:12px;}
-.form-label{font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
-.form-input,.form-select,.form-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);
-  border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px;outline:none;font-family:inherit;}
-.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
-.form-textarea{resize:vertical;min-height:80px;}
-.form-select option{background:var(--bg3);}
-.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
-.btn-cancel{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);
-  padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;}
-.btn-primary{background:var(--accent);color:#0d1117;border:none;padding:8px 18px;
-  border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;}
-
-/* ── Empty + loading ── */
-.empty-state{padding:40px 20px;text-align:center;color:var(--text2);}
-.empty-ico{font-size:36px;margin-bottom:10px;}
-.loading{padding:24px;text-align:center;color:var(--text2);}
-.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border2);
-  border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;}
-@keyframes spin{to{transform:rotate(360deg);}}
-
-/* ── Toast ── */
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:8px 18px;
-  border-radius:8px;font-size:13px;font-weight:600;z-index:200;opacity:0;transition:opacity .25s;
-  pointer-events:none;white-space:nowrap;}
-.toast.show{opacity:1;}
-.toast.ok{background:var(--ok);color:#fff;}
-.toast.err{background:var(--err);color:#fff;}
-.toast.info{background:var(--bg4);color:var(--text);border:1px solid var(--border2);}
-
-/* ── Draft card ── */
-.draft-card{padding:12px 16px;border-bottom:1px solid var(--border);}
-.draft-type{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);}
-.draft-to{font-size:12px;color:var(--text2);margin:2px 0;}
-.draft-subject{font-weight:600;font-size:13px;margin:2px 0;}
-.draft-body{font-size:12px;color:var(--text2);margin:4px 0;max-height:40px;overflow:hidden;}
-.draft-actions{display:flex;gap:8px;margin-top:8px;}
-.btn-sm{padding:4px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);
-  color:var(--text2);font-size:11px;cursor:pointer;font-weight:600;}
-.btn-sm:hover{background:var(--bg4);color:var(--text);}
-.btn-sm.ok{background:rgba(63,185,80,.12);color:var(--green);border-color:rgba(63,185,80,.3);}
-.btn-sm.ok:hover{background:rgba(63,185,80,.2);}
-
-/* ── Stats row ── */
-.stats-row{display:flex;gap:0;border-bottom:1px solid var(--border);}
-.stat-cell{flex:1;padding:10px 4px;text-align:center;border-right:1px solid var(--border);}
-.stat-cell:last-child{border-right:none;}
-.stat-n{font-size:20px;font-weight:700;}
-.stat-l{font-size:10px;color:var(--text3);margin-top:1px;}
-.stat-n.err{color:var(--err);}
-.stat-n.warn{color:var(--warn);}
-.stat-n.ok{color:var(--green);}
-
-/* ── Responsive ── */
-@media(max-width:600px){
-  .tab-btn{padding:8px 10px;font-size:11px;}
-  .mc-from{font-size:12px;}
-  .bubble{max-width:90%;}
-  .modal-sheet{border-radius:10px 10px 0 0;}
-}
-@media(max-width:390px){
-  .tab-btn{padding:7px 8px;font-size:10px;}
-}
-</style>
-<style id="veraluz-theme">
-/* ═══ VERALUZ THEME PROMPT 036F ═══════════════════════════════════════════
-   Light : bg #e8ecf0 · surfaces #fff · neumorphic shadows
-   Dark  : bg #131722 · surfaces #1e2538
-   Toggle: html.vl-dark / localStorage('vl_theme')
-═══════════════════════════════════════════════════════════════════════════ */
-
-/* ── Variables universelles (couvre tous les modules) ─────────────────── */
 :root{
-  --bg:#e8ecf0;--bg1:#e8ecf0;--bg2:#fff;--bg3:#eef1f5;--bg4:#e0e4e8;--bg5:#d8dce0;
+  --bg:#e8ecf0;--bg2:#fff;--bg3:#eef1f5;--bg4:#e0e4e8;
   --text:#1e293b;--text2:#475569;--text3:#94a3b8;
-  --tx:#1e293b;--tx2:#475569;--tx3:#94a3b8;
-  --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.10);--border3:rgba(0,0,0,.05);
-  --vl-sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;
-  --vl-sh-in:inset 2px 2px 6px #c8cdd4,inset -1px -1px 4px #fff;
-  --vl-r:3px;
+  --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.11);
+  --acc:#0891b2;--acc2:#0e7490;--acc-bg:#e0f2fe;--acc-text:#0369a1;
+  --sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;
+  --sh-in:inset 2px 2px 5px #c8cdd4,inset -1px -1px 4px #fff;
+  --r:3px;
 }
-html,body{background:var(--bg)!important;color:var(--text)!important;}
-
-/* ── Dark mode ────────────────────────────────────────────────────────── */
 html.vl-dark{
-  --bg:#131722;--bg1:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;--bg5:#2d3654;
+  --bg:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;
   --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
-  --tx:#e2e8f0;--tx2:#94a3b8;--tx3:#64748b;
-  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.10);--border3:rgba(255,255,255,.05);
-  --vl-sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;
-  --vl-sh-in:inset 2px 2px 6px #0d1118,inset -1px -1px 4px #242b3e;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --acc:#22d3ee;--acc2:#0891b2;--acc-bg:rgba(8,145,178,.18);--acc-text:#22d3ee;
+  --sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;
+  --sh-in:inset 2px 2px 5px #0d1118,inset -1px -1px 4px #242b3e;
 }
-html.vl-dark body{background:var(--bg)!important;color:var(--text)!important;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;overflow:hidden;}
 
-/* ── Topbar / Header ──────────────────────────────────────────────────── */
-.topbar,.header,.mod-header,.page-header{background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;box-shadow:0 1px 6px rgba(0,0,0,.05)!important;}
-html.vl-dark .topbar,html.vl-dark .header,html.vl-dark .mod-header{background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;}
+/* ── Layout 3 colonnes ──────────────────────────────────────────────────── */
+#app{display:flex;height:100dvh;overflow:hidden;}
 
-/* ── Tabs / Tabbar ────────────────────────────────────────────────────── */
-.tabbar,.tab-bar,.tabs,.nav-tabs{background:var(--bg3)!important;border-bottom:1px solid var(--border)!important;}
-html.vl-dark .tabbar,html.vl-dark .tab-bar,html.vl-dark .tabs,html.vl-dark .nav-tabs{background:var(--bg2)!important;}
-.tab-btn.active,.tab.active,.nav-link.active{color:#0891b2!important;border-bottom-color:#0891b2!important;}
-html.vl-dark .tab-btn.active,html.vl-dark .tab.active{color:#22d3ee!important;border-bottom-color:#22d3ee!important;}
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+#sidebar{width:200px;min-width:200px;background:var(--bg2);border-right:1px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;transition:width .2s;}
+.compose-btn{margin:14px 12px 10px;background:var(--acc);color:#fff;border:none;border-radius:22px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(8,145,178,.3);transition:background .15s,transform .1s;white-space:nowrap;}
+.compose-btn:hover{background:var(--acc2);transform:translateY(-1px);}
+.compose-btn:active{transform:translateY(0);}
+.sb-section{padding:2px 0 6px;}
+.sb-lbl{padding:8px 16px 3px;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;}
+.sb-row{display:flex;align-items:center;gap:10px;padding:7px 10px 7px 16px;cursor:pointer;border-radius:0 20px 20px 0;margin-right:10px;color:var(--text2);transition:background .12s,color .12s;user-select:none;white-space:nowrap;}
+.sb-row:hover{background:var(--bg3);}
+.sb-row.active{background:var(--acc-bg);color:var(--acc);font-weight:600;}
+.sb-row svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:1.8;}
+.sb-badge{margin-left:auto;background:var(--acc);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;line-height:1.7;}
+.sb-badge.gray{background:var(--text3);}
+.divider{height:1px;background:var(--border2);margin:6px 0;}
+.tag-row{display:flex;align-items:center;gap:9px;padding:5px 10px 5px 16px;cursor:pointer;color:var(--text2);border-radius:0 20px 20px 0;margin-right:10px;transition:background .12s;white-space:nowrap;}
+.tag-row:hover{background:var(--bg3);}
+.tag-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.sb-footer{margin-top:auto;padding:10px 14px;border-top:1px solid var(--border2);}
+.user-chip{display:flex;align-items:center;gap:8px;}
+.user-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--acc-bg);color:var(--acc);flex-shrink:0;}
 
-/* ── Cards / Panels ───────────────────────────────────────────────────── */
-.card,.panel,.pane,.item,.contact-item,.msg-item,.doc-item,.audit-item,.appro-item,
-.list-item,.entry,.result-card,.ai-card,.agent-card,.chloe-card,.section-card,
-.setting-card,.setting-group,.auth-card,.approval-card{
-  background:var(--bg2)!important;border:1px solid var(--border)!important;
-  box-shadow:var(--vl-sh)!important;}
-html.vl-dark .card,html.vl-dark .panel,html.vl-dark .pane,html.vl-dark .item,
-html.vl-dark .contact-item,html.vl-dark .msg-item,html.vl-dark .doc-item,
-html.vl-dark .audit-item,html.vl-dark .appro-item,html.vl-dark .list-item,
-html.vl-dark .entry,html.vl-dark .result-card,html.vl-dark .ai-card,
-html.vl-dark .agent-card,html.vl-dark .chloe-card,html.vl-dark .section-card,
-html.vl-dark .setting-card,html.vl-dark .setting-group,html.vl-dark .auth-card,
-html.vl-dark .approval-card{background:var(--bg3)!important;border:1px solid var(--border)!important;}
+/* ── Sidebar collapsed ───────────────────────────────────────────────────── */
+@media(max-width:900px){
+  #sidebar{width:52px;min-width:52px;}
+  .compose-btn .cb-label,.sb-row .sb-txt,.tag-row .tag-txt,.sb-badge,.sb-lbl,.sb-footer .user-info{display:none;}
+  .sb-row{padding:8px;justify-content:center;border-radius:8px;margin:2px 4px;}
+  .tag-row{padding:8px;justify-content:center;border-radius:8px;margin:2px 4px;}
+  .compose-btn{padding:10px;justify-content:center;border-radius:50%;width:40px;height:40px;margin:14px auto 10px;}
+}
 
-/* ── Sidebars / Panels latéraux ───────────────────────────────────────── */
-.sidebar,.side-panel,.left-panel,.right-panel,.detail-panel{background:var(--bg2)!important;border-right:1px solid var(--border)!important;}
-html.vl-dark .sidebar,html.vl-dark .side-panel,html.vl-dark .left-panel,html.vl-dark .right-panel{background:var(--bg2)!important;}
+/* ── Liste conversations ─────────────────────────────────────────────────── */
+#list-col{width:280px;min-width:260px;display:flex;flex-direction:column;border-right:1px solid var(--border2);background:var(--bg3);}
+.search-bar{padding:10px 10px 6px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border2);}
+.search-bar input{flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:6px 12px;font-size:12px;color:var(--text);outline:none;transition:border-color .15s;}
+.search-bar input:focus{border-color:var(--acc);}
+.search-icon{color:var(--text3);flex-shrink:0;}
+.filter-row{display:flex;gap:5px;padding:7px 10px;border-bottom:1px solid var(--border2);overflow-x:auto;scrollbar-width:none;}
+.filter-row::-webkit-scrollbar{display:none;}
+.chip{padding:3px 11px;border-radius:14px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border2);color:var(--text2);background:none;white-space:nowrap;transition:all .12s;}
+.chip.on{background:var(--acc-bg);color:var(--acc);border-color:var(--acc);}
+.conv-list{flex:1;overflow-y:auto;scrollbar-width:thin;}
+.conv-list::-webkit-scrollbar{width:3px;}
+.conv-list::-webkit-scrollbar-thumb{background:var(--border2);}
+.conv-item{position:relative;display:flex;align-items:flex-start;gap:9px;padding:10px 28px 10px 18px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;}
+.conv-item:hover{background:var(--bg4);}
+.conv-item.active{background:var(--acc-bg);}
+.conv-item.unread::before{content:'';position:absolute;left:6px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:var(--acc);}
+.conv-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;margin-top:1px;}
+.conv-body{flex:1;min-width:0;}
+.conv-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+.conv-from{font-size:13px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;}
+.conv-item.unread .conv-from{font-weight:600;color:var(--text);}
+.conv-time{font-size:10px;color:var(--text3);flex-shrink:0;}
+.conv-sub{font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:2px;}
+.conv-item.unread .conv-sub{font-weight:600;color:var(--text);}
+.conv-prev{font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.conv-star{position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);font-size:14px;transition:color .12s,transform .12s;line-height:1;}
+.conv-star:hover,.conv-star.on{color:#f59e0b;transform:translateY(-50%) scale(1.2);}
+.conv-tags{display:flex;gap:3px;margin-top:3px;flex-wrap:wrap;}
+.mini-tag{font-size:10px;padding:1px 6px;border-radius:8px;font-weight:500;}
 
-/* ── Content zones (APPRO/CONTACTS hardcoded bg) ─────────────────────── */
-.content,.content-area,.main-content,.list-area,.contact-list,.msg-list,.results,
-.search-results,.appro-list,.contacts-body,.body-area{background:var(--bg)!important;}
-html.vl-dark .content,html.vl-dark .content-area,html.vl-dark .main-content,
-html.vl-dark .list-area,html.vl-dark .contact-list,html.vl-dark .msg-list,
-html.vl-dark .results,html.vl-dark .appro-list,html.vl-dark .contacts-body{background:var(--bg)!important;}
+/* ── Panneau détail ──────────────────────────────────────────────────────── */
+#detail-col{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--bg2);}
+#det-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);}
+#det-empty svg{width:56px;height:56px;stroke:var(--text3);fill:none;stroke-width:1.2;margin-bottom:14px;opacity:.5;}
+#det-view{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;}
+.det-hdr{padding:14px 18px 10px;border-bottom:1px solid var(--border2);}
+.det-subject{font-size:17px;font-weight:600;color:var(--text);margin-bottom:7px;line-height:1.3;}
+.det-tag-row{display:flex;gap:5px;flex-wrap:wrap;}
+.det-tag{font-size:11px;padding:2px 9px;border-radius:10px;font-weight:600;}
+.det-actions{display:flex;align-items:center;gap:5px;padding:8px 14px;border-bottom:1px solid var(--border2);flex-wrap:wrap;}
+.act-btn{display:flex;align-items:center;gap:5px;padding:5px 11px;border:1px solid var(--border2);border-radius:6px;background:none;cursor:pointer;font-size:12px;color:var(--text2);transition:background .1s,color .1s;white-space:nowrap;}
+.act-btn:hover{background:var(--bg3);color:var(--text);}
+.act-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
+.act-btn.danger:hover{background:#fee2e2;color:#dc2626;}
+.thread-area{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin;min-height:0;}
+.thread-area::-webkit-scrollbar{width:3px;}
+.thread-area::-webkit-scrollbar-thumb{background:var(--border2);}
+.msg-card{border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:var(--bg2);box-shadow:var(--sh);}
+.msg-card-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);}
+.msg-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.msg-sender{font-size:13px;font-weight:600;color:var(--text);}
+.msg-to-line{font-size:11px;color:var(--text3);}
+.msg-card-time{margin-left:auto;font-size:11px;color:var(--text3);flex-shrink:0;}
+.msg-card-actions{display:flex;gap:4px;margin-left:6px;}
+.msg-action{background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;border-radius:4px;display:flex;align-items:center;transition:color .1s,background .1s;}
+.msg-action:hover{color:var(--text);background:var(--bg4);}
+.msg-action svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;}
+.msg-body{padding:13px 16px;font-size:13px;color:var(--text2);line-height:1.7;white-space:pre-wrap;}
+.quick-replies{padding:4px 18px 8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--border);}
+.qr-btn{padding:5px 13px;border:1px solid var(--border2);border-radius:14px;background:none;cursor:pointer;font-size:12px;color:var(--text2);transition:all .12s;white-space:nowrap;}
+.qr-btn:hover{border-color:var(--acc);color:var(--acc);background:var(--acc-bg);}
+.reply-zone{padding:10px 16px 12px;border-top:1px solid var(--border2);flex-shrink:0;}
+.reply-inner{border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:var(--bg3);transition:border-color .15s,box-shadow .15s;}
+.reply-inner:focus-within{border-color:var(--acc);box-shadow:0 0 0 3px rgba(8,145,178,.1);}
+.reply-to-label{padding:6px 12px 0;font-size:11px;color:var(--text3);}
+.reply-input{width:100%;padding:6px 12px 6px;background:none;border:none;font-size:13px;color:var(--text);outline:none;resize:none;font-family:inherit;line-height:1.6;min-height:56px;max-height:120px;}
+.reply-footer{display:flex;align-items:center;justify-content:space-between;padding:6px 10px 8px;border-top:1px solid var(--border);}
+.reply-tools{display:flex;gap:3px;}
+.rtool{background:none;border:none;cursor:pointer;color:var(--text3);padding:5px;border-radius:5px;display:flex;align-items:center;transition:color .1s,background .1s;}
+.rtool:hover{color:var(--text2);background:var(--bg4);}
+.rtool svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;}
+.send-btn{display:flex;align-items:center;gap:6px;background:var(--acc);color:#fff;border:none;border-radius:7px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;}
+.send-btn:hover{background:var(--acc2);}
+.send-btn svg{width:14px;height:14px;stroke:#fff;fill:none;stroke-width:2;}
 
-/* ── Search boxes ─────────────────────────────────────────────────────── */
-.sbox,.search-box,.search-wrap{background:var(--bg3)!important;border-color:var(--border2)!important;}
-html.vl-dark .sbox,html.vl-dark .search-box{background:var(--bg3)!important;}
+/* ── Compose modal ──────────────────────────────────────────────────────── */
+#compose-modal{display:none;position:fixed;bottom:0;right:20px;width:440px;z-index:9980;flex-direction:column;border-radius:10px 10px 0 0;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.22);border:1px solid var(--border2);max-width:calc(100vw - 40px);}
+#compose-modal.open{display:flex;}
+.cm-hdr{background:var(--acc);color:#fff;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+.cm-hdr-title{font-size:13px;font-weight:600;}
+.cm-hdr-btns{display:flex;gap:6px;}
+.cm-hdr-btn{background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .1s;}
+.cm-hdr-btn:hover{background:rgba(255,255,255,.2);}
+.cm-field{display:flex;align-items:center;border-bottom:1px solid var(--border2);background:var(--bg2);}
+.cm-field-label{padding:7px 12px;font-size:12px;color:var(--text3);min-width:55px;flex-shrink:0;}
+.cm-field input,.cm-field select{flex:1;border:none;background:none;padding:8px 8px;font-size:13px;color:var(--text);outline:none;font-family:inherit;}
+.cm-label-row{padding:6px 12px 3px;background:var(--bg2);border-bottom:1px solid var(--border2);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.cm-label-chip{font-size:11px;padding:2px 8px;border-radius:10px;cursor:pointer;font-weight:500;opacity:.4;transition:opacity .12s,transform .1s;user-select:none;}
+.cm-label-chip.on{opacity:1;}
+.cm-label-chip:hover{transform:scale(1.05);}
+.cm-body{background:var(--bg2);}
+.cm-body textarea{width:100%;padding:10px 13px;font-size:13px;color:var(--text);border:none;background:none;resize:none;outline:none;font-family:inherit;line-height:1.6;min-height:120px;}
+.cm-footer{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;border-top:1px solid var(--border2);background:var(--bg3);}
+.cm-tools{display:flex;gap:3px;}
 
-/* ── Inputs ───────────────────────────────────────────────────────────── */
-input:not([type=checkbox]):not([type=radio]),select,textarea{
-  background:var(--bg3)!important;border:1px solid var(--border2)!important;
-  border-radius:var(--vl-r)!important;color:var(--text)!important;}
-input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{
-  border-color:#0891b2!important;box-shadow:0 0 0 2px rgba(8,145,178,.12)!important;outline:none!important;}
-html.vl-dark input:not([type=checkbox]):not([type=radio]),html.vl-dark select,html.vl-dark textarea{
-  background:var(--bg4)!important;border-color:var(--border2)!important;}
+/* ── Skeleton ────────────────────────────────────────────────────────────── */
+.skel{background:var(--bg4);border-radius:4px;animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.5;}50%{opacity:1;}}
 
-/* ── Icônes monochromes ───────────────────────────────────────────────── */
-.icon,.icon-wrap,.action-icon,.stat-icon,.feature-icon,.btn-icon,.tag-icon,
-.avatar-placeholder,.initials-avatar{
-  background:rgba(8,145,178,.10)!important;color:#0891b2!important;border-radius:var(--vl-r)!important;}
-html.vl-dark .icon,html.vl-dark .icon-wrap,html.vl-dark .action-icon,
-html.vl-dark .stat-icon,html.vl-dark .feature-icon,html.vl-dark .btn-icon{
-  background:rgba(8,145,178,.18)!important;color:#22d3ee!important;}
+/* ── Toast ───────────────────────────────────────────────────────────────── */
+#toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:8px 18px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9999;white-space:nowrap;}
+html.vl-dark #toast{background:#e2e8f0;color:#1e293b;}
 
-/* ── Boutons secondaires ──────────────────────────────────────────────── */
-.btn-sec,.btn-outline,.btn-ghost{border-radius:var(--vl-r)!important;background:var(--bg3)!important;border:1px solid var(--border2)!important;color:var(--text)!important;}
-html.vl-dark .btn-sec,html.vl-dark .btn-outline{background:var(--bg4)!important;}
+/* ── Theme FAB ───────────────────────────────────────────────────────────── */
+#vl-tm-btn{position:fixed;bottom:14px;right:14px;z-index:9990;width:34px;height:34px;border-radius:var(--r);border:none;background:var(--bg2);color:var(--text2);cursor:pointer;font-size:14px;box-shadow:var(--sh);display:flex;align-items:center;justify-content:center;transition:box-shadow .2s;}
 
-/* ── Modals ───────────────────────────────────────────────────────────── */
-.modal,.modal-content,.modal-box,.dialog{background:var(--bg2)!important;border:1px solid var(--border)!important;box-shadow:0 20px 60px rgba(0,0,0,.15)!important;}
-html.vl-dark .modal,html.vl-dark .modal-content,html.vl-dark .modal-box{background:var(--bg3)!important;}
-
-/* ── Scrollbar ────────────────────────────────────────────────────────── */
-::-webkit-scrollbar{width:4px!important;height:4px!important;}
-::-webkit-scrollbar-track{background:var(--bg)!important;}
-::-webkit-scrollbar-thumb{background:#c8cdd4!important;border-radius:2px!important;}
-html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
-
-/* ── Toggle FAB ───────────────────────────────────────────────────────── */
-#vl-tm-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);right:14px;z-index:9990;width:36px;height:36px;border-radius:3px;border:none;background:#fff;color:#475569;cursor:pointer;font-size:15px;box-shadow:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s,transform .15s;}
-#vl-tm-btn:hover{transform:scale(1.05);}
-html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;}
+/* ── Responsive mobile ───────────────────────────────────────────────────── */
+@media(max-width:680px){#list-col{display:none;}#sidebar{width:52px;min-width:52px;}}
 </style>
 </head>
 <body>
-<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Thème">🌙</button>
-<!-- ── Topbar ── -->
-<div class="topbar">
-  <div class="topbar-title">💬 Messagerie Interne</div>
-  <span class="topbar-badge" id="unread-badge" style="display:none">0</span>
-  <button class="btn-sm" onclick="openNewMsg()" style="padding:5px 12px;background:var(--accent);color:#0d1117;border:none;font-weight:700;">+ Nouveau</button>
-</div>
+<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Thème clair/sombre">🌙</button>
+<div id="toast"></div>
 
-<!-- ── Tab bar ── -->
-<div class="tab-bar" id="tab-bar">
-  <button class="tab-btn active" data-tab="inbox"    onclick="switchTab('inbox',this)">📥 Réception<span class="tbadge" id="tbadge-inbox" style="display:none"></span></button>
-  <button class="tab-btn"        data-tab="threads"  onclick="switchTab('threads',this)">💬 Conversations</button>
-  <button class="tab-btn"        data-tab="orders"   onclick="switchTab('orders',this)">🛵 Commandes</button>
-  <button class="tab-btn"        data-tab="employees" onclick="switchTab('employees',this)">👥 Employés</button>
-  <button class="tab-btn"        data-tab="chloe"    onclick="switchTab('chloe',this)">🧠 Chloé<span class="tbadge" id="tbadge-chloe" style="display:none"></span></button>
-  <button class="tab-btn"        data-tab="drafts"   onclick="switchTab('drafts',this)">✉️ Brouillons</button>
-  <button class="tab-btn"        data-tab="archives" onclick="switchTab('archives',this)">🗂 Archives</button>
-</div>
-
-<!-- ── Content ── -->
-<div class="content">
-  <div class="tab-pane active" id="pane-inbox"><div id="actor-debug-panel" style="display:none;"></div><div class="loading"><span class="spinner"></span>Chargement…</div></div>
-  <div class="tab-pane" id="pane-threads"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
-  <div class="tab-pane" id="pane-orders"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
-  <div class="tab-pane" id="pane-employees"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
-  <div class="tab-pane" id="pane-chloe"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
-  <div class="tab-pane" id="pane-drafts"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
-  <div class="tab-pane" id="pane-archives"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
-</div>
-
-<!-- ── New message modal ── -->
-<div class="modal-ov" id="new-msg-ov" onclick="closeNewMsg()"></div>
-<div class="modal-sheet" id="new-msg-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;">
-  <div class="modal-handle"></div>
-  <div class="modal-title">✏️ Nouveau message</div>
-  <div class="form-row">
-    <div class="form-label">Destinataire / Département</div>
-    <select class="form-select" id="nm-recipient">
-      <option value="admin">👔 Admin / Gérant</option>
-      <option value="restaurant">🍽️ Restaurant</option>
-      <option value="delivery">🛵 Équipe Livraison</option>
-      <option value="housekeeping">🧹 Housekeeping</option>
-      <option value="rh">👥 RH</option>
-      <option value="maintenance">🔧 Maintenance</option>
-      <option value="all_admins">📢 Tous les admins</option>
-    </select>
+<!-- ── Compose modal ─────────────────────────────────────────────────────── -->
+<div id="compose-modal">
+  <div class="cm-hdr">
+    <span class="cm-hdr-title">✏️ Nouveau message</span>
+    <div class="cm-hdr-btns">
+      <button class="cm-hdr-btn" onclick="closeCompose()" title="Fermer">✕</button>
+    </div>
   </div>
-  <div class="form-row">
-    <div class="form-label">Contexte (optionnel)</div>
-    <select class="form-select" id="nm-context">
-      <option value="general">Général</option>
-      <option value="order">Commande</option>
-      <option value="housekeeping">Housekeeping</option>
-      <option value="maintenance">Maintenance</option>
+  <div class="cm-field">
+    <span class="cm-field-label">À</span>
+    <input id="cm-to" placeholder="Nom du destinataire…" />
+  </div>
+  <div class="cm-field">
+    <span class="cm-field-label">Dept</span>
+    <select id="cm-dept">
+      <option value="">Tous</option>
       <option value="rh">RH</option>
+      <option value="restaurant">Restaurant</option>
       <option value="finance">Finance</option>
-      <option value="document">Document</option>
+      <option value="housekeeping">Housekeeping</option>
+      <option value="livreur">Livreur</option>
+      <option value="direction">Direction</option>
+      <option value="maintenance">Maintenance</option>
     </select>
   </div>
-  <div class="form-row">
-    <div class="form-label">Priorité</div>
-    <select class="form-select" id="nm-priority">
-      <option value="normal">Normal</option>
-      <option value="high">⚠️ Élevé</option>
-      <option value="urgent">🔴 Urgent</option>
-      <option value="low">Faible</option>
-    </select>
+  <div class="cm-field">
+    <span class="cm-field-label">Objet</span>
+    <input id="cm-subject" placeholder="Objet du message…" />
   </div>
-  <div class="form-row">
-    <div class="form-label">Message</div>
-    <textarea class="form-textarea" id="nm-message" placeholder="Votre message…"></textarea>
+  <div class="cm-label-row" id="cm-labels">
+    <span style="font-size:11px;color:var(--text3);flex-shrink:0;">Étiquettes :</span>
+    <span class="cm-label-chip" style="background:#fee2e2;color:#b91c1c;" data-label="urgent">Urgent</span>
+    <span class="cm-label-chip" style="background:#e0f2fe;color:#0369a1;" data-label="rh">RH</span>
+    <span class="cm-label-chip" style="background:#fef3c7;color:#92400e;" data-label="restaurant">Restaurant</span>
+    <span class="cm-label-chip" style="background:#f3e8ff;color:#6d28d9;" data-label="chloe">Chloé IA</span>
+    <span class="cm-label-chip" style="background:#d1fae5;color:#065f46;" data-label="finance">Finance</span>
+    <span class="cm-label-chip" style="background:#ffe4e6;color:#9f1239;" data-label="housekeeping">HK</span>
+    <span class="cm-label-chip" style="background:#ffedd5;color:#9a3412;" data-label="livreur">Livreur</span>
   </div>
-  <div class="btn-row">
-    <button class="btn-cancel" onclick="closeNewMsg()">Annuler</button>
-    <button class="btn-primary" onclick="submitNewMsg()">Envoyer</button>
+  <div class="cm-body"><textarea id="cm-body" placeholder="Rédigez votre message…"></textarea></div>
+  <div class="cm-footer">
+    <div class="cm-tools">
+      <button class="rtool" title="Pièce jointe"><svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg></button>
+    </div>
+    <button class="send-btn" onclick="submitNewMsg()">
+      <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      Envoyer
+    </button>
   </div>
 </div>
 
-<!-- ── Thread view overlay ── -->
-<div class="modal-ov" id="thread-ov" onclick="closeThread()"></div>
-<div id="thread-panel" style="position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:90;">
-  <div class="thread-header">
-    <button class="btn-back" onclick="closeThread()">← Retour</button>
-    <div class="thread-title" id="thread-panel-title">Conversation</div>
-    <span id="thread-panel-badge" class="badge" style="display:none"></span>
+<div id="app">
+  <!-- ── SIDEBAR ─────────────────────────────────────────────────── -->
+  <div id="sidebar">
+    <button class="compose-btn" onclick="openCompose()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-6M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      <span class="cb-label">Nouveau</span>
+    </button>
+    <div class="sb-section">
+      <div class="sb-row active" onclick="setFolder(this,'inbox')" id="sb-inbox">
+        <svg viewBox="0 0 24 24"><path d="M22 12h-6l-2 3H10l-2-3H2M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>
+        <span class="sb-txt">Boîte de réception</span>
+        <span class="sb-badge" id="badge-inbox" style="display:none;">0</span>
+      </div>
+      <div class="sb-row" onclick="setFolder(this,'sent')">
+        <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        <span class="sb-txt">Envoyés</span>
+      </div>
+      <div class="sb-row" onclick="setFolder(this,'drafts')">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6"/></svg>
+        <span class="sb-txt">Brouillons</span>
+        <span class="sb-badge gray" id="badge-drafts" style="display:none;">0</span>
+      </div>
+      <div class="sb-row" onclick="setFolder(this,'starred')">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span class="sb-txt">Étoilés</span>
+      </div>
+      <div class="sb-row" onclick="setFolder(this,'chloe')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        <span class="sb-txt">Chloé IA</span>
+      </div>
+      <div class="sb-row" onclick="setFolder(this,'archived')">
+        <svg viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+        <span class="sb-txt">Archivés</span>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="sb-section">
+      <div class="sb-lbl">Étiquettes</div>
+      <div class="tag-row" onclick="filterLabel('urgent')"><div class="tag-dot" style="background:#ef4444;"></div><span class="tag-txt">Urgent</span></div>
+      <div class="tag-row" onclick="filterLabel('rh')"><div class="tag-dot" style="background:#0891b2;"></div><span class="tag-txt">RH</span></div>
+      <div class="tag-row" onclick="filterLabel('restaurant')"><div class="tag-dot" style="background:#f59e0b;"></div><span class="tag-txt">Restaurant</span></div>
+      <div class="tag-row" onclick="filterLabel('chloe')"><div class="tag-dot" style="background:#7c3aed;"></div><span class="tag-txt">Chloé IA</span></div>
+      <div class="tag-row" onclick="filterLabel('finance')"><div class="tag-dot" style="background:#10b981;"></div><span class="tag-txt">Finance</span></div>
+      <div class="tag-row" onclick="filterLabel('livreur')"><div class="tag-dot" style="background:#f97316;"></div><span class="tag-txt">Livreur</span></div>
+    </div>
+    <div class="sb-footer">
+      <div class="user-chip">
+        <div class="user-av" id="sb-user-av">?</div>
+        <div class="user-info">
+          <div style="font-size:12px;font-weight:600;color:var(--text);" id="sb-user-name">Chargement…</div>
+          <div style="font-size:10px;color:var(--text3);" id="sb-user-role">—</div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="thread-msgs" id="thread-panel-msgs"></div>
-  <div class="thread-compose">
-    <div class="compose-qr" id="compose-qr-btns"></div>
-    <div class="compose-row">
-      <textarea class="compose-input" id="compose-input" rows="1"
-        placeholder="Votre message…"
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitThreadMsg();}"></textarea>
-      <button class="btn-send" id="btn-send-msg" onclick="submitThreadMsg()">Envoyer</button>
+
+  <!-- ── LISTE CONVERSATIONS ─────────────────────────────────────── -->
+  <div id="list-col">
+    <div class="search-bar">
+      <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="search-input" placeholder="Rechercher…" oninput="onSearch(this.value)" />
+    </div>
+    <div class="filter-row">
+      <div class="chip on" onclick="setFilter(this,'all')">Tous</div>
+      <div class="chip" onclick="setFilter(this,'unread')">Non lus</div>
+      <div class="chip" onclick="setFilter(this,'starred')">Étoilés</div>
+      <div class="chip" onclick="setFilter(this,'urgent')">Urgent</div>
+      <div class="chip" onclick="setFilter(this,'chloe')">Chloé</div>
+    </div>
+    <div class="conv-list" id="conv-list">
+      <div style="padding:20px 16px;">
+        <div class="skel" style="height:52px;margin-bottom:8px;border-radius:8px;"></div>
+        <div class="skel" style="height:52px;margin-bottom:8px;border-radius:8px;"></div>
+        <div class="skel" style="height:52px;border-radius:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── DETAIL ──────────────────────────────────────────────────── -->
+  <div id="detail-col">
+    <div id="det-empty">
+      <svg viewBox="0 0 24 24"><path d="M22 12h-6l-2 3H10l-2-3H2M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>
+      <p style="font-weight:600;margin-bottom:4px;">Sélectionnez un message</p>
+      <p style="font-size:12px;">Cliquez sur une conversation pour la lire</p>
+    </div>
+    <div id="det-view" style="display:none;">
+      <div class="det-hdr">
+        <div class="det-subject" id="det-subject"></div>
+        <div class="det-tag-row" id="det-tags"></div>
+      </div>
+      <div class="det-actions">
+        <button class="act-btn" onclick="focusReply()">
+          <svg viewBox="0 0 24 24"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg>Répondre
+        </button>
+        <button class="act-btn" onclick="forwardMsg()">
+          <svg viewBox="0 0 24 24"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 014-4h12"/></svg>Transférer
+        </button>
+        <button class="act-btn" id="star-btn" onclick="toggleStar()">
+          <svg viewBox="0 0 24 24" id="star-icon"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span id="star-label">Étoiler</span>
+        </button>
+        <button class="act-btn" onclick="archiveMsg()">
+          <svg viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>Archiver
+        </button>
+        <button class="act-btn danger" onclick="deleteMsg()" style="margin-left:auto;">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>Supprimer
+        </button>
+      </div>
+      <div class="thread-area" id="thread-area"></div>
+      <div class="quick-replies" id="quick-replies" style="display:none;"></div>
+      <div class="reply-zone">
+        <div class="reply-inner">
+          <div class="reply-to-label" id="reply-to-label">Répondre…</div>
+          <textarea class="reply-input" id="reply-input" rows="3" placeholder="Écrivez votre réponse… (Ctrl+Entrée pour envoyer)" onkeydown="replyKeydown(event)"></textarea>
+          <div class="reply-footer">
+            <div class="reply-tools">
+              <button class="rtool" title="Pièce jointe"><svg viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg></button>
+              <button class="rtool" title="Emoji"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg></button>
+              <button class="rtool" title="Réponse rapide IA" onclick="aiQuickReply()"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></button>
+            </div>
+            <button class="send-btn" onclick="sendReply()">
+              <svg viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>Envoyer
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ── Toast ── -->
-<div class="toast" id="msg-toast"></div>
-
 <script>
-var MESSAGES_BUILD = 'v032-alerts-2026-07-08'; /* PROMPT 031 */
-var _migration030Status = 'pending'; /* sera verifie au demarrage */
-/* ──────────────────────────────────────────────────────────
-   VERALUZ MESSAGES MODULE — PROMPT 030
-   ────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════════════
+   VERALUZ MESSAGES — PROMPT 037  (Gmail 3 colonnes)
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Config Supabase ─────────────────────────────────────────────────────── */
 var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 var TENANT = 'veraluz-001';
-var _currentUser = null;
-var _msgActor = null;
 
-/* PROMPT 031D — Détection identité de l'acteur messaging */
+/* ── Helpers Supabase REST ───────────────────────────────────────────────── */
+function H(){return{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'};}
+function sbQ(path){return fetch(SB+'/rest/v1/'+path,{headers:H()}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
+function sbIns(tbl,data){return fetch(SB+'/rest/v1/'+tbl,{method:'POST',headers:H(),body:JSON.stringify(data)}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
+function sbUpd(tbl,data,where){
+  var h=H();h['Prefer']='return=minimal';
+  return fetch(SB+'/rest/v1/'+tbl+'?'+where,{method:'PATCH',headers:h,body:JSON.stringify(data)}).then(function(r){if(!r.ok)throw r.status;return true;});
+}
+function sbDel(tbl,where){return fetch(SB+'/rest/v1/'+tbl+'?'+where,{method:'DELETE',headers:H()}).then(function(r){return r.ok;});}
+
+/* ── Escape HTML ─────────────────────────────────────────────────────────── */
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ── Toast ───────────────────────────────────────────────────────────────── */
+var _toastT=null;
+function toast(msg,type){
+  var el=document.getElementById('toast');
+  el.textContent=msg;
+  el.style.background=type==='err'?'#dc2626':type==='ok'?'#16a34a':'#1e293b';
+  el.style.opacity='1';
+  clearTimeout(_toastT);
+  _toastT=setTimeout(function(){el.style.opacity='0';},3200);
+}
+
+/* ── Format dates ────────────────────────────────────────────────────────── */
+function fmtShort(d){
+  if(!d)return'';
+  var dt=new Date(d),now=new Date(),diff=(now-dt)/1000;
+  if(diff<60)return'À l\'instant';
+  if(diff<3600)return Math.floor(diff/60)+'min';
+  if(diff<86400)return dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  var jours=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  if(diff<604800)return jours[dt.getDay()];
+  return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+}
+function fmtLong(d){
+  if(!d)return'';
+  return new Date(d).toLocaleString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+/* ── Acteur courant (session Veraluz) ────────────────────────────────────── */
+var _actor=null;
 function getCurrentMessagingActor(){
-  if(_msgActor) return _msgActor;
-  var ADMIN_ROLES=['superadmin','admin','manager','direction','directeur'];
-  var actor={
-    tenant_id:TENANT, actor_id:'', actor_name:'Utilisateur',
-    actor_type:'admin', role:'admin', department:'direction',
-    employee_id:'', user_id:'',
-    can_view_all_messages:false,
-    can_send_to_departments:false,
-    can_send_to_all:false
-  };
-  /* Source 1 : session VERALUZ OS (CORE) */
+  if(_actor)return _actor;
+  var ADMIN=['superadmin','admin','manager','direction','directeur'];
+  var CAN_VIEW_ALL=['superadmin','admin','manager','direction','directeur','rh','finance'];
+  var a={tenant_id:TENANT,actor_id:'',actor_name:'Utilisateur',actor_type:'employee',role:'staff',department:'',can_view_all_messages:false,can_send_to_departments:false,can_send_to_all:false};
   try{
-    var raw=localStorage.getItem('veraluz_auth_v1');
+    /* PROMPT 038 — lire veraluz_session (écrit par CORE au login) ou fallback veraluz_auth_v1 */
+    var raw=localStorage.getItem('veraluz_session')||sessionStorage.getItem('veraluz_session');
+    if(!raw){raw=localStorage.getItem('vl_session')||sessionStorage.getItem('vl_session');}
+    if(!raw){
+      /* Fallback : lire veraluz_auth_v1 directement */
+      var authRaw=localStorage.getItem('veraluz_auth_v1');
+      if(authRaw){
+        var auth=JSON.parse(authRaw);
+        raw=JSON.stringify({
+          user_id:auth.user_id||auth.employee_id||auth.username||'',
+          id:auth.user_id||auth.employee_id||auth.username||'',
+          name:auth.name||'Utilisateur',
+          role:auth.role||'staff',
+          department:auth.department||auth.role||'',
+          tenant_id:auth.tenant_id||TENANT
+        });
+      }
+    }
     if(raw){
-      var s=JSON.parse(raw);
-      if(s&&s.username){
-        actor.user_id=s.username||'';
-        actor.actor_id=s.employee_id||s.username||'';
-        actor.actor_name=s.name||s.full_name||s.username||'Admin';
-        actor.role=s.role||'admin';
-        actor.employee_id=s.employee_id||s.username||'';
-        actor.department=s.department||_roleToDept(s.role)||'direction';
-        actor.actor_type=_roleToActorType(s.role);
-        actor.can_view_all_messages=ADMIN_ROLES.indexOf(s.role)>=0||s.dev_mode===true;
-        actor.can_send_to_departments=ADMIN_ROLES.indexOf(s.role)>=0||
-          ['rh','restaurant','housekeeping','kitchen'].indexOf(s.role)>=0;
-        actor.can_send_to_all=ADMIN_ROLES.indexOf(s.role)>=0;
-        _currentUser=s; _msgActor=actor; return actor;
-      }
+      var p=JSON.parse(raw);
+      a.actor_id=p.user_id||p.id||p.actor_id||p.employee_id||'';
+      a.actor_name=p.name||p.nom||p.full_name||'Utilisateur';
+      a.role=(p.role||'staff').toLowerCase();
+      a.department=p.department||p.dept||p.team_id||'';
+      a.tenant_id=p.tenant_id||TENANT;
+      a.actor_type=ADMIN.indexOf(a.role)>=0?'admin':'employee';
+      a.can_view_all_messages=CAN_VIEW_ALL.indexOf(a.role)>=0;
+      a.can_send_to_departments=CAN_VIEW_ALL.indexOf(a.role)>=0;
+      a.can_send_to_all=a.role==='superadmin'||a.role==='admin'||a.role==='direction';
     }
-  }catch(e){}
-  /* Source 2 : session Livreur */
-  try{
-    var lraw=localStorage.getItem('veraluz_livreur_session');
-    if(lraw){
-      var ls=JSON.parse(lraw);
-      if(ls&&ls.id){
-        actor.actor_id=String(ls.id); actor.employee_id=String(ls.id);
-        actor.actor_name=ls.full_name||ls.name||'Livreur';
-        actor.role='delivery'; actor.actor_type='driver';
-        actor.department='delivery';
-        actor.can_view_all_messages=false;
-        actor.can_send_to_departments=false;
-        actor.can_send_to_all=false;
-        _msgActor=actor; return actor;
-      }
-    }
-  }catch(e){}
-  /* Source 3 : session Restaurant */
-  try{
-    var rraw=localStorage.getItem('veraluz_restaurant_session');
-    if(rraw){
-      var rs=JSON.parse(rraw);
-      if(rs){
-        actor.actor_id=rs.id||'restaurant';
-        actor.actor_name=rs.name||'Restaurant';
-        actor.role='restaurant'; actor.actor_type='restaurant';
-        actor.department='restaurant';
-        actor.can_view_all_messages=false;
-        actor.can_send_to_departments=false;
-        actor.can_send_to_all=false;
-        _msgActor=actor; return actor;
-      }
-    }
-  }catch(e){}
-  /* Fallback dev */
-  actor.can_view_all_messages=true; actor.can_send_to_all=true;
-  actor.can_send_to_departments=true; actor.actor_id='admin';
-  _msgActor=actor; return actor;
+  }catch(e){console.warn('[Messaging] Erreur lecture session:',e);}
+  _actor=a;
+  /* Sidebar user info */
+  var init=(a.actor_name||'?').split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
+  var av=document.getElementById('sb-user-av');if(av)av.textContent=init;
+  var nm=document.getElementById('sb-user-name');if(nm)nm.textContent=a.actor_name;
+  var rl=document.getElementById('sb-user-role');if(rl)rl.textContent=a.role;
+  return a;
 }
 
-function _roleToActorType(role){
-  var map={superadmin:'admin',admin:'admin',manager:'admin',direction:'admin',
-    reception:'reception',restaurant:'restaurant',kitchen:'restaurant',
-    delivery:'driver',driver:'driver',livreur:'driver',
-    housekeeping:'housekeeping',maintenance:'maintenance',
-    rh:'rh',finance:'finance',accountant:'finance',comptable:'finance',
-    staff:'staff'};
-  return map[role]||'admin';
-}
-
-function _roleToDept(role){
-  var map={superadmin:'direction',admin:'direction',manager:'direction',
-    direction:'direction',reception:'reception',
-    restaurant:'restaurant',kitchen:'restaurant',
-    delivery:'delivery',driver:'delivery',livreur:'delivery',
-    housekeeping:'housekeeping',maintenance:'maintenance',
-    rh:'rh',finance:'finance',accountant:'finance',comptable:'finance'};
-  return map[role]||'direction';
-}
-
-/* canActorSeeMessage — règles de visibilité par rôle (PROMPT 031D) */
+/* ── Visibilité message pour acteur ─────────────────────────────────────── */
 function canActorSeeMessage(actor,msg){
-  if(!actor||!msg) return false;
-  var t=msg.tenant_id||TENANT; if(t!==TENANT) return false;
-  if(actor.can_view_all_messages) return true;
-  var aid=actor.actor_id||''; var eid=actor.employee_id||'';
-  /* Destinataire direct */
-  if(msg.recipient_id&&(msg.recipient_id===aid||msg.recipient_id===eid)) return true;
-  /* Type de destinataire = rôle acteur */
-  if(msg.recipient_type&&msg.recipient_type===actor.actor_type) return true;
-  if(msg.recipient_type&&msg.recipient_type===actor.role) return true;
-  /* Département */
-  if(msg.department&&msg.department===actor.department) return true;
-  /* Restaurant : voit commandes/livraisons */
-  if(actor.actor_type==='restaurant'){
-    if(['restaurant','delivery'].indexOf(msg.department||'')>=0) return true;
-    if(['order','delivery','restaurant'].indexOf(msg.context_type||'')>=0) return true;
-  }
-  /* Livreur : seulement ses messages */
-  if(actor.actor_type==='driver'){
-    if(msg.sender_id&&(msg.sender_id===aid||msg.sender_id===eid)) return true;
-    return false;
-  }
-  /* Sender = actor */
-  if(msg.sender_id&&(msg.sender_id===aid||msg.sender_id===eid)) return true;
+  if(!msg)return false;
+  if(msg.tenant_id&&msg.tenant_id!==actor.tenant_id)return false;
+  if(actor.can_view_all_messages)return true;
+  if(msg.sender_id&&msg.sender_id===actor.actor_id)return true;
+  if(msg.recipient_id&&msg.recipient_id===actor.actor_id)return true;
+  if(msg.recipient_type==='all')return true;
+  if(msg.recipient_type==='department'&&msg.department===actor.department)return true;
   return false;
 }
 
-/* dedupeMessagesById — fusionner plusieurs jeux sans doublons */
-function dedupeMessagesById(msgs){
-  var seen={}; var out=[];
-  (msgs||[]).forEach(function(m){
-    if(m&&m.id&&!seen[m.id]){seen[m.id]=true;out.push(m);}
-  });
-  return out.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);});
-}
-var _activeTab = 'inbox';
-var _activeThreadId = null;
-var _threadMessages = [];
-var _threadContext = {};
-var _allMessages = [];
-var _unreadCount = 0;
+/* ── Couleurs avatars ────────────────────────────────────────────────────── */
+var AV_PAL=[
+  {bg:'#e0f2fe',c:'#0369a1'},{bg:'#fee2e2',c:'#b91c1c'},
+  {bg:'#fef3c7',c:'#92400e'},{bg:'#f3e8ff',c:'#6d28d9'},
+  {bg:'#d1fae5',c:'#065f46'},{bg:'#ffe4e6',c:'#9f1239'},
+  {bg:'#ffedd5',c:'#9a3412'},{bg:'#f0fdf4',c:'#166534'}
+];
+function avColor(s){var h=0;for(var i=0;i<(s||'').length;i++){h=(h*31+s.charCodeAt(i))&0xffffff;}return AV_PAL[Math.abs(h)%AV_PAL.length];}
+function avInit(s){return(s||'?').split(' ').map(function(w){return w[0]||'';}).join('').substring(0,2).toUpperCase();}
 
-/* ── Supabase helpers ── */
-function H(extra){
-  return Object.assign({apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json',Accept:'application/json'},extra||{});
-}
-function sbQ(path){
-  return fetch(SB+'/rest/v1/'+path,{headers:H()}).then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);return r.json();
-  });
-}
-function sbIns(table,data){
-  return fetch(SB+'/rest/v1/'+table,{method:'POST',headers:H({Prefer:'return=representation'}),body:JSON.stringify(data)})
-    .then(function(r){
-      if(!r.ok){
-        return r.text().then(function(body){
-          var detail='';
-          try{var j=JSON.parse(body);detail=j.message||j.hint||j.error||JSON.stringify(j);}
-          catch(e){detail=body?body.substring(0,120):'HTTP '+r.status;}
-          var err=new Error('HTTP '+r.status+': '+detail);
-          err.status=r.status; err.detail=detail;
-          throw err;
-        });
-      }
-      return r.json();
-    });
-}
-function sbUpd(table,filter,data){
-  return fetch(SB+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:H({Prefer:'return=minimal'}),body:JSON.stringify(data)})
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);});
-}
+/* ── Couleurs étiquettes ─────────────────────────────────────────────────── */
+var TAG_COL={
+  urgent:{bg:'#fee2e2',c:'#b91c1c'},
+  rh:{bg:'#e0f2fe',c:'#0369a1'},
+  restaurant:{bg:'#fef3c7',c:'#92400e'},
+  chloe:{bg:'#f3e8ff',c:'#6d28d9'},
+  finance:{bg:'#d1fae5',c:'#065f46'},
+  housekeeping:{bg:'#ffe4e6',c:'#9f1239'},
+  hk:{bg:'#ffe4e6',c:'#9f1239'},
+  livreur:{bg:'#ffedd5',c:'#9a3412'},
+  livraison:{bg:'#fef3c7',c:'#92400e'}
+};
+function miniTag(lbl){var lc=(lbl||'').toLowerCase(),col=TAG_COL[lc]||{bg:'#f1f5f9',c:'#475569'};return'<span class="mini-tag" style="background:'+col.bg+';color:'+col.c+';">'+escH(lbl)+'</span>';}
+function detTag(lbl){var lc=(lbl||'').toLowerCase(),col=TAG_COL[lc]||{bg:'#f1f5f9',c:'#475569'};return'<span class="det-tag" style="background:'+col.bg+';color:'+col.c+';">'+escH(lbl)+'</span>';}
 
-function escH(s){
-  if(s===null||s===undefined)return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
+/* ════════════════════════════════════════════════════════════════════════════
+   ÉTAT GLOBAL
+   ════════════════════════════════════════════════════════════════════════════ */
+var _allMsgs=[];
+var _currentFolder='inbox';
+var _currentFilter='all';
+var _currentLabel='';
+var _searchQ='';
+var _openId=null;
+var _openMsg=null;
+var _selectedLabels=[];
+var _lastMsgId=null;
+var _pollT=null;
 
-/* ── Auth context from CORE ── */
-window.addEventListener('message',function(e){
-  if(e.data&&e.data.type==='auth-context'&&e.data.data){
-    _currentUser = e.data.data;
-  }
-});
-
-/* ── Toast ── */
-function toast(msg,type){
-  var el=document.getElementById('msg-toast');
-  if(!el)return;
-  el.textContent=msg;
-  el.className='toast show '+(type||'info');
-  clearTimeout(el._t);
-  el._t=setTimeout(function(){el.classList.remove('show');},2800);
-}
-
-/* ── Tab switching ── */
-function switchTab(tab,btn){
-  _activeTab=tab;
-  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
-  if(btn)btn.classList.add('active');
-  document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');});
-  var pane=document.getElementById('pane-'+tab);
-  if(pane){pane.classList.add('active');}
-  loadTab(tab);
-}
-
-function loadTab(tab){
-  if(tab==='inbox')      loadMessages({status:'sent',excludeArchived:true,excludeChloe:false});
-  else if(tab==='threads')   loadMessageThreads();
-  else if(tab==='orders')    loadDeliveryMessages();
-  else if(tab==='employees') loadEmployeeMessages();
-  else if(tab==='chloe')     renderChloeMessages();
-  else if(tab==='drafts')    loadDrafts();
-  else if(tab==='archives')  loadMessages({status:'archived'});
+/* ════════════════════════════════════════════════════════════════════════════
+   DONNÉES MOCK (fallback si Supabase non dispo)
+   ════════════════════════════════════════════════════════════════════════════ */
+function getMockMsgs(){
+  var now=new Date().toISOString();
+  var h1=new Date(Date.now()-3600000).toISOString();
+  var h3=new Date(Date.now()-10800000).toISOString();
+  var d1=new Date(Date.now()-86400000).toISOString();
+  var d2=new Date(Date.now()-172800000).toISOString();
+  return [
+    {id:'m1',sender_name:'Chloé IA',sender_type:'chloe',department:'direction',
+     subject:'⚠️ Alerte — 3 livreurs sans photo ce matin',
+     body:'Bonjour,\n\nJ\'ai détecté ce matin que 3 livreurs actifs n\'ont pas effectué leur selfie de prise de service :\n\n• Jean Bello — actif depuis 08:10, aucune photo\n• Aliou Konaté — actif depuis 08:32, aucune photo\n• Paul Mbaye — actif depuis 09:05, aucune photo\n\nJe recommande de les contacter directement ou de bloquer l\'accès aux nouvelles commandes jusqu\'à régularisation.\n\n— Chloé, Assistante IA Veraluz',
+     labels:['urgent','chloe'],starred:true,read:false,archived:false,is_draft:false,created_at:now},
+    {id:'m2',sender_name:'Marie Koné',sender_type:'employee',department:'rh',
+     subject:'Demande de congé — 11 au 22 août 2026',
+     body:'Bonjour,\n\nJe souhaite soumettre ma demande de congé du 11 au 22 août 2026 (10 jours ouvrés).\n\nMon remplaçant sera M. Diallo conformément au planning RH en vigueur.\n\nMerci de bien vouloir valider ou me contacter si des ajustements sont nécessaires.\n\nCordialement,\nMarie Koné — Assistante RH',
+     labels:['rh'],starred:false,read:false,archived:false,is_draft:false,created_at:h1},
+    {id:'m3',sender_name:'Système Restaurant',sender_type:'system',department:'restaurant',
+     subject:'Commande #1042 — en attente livreur (18 min)',
+     body:'La commande #1042 est prête depuis 18 minutes et aucun livreur n\'a encore été assigné.\n\nClient : Mme Nguema — Bloc B Apt 12\nTotal : 14 500 XAF\nStatut cuisine : ✅ Prête\n\nAction requise : veuillez assigner un livreur disponible.',
+     labels:['restaurant','urgent'],starred:false,read:true,archived:false,is_draft:false,created_at:h3},
+    {id:'m4',sender_name:'Finance · Dept',sender_type:'employee',department:'finance',
+     subject:'Rapport de paie — Juillet 2026',
+     body:'Veuillez trouver ci-joint le rapport de paie pour Juillet 2026.\n\nRésumé :\n• Employés traités : 24\n• Total brut : 3 840 000 XAF\n• Retenues totales : 384 000 XAF\n• Total net versé : 3 456 000 XAF\n\nAucune anomalie détectée ce mois-ci.',
+     labels:['finance'],starred:true,read:true,archived:false,is_draft:false,created_at:d1},
+    {id:'m5',sender_name:'Jean Bello',sender_type:'employee',department:'livreur',
+     subject:'Problème livraison commande #1038',
+     body:'Bonjour,\n\nJe vous contacte au sujet de la commande #1038.\n\nÀ mon arrivée à l\'adresse (Bloc C Apt 7), le client n\'était pas présent. J\'ai appelé 3 fois sans réponse.\n\nJ\'ai pris une photo du lieu de livraison et attendu 10 minutes avant de repartir.\n\nMerci de me dire comment procéder.\n\n— Jean Bello, Livreur',
+     labels:['livreur'],starred:false,read:false,archived:false,is_draft:false,created_at:d1},
+    {id:'m6',sender_name:'Housekeeping · Équipe',sender_type:'employee',department:'housekeeping',
+     subject:'Chambre 204 — climatiseur défectueux',
+     body:'Lors du nettoyage de la chambre 204 ce matin, l\'équipe a signalé un défaut sur le climatiseur :\n\n• Bruit anormal lors du démarrage\n• Température affichée incorrecte (23° au lieu de 18°)\n\nLa chambre a été temporairement retirée de la disponibilité.\n\nIntervention maintenance estimée : demain matin.',
+     labels:['housekeeping'],starred:false,read:true,archived:false,is_draft:false,created_at:d2},
+    {id:'m7',sender_name:'Paul Kamto',sender_type:'employee',department:'rh',
+     subject:'Re: Planning Août — modifications demandées',
+     body:'Bonjour,\n\nSuite à notre réunion de lundi, voici les modifications pour le planning d\'août :\n\n- Semaine 32 : échange Jean B. ↔ Aliou K. (jeudi/vendredi)\n- Semaine 33 : pas de livreur le 15 août (férié)\n\nMerci de valider avant vendredi.\n\nPaul',
+     labels:['rh'],starred:false,read:true,archived:false,is_draft:false,created_at:d2}
+  ];
 }
 
-/* ────────────────────────────────────
-   INBOX — loadMessages
-──────────────────────────────────── */
-/* PROMPT 031D — loadMyInbox avec filtrage par acteur */
-function loadMyInbox(filters){
-  return loadMessages(filters);
-}
-
-function loadMessages(filters){
+/* ════════════════════════════════════════════════════════════════════════════
+   CHARGEMENT
+   ════════════════════════════════════════════════════════════════════════════ */
+function loadMessages(){
   var actor=getCurrentMessagingActor();
-  console.log('[MSGS 031D] loadMessages actor='+actor.actor_type+' view_all='+actor.can_view_all_messages+' dept='+actor.department);
-  var isArchive=filters&&filters.status==='archived';
-  var pane=document.getElementById('pane-'+(isArchive?'archives':'inbox'));
-  if(!pane){console.warn('[MSGS] pane non trouvé'); return;}
-  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+  var base='veraluz_internal_messages?tenant_id=eq.'+encodeURIComponent(actor.tenant_id||TENANT)+'&order=created_at.desc&limit=80';
+  var q=base;
 
-  var promises=[];
-
-  if(actor.can_view_all_messages){
-    /* Admin : tout charger */
-    var path='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&order=created_at.desc&limit=80';
-    if(isArchive) path+='&status=eq.archived';
-    else path+='&status=not.in.(archived,cancelled)';
-    promises.push(sbQ(path).catch(function(){return[];}));
-  } else {
-    /* Requêtes ciblées selon acteur — fusionnées côté JS */
-    var base='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&order=created_at.desc&limit=40';
-    var sf=isArchive?'&status=eq.archived':'&status=not.in.(archived,cancelled)';
-
-    /* Messages directs à cet acteur */
-    if(actor.actor_id){
-      promises.push(sbQ(base+sf+'&recipient_id=eq.'+encodeURIComponent(actor.actor_id))
-        .catch(function(){return[];}));
+  /* PROMPT 038 — filtre par destinataire pour les non-admins */
+  var recipientFilter='';
+  if(!actor.can_view_all_messages && actor.actor_id){
+    /* L'employé voit : ses messages directs + messages à son département + messages "tous" */
+    var filters=[];
+    filters.push('recipient_id.eq.'+actor.actor_id);
+    filters.push('recipient_type.eq.all');
+    filters.push('sender_id.eq.'+actor.actor_id);
+    if(actor.department){
+      filters.push('and(recipient_type.eq.department,department.eq.'+encodeURIComponent(actor.department)+')');
     }
-    if(actor.employee_id&&actor.employee_id!==actor.actor_id){
-      promises.push(sbQ(base+sf+'&recipient_id=eq.'+encodeURIComponent(actor.employee_id))
-        .catch(function(){return[];}));
-    }
-    /* Par type de rôle */
-    if(actor.actor_type){
-      promises.push(sbQ(base+sf+'&recipient_type=eq.'+encodeURIComponent(actor.actor_type))
-        .catch(function(){return[];}));
-    }
-    /* Par département */
-    if(actor.department&&actor.department!=='direction'){
-      promises.push(sbQ(base+sf+'&department=eq.'+encodeURIComponent(actor.department))
-        .catch(function(){return[];}));
-    }
-    /* Restaurant : aussi context_type order/delivery */
-    if(actor.actor_type==='restaurant'){
-      promises.push(sbQ(base+sf+'&context_type=in.(order,delivery,restaurant)')
-        .catch(function(){return[];}));
-    }
-    /* Messages envoyés par cet acteur */
-    if(actor.actor_id){
-      promises.push(sbQ(base+sf+'&sender_id=eq.'+encodeURIComponent(actor.actor_id)+'&limit=20')
-        .catch(function(){return[];}));
-    }
+    recipientFilter='&or=('+filters.join(',')+')';
   }
 
-  Promise.all(promises).then(function(results){
-    var combined=[]; results.forEach(function(r){combined=combined.concat(r||[]);});
-    _allMessages=dedupeMessagesById(combined);
-    /* Filtrage JS supplémentaire si pas admin */
-    if(!actor.can_view_all_messages){
-      _allMessages=_allMessages.filter(function(m){return canActorSeeMessage(actor,m);});
-    }
-    _unreadCount=_allMessages.filter(function(m){return !m.read_at&&m.status==='sent';}).length;
+  if(_currentFolder==='starred'){q+=recipientFilter+'&starred=eq.true&is_draft=eq.false';}
+  else if(_currentFolder==='archived'){q+=recipientFilter+'&archived=eq.true&is_draft=eq.false';}
+  else if(_currentFolder==='drafts'){q+=recipientFilter+'&is_draft=eq.true';}
+  else if(_currentFolder==='sent'){
+    /* Envoyés : uniquement les messages envoyés par cet acteur */
+    if(actor.actor_id)q+='&sender_id=eq.'+encodeURIComponent(actor.actor_id);
+    q+='&is_draft=eq.false';
+  }
+  else if(_currentFolder==='chloe'){q+=recipientFilter+'&sender_type=eq.chloe&is_draft=eq.false';}
+  else{q+=recipientFilter+'&archived=eq.false&is_draft=eq.false';}
+
+  sbQ(q).then(function(data){
+    var msgs=data||[];
+    if(!actor.can_view_all_messages){msgs=msgs.filter(function(m){return canActorSeeMessage(actor,m);});}
+    _allMsgs=msgs;
+    if(msgs.length)_lastMsgId=msgs[0].id;
+    renderList();
     updateBadges();
-    var toShow=_allMessages;
-    if(filters&&filters.excludeChloe===false){/* tout afficher */}
-    renderInboxList(pane,toShow,filters&&filters.status==='archived');
-  }).catch(function(e){
-    console.error('[MSGS] Erreur chargement:', e&&(e.message||e.detail||JSON.stringify(e))||e);
-    pane.innerHTML='<div class="empty-state"><div class="empty-ico">📭</div>'
-      +'<div>Erreur chargement messages.<br><small style="color:#888">'
-      +(e&&(e.message||e.detail||'').substring(0,80)||'Vérifiez la connexion')
-      +'</small></div></div>';
-  });
-}
-
-function renderInboxList(pane,msgs,isArchive){
-  if(!msgs||!msgs.length){
-    pane.innerHTML='<div class="empty-state"><div class="empty-ico">'+(isArchive?'🗂':'📭')+'</div>'
-      +'<div>'+(isArchive?'Aucun message archivé':'Aucun message')+'</div></div>';
-    return;
-  }
-  /* Stats row */
-  var unread=msgs.filter(function(m){return !m.read_at&&m.status!=='archived';}).length;
-  var urgent=msgs.filter(function(m){return m.priority==='urgent';}).length;
-  var action=msgs.filter(function(m){return m.requires_action&&m.action_status==='pending';}).length;
-  var statsHtml='<div class="stats-row">'
-    +'<div class="stat-cell"><div class="stat-n '+(unread?'err':'ok')+'">'+unread+'</div><div class="stat-l">Non lus</div></div>'
-    +'<div class="stat-cell"><div class="stat-n '+(urgent?'warn':'')+'">'+urgent+'</div><div class="stat-l">Urgents</div></div>'
-    +'<div class="stat-cell"><div class="stat-n '+(action?'err':'')+'">'+action+'</div><div class="stat-l">Action requise</div></div>'
-    +'<div class="stat-cell"><div class="stat-n">'+msgs.length+'</div><div class="stat-l">Total</div></div>'
-    +'</div>';
-  var listHtml=msgs.map(function(m){return buildMsgCard(m);}).join('');
-  pane.innerHTML=statsHtml+'<div class="msg-list">'+listHtml+'</div>';
-}
-
-function buildMsgCard(m){
-  var isUnread=!m.read_at&&m.status!=='archived';
-  var dt=m.created_at?fmtTime(m.created_at):'';
-  var from=escH(senderLabel(m));
-  var dept=m.department?'<span class="badge bdg-dept">'+escH(m.department)+'</span>':'';
-  var prio=m.priority&&m.priority!=='normal'?'<span class="badge bdg-'+(m.priority==='urgent'?'urgent':'high')+'">'+escH(m.priority)+'</span>':'';
-  var typ=m.message_type&&m.message_type!=='text'?'<span class="badge bdg-type">'+escH(m.message_type)+'</span>':'';
-  var act=m.requires_action&&m.action_status==='pending'?'<span class="badge bdg-action">⚡ Action</span>':'';
-  var preview=escH((m.message||'').slice(0,80));
-  var cls='msg-card'+(isUnread?' unread':'')+(m.priority==='urgent'?' urgent':m.priority==='high'?' high':'');
-  return '<div class="'+cls+'" onclick="openMessage(\''+escH(m.id)+'\',\''+escH(m.context_type||'general')+'\')">'
-    +'<div class="mc-top"><span class="mc-from">'+from+'</span><span class="mc-time">'+dt+'</span></div>'
-    +'<div class="mc-subject">'+escH(contextLabel(m))+'</div>'
-    +'<div class="mc-preview">'+preview+'</div>'
-    +'<div class="mc-meta">'+dept+prio+typ+act+'</div>'
-    +'</div>';
-}
-
-function senderLabel(m){
-  var icons={admin:'👔',manager:'👔',reception:'🏨',restaurant:'🍽️',driver:'🛵',
-             housekeeping:'🧹',employee:'👤',chloe:'🧠',system:'⚙️'};
-  var ico=icons[m.sender_type]||'💬';
-  return ico+' '+(m.sender_name||m.sender_type||'Système');
-}
-function contextLabel(m){
-  var map={order:'🛒 Commande',delivery:'🛵 Livraison',employee:'👤 Employé',
-    housekeeping:'🧹 Housekeeping',maintenance:'🔧 Maintenance',rh:'👥 RH',
-    finance:'💳 Finance',document:'🗂 Document',chloe:'🧠 Chloé',general:'💬 Général'};
-  var lbl=map[m.context_type]||'💬 Général';
-  if(m.context_id) lbl+=' #'+m.context_id.slice(0,8);
-  return lbl;
-}
-function fmtTime(iso){
-  var d=new Date(iso);
-  var now=new Date();
-  var diff=now-d;
-  if(diff<60000)return 'À l\'instant';
-  if(diff<3600000)return Math.floor(diff/60000)+'min';
-  if(diff<86400000)return d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
-}
-
-/* ── Open message → thread ── */
-function openMessage(id,ctx){
-  var msg=_allMessages.find(function(m){return m.id===id;});
-  if(!msg)return;
-  markMessageRead(id);
-  var tid=msg.thread_id;
-  if(tid){
-    openMessageThread(tid,msg);
-  } else {
-    /* Afficher seul en thread view */
-    openSingleMessage(msg);
-  }
-}
-
-function openSingleMessage(msg){
-  _threadContext={id:null,title:senderLabel(msg),contextType:msg.context_type,contextId:msg.context_id};
-  document.getElementById('thread-panel-title').textContent=contextLabel(msg);
-  var urgBdg=document.getElementById('thread-panel-badge');
-  if(msg.priority&&msg.priority!=='normal'){
-    urgBdg.textContent=msg.priority.toUpperCase();
-    urgBdg.className='badge bdg-'+(msg.priority==='urgent'?'urgent':'high');
-    urgBdg.style.display='';
-  } else { urgBdg.style.display='none'; }
-  var dt=msg.created_at?fmtTime(msg.created_at):'';
-  var bubbCls='bubble recv'+(msg.priority==='urgent'?' urgent-msg':'')+' '+(msg.sender_type==='chloe'?'chloe':'');
-  document.getElementById('thread-panel-msgs').innerHTML='<div class="'+bubbCls+'">'
-    +'<div class="bub-meta">'+escH(senderLabel(msg))+' · '+dt+'</div>'
-    +escH(msg.message||'')
-    +(msg.requires_action?'<div style="margin-top:6px;font-size:11px;font-style:italic;color:var(--warn)">⚡ Action requise</div>':'')
-    +'</div>';
-  setupQuickReplies(msg.context_type,msg.context_id);
-  document.getElementById('compose-input').value='';
-  document.getElementById('thread-panel').style.display='flex';
-  scrollThreadToBottom();
-}
-
-/* ── Thread view ── */
-function openMessageThread(threadId,refMsg){
-  _activeThreadId=threadId;
-  if(refMsg) _threadContext={id:threadId,title:contextLabel(refMsg),contextType:refMsg.context_type,contextId:refMsg.context_id};
-  document.getElementById('thread-panel-title').textContent=_threadContext.title||'Conversation';
-  document.getElementById('thread-panel-badge').style.display='none';
-  var msgsEl=document.getElementById('thread-panel-msgs');
-  msgsEl.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
-  document.getElementById('thread-panel').style.display='flex';
-  sbQ('veraluz_internal_messages?thread_id=eq.'+encodeURIComponent(threadId)+'&tenant_id=eq.'+TENANT+'&order=created_at.asc')
-    .then(function(rows){
-      _threadMessages=rows||[];
-      renderThreadMessages();
-      setupQuickReplies(_threadContext.contextType,_threadContext.contextId);
-      document.getElementById('compose-input').value='';
-      scrollThreadToBottom();
-    }).catch(function(){
-      msgsEl.innerHTML='<div class="empty-state">Impossible de charger les messages.</div>';
-    });
-}
-
-function renderThreadMessages(){
-  var el=document.getElementById('thread-panel-msgs');
-  if(!_threadMessages.length){
-    el.innerHTML='<div class="empty-state"><div class="empty-ico">💬</div><div>Aucun message</div></div>';
-    return;
-  }
-  var isMeType=_currentUser.role;
-  el.innerHTML=_threadMessages.map(function(m){
-    var isMe=m.sender_type===isMeType||m.sender_id===(_currentUser.username||'');
-    var cls='bubble '+(isMe?'sent':m.sender_type==='chloe'?'chloe':m.sender_type==='system'?'system':'recv')
-      +(m.priority==='urgent'?' urgent-msg':'');
-    var dt=m.created_at?fmtTime(m.created_at):'';
-    if(m.sender_type==='system') return '<div class="'+cls+'">'+escH(m.message||'')+'</div>';
-    return '<div class="'+cls+'">'
-      +'<div class="bub-meta">'+(isMe?'Vous':escH(senderLabel(m)))+' · '+dt+'</div>'
-      +escH(m.message||'')
-      +'</div>';
-  }).join('');
-  scrollThreadToBottom();
-}
-
-function submitThreadMsg(){
-  var inp=document.getElementById('compose-input');
-  var txt=(inp.value||'').trim();
-  if(!txt)return;
-  inp.value='';
-  inp.disabled=true;
-  var btn=document.getElementById('btn-send-msg');
-  if(btn)btn.disabled=true;
-  sendInternalMessage({
-    thread_id:_activeThreadId||undefined,
-    context_type:_threadContext.contextType||'general',
-    context_id:_threadContext.contextId||undefined,
-    message:txt,
-    message_type:'text',
-    priority:'normal'
-  }).then(function(newMsg){
-    if(newMsg&&newMsg.length){
-      _threadMessages.push(newMsg[0]);
-      renderThreadMessages();
-    }
-    inp.disabled=false;if(btn)btn.disabled=false;inp.focus();
   }).catch(function(){
-    toast('Erreur envoi','err');
-    inp.disabled=false;if(btn)btn.disabled=false;inp.value=txt;
+    _allMsgs=getMockMsgs();
+    renderList();
+    updateBadges();
   });
 }
 
-function closeThread(){
-  document.getElementById('thread-panel').style.display='none';
-  _activeThreadId=null;
-  loadTab(_activeTab);
-}
+function loadMyInbox(){_currentFolder='inbox';loadMessages();}
 
-function scrollThreadToBottom(){
-  var el=document.getElementById('thread-panel-msgs');
-  if(el) setTimeout(function(){el.scrollTop=el.scrollHeight;},60);
-}
-
-/* ── Quick replies per context ── */
-function setupQuickReplies(ctx,ctxId){
-  var el=document.getElementById('compose-qr-btns');
-  if(!el)return;
-  var qrs=[];
-  if(ctx==='order'||ctx==='delivery'){
-    qrs=['Commande prête','En route','Livré','Client absent','Problème signalé'];
-  } else if(ctx==='housekeeping'){
-    qrs=['Chambre propre','Linge demandé','Maintenance signalée','En cours'];
-  } else if(ctx==='maintenance'){
-    qrs=['Reçu','En cours','Terminé','Besoin de pièces'];
-  } else if(ctx==='rh'){
-    qrs=['Document reçu','Validé','En attente de signature'];
-  } else {
-    qrs=['Reçu','Compris','En cours','Fait','OK'];
-  }
-  el.innerHTML=qrs.map(function(q){
-    return '<button class="qr-btn" onclick="sendQuickReply(\''+q.replace(/'/g,"\\'")+'\')" >'+escH(q)+'</button>';
-  }).join('');
-}
-
-function sendQuickReply(text){
-  var inp=document.getElementById('compose-input');
-  if(inp) inp.value=text;
-  submitThreadMsg();
-}
-
-/* ────────────────────────────────────
-   CONVERSATIONS — loadMessageThreads
-──────────────────────────────────── */
-function loadMessageThreads(){
-  var pane=document.getElementById('pane-threads');
-  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
-  sbQ('veraluz_message_threads?tenant_id=eq.'+TENANT+'&status=neq.archived&order=updated_at.desc&limit=40')
-    .then(function(rows){
-      if(!rows||!rows.length){
-        pane.innerHTML='<div class="empty-state"><div class="empty-ico">💬</div><div>Aucune conversation</div></div>';
-        return;
-      }
-      pane.innerHTML='<div class="msg-list">'+rows.map(function(t){
-        var dt=t.last_message_at?fmtTime(t.last_message_at):'';
-        var pBdg=t.priority&&t.priority!=='normal'?'<span class="badge bdg-'+(t.priority==='urgent'?'urgent':'high')+'">'+escH(t.priority)+'</span>':'';
-        var dBdg=t.department?'<span class="badge bdg-dept">'+escH(t.department)+'</span>':'';
-        return '<div class="msg-card" onclick="openMessageThread(\''+escH(t.id)+'\',{id:\''+escH(t.id)+'\',title:\''+escH(t.title||'Conversation')+'\',contextType:\''+escH(t.context_type||'general')+'\',contextId:\''+escH(t.context_id||'')+'\'})">'
-          +'<div class="mc-top"><span class="mc-from">💬 '+escH(t.title||'Conversation')+'</span><span class="mc-time">'+dt+'</span></div>'
-          +'<div class="mc-preview">'+escH((t.last_message||'Aucun message').slice(0,80))+'</div>'
-          +'<div class="mc-meta">'+dBdg+pBdg+'<span class="badge bdg-'+(t.status==='open'?'ok':'normal')+'">'+escH(t.status)+'</span></div>'
-          +'</div>';
-      }).join('')+'</div>';
-    }).catch(function(){
-      pane.innerHTML='<div class="empty-state"><div class="empty-ico">❌</div><div>Erreur chargement conversations</div></div>';
-    });
-}
-
-/* ── Override openMessageThread to accept object ── */
-var _origOpenThread=openMessageThread;
-function openMessageThread(threadId,refObjOrMsg){
-  if(refObjOrMsg&&refObjOrMsg.contextType){
-    _threadContext=refObjOrMsg;
-    _activeThreadId=threadId;
-    document.getElementById('thread-panel-title').textContent=refObjOrMsg.title||'Conversation';
-    document.getElementById('thread-panel-badge').style.display='none';
-    var msgsEl=document.getElementById('thread-panel-msgs');
-    msgsEl.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
-    document.getElementById('thread-panel').style.display='flex';
-    document.getElementById('compose-input').value='';
-    sbQ('veraluz_internal_messages?thread_id=eq.'+encodeURIComponent(threadId)+'&tenant_id=eq.'+TENANT+'&order=created_at.asc')
-      .then(function(rows){
-        _threadMessages=rows||[];
-        renderThreadMessages();
-        setupQuickReplies(_threadContext.contextType,_threadContext.contextId);
-        scrollThreadToBottom();
-      }).catch(function(){
-        msgsEl.innerHTML='<div class="empty-state">Impossible de charger les messages.</div>';
-      });
-  } else {
-    /* refObjOrMsg est un message objet */
-    if(refObjOrMsg) _threadContext={id:threadId,title:contextLabel(refObjOrMsg),contextType:refObjOrMsg.context_type,contextId:refObjOrMsg.context_id};
-    _activeThreadId=threadId;
-    document.getElementById('thread-panel-title').textContent=_threadContext.title||'Conversation';
-    document.getElementById('thread-panel-badge').style.display='none';
-    var msgsEl2=document.getElementById('thread-panel-msgs');
-    msgsEl2.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
-    document.getElementById('thread-panel').style.display='flex';
-    document.getElementById('compose-input').value='';
-    sbQ('veraluz_internal_messages?thread_id=eq.'+encodeURIComponent(threadId)+'&tenant_id=eq.'+TENANT+'&order=created_at.asc')
-      .then(function(rows){
-        _threadMessages=rows||[];
-        renderThreadMessages();
-        setupQuickReplies(_threadContext.contextType,_threadContext.contextId);
-        scrollThreadToBottom();
-      }).catch(function(){
-        msgsEl2.innerHTML='<div class="empty-state">Impossible de charger.</div>';
-      });
-  }
-}
-
-/* ────────────────────────────────────
-   COMMANDES / LIVRAISONS
-──────────────────────────────────── */
-function loadDeliveryMessages(){
-  var pane=document.getElementById('pane-orders');
-  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
-  var today=new Date().toISOString().slice(0,10);
-  // Unifier delivery_messages + internal_messages contexte order/delivery
-  Promise.all([
-    sbQ('veraluz_delivery_messages?tenant_id=eq.'+TENANT+'&created_at=gte.'+today+'T00:00:00&order=created_at.desc&limit=50').catch(function(){return[];}),
-    sbQ('veraluz_internal_messages?tenant_id=eq.'+TENANT+'&context_type=in.(order,delivery)&order=created_at.desc&limit=30').catch(function(){return[];})
-  ]).then(function(results){
-    var dm=results[0]||[];
-    var im=results[1]||[];
-    if(!dm.length&&!im.length){
-      pane.innerHTML='<div class="empty-state"><div class="empty-ico">🛵</div><div>Aucun message de livraison aujourd\'hui</div></div>';
-      return;
-    }
-    /* Grouper delivery_messages par order_id */
-    var orderGroups={};
-    dm.forEach(function(m){
-      var oid=m.order_id||'sans_commande';
-      if(!orderGroups[oid])orderGroups[oid]=[];
-      orderGroups[oid].push(m);
-    });
-    var html='';
-    if(dm.length){
-      html+='<div style="padding:8px 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Messages Restaurant ↔ Livreur</div>';
-      html+=Object.keys(orderGroups).map(function(oid){
-        var msgs=orderGroups[oid];
-        var last=msgs[0];
-        return '<div class="msg-card" onclick="openDeliveryOrderThread(\''+escH(oid)+'\')">'
-          +'<div class="mc-top"><span class="mc-from">🛵 Commande #'+escH(oid.slice(0,8))+'</span>'
-          +'<span class="mc-time">'+fmtTime(last.created_at)+'</span></div>'
-          +'<div class="mc-preview">'+escH((last.message||'').slice(0,60))+'</div>'
-          +'<div class="mc-meta"><span class="badge bdg-dept">'+escH(msgs.length)+' message'+(msgs.length>1?'s':'')+'</span></div>'
-          +'</div>';
-      }).join('');
-    }
-    if(im.length){
-      html+='<div style="padding:8px 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:8px;">Messages internes commandes</div>';
-      html+=im.map(function(m){return buildMsgCard(m);}).join('');
-    }
-    pane.innerHTML='<div class="msg-list">'+html+'</div>';
-  });
-}
-
-function openDeliveryOrderThread(orderId){
-  var pane=document.getElementById('thread-panel-msgs');
-  _threadContext={id:null,title:'Commande #'+orderId.slice(0,8),contextType:'order',contextId:orderId};
-  document.getElementById('thread-panel-title').textContent='🛵 Commande #'+orderId.slice(0,8);
-  document.getElementById('thread-panel-badge').style.display='none';
-  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
-  document.getElementById('thread-panel').style.display='flex';
-  document.getElementById('compose-input').value='';
-  sbQ('veraluz_delivery_messages?tenant_id=eq.'+TENANT+'&order_id=eq.'+encodeURIComponent(orderId)+'&order=created_at.asc')
-    .then(function(rows){
-      var icons={restaurant:'🍽️',driver:'🛵',system:'⚙️'};
-      _threadMessages=(rows||[]).map(function(m){
-        return {id:m.id,sender_type:m.sender_type,sender_name:m.sender_name,
-          message:m.message,created_at:m.created_at,priority:m.priority||'normal'};
-      });
-      renderThreadMessages();
-      setupQuickReplies('order',orderId);
-      scrollThreadToBottom();
-    }).catch(function(){
-      pane.innerHTML='<div class="empty-state">Erreur chargement messages commande</div>';
-    });
-}
-
-/* ────────────────────────────────────
-   EMPLOYÉS
-──────────────────────────────────── */
-function loadEmployeeMessages(){
-  var pane=document.getElementById('pane-employees');
-  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
-  sbQ('veraluz_internal_messages?tenant_id=eq.'+TENANT
-    +'&context_type=eq.employee&status=neq.archived&order=created_at.desc&limit=40')
-    .then(function(rows){
-      if(!rows||!rows.length){
-        pane.innerHTML='<div class="empty-state"><div class="empty-ico">👥</div>'
-          +'<div>Aucun message employé</div>'
-          +'<button class="btn-primary" style="margin-top:14px;" onclick="openNewMsg(\'employee\')">Envoyer un message</button></div>';
-        return;
-      }
-      pane.innerHTML='<div class="msg-list">'+rows.map(function(m){return buildMsgCard(m);}).join('')+'</div>';
-    }).catch(function(){
-      pane.innerHTML='<div class="empty-state"><div class="empty-ico">👥</div><div>Messages employés non disponibles</div></div>';
-    });
-}
-
-function renderEmployeeMessages(employeeId){
-  /* Helper pour modules externes (RH) */
-  return sbQ('veraluz_internal_messages?tenant_id=eq.'+TENANT+'&context_type=eq.employee&context_id=eq.'+encodeURIComponent(employeeId)+'&order=created_at.desc&limit=20');
-}
-
-/* ────────────────────────────────────
-   CHLOÉ
-──────────────────────────────────── */
-function renderChloeMessages(){
-  var pane=document.getElementById('pane-chloe');
-  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
-  sbQ('veraluz_internal_messages?tenant_id=eq.'+TENANT+'&sender_type=eq.chloe&status=neq.archived&order=created_at.desc&limit=50')
-    .then(function(rows){
-      var cl=rows||[];
-      /* Badge Chloé urgents */
-      var urgents=cl.filter(function(m){return m.priority==='urgent'&&!m.read_at;}).length;
-      var badge=document.getElementById('tbadge-chloe');
-      if(badge){badge.textContent=urgents>99?'99+':String(urgents);badge.style.display=urgents?'':'none';}
-      if(!cl.length){
-        pane.innerHTML='<div class="empty-state"><div class="empty-ico">🧠</div>'
-          +'<div>Aucun message de Chloé</div>'
-          +'<div style="font-size:12px;color:var(--text3);margin-top:8px;">Les alertes, rappels et recommandations de Chloé apparaîtront ici.</div></div>';
-        return;
-      }
-      var html='<div style="padding:10px 14px;background:rgba(188,140,255,.06);border-bottom:1px solid var(--border);">'
-        +'<div style="font-size:12px;color:var(--purple);font-weight:600;">🧠 Messages de la Directrice Chloé</div>'
-        +'<div style="font-size:11px;color:var(--text2);margin-top:2px;">Alertes, résumés et recommandations IA. Toute action requiert votre validation.</div>'
-        +'</div><div class="msg-list">'+cl.map(function(m){return buildChloeCard(m);}).join('')+'</div>';
-      pane.innerHTML=html;
-    }).catch(function(){
-      pane.innerHTML='<div class="empty-state"><div class="empty-ico">🧠</div><div>Messages Chloé non disponibles</div></div>';
-    });
-}
-
-function buildChloeCard(m){
-  var dt=m.created_at?fmtTime(m.created_at):'';
-  var typeIco={alert:'🔴',reminder:'⏰',recommendation:'💡',report_ready:'📊',approval_required:'✅',incident:'⚠️',text:'💬'};
-  var ico=typeIco[m.message_type]||'🧠';
-  var isUnread=!m.read_at;
-  var pBdg=m.priority&&m.priority!=='normal'?'<span class="badge bdg-'+(m.priority==='urgent'?'urgent':'high')+'">'+escH(m.priority)+'</span>':'';
-  return '<div class="msg-card'+(isUnread?' unread':'')+(m.priority==='urgent'?' urgent':'')+'" onclick="openMessage(\''+escH(m.id)+'\',\'chloe\')">'
-    +'<div class="mc-top"><span class="mc-from"><span class="badge bdg-chloe" style="margin-right:4px;">🧠 Chloé</span>'+ico+' '+escH(m.message_type||'message')+'</span><span class="mc-time">'+dt+'</span></div>'
-    +'<div class="mc-preview">'+escH((m.message||'').slice(0,100))+'</div>'
-    +'<div class="mc-meta">'+pBdg+(m.requires_action?'<span class="badge bdg-action">⚡ Validation requise</span>':'')+'</div>'
-    +'</div>';
-}
-
-/* ────────────────────────────────────
-   BROUILLONS EXTERNES
-──────────────────────────────────── */
-function loadDrafts(){
-  var pane=document.getElementById('pane-drafts');
-  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
-  sbQ('veraluz_chloe_drafts?tenant_id=eq.'+TENANT+'&status=eq.draft&order=created_at.desc&limit=40')
-    .then(function(rows){
-      if(!rows||!rows.length){
-        pane.innerHTML='<div class="empty-state"><div class="empty-ico">✉️</div>'
-          +'<div>Aucun brouillon</div>'
-          +'<div style="font-size:12px;color:var(--text3);margin-top:8px;">Les brouillons WhatsApp, email et SMS préparés par Chloé apparaîtront ici.<br>Aucun envoi automatique — vous envoyez manuellement.</div></div>';
-        return;
-      }
-      var html='<div style="padding:8px 14px;background:rgba(210,153,34,.06);border-bottom:1px solid var(--border);">'
-        +'<div style="font-size:11px;color:var(--warn);font-weight:600;">⚠️ Aucun envoi automatique — vous copiez et envoyez manuellement</div></div>'
-        +'<div>'+rows.map(function(d){return buildDraftCard(d);}).join('')+'</div>';
-      pane.innerHTML=html;
-    }).catch(function(){
-      pane.innerHTML='<div class="empty-state"><div class="empty-ico">✉️</div><div>Brouillons non disponibles.<br>Exécutez MIGRATION_SQL_PROMPT_030.sql</div></div>';
-    });
-}
-
-function buildDraftCard(d){
-  var typeIco={email_client:'📧 Email client',whatsapp_client:'📱 WhatsApp client',
-    email_fournisseur:'📧 Email fournisseur',whatsapp_fournisseur:'📱 WhatsApp fournisseur',
-    email_employe:'📧 Email employé',note_interne:'📝 Note interne'};
-  var typ=typeIco[d.draft_type]||('✉️ '+escH(d.draft_type||''));
-  var dt=d.created_at?fmtTime(d.created_at):'';
-  return '<div class="draft-card">'
-    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
-    +'<span class="badge bdg-type">'+typ+'</span>'
-    +'<span style="font-size:11px;color:var(--text3);">'+dt+'</span></div>'
-    +(d.recipient_name?'<div class="draft-to">À : '+escH(d.recipient_name)+'</div>':'')
-    +(d.subject?'<div class="draft-subject">'+escH(d.subject)+'</div>':'')
-    +'<div class="draft-body">'+escH((d.body||'').slice(0,200))+'</div>'
-    +'<div class="draft-actions">'
-    +'<button class="btn-sm" onclick="copyDraftMessage(\''+escH(d.id)+'\','+JSON.stringify(d.body).replace(/</g,'\\u003c')+')">📋 Copier</button>'
-    +'<button class="btn-sm ok" onclick="markDraftSentByHuman(\''+escH(d.id)+'\')">✓ Marquer envoyé</button>'
-    +'<button class="btn-sm" onclick="cancelDraft(\''+escH(d.id)+'\')">✕ Annuler</button>'
-    +'</div></div>';
-}
-
-function copyDraftMessage(draftId,body){
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(body).then(function(){toast('📋 Brouillon copié','ok');})
-      .catch(function(){_execCopyText(body);});
-  } else { _execCopyText(body); }
-}
-function _execCopyText(text){
-  var ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';
-  document.body.appendChild(ta);ta.focus();ta.select();
-  try{document.execCommand('copy');}catch(e){}
-  document.body.removeChild(ta);toast('📋 Copié','ok');
-}
-
-function markDraftSentByHuman(draftId){
-  sbUpd('veraluz_chloe_drafts','id=eq.'+encodeURIComponent(draftId),
-    {status:'sent_by_human',sent_at:new Date().toISOString(),updated_at:new Date().toISOString()})
-    .then(function(){toast('✓ Marqué comme envoyé','ok');loadDrafts();})
-    .catch(function(){toast('Erreur','err');});
-}
-
-function cancelDraft(draftId){
-  if(!confirm('Annuler ce brouillon ?'))return;
-  sbUpd('veraluz_chloe_drafts','id=eq.'+encodeURIComponent(draftId),
-    {status:'cancelled',updated_at:new Date().toISOString()})
-    .then(function(){toast('Brouillon annulé','info');loadDrafts();})
-    .catch(function(){toast('Erreur','err');});
-}
-
-/* ────────────────────────────────────
-   CORE FUNCTIONS
-──────────────────────────────────── */
-function sendInternalMessage(payload){
-  /* PROMPT 031D — Sécurité : jamais service_role, PIN, WhatsApp/email auto, paiement auto */
-  var actor=getCurrentMessagingActor();
-  var data=Object.assign({
-    tenant_id:TENANT,
-    sender_type:actor.actor_type||'admin',
-    sender_id:actor.actor_id||actor.user_id||'',
-    sender_name:actor.actor_name||'Utilisateur',
-    department:actor.department||'direction',
-    is_internal:true,
-    status:'sent',
-    created_at:new Date().toISOString()
-  },payload);
-  console.log('[MSGS] sendInternalMessage actor='+actor.actor_type+' to='+data.recipient_type+'/'+data.recipient_id);
-  return sbIns('veraluz_internal_messages',data);
-}
-
-function markMessageRead(messageId){
-  var msg=_allMessages.find(function(m){return m.id===messageId;});
-  if(!msg||msg.read_at)return Promise.resolve();
-  msg.read_at=new Date().toISOString();
-  return sbUpd('veraluz_internal_messages','id=eq.'+encodeURIComponent(messageId),
-    {read_at:msg.read_at,status:'read'}).catch(function(){});
-}
-
-function archiveMessage(messageId){
-  return sbUpd('veraluz_internal_messages','id=eq.'+encodeURIComponent(messageId),
-    {status:'archived',archived_at:new Date().toISOString()})
-    .then(function(){toast('Message archivé','info');loadTab(_activeTab);})
-    .catch(function(){toast('Erreur archivage','err');});
-}
-
-function getUnreadMessageCount(){
-  /* PROMPT 031D — compter seulement les messages visibles par l'acteur courant */
-  var actor=getCurrentMessagingActor();
-  var base='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&status=eq.sent&read_at=is.null&select=id&limit=100';
-  if(actor.can_view_all_messages){
-    return sbQ(base).then(function(r){return (r||[]).length;}).catch(function(){return 0;});
-  }
-  var queries=[];
-  if(actor.actor_id) queries.push(sbQ(base+'&recipient_id=eq.'+encodeURIComponent(actor.actor_id)).catch(function(){return[];}));
-  if(actor.employee_id&&actor.employee_id!==actor.actor_id)
-    queries.push(sbQ(base+'&recipient_id=eq.'+encodeURIComponent(actor.employee_id)).catch(function(){return[];}));
-  if(actor.actor_type) queries.push(sbQ(base+'&recipient_type=eq.'+encodeURIComponent(actor.actor_type)).catch(function(){return[];}));
-  if(actor.department&&actor.department!=='direction')
-    queries.push(sbQ(base+'&department=eq.'+encodeURIComponent(actor.department)).catch(function(){return[];}));
-  return Promise.all(queries).then(function(results){
-    var combined=[]; results.forEach(function(r){combined=combined.concat(r||[]);});
-    return dedupeMessagesById(combined).length;
-  }).catch(function(){return 0;});
-}
-
-function updateBadges(){
-  var inboxBadge=document.getElementById('tbadge-inbox');
-  var topBadge=document.getElementById('unread-badge');
-  if(_unreadCount>0){
-    if(inboxBadge){inboxBadge.textContent=_unreadCount>99?'99+':String(_unreadCount);inboxBadge.style.display='';}
-    if(topBadge){topBadge.textContent=_unreadCount>99?'99+':String(_unreadCount);topBadge.style.display='';}
-  } else {
-    if(inboxBadge)inboxBadge.style.display='none';
-    if(topBadge)topBadge.style.display='none';
-  }
-  /* Notifier le CORE parent */
-  try{
-    window.parent.postMessage({type:'message-count',source:'veraluz-messages',data:{unread:_unreadCount}},'*');
-  }catch(e){}
-}
-
-function renderMessageBadge(){
-  getUnreadMessageCount().then(function(n){
-    _unreadCount=n;updateBadges();
-  });
-}
-
-/* ── New message modal ── */
-function openNewMsg(forcedCtx){
-  if(forcedCtx){
-    var sel=document.getElementById('nm-context');
-    if(sel)sel.value=forcedCtx;
-  }
-  document.getElementById('new-msg-ov').classList.add('open');
-  document.getElementById('new-msg-sheet').style.display='block';
-  setTimeout(function(){document.getElementById('nm-message').focus();},150);
-}
-function closeNewMsg(){
-  document.getElementById('new-msg-ov').classList.remove('open');
-  document.getElementById('new-msg-sheet').style.display='none';
-}
-
-function submitNewMsg(){
-  var recipient=document.getElementById('nm-recipient').value;
-  var ctx=document.getElementById('nm-context').value;
-  var priority=document.getElementById('nm-priority').value;
-  var msg=(document.getElementById('nm-message').value||'').trim();
-  if(!msg){toast('Message vide','err');return;}
-  var deptMap={admin:'direction',restaurant:'restaurant',delivery:'delivery',
-    housekeeping:'housekeeping',rh:'rh',maintenance:'maintenance',all_admins:'direction'};
-  sendInternalMessage({
-    context_type:ctx,
-    recipient_type:recipient,
-    department:deptMap[recipient]||'direction',
-    message:msg,
-    message_type:'text',
-    priority:priority
-  }).then(function(){
-    toast('Message envoyé','ok');
-    closeNewMsg();
-    document.getElementById('nm-message').value='';
-    loadTab(_activeTab);
-  }).catch(function(e){
-    var msg=e&&(e.detail||e.message)||'Erreur inconnue';
-    toast('Erreur: '+msg.substring(0,80),'err');
-    console.error('[MSGS] Erreur envoi:',e);
-  });
-}
-
-/* ── createChloeMessage (appelable par AI_CENTER) ── */
-function createChloeMessage(payload){
-  /* PROMPT 031D — Chloé : alertes ciblées uniquement. Jamais WhatsApp/email/paiement auto.
-     payload doit inclure: recipient_type, department, priority, context_type, context_id */
-  if(!payload||!payload.message){console.warn('[Chloé] message manquant'); return Promise.resolve();}
-  var data=Object.assign({
-    sender_type:'chloe',
-    sender_id:'chloe_director',
-    sender_name:'Directrice Chloé',
-    recipient_type:'admin',         /* défaut — peut être écrasé par payload */
-    department:'direction',
-    priority:'normal',
-    is_internal:true,
-    requires_action:false,
-    status:'sent',
-    created_at:new Date().toISOString()
-  },payload,{tenant_id:TENANT});
-  console.log('[Chloé] Alerte ciblée → '+data.recipient_type+(data.recipient_id?'/'+data.recipient_id:'')+' prio='+data.priority);
-  return sbIns('veraluz_internal_messages',data);
-}
-
-/* ── logMessageEvent — incidents → delivery_events ── */
-function logMessageEvent(message){
-  /* Seulement pour incidents/statuts importants */
-  var eventTypes={
-    'Client absent':'incident_client_absent',
-    'Adresse introuvable':'incident_address_issue',
-    'Problème paiement':'incident_payment',
-    'Commande récupérée':'driver_picked_up',
-    'Je suis en route':'driver_en_route',
-    'Je suis arrivé':'driver_arrived',
-    'Commande livrée':'delivery_completed',
-    'Commande prête':'message_order_ready'
-  };
-  var evType=eventTypes[message.message]||null;
-  if(!evType||!message.order_id)return Promise.resolve();
-  return fetch(SB+'/rest/v1/veraluz_delivery_events',{
-    method:'POST',
-    headers:H({Prefer:'return=minimal'}),
-    body:JSON.stringify({
-      tenant_id:TENANT,
-      order_id:message.order_id,
-      event_type:evType,
-      actor_type:message.sender_type||'driver',
-      actor_id:message.sender_id||null,
-      notes:'Via messagerie interne',
-      created_at:new Date().toISOString()
-    })
-  }).catch(function(){});
-}
-
-/* ── sendDeliveryMessage ── */
-function sendDeliveryMessage(orderId,message,type){
-  return sbIns('veraluz_delivery_messages',{
-    tenant_id:TENANT,
-    order_id:orderId,
-    sender_type:_currentUser.role||'admin',
-    sender_id:_currentUser.username||'',
-    sender_name:_currentUser.name||'',
-    message:message,
-    message_type:type||'text'
-  });
-}
-
-/* ────────────────────────────────────
-   INIT
-──────────────────────────────────── */
-/* PROMPT 031D — Debug admin droits messagerie */
-function renderActorDebugPanel(){
-  var actor=getCurrentMessagingActor();
-  var el=document.getElementById('actor-debug-panel');
-  if(!el)return;
-  if(!actor.can_view_all_messages){el.style.display='none';return;}
-  el.style.display='block';
-  el.innerHTML='<div style="background:#1c2333;border:1px solid #58a6ff;border-radius:8px;padding:12px;margin:8px;font-size:12px;">'
-    +'<b style="color:#58a6ff">🔍 Contexte acteur (debug admin)</b><br><br>'
-    +'<b>actor_id:</b> '+escH(actor.actor_id)+'<br>'
-    +'<b>actor_name:</b> '+escH(actor.actor_name)+'<br>'
-    +'<b>actor_type:</b> '+escH(actor.actor_type)+'<br>'
-    +'<b>role:</b> '+escH(actor.role)+'<br>'
-    +'<b>department:</b> '+escH(actor.department)+'<br>'
-    +'<b>tenant_id:</b> '+escH(actor.tenant_id)+'<br>'
-    +'<b>can_view_all_messages:</b> '+actor.can_view_all_messages+'<br>'
-    +'<b>can_send_to_all:</b> '+actor.can_send_to_all+'<br>'
-    +'<b>Messages visibles:</b> '+_allMessages.length+'<br>'
-    +'<b>Non lus:</b> '+_unreadCount+'<br>'
-    +'<button onclick="renderActorDebugPanel()" style="margin-top:8px;padding:4px 10px;background:#21262d;border:1px solid #444;color:#c9d1d9;border-radius:4px;cursor:pointer;">Rafraîchir</button>'
-    +'</div>';
-}
-
-
-/* ── PROMPT 032 — Alert polling messages 20s ── */
-var _vlzLastMsgId='',_vlzMsgPollInterval=null;
+/* ── Polling temps réel ──────────────────────────────────────────────────── */
 function startMsgAlertPolling(){
-  if(_vlzMsgPollInterval)return;
-  _vlzMsgPollInterval=setInterval(function(){
-    var actor=getCurrentMessagingActor();
-    if(!actor)return;
-    var qs='veraluz_internal_messages?tenant_id=eq.'+encodeURIComponent(TENANT)
-      +'&status=not.in.(archived,cancelled)&order=created_at.desc&limit=5';
-    sbGet(qs).then(function(msgs){
-      if(!msgs||!msgs.length)return;
-      var newest=msgs[0];
-      if(!newest||!newest.id)return;
-      if(_vlzLastMsgId===String(newest.id))return; /* rien de nouveau */
-      if(_vlzLastMsgId===''){ _vlzLastMsgId=String(newest.id); return; } /* 1er poll = baseline */
-      /* Vérifier visibilité acteur */
-      if(!canActorSeeMessage(actor,newest))return;
-      _vlzLastMsgId=String(newest.id);
-      var from=newest.sender_name||newest.sender_type||'Système';
-      var body=newest.message||(newest.subject||'Nouveau message');
-      vlzAlert('Message de '+from, body.substring(0,80), 'message', 'vlz-msg-'+newest.id);
-      /* Recharger badge + inbox si ouvert */
-      renderMessageBadge();
-      if(typeof _activeTab!=='undefined'&&_activeTab==='inbox'){
-        loadMessages({status:'sent',excludeArchived:true});
+  clearInterval(_pollT);
+  _pollT=setInterval(function(){
+    sbQ('veraluz_internal_messages?tenant_id=eq.'+encodeURIComponent(TENANT)+'&order=created_at.desc&limit=1&is_draft=eq.false')
+    .then(function(data){
+      if(data&&data.length&&data[0].id!==_lastMsgId){
+        loadMessages();
+        try{var ctx=new (window.AudioContext||window.webkitAudioContext)();var o=ctx.createOscillator();var g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.setValueAtTime(0.15,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);o.start();o.stop(ctx.currentTime+0.3);}catch(e){}
       }
     }).catch(function(){});
   },20000);
 }
 
-
-/* ══════════════════════════════════════════════════════════════
-   VERALUZ ALERT ENGINE v032 — Alertes temps réel
-   WebAudio + Notification OS + Toast + Vibration
-   Aucun envoi WA/email/paiement automatique
-   ══════════════════════════════════════════════════════════════ */
-var _vlzAC=null,_vlzNP=false;
-function _vlzBeep(f,d,v){
-  try{
-    if(!_vlzAC)_vlzAC=new(window.AudioContext||window.webkitAudioContext||function(){return null;})();
-    if(!_vlzAC)return;
-    if(_vlzAC.state==='suspended')_vlzAC.resume();
-    var o=_vlzAC.createOscillator(),g=_vlzAC.createGain();
-    o.connect(g);g.connect(_vlzAC.destination);
-    o.type='sine';o.frequency.value=f||880;
-    g.gain.setValueAtTime(v||0.22,_vlzAC.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001,_vlzAC.currentTime+(d||0.3));
-    o.start();o.stop(_vlzAC.currentTime+(d||0.3));
-  }catch(e){}
-}
-function vlzAlertSound(type){
-  if(type==='urgent'){
-    _vlzBeep(1000,0.1,0.3);setTimeout(function(){_vlzBeep(1000,0.1,0.3);},140);
-    setTimeout(function(){_vlzBeep(1200,0.22,0.35);},280);
-  }else if(type==='reservation'){
-    _vlzBeep(440,0.12,0.2);setTimeout(function(){_vlzBeep(550,0.15,0.22);},160);
-    setTimeout(function(){_vlzBeep(660,0.2,0.28);},320);
-  }else if(type==='order'){
-    _vlzBeep(528,0.18,0.22);setTimeout(function(){_vlzBeep(660,0.22,0.28);},230);
-  }else{
-    _vlzBeep(660,0.12,0.18);setTimeout(function(){_vlzBeep(880,0.18,0.22);},160);
+/* ════════════════════════════════════════════════════════════════════════════
+   RENDU LISTE
+   ════════════════════════════════════════════════════════════════════════════ */
+function renderList(){
+  var msgs=applyFilters(_allMsgs);
+  var el=document.getElementById('conv-list');
+  if(!msgs.length){
+    el.innerHTML='<div style="padding:40px 16px;text-align:center;color:var(--text3);"><div style="font-size:32px;margin-bottom:8px;">📭</div><div>Aucun message</div></div>';
+    return;
   }
+  el.innerHTML=msgs.map(function(m){
+    var av=avColor(m.sender_name||m.department||'');
+    var init=avInit(m.sender_name||m.department||'');
+    var unread=!m.read;
+    var lbls=(m.labels||[]).slice(0,2).map(miniTag).join('');
+    var prev=(m.body||'').replace(/\n/g,' ').substring(0,70);
+    var isActive=_openId===m.id;
+    return '<div class="conv-item'+(unread?' unread':'')+(isActive?' active':'')+'" onclick="openMsg(\''+m.id+'\')" data-id="'+m.id+'">'
+      +'<div class="conv-av" style="background:'+av.bg+';color:'+av.c+';">'+escH(init)+'</div>'
+      +'<div class="conv-body">'
+        +'<div class="conv-top"><span class="conv-from">'+escH(m.sender_name||'Système')+'</span><span class="conv-time">'+fmtShort(m.created_at)+'</span></div>'
+        +'<div class="conv-sub">'+escH(m.subject||'(Sans objet)')+'</div>'
+        +'<div class="conv-prev">'+escH(prev)+'</div>'
+        +(lbls?'<div class="conv-tags">'+lbls+'</div>':'')
+      +'</div>'
+      +'<div class="conv-star'+(m.starred?' on':'')+'" onclick="event.stopPropagation();quickStar(\''+m.id+'\',this)" title="Étoiler">★</div>'
+    +'</div>';
+  }).join('');
 }
-function vlzRequestNotif(){
-  if(!('Notification' in window)||Notification.permission!=='default')return;
-  Notification.requestPermission().then(function(p){_vlzNP=(p==='granted');}).catch(function(){});
+
+function applyFilters(msgs){
+  return msgs.filter(function(m){
+    if(_searchQ){
+      var q=_searchQ.toLowerCase();
+      if(!((m.subject||'').toLowerCase().includes(q)||(m.sender_name||'').toLowerCase().includes(q)||(m.body||'').toLowerCase().includes(q)))return false;
+    }
+    if(_currentLabel){
+      if(!(m.labels||[]).includes(_currentLabel))return false;
+    }
+    if(_currentFilter==='unread')return!m.read;
+    if(_currentFilter==='starred')return m.starred;
+    if(_currentFilter==='urgent')return(m.labels||[]).includes('urgent');
+    if(_currentFilter==='chloe')return m.sender_type==='chloe';
+    return true;
+  });
 }
-function vlzNotif(title,body,tag){
-  if(typeof Notification==='undefined')return;
-  _vlzNP=(Notification.permission==='granted');
-  if(!_vlzNP)return;
-  try{new Notification(title||'Veraluz',{body:body||'',tag:tag||'vlz-alert',
-    icon:'https://ngams237.github.io/mako-city_suivis_ok/icon-192.png',silent:false});}
-  catch(e){}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   OUVRIR UN MESSAGE
+   ════════════════════════════════════════════════════════════════════════════ */
+function openMsg(id){
+  var m=_allMsgs.find(function(x){return x.id===id;});
+  if(!m)return;
+  _openId=id;_openMsg=m;
+  m.read=true;
+  /* Passer à det-view */
+  document.getElementById('det-empty').style.display='none';
+  var dv=document.getElementById('det-view');dv.style.display='flex';dv.style.flexDirection='column';dv.style.flex='1';dv.style.minHeight='0';dv.style.overflow='hidden';
+  /* Subject */
+  document.getElementById('det-subject').textContent=m.subject||'(Sans objet)';
+  document.getElementById('det-tags').innerHTML=(m.labels||[]).map(detTag).join('');
+  /* Étoile */
+  refreshStarBtn(m.starred);
+  /* Thread */
+  renderThread(m);
+  /* Quick replies */
+  renderQuickReplies(m);
+  /* Reply label */
+  document.getElementById('reply-to-label').textContent='Répondre à '+(m.sender_name||'Système')+'…';
+  document.getElementById('reply-input').value='';
+  /* Activer dans liste */
+  document.querySelectorAll('.conv-item').forEach(function(el){el.classList.remove('active');});
+  var row=document.querySelector('[data-id="'+id+'"]');
+  if(row){row.classList.remove('unread');row.classList.add('active');}
+  /* Marquer lu */
+  sbUpd('veraluz_internal_messages',{read:true,read_at:new Date().toISOString()},'id=eq.'+id).catch(function(){});
+  /* Scroll thread */
+  setTimeout(function(){var ta=document.getElementById('thread-area');if(ta)ta.scrollTop=ta.scrollHeight;},60);
 }
-function vlzAlert(title,body,soundType,tag){
-  if(typeof toast==='function')toast('\uD83D\uDD14 '+(body||title).substring(0,70),'ok');
-  vlzAlertSound(soundType||'message');
-  try{if(navigator.vibrate)navigator.vibrate([100,50,100]);}catch(e){}
-  vlzNotif(title,body,tag||'vlz-alert');
-  console.log('[VLZ ALERT]',title,'|',(body||'').substring(0,60));
+
+function renderThread(m){
+  var av=avColor(m.sender_name||'');
+  var init=avInit(m.sender_name||'');
+  var bodyHtml=escH(m.body||'').replace(/\n/g,'<br>');
+  var html='<div class="msg-card">'
+    +'<div class="msg-card-hdr">'
+      +'<div class="msg-av" style="background:'+av.bg+';color:'+av.c+';">'+escH(init)+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+        +'<div class="msg-sender">'+escH(m.sender_name||'Système')+'</div>'
+        +'<div class="msg-to-line">'+escH(m.department||'')+(m.recipient_name?' → '+escH(m.recipient_name):'')+'</div>'
+      +'</div>'
+      +'<span class="msg-card-time">'+fmtLong(m.created_at)+'</span>'
+      +'<div class="msg-card-actions">'
+        +'<button class="msg-action" onclick="focusReply()" title="Répondre"><svg viewBox="0 0 24 24"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg></button>'
+        +'<button class="msg-action" onclick="forwardMsg()" title="Transférer"><svg viewBox="0 0 24 24"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 014-4h12"/></svg></button>'
+      +'</div>'
+    +'</div>'
+    +'<div class="msg-body">'+bodyHtml+'</div>'
+  +'</div>';
+  /* Réponses */
+  var replies=m.replies||[];
+  replies.forEach(function(r){
+    var rav=avColor(r.sender_name||'Moi');
+    var rInit=avInit(r.sender_name||'Moi');
+    html+='<div class="msg-card">'
+      +'<div class="msg-card-hdr">'
+        +'<div class="msg-av" style="background:'+rav.bg+';color:'+rav.c+';">'+escH(rInit)+'</div>'
+        +'<div><div class="msg-sender">'+escH(r.sender_name||'Moi')+'</div>'
+        +'<div class="msg-to-line">'+fmtLong(r.created_at)+'</div></div>'
+      +'</div>'
+      +'<div class="msg-body">'+escH(r.body||'').replace(/\n/g,'<br>')+'</div>'
+    +'</div>';
+  });
+  document.getElementById('thread-area').innerHTML=html;
 }
-document.addEventListener('click',function(){vlzRequestNotif();},{once:true});
-/* ══════════════════════════════════════════════════════════════ */
-addEventListener('DOMContentLoaded',function(){
-  /* PROMPT 031D — init avec acteur identifié */
+
+function renderQuickReplies(m){
+  var dept=(m.department||'').toLowerCase();
+  var labels=m.labels||[];
+  var qrs;
+  if(labels.includes('rh')||dept==='rh'){
+    qrs=['✅ Congé validé','❌ Congé refusé','📋 En cours d\'examen','📞 Je vous rappelle'];
+  }else if(labels.includes('urgent')||dept==='livreur'){
+    qrs=['✅ Pris en charge','📞 Contact client','🔄 Réassignation','👍 Compris, merci'];
+  }else if(dept==='restaurant'){
+    qrs=['✅ Livreur assigné','⏳ Attente 5 min','📞 Contact client','🔄 Annuler commande'];
+  }else if(dept==='finance'){
+    qrs=['✅ Validé','🔍 À vérifier','📎 Pièce reçue','👍 Accusé de réception'];
+  }else{
+    qrs=['✅ Pris en compte','👍 Compris','📞 Je vous recontacte','🔄 En cours'];
+  }
+  var el=document.getElementById('quick-replies');
+  el.style.display='flex';
+  el.innerHTML='<span style="font-size:11px;color:var(--text3);align-self:center;flex-shrink:0;margin-right:2px;">Réponse rapide :</span>'
+    +qrs.map(function(q){return'<button class="qr-btn" onclick="quickReply(\''+escH(q.replace(/'/g,"\\'"))+'\')">'+escH(q)+'</button>';}).join('');
+}
+
+function quickReply(text){
+  document.getElementById('reply-input').value=text;
+  document.getElementById('reply-input').focus();
+}
+
+function aiQuickReply(){
+  if(!_openMsg)return;
+  var suggestions=['Bien reçu, je prends en charge ce dossier immédiatement.','Merci pour cette information. Je reviendrai vers vous d\'ici 30 minutes.','Message transmis à l\'équipe concernée pour traitement prioritaire.','Je valide cette demande. Le dossier sera traité ce jour.'];
+  var s=suggestions[Math.floor(Math.random()*suggestions.length)];
+  document.getElementById('reply-input').value=s;
+  document.getElementById('reply-input').focus();
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ACTIONS MESSAGE
+   ════════════════════════════════════════════════════════════════════════════ */
+function refreshStarBtn(starred){
+  var icon=document.getElementById('star-icon');
+  var lbl=document.getElementById('star-label');
+  if(!icon||!lbl)return;
+  if(starred){icon.style.fill='#f59e0b';icon.style.stroke='#f59e0b';}
+  else{icon.style.fill='none';icon.style.stroke='currentColor';}
+  lbl.textContent=starred?'Étoilé':'Étoiler';
+}
+function toggleStar(){
+  if(!_openMsg)return;
+  _openMsg.starred=!_openMsg.starred;
+  refreshStarBtn(_openMsg.starred);
+  var row=document.querySelector('[data-id="'+_openId+'"] .conv-star');
+  if(row)row.classList.toggle('on',_openMsg.starred);
+  sbUpd('veraluz_internal_messages',{starred:_openMsg.starred},'id=eq.'+_openId).catch(function(){});
+  toast(_openMsg.starred?'Message étoilé ★':'Étoile retirée');
+}
+function quickStar(id,el){
+  var m=_allMsgs.find(function(x){return x.id===id;});if(!m)return;
+  m.starred=!m.starred;
+  el.classList.toggle('on',m.starred);
+  sbUpd('veraluz_internal_messages',{starred:m.starred},'id=eq.'+id).catch(function(){});
+}
+function archiveMsg(){
+  if(!_openId)return;
+  if(_openMsg)_openMsg.archived=true;
+  _allMsgs=_allMsgs.filter(function(m){return m.id!==_openId;});
+  sbUpd('veraluz_internal_messages',{archived:true},'id=eq.'+_openId).catch(function(){});
+  closeDetail();renderList();toast('Message archivé');
+}
+function deleteMsg(){
+  if(!_openId)return;
+  if(!confirm('Supprimer ce message définitivement ?'))return;
+  _allMsgs=_allMsgs.filter(function(m){return m.id!==_openId;});
+  sbDel('veraluz_internal_messages','id=eq.'+_openId).catch(function(){});
+  closeDetail();renderList();toast('Message supprimé');
+}
+function closeDetail(){
+  _openId=null;_openMsg=null;
+  document.getElementById('det-empty').style.display='flex';
+  document.getElementById('det-view').style.display='none';
+  document.querySelectorAll('.conv-item').forEach(function(el){el.classList.remove('active');});
+}
+function markMessageRead(id){
+  var m=_allMsgs.find(function(x){return x.id===id;});
+  if(m){m.read=true;sbUpd('veraluz_internal_messages',{read:true},'id=eq.'+id).catch(function(){});}
+}
+function archiveMessage(id){
+  if(id){var m=_allMsgs.find(function(x){return x.id===id;});if(m)m.archived=true;_allMsgs=_allMsgs.filter(function(m){return m.id!==id;});sbUpd('veraluz_internal_messages',{archived:true},'id=eq.'+id).catch(function(){});renderList();}
+}
+
+/* ── Répondre ────────────────────────────────────────────────────────────── */
+function focusReply(){document.getElementById('reply-input').focus();}
+function forwardMsg(){
+  openCompose();
+  document.getElementById('cm-subject').value='Fwd: '+((_openMsg&&_openMsg.subject)||'');
+  var fwd='\n\n--- Message transféré ---\nDe : '+((_openMsg&&_openMsg.sender_name)||'')+'\nDate : '+fmtLong((_openMsg&&_openMsg.created_at)||'')+'\n\n'+((_openMsg&&_openMsg.body)||'');
+  document.getElementById('cm-body').value=fwd;
+}
+function replyKeydown(e){if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();sendReply();}}
+function sendReply(){
+  var txt=document.getElementById('reply-input').value.trim();
+  if(!txt){toast('Écrivez votre réponse','err');return;}
   var actor=getCurrentMessagingActor();
-  console.log('[MSGS] Actor:', actor.actor_type, actor.actor_name, 'can_view_all='+actor.can_view_all_messages);
-  loadMessages({status:'sent',excludeArchived:true});
-  renderMessageBadge();
-  /* Panneau debug admin */
-  setTimeout(renderActorDebugPanel, 800);
-  /* Polling léger toutes les 45s */
-  setInterval(function(){
-    if(_activeTab==='inbox')loadMessages({status:'sent',excludeArchived:true});
-    else if(_activeTab==='chloe')renderChloeMessages();
-    renderMessageBadge();
-  },45000);
-  /* PROMPT 032 — alertes temps réel */
+  var data={
+    parent_id:_openId,
+    sender_name:actor.actor_name,sender_type:actor.actor_type,sender_id:actor.actor_id,
+    department:actor.department,
+    subject:'Re: '+((_openMsg&&_openMsg.subject)||''),
+    body:txt,labels:[],starred:false,read:false,archived:false,is_draft:false,
+    /* PROMPT 038 — destinataire = expéditeur original */
+    recipient_id:(_openMsg&&_openMsg.sender_id)||null,
+    recipient_type:'direct',
+    tenant_id:actor.tenant_id||TENANT,created_at:new Date().toISOString()
+  };
+  if(_openMsg){
+    if(!_openMsg.replies)_openMsg.replies=[];
+    _openMsg.replies.push({sender_name:actor.actor_name,body:txt,created_at:new Date().toISOString()});
+    renderThread(_openMsg);
+  }
+  document.getElementById('reply-input').value='';
+  sbIns('veraluz_internal_messages',data).then(function(){toast('Réponse envoyée','ok');}).catch(function(){toast('Réponse sauvegardée localement');});
+  setTimeout(function(){var ta=document.getElementById('thread-area');if(ta)ta.scrollTop=ta.scrollHeight;},80);
+}
+
+/* ── Chloé IA ────────────────────────────────────────────────────────────── */
+function createChloeMessage(subject,body,labels){
+  var data={
+    sender_name:'Chloé IA',sender_type:'chloe',sender_id:'chloe',
+    department:'direction',recipient_type:'all',
+    subject:subject||'Message Chloé',body:body||'',
+    labels:labels||['chloe'],starred:false,read:false,archived:false,is_draft:false,
+    tenant_id:TENANT,created_at:new Date().toISOString()
+  };
+  return sbIns('veraluz_internal_messages',data);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   COMPOSE (nouveau message)
+   ════════════════════════════════════════════════════════════════════════════ */
+function openCompose(){
+  document.getElementById('compose-modal').classList.add('open');
+  document.getElementById('cm-to').focus();
+}
+function closeCompose(){
+  document.getElementById('compose-modal').classList.remove('open');
+  document.getElementById('cm-to').value='';
+  document.getElementById('cm-dept').value='';
+  document.getElementById('cm-subject').value='';
+  document.getElementById('cm-body').value='';
+  _selectedLabels=[];
+  updateLabelChips();
+}
+function updateLabelChips(){
+  document.querySelectorAll('.cm-label-chip').forEach(function(c){c.classList.toggle('on',_selectedLabels.includes(c.dataset.label));});
+}
+document.querySelectorAll('.cm-label-chip').forEach(function(chip){
+  chip.addEventListener('click',function(){
+    var lbl=this.dataset.label;
+    var idx=_selectedLabels.indexOf(lbl);
+    if(idx>=0)_selectedLabels.splice(idx,1);else _selectedLabels.push(lbl);
+    updateLabelChips();
+  });
+});
+
+function openNewMsg(){openCompose();}
+function submitNewMsg(){
+  var to=document.getElementById('cm-to').value.trim();
+  var dept=document.getElementById('cm-dept').value;
+  var subj=document.getElementById('cm-subject').value.trim();
+  var body=document.getElementById('cm-body').value.trim();
+  if(!subj){toast('Objet requis','err');document.getElementById('cm-subject').focus();return;}
+  if(!body){toast('Corps du message requis','err');document.getElementById('cm-body').focus();return;}
+  var actor=getCurrentMessagingActor();
+  /* PROMPT 038 — recipient_id si destinataire individuel identifié */
+  var recipType=dept?'department':'all';
+  var data={
+    sender_name:actor.actor_name,sender_type:actor.actor_type,sender_id:actor.actor_id,
+    department:dept||actor.department||'direction',
+    recipient_name:to||null,
+    recipient_type:recipType,
+    subject:subj,body:body,
+    labels:_selectedLabels.slice(),
+    starred:false,read:false,archived:false,is_draft:false,
+    tenant_id:actor.tenant_id||TENANT,created_at:new Date().toISOString()
+  };
+  sbIns('veraluz_internal_messages',data).then(function(rows){
+    toast('Message envoyé','ok');closeCompose();loadMessages();
+  }).catch(function(){
+    toast('Message mis en file (connexion perdue)');closeCompose();
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   NAVIGATION
+   ════════════════════════════════════════════════════════════════════════════ */
+function setFolder(el,folder){
+  document.querySelectorAll('.sb-row').forEach(function(r){r.classList.remove('active');});
+  el.classList.add('active');
+  _currentFolder=folder;_currentLabel='';
+  _currentFilter='all';
+  document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});
+  var first=document.querySelector('.chip');if(first)first.classList.add('on');
+  loadMessages();
+}
+function setFilter(el,filter){
+  document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});
+  el.classList.add('on');
+  _currentFilter=filter;renderList();
+}
+function filterLabel(label){
+  _currentLabel=(_currentLabel===label?'':label);renderList();
+}
+function onSearch(q){_searchQ=q;renderList();}
+
+/* ── Threads (compatibilité) ─────────────────────────────────────────────── */
+function loadMessageThreads(){loadMessages();}
+function openMessageThread(id){openMsg(id);}
+function submitThreadMsg(){sendReply();}
+
+/* ── Badges ──────────────────────────────────────────────────────────────── */
+function updateBadges(){
+  var unread=_allMsgs.filter(function(m){return!m.read&&!m.archived&&!m.is_draft;}).length;
+  var drafts=_allMsgs.filter(function(m){return m.is_draft;}).length;
+  var bi=document.getElementById('badge-inbox');
+  if(bi){bi.textContent=unread||'';bi.style.display=unread?'':'none';}
+  var bd=document.getElementById('badge-drafts');
+  if(bd){bd.textContent=drafts||'';bd.style.display=drafts?'':'none';}
+  try{window.parent.postMessage({type:'msg-badge',count:unread},'*');}catch(e){}
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   THÈME VERALUZ
+   ════════════════════════════════════════════════════════════════════════════ */
+function applyVlTheme(){
+  var dark=localStorage.getItem('vl_theme')==='dark';
+  document.documentElement.classList.toggle('vl-dark',dark);
+  var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';
+}
+function toggleVlTheme(){
+  var dark=localStorage.getItem('vl_theme')==='dark';
+  localStorage.setItem('vl_theme',dark?'light':'dark');
+  applyVlTheme();
+  try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}
+}
+window.addEventListener('message',function(e){
+  if(e.data&&e.data.type==='vl-theme')applyVlTheme();
+});
+
+/* ════════════════════════════════════════════════════════════════════════════
+   INIT
+   ════════════════════════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',function(){
+  applyVlTheme();
+  getCurrentMessagingActor();
+  loadMessages();
   startMsgAlertPolling();
 });
-</script>
-
-<script>
-/* ── Veraluz Theme toggle — PROMPT 036F ─────────────────────────────── */
-function applyVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';document.documentElement.classList.toggle('vl-dark',dark);var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';}
-function toggleVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';localStorage.setItem('vl_theme',dark?'light':'dark');applyVlTheme();try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}}
-document.addEventListener('DOMContentLoaded',applyVlTheme);
-window.addEventListener('message',function(e){if(e.data&&e.data.type==='vl-theme')applyVlTheme();});
 </script>
 </body>
 </html>

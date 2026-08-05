@@ -1921,8 +1921,9 @@ function showAuthOverlay() {
                ((e.prenom||e.first_name||'')+' '+(e.nom||e.last_name||'')).trim() ||
                'Employe #'+String(e.id).slice(-6);
       opt.setAttribute('data-name',  nm);
-      opt.setAttribute('data-email', e.email    || '');
-      opt.setAttribute('data-team',  e.team_id  || '');
+      opt.setAttribute('data-email',      e.email      || '');
+      opt.setAttribute('data-team',       e.team_id   || '');
+      opt.setAttribute('data-department', e.department || e.team_id || e.role || '');
       opt.textContent = nm;
       s.appendChild(opt);
     });
@@ -1994,6 +1995,7 @@ function doLoginPin() {
   var empId   = sel.value;
   var selOpt  = sel.options[sel.selectedIndex];
   var empName = selOpt.getAttribute('data-name') || selOpt.textContent;
+  var empDept = selOpt.getAttribute('data-department') || '';
   /* PROMPT 008B — empRole lu uniquement pour affichage avant validation serveur */
   /* data-pin supprimé — comparaison PIN JAMAIS côté client */
 
@@ -2055,22 +2057,35 @@ function doLoginPin() {
     /* PROMPT 010 — si must_change_pin : afficher la vue de changement PIN avant connexion */
     if (result.must_change_pin) {
       _pinBuffer = ''; updatePinDisplay();
-      showChangePinView(empId, empName2, coreRole, allowedMods, expires);
+      showChangePinView(empId, empName2, coreRole, allowedMods, expires, empDeptFinal);
       return;
     }
 
     /* PIN JAMAIS stocké — session 12h issue du serveur */
+    var empDeptFinal = emp.department || emp.team_id || empDept || coreRole;
     var session = {
       username:        empId,
       name:            empName2,
       role:            coreRole,
       employee_id:     empId,
+      user_id:         empId,
+      department:      empDeptFinal,
+      tenant_id:       TENANT_ID,
       allowed_modules: allowedMods,
       primaryModule:   'employee_home',
       loginAt:         Date.now(),
       expires:         expires
     };
     localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    /* PROMPT 038 — alias veraluz_session pour les modules (Messages, etc.) */
+    localStorage.setItem('veraluz_session', JSON.stringify({
+      user_id:    empId,
+      id:         empId,
+      name:       empName2,
+      role:       coreRole,
+      department: empDeptFinal,
+      tenant_id:  TENANT_ID
+    }));
     logAuthEvent('pin-login', empName2, coreRole);
 
     currentUser = { username:empId, name:empName2, role:coreRole,
@@ -2137,16 +2152,29 @@ function doLogin() {
     var mods     = adminObj.allowed_modules && adminObj.allowed_modules.length > 0
                    ? adminObj.allowed_modules
                    : (roleConf.modules || []).slice();
+    var adminDept = adminObj.department || 'direction';
     var session  = {
       username:        adminObj.username,
       role:            adminObj.role,
       name:            adminObj.name,
+      user_id:         adminObj.id || adminObj.username,
+      department:      adminDept,
+      tenant_id:       TENANT_ID,
       allowed_modules: mods,
       primaryModule:   roleConf.primaryModule || null,
       loginAt:         Date.now(),
       expires:         expires
     };
     localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    /* PROMPT 038 — alias veraluz_session pour les modules */
+    localStorage.setItem('veraluz_session', JSON.stringify({
+      user_id:    adminObj.id || adminObj.username,
+      id:         adminObj.id || adminObj.username,
+      name:       adminObj.name,
+      role:       adminObj.role,
+      department: adminDept,
+      tenant_id:  TENANT_ID
+    }));
     logAuthEvent('admin-login', adminObj.username, adminObj.role);
     currentUser = { username:adminObj.username, name:adminObj.name, role:adminObj.role,
                     allowed_modules: mods };
@@ -2635,8 +2663,8 @@ var _pendingPinSession = null;
  * showChangePinView() — affiché quand must_change_pin = true
  * L'employé doit changer son PIN avant d'accéder à l'application.
  */
-function showChangePinView(empId, empName, coreRole, allowedMods, expires) {
-  _pendingPinSession = { empId:empId, empName:empName, coreRole:coreRole, allowedMods:allowedMods, expires:expires };
+function showChangePinView(empId, empName, coreRole, allowedMods, expires, empDept) {
+  _pendingPinSession = { empId:empId, empName:empName, coreRole:coreRole, allowedMods:allowedMods, expires:expires, empDept:empDept||coreRole };
   var overlay = document.getElementById('auth-overlay');
   if (!overlay) { console.error('[changePIN] auth-overlay introuvable'); return; }
   var box = overlay.querySelector('.auth-box') || overlay;
@@ -2707,12 +2735,24 @@ function doChangePin() {
       name:            ps.empName,
       role:            ps.coreRole,
       employee_id:     ps.empId,
+      user_id:         ps.empId,
+      department:      ps.empDept || ps.coreRole,
+      tenant_id:       TENANT_ID,
       allowed_modules: ps.allowedMods,
       primaryModule:   'employee_home',
       loginAt:         Date.now(),
       expires:         ps.expires
     };
     localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    /* PROMPT 038 — alias veraluz_session pour les modules */
+    localStorage.setItem('veraluz_session', JSON.stringify({
+      user_id:    ps.empId,
+      id:         ps.empId,
+      name:       ps.empName,
+      role:       ps.coreRole,
+      department: ps.empDept || ps.coreRole,
+      tenant_id:  TENANT_ID
+    }));
     logAuthEvent('pin-changed-and-login', ps.empName, ps.coreRole);
     currentUser = { username:ps.empId, name:ps.empName, role:ps.coreRole,
                     employee_id:ps.empId, allowed_modules:ps.allowedMods };
@@ -2943,6 +2983,7 @@ function logout() {
   logAuthEvent('logout', currentUser ? currentUser.name||currentUser.username : '?',
                          currentUser ? currentUser.role : '?');
   localStorage.removeItem('veraluz_auth_v1');
+  localStorage.removeItem('veraluz_session'); /* PROMPT 038 */
   currentUser = null;
   _pinBuffer = '';
   updateTopbarUser();

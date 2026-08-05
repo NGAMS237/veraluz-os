@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Approvisionnement — Veraluz OS</title>
+<script>if(localStorage.getItem('vl_theme')==='dark')document.documentElement.classList.add('vl-dark');</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f172a;color:#e2e8f0;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
@@ -81,8 +82,114 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .info-box{background:#0f172a;border-radius:8px;padding:10px 12px;font-size:12px;color:#64748b;margin-bottom:10px;border-left:3px solid #10b981;}
 @media(min-width:600px){.kpi-grid{grid-template-columns:repeat(4,1fr);}}
 </style>
+<style id="veraluz-theme">
+/* ═══ VERALUZ THEME PROMPT 036F ═══════════════════════════════════════════
+   Light : bg #e8ecf0 · surfaces #fff · neumorphic shadows
+   Dark  : bg #131722 · surfaces #1e2538
+   Toggle: html.vl-dark / localStorage('vl_theme')
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Variables universelles (couvre tous les modules) ─────────────────── */
+:root{
+  --bg:#e8ecf0;--bg1:#e8ecf0;--bg2:#fff;--bg3:#eef1f5;--bg4:#e0e4e8;--bg5:#d8dce0;
+  --text:#1e293b;--text2:#475569;--text3:#94a3b8;
+  --tx:#1e293b;--tx2:#475569;--tx3:#94a3b8;
+  --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.10);--border3:rgba(0,0,0,.05);
+  --vl-sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;
+  --vl-sh-in:inset 2px 2px 6px #c8cdd4,inset -1px -1px 4px #fff;
+  --vl-r:3px;
+}
+html,body{background:var(--bg)!important;color:var(--text)!important;}
+
+/* ── Dark mode ────────────────────────────────────────────────────────── */
+html.vl-dark{
+  --bg:#131722;--bg1:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;--bg5:#2d3654;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --tx:#e2e8f0;--tx2:#94a3b8;--tx3:#64748b;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.10);--border3:rgba(255,255,255,.05);
+  --vl-sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;
+  --vl-sh-in:inset 2px 2px 6px #0d1118,inset -1px -1px 4px #242b3e;
+}
+html.vl-dark body{background:var(--bg)!important;color:var(--text)!important;}
+
+/* ── Topbar / Header ──────────────────────────────────────────────────── */
+.topbar,.header,.mod-header,.page-header{background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;box-shadow:0 1px 6px rgba(0,0,0,.05)!important;}
+html.vl-dark .topbar,html.vl-dark .header,html.vl-dark .mod-header{background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;}
+
+/* ── Tabs / Tabbar ────────────────────────────────────────────────────── */
+.tabbar,.tab-bar,.tabs,.nav-tabs{background:var(--bg3)!important;border-bottom:1px solid var(--border)!important;}
+html.vl-dark .tabbar,html.vl-dark .tab-bar,html.vl-dark .tabs,html.vl-dark .nav-tabs{background:var(--bg2)!important;}
+.tab-btn.active,.tab.active,.nav-link.active{color:#0891b2!important;border-bottom-color:#0891b2!important;}
+html.vl-dark .tab-btn.active,html.vl-dark .tab.active{color:#22d3ee!important;border-bottom-color:#22d3ee!important;}
+
+/* ── Cards / Panels ───────────────────────────────────────────────────── */
+.card,.panel,.pane,.item,.contact-item,.msg-item,.doc-item,.audit-item,.appro-item,
+.list-item,.entry,.result-card,.ai-card,.agent-card,.chloe-card,.section-card,
+.setting-card,.setting-group,.auth-card,.approval-card{
+  background:var(--bg2)!important;border:1px solid var(--border)!important;
+  box-shadow:var(--vl-sh)!important;}
+html.vl-dark .card,html.vl-dark .panel,html.vl-dark .pane,html.vl-dark .item,
+html.vl-dark .contact-item,html.vl-dark .msg-item,html.vl-dark .doc-item,
+html.vl-dark .audit-item,html.vl-dark .appro-item,html.vl-dark .list-item,
+html.vl-dark .entry,html.vl-dark .result-card,html.vl-dark .ai-card,
+html.vl-dark .agent-card,html.vl-dark .chloe-card,html.vl-dark .section-card,
+html.vl-dark .setting-card,html.vl-dark .setting-group,html.vl-dark .auth-card,
+html.vl-dark .approval-card{background:var(--bg3)!important;border:1px solid var(--border)!important;}
+
+/* ── Sidebars / Panels latéraux ───────────────────────────────────────── */
+.sidebar,.side-panel,.left-panel,.right-panel,.detail-panel{background:var(--bg2)!important;border-right:1px solid var(--border)!important;}
+html.vl-dark .sidebar,html.vl-dark .side-panel,html.vl-dark .left-panel,html.vl-dark .right-panel{background:var(--bg2)!important;}
+
+/* ── Content zones (APPRO/CONTACTS hardcoded bg) ─────────────────────── */
+.content,.content-area,.main-content,.list-area,.contact-list,.msg-list,.results,
+.search-results,.appro-list,.contacts-body,.body-area{background:var(--bg)!important;}
+html.vl-dark .content,html.vl-dark .content-area,html.vl-dark .main-content,
+html.vl-dark .list-area,html.vl-dark .contact-list,html.vl-dark .msg-list,
+html.vl-dark .results,html.vl-dark .appro-list,html.vl-dark .contacts-body{background:var(--bg)!important;}
+
+/* ── Search boxes ─────────────────────────────────────────────────────── */
+.sbox,.search-box,.search-wrap{background:var(--bg3)!important;border-color:var(--border2)!important;}
+html.vl-dark .sbox,html.vl-dark .search-box{background:var(--bg3)!important;}
+
+/* ── Inputs ───────────────────────────────────────────────────────────── */
+input:not([type=checkbox]):not([type=radio]),select,textarea{
+  background:var(--bg3)!important;border:1px solid var(--border2)!important;
+  border-radius:var(--vl-r)!important;color:var(--text)!important;}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{
+  border-color:#0891b2!important;box-shadow:0 0 0 2px rgba(8,145,178,.12)!important;outline:none!important;}
+html.vl-dark input:not([type=checkbox]):not([type=radio]),html.vl-dark select,html.vl-dark textarea{
+  background:var(--bg4)!important;border-color:var(--border2)!important;}
+
+/* ── Icônes monochromes ───────────────────────────────────────────────── */
+.icon,.icon-wrap,.action-icon,.stat-icon,.feature-icon,.btn-icon,.tag-icon,
+.avatar-placeholder,.initials-avatar{
+  background:rgba(8,145,178,.10)!important;color:#0891b2!important;border-radius:var(--vl-r)!important;}
+html.vl-dark .icon,html.vl-dark .icon-wrap,html.vl-dark .action-icon,
+html.vl-dark .stat-icon,html.vl-dark .feature-icon,html.vl-dark .btn-icon{
+  background:rgba(8,145,178,.18)!important;color:#22d3ee!important;}
+
+/* ── Boutons secondaires ──────────────────────────────────────────────── */
+.btn-sec,.btn-outline,.btn-ghost{border-radius:var(--vl-r)!important;background:var(--bg3)!important;border:1px solid var(--border2)!important;color:var(--text)!important;}
+html.vl-dark .btn-sec,html.vl-dark .btn-outline{background:var(--bg4)!important;}
+
+/* ── Modals ───────────────────────────────────────────────────────────── */
+.modal,.modal-content,.modal-box,.dialog{background:var(--bg2)!important;border:1px solid var(--border)!important;box-shadow:0 20px 60px rgba(0,0,0,.15)!important;}
+html.vl-dark .modal,html.vl-dark .modal-content,html.vl-dark .modal-box{background:var(--bg3)!important;}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px!important;height:4px!important;}
+::-webkit-scrollbar-track{background:var(--bg)!important;}
+::-webkit-scrollbar-thumb{background:#c8cdd4!important;border-radius:2px!important;}
+html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
+
+/* ── Toggle FAB ───────────────────────────────────────────────────────── */
+#vl-tm-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);right:14px;z-index:9990;width:36px;height:36px;border-radius:3px;border:none;background:#fff;color:#475569;cursor:pointer;font-size:15px;box-shadow:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s,transform .15s;}
+#vl-tm-btn:hover{transform:scale(1.05);}
+html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;}
+</style>
 </head>
 <body>
+<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Thème">🌙</button>
 <div class="topbar">
   <span class="topbar-title">📦 Approvisionnement &amp; Inventaire</span>
   <span style="flex:1"></span>
@@ -923,6 +1030,14 @@ async function saveSupplier(id){
   else { body.id=Date.now(); var res=await sbPost('vz_appro_suppliers',body); allSuppliers.push(res&&res[0]?res[0]:body); }
   closeModal(); render();
 }
+</script>
+
+<script>
+/* ── Veraluz Theme toggle — PROMPT 036F ─────────────────────────────── */
+function applyVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';document.documentElement.classList.toggle('vl-dark',dark);var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';}
+function toggleVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';localStorage.setItem('vl_theme',dark?'light':'dark');applyVlTheme();try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}}
+document.addEventListener('DOMContentLoaded',applyVlTheme);
+window.addEventListener('message',function(e){if(e.data&&e.data.type==='vl-theme')applyVlTheme();});
 </script>
 </body>
 </html>

@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Messages — Veraluz OS</title>
+<script>if(localStorage.getItem('vl_theme')==='dark')document.documentElement.classList.add('vl-dark');</script>
+<style>
+/* ── Base ── */
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2333;--bg4:#21262d;
+  --border:#30363d;--border2:#444c56;
+  --text:#c9d1d9;--text2:#8b949e;--text3:#6e7681;
+  --accent:#58a6ff;--ok:#3fb950;--warn:#d29922;--err:#f85149;
+  --blue:#58a6ff;--green:#3fb950;--purple:#bc8cff;--orange:#d29922;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:14px;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* ── Topbar ── */
+.topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);
+  background:var(--bg2);flex-shrink:0;}
+.topbar-title{font-weight:600;font-size:15px;flex:1;}
+.topbar-badge{background:var(--err);color:#fff;border-radius:10px;font-size:10px;font-weight:700;
+  padding:1px 6px;min-width:18px;text-align:center;}
+
+/* ── Tab bar ── */
+.tab-bar{display:flex;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--bg2);
+  flex-shrink:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.tab-bar::-webkit-scrollbar{display:none;}
+.tab-btn{flex-shrink:0;padding:9px 14px;font-size:12px;font-weight:500;color:var(--text2);
+  border:none;background:none;cursor:pointer;white-space:nowrap;position:relative;border-bottom:2px solid transparent;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-btn:hover:not(.active){background:var(--bg3);color:var(--text);}
+.tbadge{position:absolute;top:6px;right:6px;background:var(--err);color:#fff;
+  border-radius:8px;font-size:9px;font-weight:800;padding:0 4px;min-width:14px;text-align:center;}
+
+/* ── Content area ── */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+/* ── Filters bar ── */
+.filters{display:flex;gap:8px;padding:10px 14px;align-items:center;flex-wrap:wrap;
+  border-bottom:1px solid var(--border);background:var(--bg);}
+.filter-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);
+  color:var(--text2);font-size:11px;cursor:pointer;white-space:nowrap;}
+.filter-btn.active{background:var(--accent);color:#0d1117;border-color:var(--accent);}
+.filter-search{flex:1;min-width:120px;background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;padding:5px 10px;color:var(--text);font-size:12px;outline:none;}
+.filter-search:focus{border-color:var(--accent);}
+
+/* ── Message card ── */
+.msg-list{display:flex;flex-direction:column;gap:0;}
+.msg-card{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;
+  transition:background .15s;position:relative;}
+.msg-card:hover{background:var(--bg2);}
+.msg-card.unread{background:rgba(88,166,255,.04);}
+.msg-card.unread::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent);}
+.msg-card.urgent::before{background:var(--err);}
+.msg-card.high::before{background:var(--warn);}
+.mc-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.mc-from{font-weight:600;font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mc-time{font-size:11px;color:var(--text3);flex-shrink:0;}
+.mc-subject{font-size:12px;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mc-preview{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mc-meta{display:flex;gap:6px;margin-top:5px;align-items:center;flex-wrap:wrap;}
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;
+  border-radius:10px;text-transform:uppercase;letter-spacing:.4px;}
+.bdg-dept{background:rgba(88,166,255,.12);color:var(--blue);}
+.bdg-type{background:rgba(188,140,255,.12);color:var(--purple);}
+.bdg-urgent{background:rgba(248,81,73,.15);color:var(--err);}
+.bdg-high{background:rgba(210,153,34,.15);color:var(--warn);}
+.bdg-normal{background:var(--bg3);color:var(--text3);}
+.bdg-ok{background:rgba(63,185,80,.12);color:var(--green);}
+.bdg-action{background:rgba(248,81,73,.12);color:var(--err);}
+.bdg-chloe{background:rgba(188,140,255,.15);color:var(--purple);}
+.bdg-read{background:var(--bg3);color:var(--text3);}
+
+/* ── Thread view ── */
+.thread-view{display:flex;flex-direction:column;height:100%;}
+.thread-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);
+  background:var(--bg2);flex-shrink:0;}
+.btn-back{background:none;border:none;color:var(--accent);cursor:pointer;font-size:13px;padding:4px 8px;
+  border-radius:6px;}
+.btn-back:hover{background:var(--bg3);}
+.thread-title{font-weight:600;font-size:13px;flex:1;}
+.thread-msgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
+.bubble{max-width:82%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.5;}
+.bubble.sent{background:rgba(88,166,255,.18);align-self:flex-end;border-bottom-right-radius:3px;}
+.bubble.recv{background:var(--bg3);align-self:flex-start;border-bottom-left-radius:3px;}
+.bubble.system{background:rgba(110,118,129,.12);align-self:center;text-align:center;
+  font-size:11px;color:var(--text2);border-radius:6px;padding:4px 10px;}
+.bubble.chloe{background:rgba(188,140,255,.15);align-self:flex-start;border-bottom-left-radius:3px;}
+.bubble.urgent-msg{border-left:3px solid var(--err);}
+.bub-meta{font-size:10px;color:var(--text3);margin-bottom:3px;}
+.thread-compose{flex-shrink:0;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg2);}
+.compose-qr{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.compose-qr::-webkit-scrollbar{display:none;}
+.qr-btn{flex-shrink:0;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);
+  padding:5px 10px;border-radius:16px;font-size:11px;cursor:pointer;white-space:nowrap;}
+.qr-btn:hover{background:var(--bg4);color:var(--text);}
+.compose-row{display:flex;gap:8px;align-items:flex-end;}
+.compose-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);padding:8px 12px;font-size:13px;outline:none;resize:none;max-height:80px;
+  font-family:inherit;}
+.compose-input:focus{border-color:var(--accent);}
+.btn-send{background:var(--accent);color:#0d1117;border:none;border-radius:8px;padding:8px 14px;
+  cursor:pointer;font-weight:600;font-size:13px;flex-shrink:0;}
+.btn-send:hover{background:#79b8ff;}
+.btn-send:disabled{opacity:.4;cursor:default;}
+
+/* ── New message modal ── */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;z-index:100;}
+.modal-ov.open{display:block;}
+.modal-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-radius:14px 14px 0 0;
+  padding:0 16px 24px;z-index:101;max-height:80vh;overflow-y:auto;}
+.modal-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:10px auto 14px;}
+.modal-title{font-weight:700;font-size:15px;margin-bottom:14px;}
+.form-row{margin-bottom:12px;}
+.form-label{font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.form-input,.form-select,.form-textarea{width:100%;background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px;outline:none;font-family:inherit;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
+.form-textarea{resize:vertical;min-height:80px;}
+.form-select option{background:var(--bg3);}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+.btn-cancel{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);
+  padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;}
+.btn-primary{background:var(--accent);color:#0d1117;border:none;padding:8px 18px;
+  border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;}
+
+/* ── Empty + loading ── */
+.empty-state{padding:40px 20px;text-align:center;color:var(--text2);}
+.empty-ico{font-size:36px;margin-bottom:10px;}
+.loading{padding:24px;text-align:center;color:var(--text2);}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border2);
+  border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:8px 18px;
+  border-radius:8px;font-size:13px;font-weight:600;z-index:200;opacity:0;transition:opacity .25s;
+  pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+.toast.ok{background:var(--ok);color:#fff;}
+.toast.err{background:var(--err);color:#fff;}
+.toast.info{background:var(--bg4);color:var(--text);border:1px solid var(--border2);}
+
+/* ── Draft card ── */
+.draft-card{padding:12px 16px;border-bottom:1px solid var(--border);}
+.draft-type{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);}
+.draft-to{font-size:12px;color:var(--text2);margin:2px 0;}
+.draft-subject{font-weight:600;font-size:13px;margin:2px 0;}
+.draft-body{font-size:12px;color:var(--text2);margin:4px 0;max-height:40px;overflow:hidden;}
+.draft-actions{display:flex;gap:8px;margin-top:8px;}
+.btn-sm{padding:4px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);
+  color:var(--text2);font-size:11px;cursor:pointer;font-weight:600;}
+.btn-sm:hover{background:var(--bg4);color:var(--text);}
+.btn-sm.ok{background:rgba(63,185,80,.12);color:var(--green);border-color:rgba(63,185,80,.3);}
+.btn-sm.ok:hover{background:rgba(63,185,80,.2);}
+
+/* ── Stats row ── */
+.stats-row{display:flex;gap:0;border-bottom:1px solid var(--border);}
+.stat-cell{flex:1;padding:10px 4px;text-align:center;border-right:1px solid var(--border);}
+.stat-cell:last-child{border-right:none;}
+.stat-n{font-size:20px;font-weight:700;}
+.stat-l{font-size:10px;color:var(--text3);margin-top:1px;}
+.stat-n.err{color:var(--err);}
+.stat-n.warn{color:var(--warn);}
+.stat-n.ok{color:var(--green);}
+
+/* ── Responsive ── */
+@media(max-width:600px){
+  .tab-btn{padding:8px 10px;font-size:11px;}
+  .mc-from{font-size:12px;}
+  .bubble{max-width:90%;}
+  .modal-sheet{border-radius:10px 10px 0 0;}
+}
+@media(max-width:390px){
+  .tab-btn{padding:7px 8px;font-size:10px;}
+}
+</style>
+<style id="veraluz-theme">
+/* ═══ VERALUZ THEME PROMPT 036F ═══════════════════════════════════════════
+   Light : bg #e8ecf0 · surfaces #fff · neumorphic shadows
+   Dark  : bg #131722 · surfaces #1e2538
+   Toggle: html.vl-dark / localStorage('vl_theme')
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Variables universelles (couvre tous les modules) ─────────────────── */
+:root{
+  --bg:#e8ecf0;--bg1:#e8ecf0;--bg2:#fff;--bg3:#eef1f5;--bg4:#e0e4e8;--bg5:#d8dce0;
+  --text:#1e293b;--text2:#475569;--text3:#94a3b8;
+  --tx:#1e293b;--tx2:#475569;--tx3:#94a3b8;
+  --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.10);--border3:rgba(0,0,0,.05);
+  --vl-sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;
+  --vl-sh-in:inset 2px 2px 6px #c8cdd4,inset -1px -1px 4px #fff;
+  --vl-r:3px;
+}
+html,body{background:var(--bg)!important;color:var(--text)!important;}
+
+/* ── Dark mode ────────────────────────────────────────────────────────── */
+html.vl-dark{
+  --bg:#131722;--bg1:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;--bg5:#2d3654;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --tx:#e2e8f0;--tx2:#94a3b8;--tx3:#64748b;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.10);--border3:rgba(255,255,255,.05);
+  --vl-sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;
+  --vl-sh-in:inset 2px 2px 6px #0d1118,inset -1px -1px 4px #242b3e;
+}
+html.vl-dark body{background:var(--bg)!important;color:var(--text)!important;}
+
+/* ── Topbar / Header ──────────────────────────────────────────────────── */
+.topbar,.header,.mod-header,.page-header{background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;box-shadow:0 1px 6px rgba(0,0,0,.05)!important;}
+html.vl-dark .topbar,html.vl-dark .header,html.vl-dark .mod-header{background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;}
+
+/* ── Tabs / Tabbar ────────────────────────────────────────────────────── */
+.tabbar,.tab-bar,.tabs,.nav-tabs{background:var(--bg3)!important;border-bottom:1px solid var(--border)!important;}
+html.vl-dark .tabbar,html.vl-dark .tab-bar,html.vl-dark .tabs,html.vl-dark .nav-tabs{background:var(--bg2)!important;}
+.tab-btn.active,.tab.active,.nav-link.active{color:#0891b2!important;border-bottom-color:#0891b2!important;}
+html.vl-dark .tab-btn.active,html.vl-dark .tab.active{color:#22d3ee!important;border-bottom-color:#22d3ee!important;}
+
+/* ── Cards / Panels ───────────────────────────────────────────────────── */
+.card,.panel,.pane,.item,.contact-item,.msg-item,.doc-item,.audit-item,.appro-item,
+.list-item,.entry,.result-card,.ai-card,.agent-card,.chloe-card,.section-card,
+.setting-card,.setting-group,.auth-card,.approval-card{
+  background:var(--bg2)!important;border:1px solid var(--border)!important;
+  box-shadow:var(--vl-sh)!important;}
+html.vl-dark .card,html.vl-dark .panel,html.vl-dark .pane,html.vl-dark .item,
+html.vl-dark .contact-item,html.vl-dark .msg-item,html.vl-dark .doc-item,
+html.vl-dark .audit-item,html.vl-dark .appro-item,html.vl-dark .list-item,
+html.vl-dark .entry,html.vl-dark .result-card,html.vl-dark .ai-card,
+html.vl-dark .agent-card,html.vl-dark .chloe-card,html.vl-dark .section-card,
+html.vl-dark .setting-card,html.vl-dark .setting-group,html.vl-dark .auth-card,
+html.vl-dark .approval-card{background:var(--bg3)!important;border:1px solid var(--border)!important;}
+
+/* ── Sidebars / Panels latéraux ───────────────────────────────────────── */
+.sidebar,.side-panel,.left-panel,.right-panel,.detail-panel{background:var(--bg2)!important;border-right:1px solid var(--border)!important;}
+html.vl-dark .sidebar,html.vl-dark .side-panel,html.vl-dark .left-panel,html.vl-dark .right-panel{background:var(--bg2)!important;}
+
+/* ── Content zones (APPRO/CONTACTS hardcoded bg) ─────────────────────── */
+.content,.content-area,.main-content,.list-area,.contact-list,.msg-list,.results,
+.search-results,.appro-list,.contacts-body,.body-area{background:var(--bg)!important;}
+html.vl-dark .content,html.vl-dark .content-area,html.vl-dark .main-content,
+html.vl-dark .list-area,html.vl-dark .contact-list,html.vl-dark .msg-list,
+html.vl-dark .results,html.vl-dark .appro-list,html.vl-dark .contacts-body{background:var(--bg)!important;}
+
+/* ── Search boxes ─────────────────────────────────────────────────────── */
+.sbox,.search-box,.search-wrap{background:var(--bg3)!important;border-color:var(--border2)!important;}
+html.vl-dark .sbox,html.vl-dark .search-box{background:var(--bg3)!important;}
+
+/* ── Inputs ───────────────────────────────────────────────────────────── */
+input:not([type=checkbox]):not([type=radio]),select,textarea{
+  background:var(--bg3)!important;border:1px solid var(--border2)!important;
+  border-radius:var(--vl-r)!important;color:var(--text)!important;}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{
+  border-color:#0891b2!important;box-shadow:0 0 0 2px rgba(8,145,178,.12)!important;outline:none!important;}
+html.vl-dark input:not([type=checkbox]):not([type=radio]),html.vl-dark select,html.vl-dark textarea{
+  background:var(--bg4)!important;border-color:var(--border2)!important;}
+
+/* ── Icônes monochromes ───────────────────────────────────────────────── */
+.icon,.icon-wrap,.action-icon,.stat-icon,.feature-icon,.btn-icon,.tag-icon,
+.avatar-placeholder,.initials-avatar{
+  background:rgba(8,145,178,.10)!important;color:#0891b2!important;border-radius:var(--vl-r)!important;}
+html.vl-dark .icon,html.vl-dark .icon-wrap,html.vl-dark .action-icon,
+html.vl-dark .stat-icon,html.vl-dark .feature-icon,html.vl-dark .btn-icon{
+  background:rgba(8,145,178,.18)!important;color:#22d3ee!important;}
+
+/* ── Boutons secondaires ──────────────────────────────────────────────── */
+.btn-sec,.btn-outline,.btn-ghost{border-radius:var(--vl-r)!important;background:var(--bg3)!important;border:1px solid var(--border2)!important;color:var(--text)!important;}
+html.vl-dark .btn-sec,html.vl-dark .btn-outline{background:var(--bg4)!important;}
+
+/* ── Modals ───────────────────────────────────────────────────────────── */
+.modal,.modal-content,.modal-box,.dialog{background:var(--bg2)!important;border:1px solid var(--border)!important;box-shadow:0 20px 60px rgba(0,0,0,.15)!important;}
+html.vl-dark .modal,html.vl-dark .modal-content,html.vl-dark .modal-box{background:var(--bg3)!important;}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px!important;height:4px!important;}
+::-webkit-scrollbar-track{background:var(--bg)!important;}
+::-webkit-scrollbar-thumb{background:#c8cdd4!important;border-radius:2px!important;}
+html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
+
+/* ── Toggle FAB ───────────────────────────────────────────────────────── */
+#vl-tm-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);right:14px;z-index:9990;width:36px;height:36px;border-radius:3px;border:none;background:#fff;color:#475569;cursor:pointer;font-size:15px;box-shadow:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s,transform .15s;}
+#vl-tm-btn:hover{transform:scale(1.05);}
+html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;}
+</style>
+</head>
+<body>
+<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Thème">🌙</button>
+<!-- ── Topbar ── -->
+<div class="topbar">
+  <div class="topbar-title">💬 Messagerie Interne</div>
+  <span class="topbar-badge" id="unread-badge" style="display:none">0</span>
+  <button class="btn-sm" onclick="openNewMsg()" style="padding:5px 12px;background:var(--accent);color:#0d1117;border:none;font-weight:700;">+ Nouveau</button>
+</div>
+
+<!-- ── Tab bar ── -->
+<div class="tab-bar" id="tab-bar">
+  <button class="tab-btn active" data-tab="inbox"    onclick="switchTab('inbox',this)">📥 Réception<span class="tbadge" id="tbadge-inbox" style="display:none"></span></button>
+  <button class="tab-btn"        data-tab="threads"  onclick="switchTab('threads',this)">💬 Conversations</button>
+  <button class="tab-btn"        data-tab="orders"   onclick="switchTab('orders',this)">🛵 Commandes</button>
+  <button class="tab-btn"        data-tab="employees" onclick="switchTab('employees',this)">👥 Employés</button>
+  <button class="tab-btn"        data-tab="chloe"    onclick="switchTab('chloe',this)">🧠 Chloé<span class="tbadge" id="tbadge-chloe" style="display:none"></span></button>
+  <button class="tab-btn"        data-tab="drafts"   onclick="switchTab('drafts',this)">✉️ Brouillons</button>
+  <button class="tab-btn"        data-tab="archives" onclick="switchTab('archives',this)">🗂 Archives</button>
+</div>
+
+<!-- ── Content ── -->
+<div class="content">
+  <div class="tab-pane active" id="pane-inbox"><div id="actor-debug-panel" style="display:none;"></div><div class="loading"><span class="spinner"></span>Chargement…</div></div>
+  <div class="tab-pane" id="pane-threads"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
+  <div class="tab-pane" id="pane-orders"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
+  <div class="tab-pane" id="pane-employees"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
+  <div class="tab-pane" id="pane-chloe"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
+  <div class="tab-pane" id="pane-drafts"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
+  <div class="tab-pane" id="pane-archives"><div class="loading"><span class="spinner"></span>Chargement…</div></div>
+</div>
+
+<!-- ── New message modal ── -->
+<div class="modal-ov" id="new-msg-ov" onclick="closeNewMsg()"></div>
+<div class="modal-sheet" id="new-msg-sheet" style="display:none;position:fixed;bottom:0;left:0;right:0;">
+  <div class="modal-handle"></div>
+  <div class="modal-title">✏️ Nouveau message</div>
+  <div class="form-row">
+    <div class="form-label">Destinataire / Département</div>
+    <select class="form-select" id="nm-recipient">
+      <option value="admin">👔 Admin / Gérant</option>
+      <option value="restaurant">🍽️ Restaurant</option>
+      <option value="delivery">🛵 Équipe Livraison</option>
+      <option value="housekeeping">🧹 Housekeeping</option>
+      <option value="rh">👥 RH</option>
+      <option value="maintenance">🔧 Maintenance</option>
+      <option value="all_admins">📢 Tous les admins</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <div class="form-label">Contexte (optionnel)</div>
+    <select class="form-select" id="nm-context">
+      <option value="general">Général</option>
+      <option value="order">Commande</option>
+      <option value="housekeeping">Housekeeping</option>
+      <option value="maintenance">Maintenance</option>
+      <option value="rh">RH</option>
+      <option value="finance">Finance</option>
+      <option value="document">Document</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <div class="form-label">Priorité</div>
+    <select class="form-select" id="nm-priority">
+      <option value="normal">Normal</option>
+      <option value="high">⚠️ Élevé</option>
+      <option value="urgent">🔴 Urgent</option>
+      <option value="low">Faible</option>
+    </select>
+  </div>
+  <div class="form-row">
+    <div class="form-label">Message</div>
+    <textarea class="form-textarea" id="nm-message" placeholder="Votre message…"></textarea>
+  </div>
+  <div class="btn-row">
+    <button class="btn-cancel" onclick="closeNewMsg()">Annuler</button>
+    <button class="btn-primary" onclick="submitNewMsg()">Envoyer</button>
+  </div>
+</div>
+
+<!-- ── Thread view overlay ── -->
+<div class="modal-ov" id="thread-ov" onclick="closeThread()"></div>
+<div id="thread-panel" style="position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:90;">
+  <div class="thread-header">
+    <button class="btn-back" onclick="closeThread()">← Retour</button>
+    <div class="thread-title" id="thread-panel-title">Conversation</div>
+    <span id="thread-panel-badge" class="badge" style="display:none"></span>
+  </div>
+  <div class="thread-msgs" id="thread-panel-msgs"></div>
+  <div class="thread-compose">
+    <div class="compose-qr" id="compose-qr-btns"></div>
+    <div class="compose-row">
+      <textarea class="compose-input" id="compose-input" rows="1"
+        placeholder="Votre message…"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submitThreadMsg();}"></textarea>
+      <button class="btn-send" id="btn-send-msg" onclick="submitThreadMsg()">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="msg-toast"></div>
+
+<script>
+var MESSAGES_BUILD = 'v032-alerts-2026-07-08'; /* PROMPT 031 */
+var _migration030Status = 'pending'; /* sera verifie au demarrage */
+/* ──────────────────────────────────────────────────────────
+   VERALUZ MESSAGES MODULE — PROMPT 030
+   ────────────────────────────────────────────────────────── */
+var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+var TENANT = 'veraluz-001';
+var _currentUser = null;
+var _msgActor = null;
+
+/* PROMPT 031D — Détection identité de l'acteur messaging */
+function getCurrentMessagingActor(){
+  if(_msgActor) return _msgActor;
+  var ADMIN_ROLES=['superadmin','admin','manager','direction','directeur'];
+  var actor={
+    tenant_id:TENANT, actor_id:'', actor_name:'Utilisateur',
+    actor_type:'admin', role:'admin', department:'direction',
+    employee_id:'', user_id:'',
+    can_view_all_messages:false,
+    can_send_to_departments:false,
+    can_send_to_all:false
+  };
+  /* Source 1 : session VERALUZ OS (CORE) */
+  try{
+    var raw=localStorage.getItem('veraluz_auth_v1');
+    if(raw){
+      var s=JSON.parse(raw);
+      if(s&&s.username){
+        actor.user_id=s.username||'';
+        actor.actor_id=s.employee_id||s.username||'';
+        actor.actor_name=s.name||s.full_name||s.username||'Admin';
+        actor.role=s.role||'admin';
+        actor.employee_id=s.employee_id||s.username||'';
+        actor.department=s.department||_roleToDept(s.role)||'direction';
+        actor.actor_type=_roleToActorType(s.role);
+        actor.can_view_all_messages=ADMIN_ROLES.indexOf(s.role)>=0||s.dev_mode===true;
+        actor.can_send_to_departments=ADMIN_ROLES.indexOf(s.role)>=0||
+          ['rh','restaurant','housekeeping','kitchen'].indexOf(s.role)>=0;
+        actor.can_send_to_all=ADMIN_ROLES.indexOf(s.role)>=0;
+        _currentUser=s; _msgActor=actor; return actor;
+      }
+    }
+  }catch(e){}
+  /* Source 2 : session Livreur */
+  try{
+    var lraw=localStorage.getItem('veraluz_livreur_session');
+    if(lraw){
+      var ls=JSON.parse(lraw);
+      if(ls&&ls.id){
+        actor.actor_id=String(ls.id); actor.employee_id=String(ls.id);
+        actor.actor_name=ls.full_name||ls.name||'Livreur';
+        actor.role='delivery'; actor.actor_type='driver';
+        actor.department='delivery';
+        actor.can_view_all_messages=false;
+        actor.can_send_to_departments=false;
+        actor.can_send_to_all=false;
+        _msgActor=actor; return actor;
+      }
+    }
+  }catch(e){}
+  /* Source 3 : session Restaurant */
+  try{
+    var rraw=localStorage.getItem('veraluz_restaurant_session');
+    if(rraw){
+      var rs=JSON.parse(rraw);
+      if(rs){
+        actor.actor_id=rs.id||'restaurant';
+        actor.actor_name=rs.name||'Restaurant';
+        actor.role='restaurant'; actor.actor_type='restaurant';
+        actor.department='restaurant';
+        actor.can_view_all_messages=false;
+        actor.can_send_to_departments=false;
+        actor.can_send_to_all=false;
+        _msgActor=actor; return actor;
+      }
+    }
+  }catch(e){}
+  /* Fallback dev */
+  actor.can_view_all_messages=true; actor.can_send_to_all=true;
+  actor.can_send_to_departments=true; actor.actor_id='admin';
+  _msgActor=actor; return actor;
+}
+
+function _roleToActorType(role){
+  var map={superadmin:'admin',admin:'admin',manager:'admin',direction:'admin',
+    reception:'reception',restaurant:'restaurant',kitchen:'restaurant',
+    delivery:'driver',driver:'driver',livreur:'driver',
+    housekeeping:'housekeeping',maintenance:'maintenance',
+    rh:'rh',finance:'finance',accountant:'finance',comptable:'finance',
+    staff:'staff'};
+  return map[role]||'admin';
+}
+
+function _roleToDept(role){
+  var map={superadmin:'direction',admin:'direction',manager:'direction',
+    direction:'direction',reception:'reception',
+    restaurant:'restaurant',kitchen:'restaurant',
+    delivery:'delivery',driver:'delivery',livreur:'delivery',
+    housekeeping:'housekeeping',maintenance:'maintenance',
+    rh:'rh',finance:'finance',accountant:'finance',comptable:'finance'};
+  return map[role]||'direction';
+}
+
+/* canActorSeeMessage — règles de visibilité par rôle (PROMPT 031D) */
+function canActorSeeMessage(actor,msg){
+  if(!actor||!msg) return false;
+  var t=msg.tenant_id||TENANT; if(t!==TENANT) return false;
+  if(actor.can_view_all_messages) return true;
+  var aid=actor.actor_id||''; var eid=actor.employee_id||'';
+  /* Destinataire direct */
+  if(msg.recipient_id&&(msg.recipient_id===aid||msg.recipient_id===eid)) return true;
+  /* Type de destinataire = rôle acteur */
+  if(msg.recipient_type&&msg.recipient_type===actor.actor_type) return true;
+  if(msg.recipient_type&&msg.recipient_type===actor.role) return true;
+  /* Département */
+  if(msg.department&&msg.department===actor.department) return true;
+  /* Restaurant : voit commandes/livraisons */
+  if(actor.actor_type==='restaurant'){
+    if(['restaurant','delivery'].indexOf(msg.department||'')>=0) return true;
+    if(['order','delivery','restaurant'].indexOf(msg.context_type||'')>=0) return true;
+  }
+  /* Livreur : seulement ses messages */
+  if(actor.actor_type==='driver'){
+    if(msg.sender_id&&(msg.sender_id===aid||msg.sender_id===eid)) return true;
+    return false;
+  }
+  /* Sender = actor */
+  if(msg.sender_id&&(msg.sender_id===aid||msg.sender_id===eid)) return true;
+  return false;
+}
+
+/* dedupeMessagesById — fusionner plusieurs jeux sans doublons */
+function dedupeMessagesById(msgs){
+  var seen={}; var out=[];
+  (msgs||[]).forEach(function(m){
+    if(m&&m.id&&!seen[m.id]){seen[m.id]=true;out.push(m);}
+  });
+  return out.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);});
+}
+var _activeTab = 'inbox';
+var _activeThreadId = null;
+var _threadMessages = [];
+var _threadContext = {};
+var _allMessages = [];
+var _unreadCount = 0;
+
+/* ── Supabase helpers ── */
+function H(extra){
+  return Object.assign({apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json',Accept:'application/json'},extra||{});
+}
+function sbQ(path){
+  return fetch(SB+'/rest/v1/'+path,{headers:H()}).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);return r.json();
+  });
+}
+function sbIns(table,data){
+  return fetch(SB+'/rest/v1/'+table,{method:'POST',headers:H({Prefer:'return=representation'}),body:JSON.stringify(data)})
+    .then(function(r){
+      if(!r.ok){
+        return r.text().then(function(body){
+          var detail='';
+          try{var j=JSON.parse(body);detail=j.message||j.hint||j.error||JSON.stringify(j);}
+          catch(e){detail=body?body.substring(0,120):'HTTP '+r.status;}
+          var err=new Error('HTTP '+r.status+': '+detail);
+          err.status=r.status; err.detail=detail;
+          throw err;
+        });
+      }
+      return r.json();
+    });
+}
+function sbUpd(table,filter,data){
+  return fetch(SB+'/rest/v1/'+table+'?'+filter,{method:'PATCH',headers:H({Prefer:'return=minimal'}),body:JSON.stringify(data)})
+    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);});
+}
+
+function escH(s){
+  if(s===null||s===undefined)return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ── Auth context from CORE ── */
+window.addEventListener('message',function(e){
+  if(e.data&&e.data.type==='auth-context'&&e.data.data){
+    _currentUser = e.data.data;
+  }
+});
+
+/* ── Toast ── */
+function toast(msg,type){
+  var el=document.getElementById('msg-toast');
+  if(!el)return;
+  el.textContent=msg;
+  el.className='toast show '+(type||'info');
+  clearTimeout(el._t);
+  el._t=setTimeout(function(){el.classList.remove('show');},2800);
+}
+
+/* ── Tab switching ── */
+function switchTab(tab,btn){
+  _activeTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  if(btn)btn.classList.add('active');
+  document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');});
+  var pane=document.getElementById('pane-'+tab);
+  if(pane){pane.classList.add('active');}
+  loadTab(tab);
+}
+
+function loadTab(tab){
+  if(tab==='inbox')      loadMessages({status:'sent',excludeArchived:true,excludeChloe:false});
+  else if(tab==='threads')   loadMessageThreads();
+  else if(tab==='orders')    loadDeliveryMessages();
+  else if(tab==='employees') loadEmployeeMessages();
+  else if(tab==='chloe')     renderChloeMessages();
+  else if(tab==='drafts')    loadDrafts();
+  else if(tab==='archives')  loadMessages({status:'archived'});
+}
+
+/* ────────────────────────────────────
+   INBOX — loadMessages
+──────────────────────────────────── */
+/* PROMPT 031D — loadMyInbox avec filtrage par acteur */
+function loadMyInbox(filters){
+  return loadMessages(filters);
+}
+
+function loadMessages(filters){
+  var actor=getCurrentMessagingActor();
+  console.log('[MSGS 031D] loadMessages actor='+actor.actor_type+' view_all='+actor.can_view_all_messages+' dept='+actor.department);
+  var isArchive=filters&&filters.status==='archived';
+  var pane=document.getElementById('pane-'+(isArchive?'archives':'inbox'));
+  if(!pane){console.warn('[MSGS] pane non trouvé'); return;}
+  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+
+  var promises=[];
+
+  if(actor.can_view_all_messages){
+    /* Admin : tout charger */
+    var path='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&order=created_at.desc&limit=80';
+    if(isArchive) path+='&status=eq.archived';
+    else path+='&status=not.in.(archived,cancelled)';
+    promises.push(sbQ(path).catch(function(){return[];}));
+  } else {
+    /* Requêtes ciblées selon acteur — fusionnées côté JS */
+    var base='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&order=created_at.desc&limit=40';
+    var sf=isArchive?'&status=eq.archived':'&status=not.in.(archived,cancelled)';
+
+    /* Messages directs à cet acteur */
+    if(actor.actor_id){
+      promises.push(sbQ(base+sf+'&recipient_id=eq.'+encodeURIComponent(actor.actor_id))
+        .catch(function(){return[];}));
+    }
+    if(actor.employee_id&&actor.employee_id!==actor.actor_id){
+      promises.push(sbQ(base+sf+'&recipient_id=eq.'+encodeURIComponent(actor.employee_id))
+        .catch(function(){return[];}));
+    }
+    /* Par type de rôle */
+    if(actor.actor_type){
+      promises.push(sbQ(base+sf+'&recipient_type=eq.'+encodeURIComponent(actor.actor_type))
+        .catch(function(){return[];}));
+    }
+    /* Par département */
+    if(actor.department&&actor.department!=='direction'){
+      promises.push(sbQ(base+sf+'&department=eq.'+encodeURIComponent(actor.department))
+        .catch(function(){return[];}));
+    }
+    /* Restaurant : aussi context_type order/delivery */
+    if(actor.actor_type==='restaurant'){
+      promises.push(sbQ(base+sf+'&context_type=in.(order,delivery,restaurant)')
+        .catch(function(){return[];}));
+    }
+    /* Messages envoyés par cet acteur */
+    if(actor.actor_id){
+      promises.push(sbQ(base+sf+'&sender_id=eq.'+encodeURIComponent(actor.actor_id)+'&limit=20')
+        .catch(function(){return[];}));
+    }
+  }
+
+  Promise.all(promises).then(function(results){
+    var combined=[]; results.forEach(function(r){combined=combined.concat(r||[]);});
+    _allMessages=dedupeMessagesById(combined);
+    /* Filtrage JS supplémentaire si pas admin */
+    if(!actor.can_view_all_messages){
+      _allMessages=_allMessages.filter(function(m){return canActorSeeMessage(actor,m);});
+    }
+    _unreadCount=_allMessages.filter(function(m){return !m.read_at&&m.status==='sent';}).length;
+    updateBadges();
+    var toShow=_allMessages;
+    if(filters&&filters.excludeChloe===false){/* tout afficher */}
+    renderInboxList(pane,toShow,filters&&filters.status==='archived');
+  }).catch(function(e){
+    console.error('[MSGS] Erreur chargement:', e&&(e.message||e.detail||JSON.stringify(e))||e);
+    pane.innerHTML='<div class="empty-state"><div class="empty-ico">📭</div>'
+      +'<div>Erreur chargement messages.<br><small style="color:#888">'
+      +(e&&(e.message||e.detail||'').substring(0,80)||'Vérifiez la connexion')
+      +'</small></div></div>';
+  });
+}
+
+function renderInboxList(pane,msgs,isArchive){
+  if(!msgs||!msgs.length){
+    pane.innerHTML='<div class="empty-state"><div class="empty-ico">'+(isArchive?'🗂':'📭')+'</div>'
+      +'<div>'+(isArchive?'Aucun message archivé':'Aucun message')+'</div></div>';
+    return;
+  }
+  /* Stats row */
+  var unread=msgs.filter(function(m){return !m.read_at&&m.status!=='archived';}).length;
+  var urgent=msgs.filter(function(m){return m.priority==='urgent';}).length;
+  var action=msgs.filter(function(m){return m.requires_action&&m.action_status==='pending';}).length;
+  var statsHtml='<div class="stats-row">'
+    +'<div class="stat-cell"><div class="stat-n '+(unread?'err':'ok')+'">'+unread+'</div><div class="stat-l">Non lus</div></div>'
+    +'<div class="stat-cell"><div class="stat-n '+(urgent?'warn':'')+'">'+urgent+'</div><div class="stat-l">Urgents</div></div>'
+    +'<div class="stat-cell"><div class="stat-n '+(action?'err':'')+'">'+action+'</div><div class="stat-l">Action requise</div></div>'
+    +'<div class="stat-cell"><div class="stat-n">'+msgs.length+'</div><div class="stat-l">Total</div></div>'
+    +'</div>';
+  var listHtml=msgs.map(function(m){return buildMsgCard(m);}).join('');
+  pane.innerHTML=statsHtml+'<div class="msg-list">'+listHtml+'</div>';
+}
+
+function buildMsgCard(m){
+  var isUnread=!m.read_at&&m.status!=='archived';
+  var dt=m.created_at?fmtTime(m.created_at):'';
+  var from=escH(senderLabel(m));
+  var dept=m.department?'<span class="badge bdg-dept">'+escH(m.department)+'</span>':'';
+  var prio=m.priority&&m.priority!=='normal'?'<span class="badge bdg-'+(m.priority==='urgent'?'urgent':'high')+'">'+escH(m.priority)+'</span>':'';
+  var typ=m.message_type&&m.message_type!=='text'?'<span class="badge bdg-type">'+escH(m.message_type)+'</span>':'';
+  var act=m.requires_action&&m.action_status==='pending'?'<span class="badge bdg-action">⚡ Action</span>':'';
+  var preview=escH((m.message||'').slice(0,80));
+  var cls='msg-card'+(isUnread?' unread':'')+(m.priority==='urgent'?' urgent':m.priority==='high'?' high':'');
+  return '<div class="'+cls+'" onclick="openMessage(\''+escH(m.id)+'\',\''+escH(m.context_type||'general')+'\')">'
+    +'<div class="mc-top"><span class="mc-from">'+from+'</span><span class="mc-time">'+dt+'</span></div>'
+    +'<div class="mc-subject">'+escH(contextLabel(m))+'</div>'
+    +'<div class="mc-preview">'+preview+'</div>'
+    +'<div class="mc-meta">'+dept+prio+typ+act+'</div>'
+    +'</div>';
+}
+
+function senderLabel(m){
+  var icons={admin:'👔',manager:'👔',reception:'🏨',restaurant:'🍽️',driver:'🛵',
+             housekeeping:'🧹',employee:'👤',chloe:'🧠',system:'⚙️'};
+  var ico=icons[m.sender_type]||'💬';
+  return ico+' '+(m.sender_name||m.sender_type||'Système');
+}
+function contextLabel(m){
+  var map={order:'🛒 Commande',delivery:'🛵 Livraison',employee:'👤 Employé',
+    housekeeping:'🧹 Housekeeping',maintenance:'🔧 Maintenance',rh:'👥 RH',
+    finance:'💳 Finance',document:'🗂 Document',chloe:'🧠 Chloé',general:'💬 Général'};
+  var lbl=map[m.context_type]||'💬 Général';
+  if(m.context_id) lbl+=' #'+m.context_id.slice(0,8);
+  return lbl;
+}
+function fmtTime(iso){
+  var d=new Date(iso);
+  var now=new Date();
+  var diff=now-d;
+  if(diff<60000)return 'À l\'instant';
+  if(diff<3600000)return Math.floor(diff/60000)+'min';
+  if(diff<86400000)return d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+}
+
+/* ── Open message → thread ── */
+function openMessage(id,ctx){
+  var msg=_allMessages.find(function(m){return m.id===id;});
+  if(!msg)return;
+  markMessageRead(id);
+  var tid=msg.thread_id;
+  if(tid){
+    openMessageThread(tid,msg);
+  } else {
+    /* Afficher seul en thread view */
+    openSingleMessage(msg);
+  }
+}
+
+function openSingleMessage(msg){
+  _threadContext={id:null,title:senderLabel(msg),contextType:msg.context_type,contextId:msg.context_id};
+  document.getElementById('thread-panel-title').textContent=contextLabel(msg);
+  var urgBdg=document.getElementById('thread-panel-badge');
+  if(msg.priority&&msg.priority!=='normal'){
+    urgBdg.textContent=msg.priority.toUpperCase();
+    urgBdg.className='badge bdg-'+(msg.priority==='urgent'?'urgent':'high');
+    urgBdg.style.display='';
+  } else { urgBdg.style.display='none'; }
+  var dt=msg.created_at?fmtTime(msg.created_at):'';
+  var bubbCls='bubble recv'+(msg.priority==='urgent'?' urgent-msg':'')+' '+(msg.sender_type==='chloe'?'chloe':'');
+  document.getElementById('thread-panel-msgs').innerHTML='<div class="'+bubbCls+'">'
+    +'<div class="bub-meta">'+escH(senderLabel(msg))+' · '+dt+'</div>'
+    +escH(msg.message||'')
+    +(msg.requires_action?'<div style="margin-top:6px;font-size:11px;font-style:italic;color:var(--warn)">⚡ Action requise</div>':'')
+    +'</div>';
+  setupQuickReplies(msg.context_type,msg.context_id);
+  document.getElementById('compose-input').value='';
+  document.getElementById('thread-panel').style.display='flex';
+  scrollThreadToBottom();
+}
+
+/* ── Thread view ── */
+function openMessageThread(threadId,refMsg){
+  _activeThreadId=threadId;
+  if(refMsg) _threadContext={id:threadId,title:contextLabel(refMsg),contextType:refMsg.context_type,contextId:refMsg.context_id};
+  document.getElementById('thread-panel-title').textContent=_threadContext.title||'Conversation';
+  document.getElementById('thread-panel-badge').style.display='none';
+  var msgsEl=document.getElementById('thread-panel-msgs');
+  msgsEl.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+  document.getElementById('thread-panel').style.display='flex';
+  sbQ('veraluz_internal_messages?thread_id=eq.'+encodeURIComponent(threadId)+'&tenant_id=eq.'+TENANT+'&order=created_at.asc')
+    .then(function(rows){
+      _threadMessages=rows||[];
+      renderThreadMessages();
+      setupQuickReplies(_threadContext.contextType,_threadContext.contextId);
+      document.getElementById('compose-input').value='';
+      scrollThreadToBottom();
+    }).catch(function(){
+      msgsEl.innerHTML='<div class="empty-state">Impossible de charger les messages.</div>';
+    });
+}
+
+function renderThreadMessages(){
+  var el=document.getElementById('thread-panel-msgs');
+  if(!_threadMessages.length){
+    el.innerHTML='<div class="empty-state"><div class="empty-ico">💬</div><div>Aucun message</div></div>';
+    return;
+  }
+  var isMeType=_currentUser.role;
+  el.innerHTML=_threadMessages.map(function(m){
+    var isMe=m.sender_type===isMeType||m.sender_id===(_currentUser.username||'');
+    var cls='bubble '+(isMe?'sent':m.sender_type==='chloe'?'chloe':m.sender_type==='system'?'system':'recv')
+      +(m.priority==='urgent'?' urgent-msg':'');
+    var dt=m.created_at?fmtTime(m.created_at):'';
+    if(m.sender_type==='system') return '<div class="'+cls+'">'+escH(m.message||'')+'</div>';
+    return '<div class="'+cls+'">'
+      +'<div class="bub-meta">'+(isMe?'Vous':escH(senderLabel(m)))+' · '+dt+'</div>'
+      +escH(m.message||'')
+      +'</div>';
+  }).join('');
+  scrollThreadToBottom();
+}
+
+function submitThreadMsg(){
+  var inp=document.getElementById('compose-input');
+  var txt=(inp.value||'').trim();
+  if(!txt)return;
+  inp.value='';
+  inp.disabled=true;
+  var btn=document.getElementById('btn-send-msg');
+  if(btn)btn.disabled=true;
+  sendInternalMessage({
+    thread_id:_activeThreadId||undefined,
+    context_type:_threadContext.contextType||'general',
+    context_id:_threadContext.contextId||undefined,
+    message:txt,
+    message_type:'text',
+    priority:'normal'
+  }).then(function(newMsg){
+    if(newMsg&&newMsg.length){
+      _threadMessages.push(newMsg[0]);
+      renderThreadMessages();
+    }
+    inp.disabled=false;if(btn)btn.disabled=false;inp.focus();
+  }).catch(function(){
+    toast('Erreur envoi','err');
+    inp.disabled=false;if(btn)btn.disabled=false;inp.value=txt;
+  });
+}
+
+function closeThread(){
+  document.getElementById('thread-panel').style.display='none';
+  _activeThreadId=null;
+  loadTab(_activeTab);
+}
+
+function scrollThreadToBottom(){
+  var el=document.getElementById('thread-panel-msgs');
+  if(el) setTimeout(function(){el.scrollTop=el.scrollHeight;},60);
+}
+
+/* ── Quick replies per context ── */
+function setupQuickReplies(ctx,ctxId){
+  var el=document.getElementById('compose-qr-btns');
+  if(!el)return;
+  var qrs=[];
+  if(ctx==='order'||ctx==='delivery'){
+    qrs=['Commande prête','En route','Livré','Client absent','Problème signalé'];
+  } else if(ctx==='housekeeping'){
+    qrs=['Chambre propre','Linge demandé','Maintenance signalée','En cours'];
+  } else if(ctx==='maintenance'){
+    qrs=['Reçu','En cours','Terminé','Besoin de pièces'];
+  } else if(ctx==='rh'){
+    qrs=['Document reçu','Validé','En attente de signature'];
+  } else {
+    qrs=['Reçu','Compris','En cours','Fait','OK'];
+  }
+  el.innerHTML=qrs.map(function(q){
+    return '<button class="qr-btn" onclick="sendQuickReply(\''+q.replace(/'/g,"\\'")+'\')" >'+escH(q)+'</button>';
+  }).join('');
+}
+
+function sendQuickReply(text){
+  var inp=document.getElementById('compose-input');
+  if(inp) inp.value=text;
+  submitThreadMsg();
+}
+
+/* ────────────────────────────────────
+   CONVERSATIONS — loadMessageThreads
+──────────────────────────────────── */
+function loadMessageThreads(){
+  var pane=document.getElementById('pane-threads');
+  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+  sbQ('veraluz_message_threads?tenant_id=eq.'+TENANT+'&status=neq.archived&order=updated_at.desc&limit=40')
+    .then(function(rows){
+      if(!rows||!rows.length){
+        pane.innerHTML='<div class="empty-state"><div class="empty-ico">💬</div><div>Aucune conversation</div></div>';
+        return;
+      }
+      pane.innerHTML='<div class="msg-list">'+rows.map(function(t){
+        var dt=t.last_message_at?fmtTime(t.last_message_at):'';
+        var pBdg=t.priority&&t.priority!=='normal'?'<span class="badge bdg-'+(t.priority==='urgent'?'urgent':'high')+'">'+escH(t.priority)+'</span>':'';
+        var dBdg=t.department?'<span class="badge bdg-dept">'+escH(t.department)+'</span>':'';
+        return '<div class="msg-card" onclick="openMessageThread(\''+escH(t.id)+'\',{id:\''+escH(t.id)+'\',title:\''+escH(t.title||'Conversation')+'\',contextType:\''+escH(t.context_type||'general')+'\',contextId:\''+escH(t.context_id||'')+'\'})">'
+          +'<div class="mc-top"><span class="mc-from">💬 '+escH(t.title||'Conversation')+'</span><span class="mc-time">'+dt+'</span></div>'
+          +'<div class="mc-preview">'+escH((t.last_message||'Aucun message').slice(0,80))+'</div>'
+          +'<div class="mc-meta">'+dBdg+pBdg+'<span class="badge bdg-'+(t.status==='open'?'ok':'normal')+'">'+escH(t.status)+'</span></div>'
+          +'</div>';
+      }).join('')+'</div>';
+    }).catch(function(){
+      pane.innerHTML='<div class="empty-state"><div class="empty-ico">❌</div><div>Erreur chargement conversations</div></div>';
+    });
+}
+
+/* ── Override openMessageThread to accept object ── */
+var _origOpenThread=openMessageThread;
+function openMessageThread(threadId,refObjOrMsg){
+  if(refObjOrMsg&&refObjOrMsg.contextType){
+    _threadContext=refObjOrMsg;
+    _activeThreadId=threadId;
+    document.getElementById('thread-panel-title').textContent=refObjOrMsg.title||'Conversation';
+    document.getElementById('thread-panel-badge').style.display='none';
+    var msgsEl=document.getElementById('thread-panel-msgs');
+    msgsEl.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+    document.getElementById('thread-panel').style.display='flex';
+    document.getElementById('compose-input').value='';
+    sbQ('veraluz_internal_messages?thread_id=eq.'+encodeURIComponent(threadId)+'&tenant_id=eq.'+TENANT+'&order=created_at.asc')
+      .then(function(rows){
+        _threadMessages=rows||[];
+        renderThreadMessages();
+        setupQuickReplies(_threadContext.contextType,_threadContext.contextId);
+        scrollThreadToBottom();
+      }).catch(function(){
+        msgsEl.innerHTML='<div class="empty-state">Impossible de charger les messages.</div>';
+      });
+  } else {
+    /* refObjOrMsg est un message objet */
+    if(refObjOrMsg) _threadContext={id:threadId,title:contextLabel(refObjOrMsg),contextType:refObjOrMsg.context_type,contextId:refObjOrMsg.context_id};
+    _activeThreadId=threadId;
+    document.getElementById('thread-panel-title').textContent=_threadContext.title||'Conversation';
+    document.getElementById('thread-panel-badge').style.display='none';
+    var msgsEl2=document.getElementById('thread-panel-msgs');
+    msgsEl2.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+    document.getElementById('thread-panel').style.display='flex';
+    document.getElementById('compose-input').value='';
+    sbQ('veraluz_internal_messages?thread_id=eq.'+encodeURIComponent(threadId)+'&tenant_id=eq.'+TENANT+'&order=created_at.asc')
+      .then(function(rows){
+        _threadMessages=rows||[];
+        renderThreadMessages();
+        setupQuickReplies(_threadContext.contextType,_threadContext.contextId);
+        scrollThreadToBottom();
+      }).catch(function(){
+        msgsEl2.innerHTML='<div class="empty-state">Impossible de charger.</div>';
+      });
+  }
+}
+
+/* ────────────────────────────────────
+   COMMANDES / LIVRAISONS
+──────────────────────────────────── */
+function loadDeliveryMessages(){
+  var pane=document.getElementById('pane-orders');
+  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+  var today=new Date().toISOString().slice(0,10);
+  // Unifier delivery_messages + internal_messages contexte order/delivery
+  Promise.all([
+    sbQ('veraluz_delivery_messages?tenant_id=eq.'+TENANT+'&created_at=gte.'+today+'T00:00:00&order=created_at.desc&limit=50').catch(function(){return[];}),
+    sbQ('veraluz_internal_messages?tenant_id=eq.'+TENANT+'&context_type=in.(order,delivery)&order=created_at.desc&limit=30').catch(function(){return[];})
+  ]).then(function(results){
+    var dm=results[0]||[];
+    var im=results[1]||[];
+    if(!dm.length&&!im.length){
+      pane.innerHTML='<div class="empty-state"><div class="empty-ico">🛵</div><div>Aucun message de livraison aujourd\'hui</div></div>';
+      return;
+    }
+    /* Grouper delivery_messages par order_id */
+    var orderGroups={};
+    dm.forEach(function(m){
+      var oid=m.order_id||'sans_commande';
+      if(!orderGroups[oid])orderGroups[oid]=[];
+      orderGroups[oid].push(m);
+    });
+    var html='';
+    if(dm.length){
+      html+='<div style="padding:8px 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;">Messages Restaurant ↔ Livreur</div>';
+      html+=Object.keys(orderGroups).map(function(oid){
+        var msgs=orderGroups[oid];
+        var last=msgs[0];
+        return '<div class="msg-card" onclick="openDeliveryOrderThread(\''+escH(oid)+'\')">'
+          +'<div class="mc-top"><span class="mc-from">🛵 Commande #'+escH(oid.slice(0,8))+'</span>'
+          +'<span class="mc-time">'+fmtTime(last.created_at)+'</span></div>'
+          +'<div class="mc-preview">'+escH((last.message||'').slice(0,60))+'</div>'
+          +'<div class="mc-meta"><span class="badge bdg-dept">'+escH(msgs.length)+' message'+(msgs.length>1?'s':'')+'</span></div>'
+          +'</div>';
+      }).join('');
+    }
+    if(im.length){
+      html+='<div style="padding:8px 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:8px;">Messages internes commandes</div>';
+      html+=im.map(function(m){return buildMsgCard(m);}).join('');
+    }
+    pane.innerHTML='<div class="msg-list">'+html+'</div>';
+  });
+}
+
+function openDeliveryOrderThread(orderId){
+  var pane=document.getElementById('thread-panel-msgs');
+  _threadContext={id:null,title:'Commande #'+orderId.slice(0,8),contextType:'order',contextId:orderId};
+  document.getElementById('thread-panel-title').textContent='🛵 Commande #'+orderId.slice(0,8);
+  document.getElementById('thread-panel-badge').style.display='none';
+  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+  document.getElementById('thread-panel').style.display='flex';
+  document.getElementById('compose-input').value='';
+  sbQ('veraluz_delivery_messages?tenant_id=eq.'+TENANT+'&order_id=eq.'+encodeURIComponent(orderId)+'&order=created_at.asc')
+    .then(function(rows){
+      var icons={restaurant:'🍽️',driver:'🛵',system:'⚙️'};
+      _threadMessages=(rows||[]).map(function(m){
+        return {id:m.id,sender_type:m.sender_type,sender_name:m.sender_name,
+          message:m.message,created_at:m.created_at,priority:m.priority||'normal'};
+      });
+      renderThreadMessages();
+      setupQuickReplies('order',orderId);
+      scrollThreadToBottom();
+    }).catch(function(){
+      pane.innerHTML='<div class="empty-state">Erreur chargement messages commande</div>';
+    });
+}
+
+/* ────────────────────────────────────
+   EMPLOYÉS
+──────────────────────────────────── */
+function loadEmployeeMessages(){
+  var pane=document.getElementById('pane-employees');
+  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+  sbQ('veraluz_internal_messages?tenant_id=eq.'+TENANT
+    +'&context_type=eq.employee&status=neq.archived&order=created_at.desc&limit=40')
+    .then(function(rows){
+      if(!rows||!rows.length){
+        pane.innerHTML='<div class="empty-state"><div class="empty-ico">👥</div>'
+          +'<div>Aucun message employé</div>'
+          +'<button class="btn-primary" style="margin-top:14px;" onclick="openNewMsg(\'employee\')">Envoyer un message</button></div>';
+        return;
+      }
+      pane.innerHTML='<div class="msg-list">'+rows.map(function(m){return buildMsgCard(m);}).join('')+'</div>';
+    }).catch(function(){
+      pane.innerHTML='<div class="empty-state"><div class="empty-ico">👥</div><div>Messages employés non disponibles</div></div>';
+    });
+}
+
+function renderEmployeeMessages(employeeId){
+  /* Helper pour modules externes (RH) */
+  return sbQ('veraluz_internal_messages?tenant_id=eq.'+TENANT+'&context_type=eq.employee&context_id=eq.'+encodeURIComponent(employeeId)+'&order=created_at.desc&limit=20');
+}
+
+/* ────────────────────────────────────
+   CHLOÉ
+──────────────────────────────────── */
+function renderChloeMessages(){
+  var pane=document.getElementById('pane-chloe');
+  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+  sbQ('veraluz_internal_messages?tenant_id=eq.'+TENANT+'&sender_type=eq.chloe&status=neq.archived&order=created_at.desc&limit=50')
+    .then(function(rows){
+      var cl=rows||[];
+      /* Badge Chloé urgents */
+      var urgents=cl.filter(function(m){return m.priority==='urgent'&&!m.read_at;}).length;
+      var badge=document.getElementById('tbadge-chloe');
+      if(badge){badge.textContent=urgents>99?'99+':String(urgents);badge.style.display=urgents?'':'none';}
+      if(!cl.length){
+        pane.innerHTML='<div class="empty-state"><div class="empty-ico">🧠</div>'
+          +'<div>Aucun message de Chloé</div>'
+          +'<div style="font-size:12px;color:var(--text3);margin-top:8px;">Les alertes, rappels et recommandations de Chloé apparaîtront ici.</div></div>';
+        return;
+      }
+      var html='<div style="padding:10px 14px;background:rgba(188,140,255,.06);border-bottom:1px solid var(--border);">'
+        +'<div style="font-size:12px;color:var(--purple);font-weight:600;">🧠 Messages de la Directrice Chloé</div>'
+        +'<div style="font-size:11px;color:var(--text2);margin-top:2px;">Alertes, résumés et recommandations IA. Toute action requiert votre validation.</div>'
+        +'</div><div class="msg-list">'+cl.map(function(m){return buildChloeCard(m);}).join('')+'</div>';
+      pane.innerHTML=html;
+    }).catch(function(){
+      pane.innerHTML='<div class="empty-state"><div class="empty-ico">🧠</div><div>Messages Chloé non disponibles</div></div>';
+    });
+}
+
+function buildChloeCard(m){
+  var dt=m.created_at?fmtTime(m.created_at):'';
+  var typeIco={alert:'🔴',reminder:'⏰',recommendation:'💡',report_ready:'📊',approval_required:'✅',incident:'⚠️',text:'💬'};
+  var ico=typeIco[m.message_type]||'🧠';
+  var isUnread=!m.read_at;
+  var pBdg=m.priority&&m.priority!=='normal'?'<span class="badge bdg-'+(m.priority==='urgent'?'urgent':'high')+'">'+escH(m.priority)+'</span>':'';
+  return '<div class="msg-card'+(isUnread?' unread':'')+(m.priority==='urgent'?' urgent':'')+'" onclick="openMessage(\''+escH(m.id)+'\',\'chloe\')">'
+    +'<div class="mc-top"><span class="mc-from"><span class="badge bdg-chloe" style="margin-right:4px;">🧠 Chloé</span>'+ico+' '+escH(m.message_type||'message')+'</span><span class="mc-time">'+dt+'</span></div>'
+    +'<div class="mc-preview">'+escH((m.message||'').slice(0,100))+'</div>'
+    +'<div class="mc-meta">'+pBdg+(m.requires_action?'<span class="badge bdg-action">⚡ Validation requise</span>':'')+'</div>'
+    +'</div>';
+}
+
+/* ────────────────────────────────────
+   BROUILLONS EXTERNES
+──────────────────────────────────── */
+function loadDrafts(){
+  var pane=document.getElementById('pane-drafts');
+  pane.innerHTML='<div class="loading"><span class="spinner"></span>Chargement…</div>';
+  sbQ('veraluz_chloe_drafts?tenant_id=eq.'+TENANT+'&status=eq.draft&order=created_at.desc&limit=40')
+    .then(function(rows){
+      if(!rows||!rows.length){
+        pane.innerHTML='<div class="empty-state"><div class="empty-ico">✉️</div>'
+          +'<div>Aucun brouillon</div>'
+          +'<div style="font-size:12px;color:var(--text3);margin-top:8px;">Les brouillons WhatsApp, email et SMS préparés par Chloé apparaîtront ici.<br>Aucun envoi automatique — vous envoyez manuellement.</div></div>';
+        return;
+      }
+      var html='<div style="padding:8px 14px;background:rgba(210,153,34,.06);border-bottom:1px solid var(--border);">'
+        +'<div style="font-size:11px;color:var(--warn);font-weight:600;">⚠️ Aucun envoi automatique — vous copiez et envoyez manuellement</div></div>'
+        +'<div>'+rows.map(function(d){return buildDraftCard(d);}).join('')+'</div>';
+      pane.innerHTML=html;
+    }).catch(function(){
+      pane.innerHTML='<div class="empty-state"><div class="empty-ico">✉️</div><div>Brouillons non disponibles.<br>Exécutez MIGRATION_SQL_PROMPT_030.sql</div></div>';
+    });
+}
+
+function buildDraftCard(d){
+  var typeIco={email_client:'📧 Email client',whatsapp_client:'📱 WhatsApp client',
+    email_fournisseur:'📧 Email fournisseur',whatsapp_fournisseur:'📱 WhatsApp fournisseur',
+    email_employe:'📧 Email employé',note_interne:'📝 Note interne'};
+  var typ=typeIco[d.draft_type]||('✉️ '+escH(d.draft_type||''));
+  var dt=d.created_at?fmtTime(d.created_at):'';
+  return '<div class="draft-card">'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+    +'<span class="badge bdg-type">'+typ+'</span>'
+    +'<span style="font-size:11px;color:var(--text3);">'+dt+'</span></div>'
+    +(d.recipient_name?'<div class="draft-to">À : '+escH(d.recipient_name)+'</div>':'')
+    +(d.subject?'<div class="draft-subject">'+escH(d.subject)+'</div>':'')
+    +'<div class="draft-body">'+escH((d.body||'').slice(0,200))+'</div>'
+    +'<div class="draft-actions">'
+    +'<button class="btn-sm" onclick="copyDraftMessage(\''+escH(d.id)+'\','+JSON.stringify(d.body).replace(/</g,'\\u003c')+')">📋 Copier</button>'
+    +'<button class="btn-sm ok" onclick="markDraftSentByHuman(\''+escH(d.id)+'\')">✓ Marquer envoyé</button>'
+    +'<button class="btn-sm" onclick="cancelDraft(\''+escH(d.id)+'\')">✕ Annuler</button>'
+    +'</div></div>';
+}
+
+function copyDraftMessage(draftId,body){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(body).then(function(){toast('📋 Brouillon copié','ok');})
+      .catch(function(){_execCopyText(body);});
+  } else { _execCopyText(body); }
+}
+function _execCopyText(text){
+  var ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);toast('📋 Copié','ok');
+}
+
+function markDraftSentByHuman(draftId){
+  sbUpd('veraluz_chloe_drafts','id=eq.'+encodeURIComponent(draftId),
+    {status:'sent_by_human',sent_at:new Date().toISOString(),updated_at:new Date().toISOString()})
+    .then(function(){toast('✓ Marqué comme envoyé','ok');loadDrafts();})
+    .catch(function(){toast('Erreur','err');});
+}
+
+function cancelDraft(draftId){
+  if(!confirm('Annuler ce brouillon ?'))return;
+  sbUpd('veraluz_chloe_drafts','id=eq.'+encodeURIComponent(draftId),
+    {status:'cancelled',updated_at:new Date().toISOString()})
+    .then(function(){toast('Brouillon annulé','info');loadDrafts();})
+    .catch(function(){toast('Erreur','err');});
+}
+
+/* ────────────────────────────────────
+   CORE FUNCTIONS
+──────────────────────────────────── */
+function sendInternalMessage(payload){
+  /* PROMPT 031D — Sécurité : jamais service_role, PIN, WhatsApp/email auto, paiement auto */
+  var actor=getCurrentMessagingActor();
+  var data=Object.assign({
+    tenant_id:TENANT,
+    sender_type:actor.actor_type||'admin',
+    sender_id:actor.actor_id||actor.user_id||'',
+    sender_name:actor.actor_name||'Utilisateur',
+    department:actor.department||'direction',
+    is_internal:true,
+    status:'sent',
+    created_at:new Date().toISOString()
+  },payload);
+  console.log('[MSGS] sendInternalMessage actor='+actor.actor_type+' to='+data.recipient_type+'/'+data.recipient_id);
+  return sbIns('veraluz_internal_messages',data);
+}
+
+function markMessageRead(messageId){
+  var msg=_allMessages.find(function(m){return m.id===messageId;});
+  if(!msg||msg.read_at)return Promise.resolve();
+  msg.read_at=new Date().toISOString();
+  return sbUpd('veraluz_internal_messages','id=eq.'+encodeURIComponent(messageId),
+    {read_at:msg.read_at,status:'read'}).catch(function(){});
+}
+
+function archiveMessage(messageId){
+  return sbUpd('veraluz_internal_messages','id=eq.'+encodeURIComponent(messageId),
+    {status:'archived',archived_at:new Date().toISOString()})
+    .then(function(){toast('Message archivé','info');loadTab(_activeTab);})
+    .catch(function(){toast('Erreur archivage','err');});
+}
+
+function getUnreadMessageCount(){
+  /* PROMPT 031D — compter seulement les messages visibles par l'acteur courant */
+  var actor=getCurrentMessagingActor();
+  var base='veraluz_internal_messages?tenant_id=eq.'+TENANT+'&status=eq.sent&read_at=is.null&select=id&limit=100';
+  if(actor.can_view_all_messages){
+    return sbQ(base).then(function(r){return (r||[]).length;}).catch(function(){return 0;});
+  }
+  var queries=[];
+  if(actor.actor_id) queries.push(sbQ(base+'&recipient_id=eq.'+encodeURIComponent(actor.actor_id)).catch(function(){return[];}));
+  if(actor.employee_id&&actor.employee_id!==actor.actor_id)
+    queries.push(sbQ(base+'&recipient_id=eq.'+encodeURIComponent(actor.employee_id)).catch(function(){return[];}));
+  if(actor.actor_type) queries.push(sbQ(base+'&recipient_type=eq.'+encodeURIComponent(actor.actor_type)).catch(function(){return[];}));
+  if(actor.department&&actor.department!=='direction')
+    queries.push(sbQ(base+'&department=eq.'+encodeURIComponent(actor.department)).catch(function(){return[];}));
+  return Promise.all(queries).then(function(results){
+    var combined=[]; results.forEach(function(r){combined=combined.concat(r||[]);});
+    return dedupeMessagesById(combined).length;
+  }).catch(function(){return 0;});
+}
+
+function updateBadges(){
+  var inboxBadge=document.getElementById('tbadge-inbox');
+  var topBadge=document.getElementById('unread-badge');
+  if(_unreadCount>0){
+    if(inboxBadge){inboxBadge.textContent=_unreadCount>99?'99+':String(_unreadCount);inboxBadge.style.display='';}
+    if(topBadge){topBadge.textContent=_unreadCount>99?'99+':String(_unreadCount);topBadge.style.display='';}
+  } else {
+    if(inboxBadge)inboxBadge.style.display='none';
+    if(topBadge)topBadge.style.display='none';
+  }
+  /* Notifier le CORE parent */
+  try{
+    window.parent.postMessage({type:'message-count',source:'veraluz-messages',data:{unread:_unreadCount}},'*');
+  }catch(e){}
+}
+
+function renderMessageBadge(){
+  getUnreadMessageCount().then(function(n){
+    _unreadCount=n;updateBadges();
+  });
+}
+
+/* ── New message modal ── */
+function openNewMsg(forcedCtx){
+  if(forcedCtx){
+    var sel=document.getElementById('nm-context');
+    if(sel)sel.value=forcedCtx;
+  }
+  document.getElementById('new-msg-ov').classList.add('open');
+  document.getElementById('new-msg-sheet').style.display='block';
+  setTimeout(function(){document.getElementById('nm-message').focus();},150);
+}
+function closeNewMsg(){
+  document.getElementById('new-msg-ov').classList.remove('open');
+  document.getElementById('new-msg-sheet').style.display='none';
+}
+
+function submitNewMsg(){
+  var recipient=document.getElementById('nm-recipient').value;
+  var ctx=document.getElementById('nm-context').value;
+  var priority=document.getElementById('nm-priority').value;
+  var msg=(document.getElementById('nm-message').value||'').trim();
+  if(!msg){toast('Message vide','err');return;}
+  var deptMap={admin:'direction',restaurant:'restaurant',delivery:'delivery',
+    housekeeping:'housekeeping',rh:'rh',maintenance:'maintenance',all_admins:'direction'};
+  sendInternalMessage({
+    context_type:ctx,
+    recipient_type:recipient,
+    department:deptMap[recipient]||'direction',
+    message:msg,
+    message_type:'text',
+    priority:priority
+  }).then(function(){
+    toast('Message envoyé','ok');
+    closeNewMsg();
+    document.getElementById('nm-message').value='';
+    loadTab(_activeTab);
+  }).catch(function(e){
+    var msg=e&&(e.detail||e.message)||'Erreur inconnue';
+    toast('Erreur: '+msg.substring(0,80),'err');
+    console.error('[MSGS] Erreur envoi:',e);
+  });
+}
+
+/* ── createChloeMessage (appelable par AI_CENTER) ── */
+function createChloeMessage(payload){
+  /* PROMPT 031D — Chloé : alertes ciblées uniquement. Jamais WhatsApp/email/paiement auto.
+     payload doit inclure: recipient_type, department, priority, context_type, context_id */
+  if(!payload||!payload.message){console.warn('[Chloé] message manquant'); return Promise.resolve();}
+  var data=Object.assign({
+    sender_type:'chloe',
+    sender_id:'chloe_director',
+    sender_name:'Directrice Chloé',
+    recipient_type:'admin',         /* défaut — peut être écrasé par payload */
+    department:'direction',
+    priority:'normal',
+    is_internal:true,
+    requires_action:false,
+    status:'sent',
+    created_at:new Date().toISOString()
+  },payload,{tenant_id:TENANT});
+  console.log('[Chloé] Alerte ciblée → '+data.recipient_type+(data.recipient_id?'/'+data.recipient_id:'')+' prio='+data.priority);
+  return sbIns('veraluz_internal_messages',data);
+}
+
+/* ── logMessageEvent — incidents → delivery_events ── */
+function logMessageEvent(message){
+  /* Seulement pour incidents/statuts importants */
+  var eventTypes={
+    'Client absent':'incident_client_absent',
+    'Adresse introuvable':'incident_address_issue',
+    'Problème paiement':'incident_payment',
+    'Commande récupérée':'driver_picked_up',
+    'Je suis en route':'driver_en_route',
+    'Je suis arrivé':'driver_arrived',
+    'Commande livrée':'delivery_completed',
+    'Commande prête':'message_order_ready'
+  };
+  var evType=eventTypes[message.message]||null;
+  if(!evType||!message.order_id)return Promise.resolve();
+  return fetch(SB+'/rest/v1/veraluz_delivery_events',{
+    method:'POST',
+    headers:H({Prefer:'return=minimal'}),
+    body:JSON.stringify({
+      tenant_id:TENANT,
+      order_id:message.order_id,
+      event_type:evType,
+      actor_type:message.sender_type||'driver',
+      actor_id:message.sender_id||null,
+      notes:'Via messagerie interne',
+      created_at:new Date().toISOString()
+    })
+  }).catch(function(){});
+}
+
+/* ── sendDeliveryMessage ── */
+function sendDeliveryMessage(orderId,message,type){
+  return sbIns('veraluz_delivery_messages',{
+    tenant_id:TENANT,
+    order_id:orderId,
+    sender_type:_currentUser.role||'admin',
+    sender_id:_currentUser.username||'',
+    sender_name:_currentUser.name||'',
+    message:message,
+    message_type:type||'text'
+  });
+}
+
+/* ────────────────────────────────────
+   INIT
+──────────────────────────────────── */
+/* PROMPT 031D — Debug admin droits messagerie */
+function renderActorDebugPanel(){
+  var actor=getCurrentMessagingActor();
+  var el=document.getElementById('actor-debug-panel');
+  if(!el)return;
+  if(!actor.can_view_all_messages){el.style.display='none';return;}
+  el.style.display='block';
+  el.innerHTML='<div style="background:#1c2333;border:1px solid #58a6ff;border-radius:8px;padding:12px;margin:8px;font-size:12px;">'
+    +'<b style="color:#58a6ff">🔍 Contexte acteur (debug admin)</b><br><br>'
+    +'<b>actor_id:</b> '+escH(actor.actor_id)+'<br>'
+    +'<b>actor_name:</b> '+escH(actor.actor_name)+'<br>'
+    +'<b>actor_type:</b> '+escH(actor.actor_type)+'<br>'
+    +'<b>role:</b> '+escH(actor.role)+'<br>'
+    +'<b>department:</b> '+escH(actor.department)+'<br>'
+    +'<b>tenant_id:</b> '+escH(actor.tenant_id)+'<br>'
+    +'<b>can_view_all_messages:</b> '+actor.can_view_all_messages+'<br>'
+    +'<b>can_send_to_all:</b> '+actor.can_send_to_all+'<br>'
+    +'<b>Messages visibles:</b> '+_allMessages.length+'<br>'
+    +'<b>Non lus:</b> '+_unreadCount+'<br>'
+    +'<button onclick="renderActorDebugPanel()" style="margin-top:8px;padding:4px 10px;background:#21262d;border:1px solid #444;color:#c9d1d9;border-radius:4px;cursor:pointer;">Rafraîchir</button>'
+    +'</div>';
+}
+
+
+/* ── PROMPT 032 — Alert polling messages 20s ── */
+var _vlzLastMsgId='',_vlzMsgPollInterval=null;
+function startMsgAlertPolling(){
+  if(_vlzMsgPollInterval)return;
+  _vlzMsgPollInterval=setInterval(function(){
+    var actor=getCurrentMessagingActor();
+    if(!actor)return;
+    var qs='veraluz_internal_messages?tenant_id=eq.'+encodeURIComponent(TENANT)
+      +'&status=not.in.(archived,cancelled)&order=created_at.desc&limit=5';
+    sbGet(qs).then(function(msgs){
+      if(!msgs||!msgs.length)return;
+      var newest=msgs[0];
+      if(!newest||!newest.id)return;
+      if(_vlzLastMsgId===String(newest.id))return; /* rien de nouveau */
+      if(_vlzLastMsgId===''){ _vlzLastMsgId=String(newest.id); return; } /* 1er poll = baseline */
+      /* Vérifier visibilité acteur */
+      if(!canActorSeeMessage(actor,newest))return;
+      _vlzLastMsgId=String(newest.id);
+      var from=newest.sender_name||newest.sender_type||'Système';
+      var body=newest.message||(newest.subject||'Nouveau message');
+      vlzAlert('Message de '+from, body.substring(0,80), 'message', 'vlz-msg-'+newest.id);
+      /* Recharger badge + inbox si ouvert */
+      renderMessageBadge();
+      if(typeof _activeTab!=='undefined'&&_activeTab==='inbox'){
+        loadMessages({status:'sent',excludeArchived:true});
+      }
+    }).catch(function(){});
+  },20000);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   VERALUZ ALERT ENGINE v032 — Alertes temps réel
+   WebAudio + Notification OS + Toast + Vibration
+   Aucun envoi WA/email/paiement automatique
+   ══════════════════════════════════════════════════════════════ */
+var _vlzAC=null,_vlzNP=false;
+function _vlzBeep(f,d,v){
+  try{
+    if(!_vlzAC)_vlzAC=new(window.AudioContext||window.webkitAudioContext||function(){return null;})();
+    if(!_vlzAC)return;
+    if(_vlzAC.state==='suspended')_vlzAC.resume();
+    var o=_vlzAC.createOscillator(),g=_vlzAC.createGain();
+    o.connect(g);g.connect(_vlzAC.destination);
+    o.type='sine';o.frequency.value=f||880;
+    g.gain.setValueAtTime(v||0.22,_vlzAC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,_vlzAC.currentTime+(d||0.3));
+    o.start();o.stop(_vlzAC.currentTime+(d||0.3));
+  }catch(e){}
+}
+function vlzAlertSound(type){
+  if(type==='urgent'){
+    _vlzBeep(1000,0.1,0.3);setTimeout(function(){_vlzBeep(1000,0.1,0.3);},140);
+    setTimeout(function(){_vlzBeep(1200,0.22,0.35);},280);
+  }else if(type==='reservation'){
+    _vlzBeep(440,0.12,0.2);setTimeout(function(){_vlzBeep(550,0.15,0.22);},160);
+    setTimeout(function(){_vlzBeep(660,0.2,0.28);},320);
+  }else if(type==='order'){
+    _vlzBeep(528,0.18,0.22);setTimeout(function(){_vlzBeep(660,0.22,0.28);},230);
+  }else{
+    _vlzBeep(660,0.12,0.18);setTimeout(function(){_vlzBeep(880,0.18,0.22);},160);
+  }
+}
+function vlzRequestNotif(){
+  if(!('Notification' in window)||Notification.permission!=='default')return;
+  Notification.requestPermission().then(function(p){_vlzNP=(p==='granted');}).catch(function(){});
+}
+function vlzNotif(title,body,tag){
+  if(typeof Notification==='undefined')return;
+  _vlzNP=(Notification.permission==='granted');
+  if(!_vlzNP)return;
+  try{new Notification(title||'Veraluz',{body:body||'',tag:tag||'vlz-alert',
+    icon:'https://ngams237.github.io/mako-city_suivis_ok/icon-192.png',silent:false});}
+  catch(e){}
+}
+function vlzAlert(title,body,soundType,tag){
+  if(typeof toast==='function')toast('\uD83D\uDD14 '+(body||title).substring(0,70),'ok');
+  vlzAlertSound(soundType||'message');
+  try{if(navigator.vibrate)navigator.vibrate([100,50,100]);}catch(e){}
+  vlzNotif(title,body,tag||'vlz-alert');
+  console.log('[VLZ ALERT]',title,'|',(body||'').substring(0,60));
+}
+document.addEventListener('click',function(){vlzRequestNotif();},{once:true});
+/* ══════════════════════════════════════════════════════════════ */
+addEventListener('DOMContentLoaded',function(){
+  /* PROMPT 031D — init avec acteur identifié */
+  var actor=getCurrentMessagingActor();
+  console.log('[MSGS] Actor:', actor.actor_type, actor.actor_name, 'can_view_all='+actor.can_view_all_messages);
+  loadMessages({status:'sent',excludeArchived:true});
+  renderMessageBadge();
+  /* Panneau debug admin */
+  setTimeout(renderActorDebugPanel, 800);
+  /* Polling léger toutes les 45s */
+  setInterval(function(){
+    if(_activeTab==='inbox')loadMessages({status:'sent',excludeArchived:true});
+    else if(_activeTab==='chloe')renderChloeMessages();
+    renderMessageBadge();
+  },45000);
+  /* PROMPT 032 — alertes temps réel */
+  startMsgAlertPolling();
+});
+</script>
+
+<script>
+/* ── Veraluz Theme toggle — PROMPT 036F ─────────────────────────────── */
+function applyVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';document.documentElement.classList.toggle('vl-dark',dark);var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';}
+function toggleVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';localStorage.setItem('vl_theme',dark?'light':'dark');applyVlTheme();try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}}
+document.addEventListener('DOMContentLoaded',applyVlTheme);
+window.addEventListener('message',function(e){if(e.data&&e.data.type==='vl-theme')applyVlTheme();});
+</script>
+</body>
+</html>

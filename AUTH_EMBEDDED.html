@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate">
 <title>Auth — Veraluz OS</title>
+<script>if(localStorage.getItem('vl_theme')==='dark')document.documentElement.classList.add('vl-dark');</script>
 <style>
 
 :root{--bg1:#0e1117;--bg2:#161b22;--bg3:#1c2230;--bg4:#21293a;--bg5:#283245;
@@ -112,8 +113,114 @@ input:checked+.switch-sl:before{transform:translateX(18px);}
 @media(min-width:600px){.tab-bar{padding:12px 16px 0;}.content{padding:20px 16px;}}
 
 </style>
+<style id="veraluz-theme">
+/* ═══ VERALUZ THEME PROMPT 036F ═══════════════════════════════════════════
+   Light : bg #e8ecf0 · surfaces #fff · neumorphic shadows
+   Dark  : bg #131722 · surfaces #1e2538
+   Toggle: html.vl-dark / localStorage('vl_theme')
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Variables universelles (couvre tous les modules) ─────────────────── */
+:root{
+  --bg:#e8ecf0;--bg1:#e8ecf0;--bg2:#fff;--bg3:#eef1f5;--bg4:#e0e4e8;--bg5:#d8dce0;
+  --text:#1e293b;--text2:#475569;--text3:#94a3b8;
+  --tx:#1e293b;--tx2:#475569;--tx3:#94a3b8;
+  --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.10);--border3:rgba(0,0,0,.05);
+  --vl-sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;
+  --vl-sh-in:inset 2px 2px 6px #c8cdd4,inset -1px -1px 4px #fff;
+  --vl-r:3px;
+}
+html,body{background:var(--bg)!important;color:var(--text)!important;}
+
+/* ── Dark mode ────────────────────────────────────────────────────────── */
+html.vl-dark{
+  --bg:#131722;--bg1:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;--bg5:#2d3654;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --tx:#e2e8f0;--tx2:#94a3b8;--tx3:#64748b;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.10);--border3:rgba(255,255,255,.05);
+  --vl-sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;
+  --vl-sh-in:inset 2px 2px 6px #0d1118,inset -1px -1px 4px #242b3e;
+}
+html.vl-dark body{background:var(--bg)!important;color:var(--text)!important;}
+
+/* ── Topbar / Header ──────────────────────────────────────────────────── */
+.topbar,.header,.mod-header,.page-header{background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;box-shadow:0 1px 6px rgba(0,0,0,.05)!important;}
+html.vl-dark .topbar,html.vl-dark .header,html.vl-dark .mod-header{background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;}
+
+/* ── Tabs / Tabbar ────────────────────────────────────────────────────── */
+.tabbar,.tab-bar,.tabs,.nav-tabs{background:var(--bg3)!important;border-bottom:1px solid var(--border)!important;}
+html.vl-dark .tabbar,html.vl-dark .tab-bar,html.vl-dark .tabs,html.vl-dark .nav-tabs{background:var(--bg2)!important;}
+.tab-btn.active,.tab.active,.nav-link.active{color:#0891b2!important;border-bottom-color:#0891b2!important;}
+html.vl-dark .tab-btn.active,html.vl-dark .tab.active{color:#22d3ee!important;border-bottom-color:#22d3ee!important;}
+
+/* ── Cards / Panels ───────────────────────────────────────────────────── */
+.card,.panel,.pane,.item,.contact-item,.msg-item,.doc-item,.audit-item,.appro-item,
+.list-item,.entry,.result-card,.ai-card,.agent-card,.chloe-card,.section-card,
+.setting-card,.setting-group,.auth-card,.approval-card{
+  background:var(--bg2)!important;border:1px solid var(--border)!important;
+  box-shadow:var(--vl-sh)!important;}
+html.vl-dark .card,html.vl-dark .panel,html.vl-dark .pane,html.vl-dark .item,
+html.vl-dark .contact-item,html.vl-dark .msg-item,html.vl-dark .doc-item,
+html.vl-dark .audit-item,html.vl-dark .appro-item,html.vl-dark .list-item,
+html.vl-dark .entry,html.vl-dark .result-card,html.vl-dark .ai-card,
+html.vl-dark .agent-card,html.vl-dark .chloe-card,html.vl-dark .section-card,
+html.vl-dark .setting-card,html.vl-dark .setting-group,html.vl-dark .auth-card,
+html.vl-dark .approval-card{background:var(--bg3)!important;border:1px solid var(--border)!important;}
+
+/* ── Sidebars / Panels latéraux ───────────────────────────────────────── */
+.sidebar,.side-panel,.left-panel,.right-panel,.detail-panel{background:var(--bg2)!important;border-right:1px solid var(--border)!important;}
+html.vl-dark .sidebar,html.vl-dark .side-panel,html.vl-dark .left-panel,html.vl-dark .right-panel{background:var(--bg2)!important;}
+
+/* ── Content zones (APPRO/CONTACTS hardcoded bg) ─────────────────────── */
+.content,.content-area,.main-content,.list-area,.contact-list,.msg-list,.results,
+.search-results,.appro-list,.contacts-body,.body-area{background:var(--bg)!important;}
+html.vl-dark .content,html.vl-dark .content-area,html.vl-dark .main-content,
+html.vl-dark .list-area,html.vl-dark .contact-list,html.vl-dark .msg-list,
+html.vl-dark .results,html.vl-dark .appro-list,html.vl-dark .contacts-body{background:var(--bg)!important;}
+
+/* ── Search boxes ─────────────────────────────────────────────────────── */
+.sbox,.search-box,.search-wrap{background:var(--bg3)!important;border-color:var(--border2)!important;}
+html.vl-dark .sbox,html.vl-dark .search-box{background:var(--bg3)!important;}
+
+/* ── Inputs ───────────────────────────────────────────────────────────── */
+input:not([type=checkbox]):not([type=radio]),select,textarea{
+  background:var(--bg3)!important;border:1px solid var(--border2)!important;
+  border-radius:var(--vl-r)!important;color:var(--text)!important;}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{
+  border-color:#0891b2!important;box-shadow:0 0 0 2px rgba(8,145,178,.12)!important;outline:none!important;}
+html.vl-dark input:not([type=checkbox]):not([type=radio]),html.vl-dark select,html.vl-dark textarea{
+  background:var(--bg4)!important;border-color:var(--border2)!important;}
+
+/* ── Icônes monochromes ───────────────────────────────────────────────── */
+.icon,.icon-wrap,.action-icon,.stat-icon,.feature-icon,.btn-icon,.tag-icon,
+.avatar-placeholder,.initials-avatar{
+  background:rgba(8,145,178,.10)!important;color:#0891b2!important;border-radius:var(--vl-r)!important;}
+html.vl-dark .icon,html.vl-dark .icon-wrap,html.vl-dark .action-icon,
+html.vl-dark .stat-icon,html.vl-dark .feature-icon,html.vl-dark .btn-icon{
+  background:rgba(8,145,178,.18)!important;color:#22d3ee!important;}
+
+/* ── Boutons secondaires ──────────────────────────────────────────────── */
+.btn-sec,.btn-outline,.btn-ghost{border-radius:var(--vl-r)!important;background:var(--bg3)!important;border:1px solid var(--border2)!important;color:var(--text)!important;}
+html.vl-dark .btn-sec,html.vl-dark .btn-outline{background:var(--bg4)!important;}
+
+/* ── Modals ───────────────────────────────────────────────────────────── */
+.modal,.modal-content,.modal-box,.dialog{background:var(--bg2)!important;border:1px solid var(--border)!important;box-shadow:0 20px 60px rgba(0,0,0,.15)!important;}
+html.vl-dark .modal,html.vl-dark .modal-content,html.vl-dark .modal-box{background:var(--bg3)!important;}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px!important;height:4px!important;}
+::-webkit-scrollbar-track{background:var(--bg)!important;}
+::-webkit-scrollbar-thumb{background:#c8cdd4!important;border-radius:2px!important;}
+html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
+
+/* ── Toggle FAB ───────────────────────────────────────────────────────── */
+#vl-tm-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);right:14px;z-index:9990;width:36px;height:36px;border-radius:3px;border:none;background:#fff;color:#475569;cursor:pointer;font-size:15px;box-shadow:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s,transform .15s;}
+#vl-tm-btn:hover{transform:scale(1.05);}
+html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;}
+</style>
 </head>
 <body>
+<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Thème">🌙</button>
 <div class="app">
 
 <div class="tab-bar">
@@ -143,6 +250,10 @@ input:checked+.switch-sl:before{transform:translateX(18px);}
 <div class="overlay" id="md-perms">
   <div class="modal" id="md-perms-body"></div>
 </div>
+<!-- Modal: Réinitialiser PIN employé (PROMPT 010) -->
+<div class="overlay" id="md-reset-pin">
+  <div class="modal" id="md-reset-pin-body"></div>
+</div>
 
 </div>
 <script>
@@ -154,6 +265,128 @@ input:checked+.switch-sl:before{transform:translateX(18px);}
 'use strict';
 var MODULE_VER = '2.0';
 var currentTabId = 'profil';
+
+/* ── Supabase config (héritée du parent CORE.html) — clé anon publique safe ── */
+var _SB_URL  = (function(){ try{ return window.parent.SUPA_URL || ''; }catch(e){ return ''; } })()
+             || 'https://dfdmasejsoibxrvubegu.supabase.co';
+var _SB_KEY  = (function(){ try{ return window.parent.SUPA_KEY || ''; }catch(e){ return ''; } })()
+             || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+var _EDGE_RESET_PIN  = _SB_URL + '/functions/v1/reset-employee-pin';
+
+/* ── Cache employés Supabase pour onglet Utilisateurs ──────────────────────── */
+var _sbEmp = [];          /* tableau d'objets {id, full_name, role, status, ...} */
+var _sbEmpLoaded = false;
+
+function loadSBEmployees(cb) {
+  fetch(_SB_URL + '/rest/v1/veraluz_employees_public?select=id,full_name,role,status,team_name,email,phone&order=full_name.asc', {
+    headers: { apikey: _SB_KEY, Authorization: 'Bearer ' + _SB_KEY }
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if (Array.isArray(data)) {
+      _sbEmp = data;
+      _sbEmpLoaded = true;
+    }
+    if (cb) cb();
+  })
+  .catch(function(e){
+    console.warn('[AUTH] Erreur chargement employés Supabase:', e);
+    if (cb) cb();
+  });
+}
+
+/* ── Réinitialisation PIN employé ─────────────────────────────────────────── */
+function openResetPinMd(empId, empName) {
+  var cu = getCurrentUser();
+  var cuRole = (cu && cu.role) || 'unknown';
+  document.getElementById('md-reset-pin-body').innerHTML
+    = '<div class="modal-title">🔑 Réinitialiser le PIN</div>'
+    + '<div style="color:var(--text2);font-size:13px;margin-bottom:14px;">'
+    + 'Employé : <strong>' + esc(empName) + '</strong><br>'
+    + 'Un PIN temporaire à 6 chiffres sera généré et affiché une seule fois.<br>'
+    + "L'employé devra le changer à sa prochaine connexion."
+    + '</div>'
+    + '<div id="rp-result" style="display:none;background:var(--bg3);border:1.5px solid #22d3a5;border-radius:10px;padding:18px 14px;margin-bottom:14px;text-align:center;">'
+    + '<div style="font-size:11px;color:var(--text2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.8px;">PIN provisoire</div>'
+    + '<div id="rp-pin" style="font-size:36px;font-weight:900;letter-spacing:10px;color:#22d3a5;font-family:monospace;margin:6px 0 2px;"></div>'
+    + '<div id="rp-exp" style="font-size:11px;color:var(--text2);margin-bottom:8px;"></div>'
+    + '<div style="font-size:11px;color:#f87171;font-weight:700;background:rgba(239,68,68,.12);border-radius:6px;padding:6px 10px;">⚠️ Ce PIN ne sera affiché qu&#39;une seule fois. Notez-le maintenant.</div>'
+    + '</div>'
+    + '<div class="btn-row" id="rp-btn-row">'
+    + '<button class="btn btn-sec" onclick="closeMd(\'md-reset-pin\')">Annuler</button>'
+    + '<button class="btn btn-warn" id="rp-confirm-btn" data-eid="' + esc(empId) + '" data-ename="' + esc(empName) + '" data-role="' + esc(cuRole) + '" onclick="doResetPin(this)">🔑 Générer PIN temporaire</button>'
+    + '</div>';
+  openMd('md-reset-pin');
+}
+
+function doResetPin(btn) {
+  var empId   = btn.dataset.eid;
+  var empName = btn.dataset.ename;
+  var cuRole  = btn.dataset.role;
+  var cu      = getCurrentUser();
+  var cuName  = (cu && (cu.name || cu.username)) || 'Admin';
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Génération…';
+
+  fetch(_EDGE_RESET_PIN, {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: { 'Content-Type': 'application/json', 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + _SB_KEY },
+    body: JSON.stringify({
+      employee_id:       empId,
+      requested_by:      cuName,
+      requested_by_role: cuRole,
+      reason:            'manual_reset_via_auth_module'
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(result){
+    if (!result.ok) {
+      var _ep=['Erreur : '+(result.error||'Échec reset PIN')];if(result.detail)_ep.push('Détail : '+result.detail);if(result.code)_ep.push('Code : '+result.code);toast(_ep.join(' | '),true);
+      btn.disabled = false; btn.textContent = '🔑 Générer PIN temporaire';
+      return;
+    }
+    /* Afficher le PIN une seule fois */
+    toast('✅ PIN provisoire généré — copiez-le maintenant !', false);
+    document.getElementById('rp-result').style.display = 'block';
+    document.getElementById('rp-pin').textContent = result.temporary_pin;
+    var exp = result.expires_at ? new Date(result.expires_at).toLocaleString('fr-FR') : '24h';
+    document.getElementById('rp-exp').textContent = 'Expire le : ' + exp;
+    document.getElementById('rp-btn-row').innerHTML
+      = '<button class="btn btn-sec" onclick="copyTempPin()">📋 Copier le PIN</button>'
+      + '<button class="btn btn-primary" onclick="closeMd(\'md-reset-pin\')">✅ Fermé — PIN noté</button>';
+    audit('reset_pin', { employee_id: empId, employee_name: empName, by: cuName });
+  })
+  .catch(function(e){
+    toast('Erreur réseau : impossible de contacter le serveur', true);
+    btn.disabled = false; btn.textContent = '🔑 Générer PIN temporaire';
+  });
+}
+
+/* ── Copier PIN temporaire (PROMPT 020C — M6) ─────────────────────────────── */
+function copyTempPin() {
+  var el = document.getElementById('rp-pin');
+  if (!el) return;
+  var pin = el.textContent || '';
+  if (!pin) { toast('Aucun PIN à copier', true); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(pin).then(function() {
+      toast('PIN copié dans le presse-papier ✅');
+    }).catch(function() {
+      _copyTempPinFallback(pin);
+    });
+  } else {
+    _copyTempPinFallback(pin);
+  }
+}
+function _copyTempPinFallback(pin) {
+  var ta = document.createElement('textarea');
+  ta.value = pin; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast('PIN copié ✅'); }
+  catch(e) { toast('Copie impossible — notez le PIN manuellement', true); }
+  document.body.removeChild(ta);
+}
 
 /* ── Permission Schema ─────────────────────────────────────────────────────── */
 var PERM_SCHEMA = {
@@ -365,7 +598,7 @@ window.addEventListener('message', function(ev){
   if(ev.data.type==='navigate-tab'&&ev.data.data&&ev.data.data.tab)
     goTab(document.querySelector('.tab[data-tab="'+ev.data.data.tab+'"]'));
 });
-window.addEventListener('load', function(){
+document.addEventListener('DOMContentLoaded', function(){
   emit('module-ready',{module:'auth',version:MODULE_VER});
   renderTab('profil');
 });
@@ -482,7 +715,7 @@ function renderProfil(){
     +'<div class="card"><div class="card-hdr"><div class="card-title">Sécurité du compte</div></div>'
     +'<label class="fl">Mot de passe actuel</label><input class="fi" id="p-pw-old" type="password" placeholder="••••••">'
     +'<label class="fl">Nouveau mot de passe</label><input class="fi" id="p-pw-new" type="password" placeholder="••••••">'
-    +'<label class="fl">PIN (4 chiffres)</label><input class="fi" id="p-pin" type="text" maxlength="4" placeholder="1234">'
+    +'<div style="background:rgba(245,158,11,0.1);border:1px solid #f59e0b;border-radius:6px;padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:8px;">&#128274; Le PIN employé est géré via <strong>🔑 Réinitialiser le PIN</strong> dans l\'onglet Employés — il ne peut pas être changé ici.</div>'
     +'<div class="btn-row"><button class="btn btn-primary" data-uid="'+esc(u.id)+'" onclick="savePassword(this.dataset.uid)">Changer</button>'
     +'<button class="btn btn-danger" onclick="doLogout()">🚪 Déconnexion</button></div></div>';
 }
@@ -618,48 +851,85 @@ function resendInvite(uid){
 }
 
 function renderUsers(){
-  var users=getUsers(); var roles=getRoles();
-  var lbl={all:'Tous',active:'Actifs',pending:'En attente',disabled:'Désactivés'};
-  var filters=['all','active','pending','disabled'];
+  var roles=getRoles();
+  var lbl={all:'Tous',actif:'Actifs',disabled:'Désactivés'};
+  var filters=['all','actif','disabled'];
   var html='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">';
   filters.forEach(function(f){
     html+='<button class="fchip'+(_uFilter===f?' on':'')+'" data-f="'+f+'" onclick="setUFilter(this.dataset.f)">'+lbl[f]+'</button>';
   });
   html+='</div>';
   html+='<div class="search-row"><input class="fi" id="u-search" placeholder="🔍 Rechercher..." value="'+esc(_uSearch)+'" oninput="filterUsers()">'
-    +'<button class="btn btn-primary btn-sm" onclick="openNewUserMd()">👤 + Inviter</button></div>';
-  
-  var filtered=users.filter(function(u){
-    if(_uFilter!=='all'&&u.status!==_uFilter) return false;
-    if(_uSearch&&u.name.toLowerCase().indexOf(_uSearch.toLowerCase())<0&&
-       (u.email||'').toLowerCase().indexOf(_uSearch.toLowerCase())<0) return false;
+    +'<button class="btn btn-sec btn-sm" onclick="reloadSBUsers()" title="Rafraîchir depuis Supabase">↻</button></div>';
+
+  /* PROMPT 010 — charger depuis Supabase si pas encore fait */
+  if (!_sbEmpLoaded) {
+    loadSBEmployees(function(){ renderTab('users'); });
+    return '<div class="empty"><div class="empty-ico">⏳</div>Chargement des employés…</div>';
+  }
+
+  var source = _sbEmp.length > 0 ? _sbEmp : getUsers();
+  var usingReal = _sbEmp.length > 0;
+
+  if (!usingReal) {
+    html += '<div style="background:var(--bg3);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:10px;">⚠️ Données locales — connexion Supabase requise pour les actions PIN</div>';
+  }
+
+  var filtered = source.filter(function(u){
+    var status = usingReal ? u.status : u.status;
+    var name   = usingReal ? u.full_name : u.name;
+    var email  = u.email || '';
+    if (_uFilter !== 'all' && status !== _uFilter) return false;
+    if (_uSearch && name.toLowerCase().indexOf(_uSearch.toLowerCase()) < 0 &&
+        email.toLowerCase().indexOf(_uSearch.toLowerCase()) < 0) return false;
     return true;
   });
-  if(!filtered.length){ html+='<div class="empty"><div class="empty-ico">👥</div>Aucun utilisateur</div>'; return html; }
-  
+
+  if (!filtered.length) { html += '<div class="empty"><div class="empty-ico">👥</div>Aucun employé trouvé</div>'; return html; }
+
   filtered.forEach(function(u){
-    var role=roles.find(function(r){ return r.id===u.role; })||{label:u.role,badge:'bdg-gray'};
-    var av=avatarInitials(u.name); var ac=avatarColor(u.name);
-    html+='<div class="entry">'
-      +'<div class="entry-av" style="background:'+ac+'20;color:'+ac+'">'+av+'</div>'
-      +'<div class="entry-body">'
-      +'<div class="entry-name">'+esc(u.name)+'</div>'
-      +'<div class="entry-sub">'+esc(u.email||'')+'&nbsp;&middot;&nbsp;<span class="bdg '+esc(role.badge)+'">'+esc(role.label)+'</span></div>'
-      +'<div class="entry-sub" style="margin-top:2px;">'
-      +statusBadge(u.status)
-      +(u.last_login?' &middot; Connexion '+fmt_ago(u.last_login):'')
-      +(u.status==='pending'?' &middot; Invitation: '+fmt_date(u.invite_sent):'')
-      +'</div>'
-      +'</div>'
-      +'<div class="entry-actions">'
-      +'<button class="btn btn-sec btn-sm" data-uid="'+esc(u.id)+'" onclick="openEditUser(this.dataset.uid)">✏</button>'
-      +(u.status==='active'?'<button class="btn btn-warn btn-sm" data-uid="'+esc(u.id)+'" onclick="toggleUserStatus(this.dataset.uid,\'disabled\')">🚫</button>':'')
-      +(u.status==='disabled'?'<button class="btn btn-sec btn-sm" data-uid="'+esc(u.id)+'" onclick="toggleUserStatus(this.dataset.uid,\'active\')">✅</button>':'')
-      +(u.status==='pending'?'<button class="btn btn-primary btn-sm" data-uid="'+esc(u.id)+'" onclick="resendInvite(this.dataset.uid)">📧</button>':'')
-      +(u.role!=='superadmin'?'<button class="btn btn-danger btn-sm" data-uid="'+esc(u.id)+'" onclick="deleteUser(this.dataset.uid)">✕</button>':'')
-      +'</div></div>';
+    var empId   = usingReal ? u.id   : u.employee_id || u.id;
+    var empName = usingReal ? u.full_name : u.name;
+    var empRole = u.role || '—';
+    var empStatus = u.status || '—';
+    var empEmail  = u.email || '';
+    var roleConf  = roles.find(function(r){ return r.id === empRole; }) || { label: empRole, badge: 'bdg-gray' };
+    var av = avatarInitials(empName);
+    var ac = avatarColor(empName);
+    html += '<div class="entry">'
+      + '<div class="entry-av" style="background:' + ac + '20;color:' + ac + '">' + av + '</div>'
+      + '<div class="entry-body">'
+      + '<div class="entry-name">' + esc(empName) + '</div>'
+      + '<div class="entry-sub">' + esc(empEmail) + '&nbsp;&middot;&nbsp;<span class="bdg ' + esc(roleConf.badge) + '">' + esc(roleConf.label) + '</span></div>'
+      + '<div class="entry-sub" style="margin-top:2px;">' + sbStatusBadge(empStatus)
+      + (u.team_name ? ' &middot; ' + esc(u.team_name) : '') + '</div>'
+      + '</div>'
+      + '<div class="entry-actions">'
+      + (usingReal && empId
+        ? '<button class="btn btn-warn btn-sm" data-eid="' + esc(empId) + '" data-ename="' + esc(empName) + '" onclick="openResetPinMd(this.dataset.eid,this.dataset.ename)" title="Réinitialiser PIN">🔑</button>'
+        : '')
+      + '</div></div>';
   });
   return html;
+}
+
+function reloadSBUsers() {
+  _sbEmpLoaded = false;
+  _sbEmp = [];
+  renderTab('users');
+}
+
+function sbStatusBadge(s){
+  var map={ actif:'<span class="bdg bdg-green">Actif</span>',
+            active:'<span class="bdg bdg-green">Actif</span>',
+            pending:'<span class="bdg bdg-yellow">En attente</span>',
+            disabled:'<span class="bdg bdg-red">Désactivé</span>',
+            inactif:'<span class="bdg bdg-red">Inactif</span>' };
+  return map[s] || '<span class="bdg bdg-gray">' + esc(s) + '</span>';
+}
+
+function statusBadge(s){
+  return sbStatusBadge(s);
 }
 
 function statusBadge(s){
@@ -1036,5 +1306,11 @@ function renderSecurite(){
 }
 
 </script>
-</body>
-</html>
+<
+<script>
+/* ── Veraluz Theme toggle — PROMPT 036F ─────────────────────────────── */
+function applyVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';document.documentElement.classList.toggle('vl-dark',dark);var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';}
+function toggleVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';localStorage.setItem('vl_theme',dark?'light':'dark');applyVlTheme();try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}}
+document.addEventListener('DOMContentLoaded',applyVlTheme);
+window.addEventListener('message',function(e){if(e.data&&e.data.type==='vl-theme')applyVlTheme();});
+</script>

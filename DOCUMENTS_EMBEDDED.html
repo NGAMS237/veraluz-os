@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VERALUZ — Documents</title>
+<script>if(localStorage.getItem('vl_theme')==='dark')document.documentElement.classList.add('vl-dark');</script>
+<style>
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2535;--bg4:#252d3d;
+  --acc:#6366f1;--acc2:#818cf8;--acc3:#4f46e5;
+  --grn:#22c55e;--grn2:#16a34a;
+  --red:#ef4444;--red2:#dc2626;
+  --ylw:#f59e0b;--ylw2:#d97706;
+  --blu:#3b82f6;--cyn:#06b6d4;
+  --fg:#e2e8f0;--fg2:#94a3b8;--fg3:#64748b;
+  --brd:rgba(255,255,255,.08);
+  --rad:12px;--rad2:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     background:var(--bg);color:var(--fg);font-size:14px;min-height:100vh;}
+
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#1e1b4b,#312e81,#1e1b4b);
+     padding:18px 20px 14px;border-bottom:1px solid var(--brd);}
+.hdr-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.hdr-icon{font-size:28px;}
+.hdr-title{font-size:20px;font-weight:700;color:#fff;}
+.hdr-sub{font-size:12px;color:var(--acc2);margin-top:2px;}
+.badge-dev{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);
+           color:var(--ylw);padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+
+/* TABS */
+.tabs{display:flex;gap:4px;padding:12px 20px 0;background:var(--bg2);
+      border-bottom:1px solid var(--brd);overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{background:transparent;border:none;color:var(--fg2);padding:8px 14px;
+     border-radius:8px 8px 0 0;cursor:pointer;font-size:13px;white-space:nowrap;
+     font-family:inherit;transition:.2s;}
+.tab:hover{color:var(--fg);background:var(--bg3);}
+.tab.active{color:var(--acc2);background:var(--bg3);
+             border-bottom:2px solid var(--acc);}
+
+/* PANELS */
+.panel{display:none;padding:20px;}
+.panel.active{display:block;}
+
+/* CARDS GRID */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;}
+.card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--rad);
+      padding:16px;transition:.2s;}
+.card:hover{border-color:rgba(99,102,241,.4);transform:translateY(-1px);}
+.card-icon{font-size:24px;margin-bottom:8px;}
+.card-val{font-size:28px;font-weight:700;color:var(--fg);}
+.card-lbl{font-size:12px;color:var(--fg2);margin-top:4px;}
+.card-sub{font-size:11px;color:var(--fg3);margin-top:2px;}
+
+/* STATUS CARDS */
+.stat-ok{border-left:3px solid var(--grn);}
+.stat-warn{border-left:3px solid var(--ylw);}
+.stat-err{border-left:3px solid var(--red);}
+.stat-info{border-left:3px solid var(--acc);}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:var(--rad);border:1px solid var(--brd);}
+table{width:100%;border-collapse:collapse;}
+th{background:var(--bg3);color:var(--fg2);font-size:11px;text-transform:uppercase;
+   letter-spacing:.5px;padding:10px 14px;text-align:left;white-space:nowrap;}
+td{padding:10px 14px;border-top:1px solid var(--brd);font-size:13px;vertical-align:middle;}
+tr:hover td{background:var(--bg3);}
+
+/* BADGES */
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-active{background:rgba(34,197,94,.15);color:var(--grn);}
+.badge-expired{background:rgba(239,68,68,.15);color:var(--red);}
+.badge-missing{background:rgba(245,158,11,.15);color:var(--ylw);}
+.badge-archived{background:rgba(100,116,139,.15);color:var(--fg2);}
+.badge-pending{background:rgba(59,130,246,.15);color:var(--blu);}
+.badge-public{background:rgba(34,197,94,.1);color:var(--grn);border:1px solid rgba(34,197,94,.3);}
+.badge-internal{background:rgba(99,102,241,.1);color:var(--acc2);border:1px solid rgba(99,102,241,.3);}
+.badge-confidential{background:rgba(245,158,11,.1);color:var(--ylw);border:1px solid rgba(245,158,11,.3);}
+.badge-restricted{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.badge-ok{background:rgba(34,197,94,.15);color:var(--grn);}
+.badge-warn{background:rgba(245,158,11,.15);color:var(--ylw);}
+.badge-danger{background:rgba(239,68,68,.15);color:var(--red);}
+.badge-cat{background:var(--bg4);color:var(--fg2);}
+
+/* SECTION HEADERS */
+.sec-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.sec-hdr h2{font-size:16px;font-weight:600;}
+.sec-hdr .count{background:var(--bg3);color:var(--fg2);padding:2px 10px;
+                border-radius:20px;font-size:12px;}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group label{font-size:12px;color:var(--fg2);font-weight:500;}
+.form-group input,.form-group select,.form-group textarea{
+  background:var(--bg3);border:1px solid var(--brd);border-radius:var(--rad2);
+  color:var(--fg);padding:9px 12px;font-size:13px;font-family:inherit;width:100%;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+  outline:none;border-color:var(--acc);box-shadow:0 0 0 3px rgba(99,102,241,.15);}
+.form-group select option{background:var(--bg3);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;
+     border-radius:var(--rad2);font-size:13px;font-weight:600;cursor:pointer;
+     border:none;font-family:inherit;transition:.2s;}
+.btn-primary{background:linear-gradient(135deg,var(--acc),var(--acc3));color:#fff;}
+.btn-primary:hover{opacity:.9;}
+.btn-secondary{background:var(--bg3);color:var(--fg);border:1px solid var(--brd);}
+.btn-secondary:hover{border-color:var(--acc2);}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+
+/* ALERT */
+.alert{display:flex;gap:10px;padding:14px 16px;border-radius:var(--rad2);
+       border:1px solid;margin-bottom:16px;font-size:13px;line-height:1.5;}
+.alert-info{background:rgba(99,102,241,.1);border-color:rgba(99,102,241,.3);color:var(--acc2);}
+.alert-warn{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:var(--ylw);}
+.alert-danger{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:var(--red);}
+.alert-ok{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:var(--grn);}
+
+/* FOLDERS */
+.folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
+.folder{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--rad);
+        padding:16px;cursor:pointer;transition:.2s;text-align:center;}
+.folder:hover{border-color:rgba(99,102,241,.4);background:var(--bg3);}
+.folder-icon{font-size:32px;margin-bottom:8px;}
+.folder-name{font-size:13px;font-weight:600;margin-bottom:4px;}
+.folder-stats{font-size:11px;color:var(--fg2);}
+
+/* SECURITY ITEMS */
+.sec-items{display:flex;flex-direction:column;gap:10px;}
+.sec-item{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--rad2);
+          padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.sec-item-lbl{font-size:13px;font-weight:500;}
+.sec-item-sub{font-size:11px;color:var(--fg3);margin-top:2px;}
+
+/* CHECKLIST */
+.checklist{display:flex;flex-direction:column;gap:8px;}
+.chk-item{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--rad2);
+          padding:12px 16px;display:flex;align-items:center;gap:12px;}
+.chk-item.missing{border-left:3px solid var(--ylw);}
+.chk-item.present{border-left:3px solid var(--grn);opacity:.7;}
+.chk-info{flex:1;}
+.chk-title{font-size:13px;font-weight:500;}
+.chk-cat{font-size:11px;color:var(--fg2);}
+
+/* RENEWAL ROWS */
+.renewal-group{margin-bottom:20px;}
+.renewal-group h3{font-size:13px;font-weight:600;color:var(--fg2);margin-bottom:10px;
+                  text-transform:uppercase;letter-spacing:.5px;}
+
+/* TIMELINE DOT */
+.exp-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.exp-red{background:var(--red);}
+.exp-ylw{background:var(--ylw);}
+.exp-grn{background:var(--grn);}
+
+/* GUIDE */
+.guide-section{margin-bottom:24px;}
+.guide-section h3{font-size:15px;font-weight:600;margin-bottom:10px;
+                   padding-bottom:6px;border-bottom:1px solid var(--brd);}
+.guide-section p,.guide-section li{font-size:13px;color:var(--fg2);line-height:1.7;}
+.guide-section ul{padding-left:20px;}
+.guide-section li{margin-bottom:4px;}
+
+/* LOADING */
+.loading{text-align:center;color:var(--fg2);padding:40px;font-size:13px;}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--brd);
+         border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:48px 20px;color:var(--fg2);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty p{font-size:13px;line-height:1.6;max-width:400px;margin:0 auto;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+               z-index:1000;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--rad);
+       width:100%;max-width:560px;max-height:90vh;overflow-y:auto;}
+.modal-hdr{padding:16px 20px;border-bottom:1px solid var(--brd);
+           display:flex;align-items:center;justify-content:space-between;}
+.modal-hdr h3{font-size:15px;font-weight:600;}
+.modal-close{background:none;border:none;color:var(--fg2);font-size:18px;cursor:pointer;}
+.modal-body{padding:20px;}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--brd);
+            display:flex;gap:10px;justify-content:flex-end;}
+
+/* FILTERS */
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.filter-chip{background:var(--bg3);border:1px solid var(--brd);border-radius:20px;
+             padding:4px 14px;font-size:12px;color:var(--fg2);cursor:pointer;transition:.2s;}
+.filter-chip:hover,.filter-chip.active{background:var(--acc);border-color:var(--acc);color:#fff;}
+
+/* SEARCH */
+.search-bar{display:flex;gap:10px;margin-bottom:16px;}
+.search-bar input{flex:1;background:var(--bg3);border:1px solid var(--brd);
+                  border-radius:var(--rad2);color:var(--fg);padding:8px 14px;
+                  font-size:13px;font-family:inherit;}
+.search-bar input:focus{outline:none;border-color:var(--acc);}
+
+/* PROGRESS BAR */
+.prog-bar{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;margin-top:6px;}
+.prog-fill{height:100%;border-radius:3px;transition:.4s;}
+
+@media(max-width:600px){
+  .cards{grid-template-columns:1fr 1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .folders{grid-template-columns:1fr 1fr;}
+}
+</style>
+<style id="veraluz-theme">
+/* ═══ VERALUZ THEME PROMPT 036F ═══════════════════════════════════════════
+   Light : bg #e8ecf0 · surfaces #fff · neumorphic shadows
+   Dark  : bg #131722 · surfaces #1e2538
+   Toggle: html.vl-dark / localStorage('vl_theme')
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Variables universelles (couvre tous les modules) ─────────────────── */
+:root{
+  --bg:#e8ecf0;--bg1:#e8ecf0;--bg2:#fff;--bg3:#eef1f5;--bg4:#e0e4e8;--bg5:#d8dce0;
+  --text:#1e293b;--text2:#475569;--text3:#94a3b8;
+  --tx:#1e293b;--tx2:#475569;--tx3:#94a3b8;
+  --border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.10);--border3:rgba(0,0,0,.05);
+  --vl-sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;
+  --vl-sh-in:inset 2px 2px 6px #c8cdd4,inset -1px -1px 4px #fff;
+  --vl-r:3px;
+}
+html,body{background:var(--bg)!important;color:var(--text)!important;}
+
+/* ── Dark mode ────────────────────────────────────────────────────────── */
+html.vl-dark{
+  --bg:#131722;--bg1:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;--bg5:#2d3654;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --tx:#e2e8f0;--tx2:#94a3b8;--tx3:#64748b;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.10);--border3:rgba(255,255,255,.05);
+  --vl-sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;
+  --vl-sh-in:inset 2px 2px 6px #0d1118,inset -1px -1px 4px #242b3e;
+}
+html.vl-dark body{background:var(--bg)!important;color:var(--text)!important;}
+
+/* ── Topbar / Header ──────────────────────────────────────────────────── */
+.topbar,.header,.mod-header,.page-header{background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;box-shadow:0 1px 6px rgba(0,0,0,.05)!important;}
+html.vl-dark .topbar,html.vl-dark .header,html.vl-dark .mod-header{background:var(--bg2)!important;border-bottom:1px solid var(--border)!important;}
+
+/* ── Tabs / Tabbar ────────────────────────────────────────────────────── */
+.tabbar,.tab-bar,.tabs,.nav-tabs{background:var(--bg3)!important;border-bottom:1px solid var(--border)!important;}
+html.vl-dark .tabbar,html.vl-dark .tab-bar,html.vl-dark .tabs,html.vl-dark .nav-tabs{background:var(--bg2)!important;}
+.tab-btn.active,.tab.active,.nav-link.active{color:#0891b2!important;border-bottom-color:#0891b2!important;}
+html.vl-dark .tab-btn.active,html.vl-dark .tab.active{color:#22d3ee!important;border-bottom-color:#22d3ee!important;}
+
+/* ── Cards / Panels ───────────────────────────────────────────────────── */
+.card,.panel,.pane,.item,.contact-item,.msg-item,.doc-item,.audit-item,.appro-item,
+.list-item,.entry,.result-card,.ai-card,.agent-card,.chloe-card,.section-card,
+.setting-card,.setting-group,.auth-card,.approval-card{
+  background:var(--bg2)!important;border:1px solid var(--border)!important;
+  box-shadow:var(--vl-sh)!important;}
+html.vl-dark .card,html.vl-dark .panel,html.vl-dark .pane,html.vl-dark .item,
+html.vl-dark .contact-item,html.vl-dark .msg-item,html.vl-dark .doc-item,
+html.vl-dark .audit-item,html.vl-dark .appro-item,html.vl-dark .list-item,
+html.vl-dark .entry,html.vl-dark .result-card,html.vl-dark .ai-card,
+html.vl-dark .agent-card,html.vl-dark .chloe-card,html.vl-dark .section-card,
+html.vl-dark .setting-card,html.vl-dark .setting-group,html.vl-dark .auth-card,
+html.vl-dark .approval-card{background:var(--bg3)!important;border:1px solid var(--border)!important;}
+
+/* ── Sidebars / Panels latéraux ───────────────────────────────────────── */
+.sidebar,.side-panel,.left-panel,.right-panel,.detail-panel{background:var(--bg2)!important;border-right:1px solid var(--border)!important;}
+html.vl-dark .sidebar,html.vl-dark .side-panel,html.vl-dark .left-panel,html.vl-dark .right-panel{background:var(--bg2)!important;}
+
+/* ── Content zones (APPRO/CONTACTS hardcoded bg) ─────────────────────── */
+.content,.content-area,.main-content,.list-area,.contact-list,.msg-list,.results,
+.search-results,.appro-list,.contacts-body,.body-area{background:var(--bg)!important;}
+html.vl-dark .content,html.vl-dark .content-area,html.vl-dark .main-content,
+html.vl-dark .list-area,html.vl-dark .contact-list,html.vl-dark .msg-list,
+html.vl-dark .results,html.vl-dark .appro-list,html.vl-dark .contacts-body{background:var(--bg)!important;}
+
+/* ── Search boxes ─────────────────────────────────────────────────────── */
+.sbox,.search-box,.search-wrap{background:var(--bg3)!important;border-color:var(--border2)!important;}
+html.vl-dark .sbox,html.vl-dark .search-box{background:var(--bg3)!important;}
+
+/* ── Inputs ───────────────────────────────────────────────────────────── */
+input:not([type=checkbox]):not([type=radio]),select,textarea{
+  background:var(--bg3)!important;border:1px solid var(--border2)!important;
+  border-radius:var(--vl-r)!important;color:var(--text)!important;}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{
+  border-color:#0891b2!important;box-shadow:0 0 0 2px rgba(8,145,178,.12)!important;outline:none!important;}
+html.vl-dark input:not([type=checkbox]):not([type=radio]),html.vl-dark select,html.vl-dark textarea{
+  background:var(--bg4)!important;border-color:var(--border2)!important;}
+
+/* ── Icônes monochromes ───────────────────────────────────────────────── */
+.icon,.icon-wrap,.action-icon,.stat-icon,.feature-icon,.btn-icon,.tag-icon,
+.avatar-placeholder,.initials-avatar{
+  background:rgba(8,145,178,.10)!important;color:#0891b2!important;border-radius:var(--vl-r)!important;}
+html.vl-dark .icon,html.vl-dark .icon-wrap,html.vl-dark .action-icon,
+html.vl-dark .stat-icon,html.vl-dark .feature-icon,html.vl-dark .btn-icon{
+  background:rgba(8,145,178,.18)!important;color:#22d3ee!important;}
+
+/* ── Boutons secondaires ──────────────────────────────────────────────── */
+.btn-sec,.btn-outline,.btn-ghost{border-radius:var(--vl-r)!important;background:var(--bg3)!important;border:1px solid var(--border2)!important;color:var(--text)!important;}
+html.vl-dark .btn-sec,html.vl-dark .btn-outline{background:var(--bg4)!important;}
+
+/* ── Modals ───────────────────────────────────────────────────────────── */
+.modal,.modal-content,.modal-box,.dialog{background:var(--bg2)!important;border:1px solid var(--border)!important;box-shadow:0 20px 60px rgba(0,0,0,.15)!important;}
+html.vl-dark .modal,html.vl-dark .modal-content,html.vl-dark .modal-box{background:var(--bg3)!important;}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px!important;height:4px!important;}
+::-webkit-scrollbar-track{background:var(--bg)!important;}
+::-webkit-scrollbar-thumb{background:#c8cdd4!important;border-radius:2px!important;}
+html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
+
+/* ── Toggle FAB ───────────────────────────────────────────────────────── */
+#vl-tm-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);right:14px;z-index:9990;width:36px;height:36px;border-radius:3px;border:none;background:#fff;color:#475569;cursor:pointer;font-size:15px;box-shadow:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s,transform .15s;}
+#vl-tm-btn:hover{transform:scale(1.05);}
+html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;}
+</style>
+</head>
+<body>
+<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Thème">🌙</button>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-row">
+    <span class="hdr-icon">🗂️</span>
+    <div>
+      <div class="hdr-title">Coffre Documentaire VERALUZ</div>
+      <div class="hdr-sub">Métadonnées · Échéances · Catégories · Sécurité</div>
+    </div>
+    <span class="badge-dev">DEV MODE</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('overview')">📊 Vue d'ensemble</button>
+  <button class="tab" onclick="showTab('all')">📋 Tous les documents</button>
+  <button class="tab" onclick="showTab('renewal')">⏰ À renouveler</button>
+  <button class="tab" onclick="showTab('missing')">⚠️ Documents manquants</button>
+  <button class="tab" onclick="showTab('folders')">🗂️ Dossiers</button>
+  <button class="tab" onclick="showTab('upload')">➕ Ajouter</button>
+  <button class="tab" onclick="showTab('security')">🔒 Sécurité</button>
+  <button class="tab" onclick="showTab('guide')">📖 Guide</button>
+</div>
+
+<!-- ============================================================ -->
+<!-- PANEL: VUE D'ENSEMBLE                                         -->
+<!-- ============================================================ -->
+<div id="panel-overview" class="panel active">
+  <div class="sec-hdr"><h2>Vue d'ensemble</h2></div>
+
+  <div class="alert alert-warn" id="alert-checklist" style="display:none">
+    <span>⚠️</span>
+    <span id="alert-checklist-msg"></span>
+  </div>
+
+  <div id="overview-loading" class="loading"><span class="spinner"></span>Chargement des documents…</div>
+
+  <div id="overview-content" style="display:none">
+    <!-- Stat cards -->
+    <div class="cards" id="overview-cards" style="margin-bottom:20px;"></div>
+
+    <!-- Par catégorie -->
+    <div class="sec-hdr" style="margin-top:8px;">
+      <h2>Par catégorie</h2>
+    </div>
+    <div id="overview-cats"></div>
+
+    <!-- Derniers ajoutés -->
+    <div class="sec-hdr" style="margin-top:20px;">
+      <h2>Derniers documents</h2>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Titre</th><th>Catégorie</th><th>Statut</th><th>Confidentialité</th><th>Ajouté</th>
+        </tr></thead>
+        <tbody id="recent-docs"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="overview-empty" class="empty" style="display:none">
+    <div class="empty-icon">🗂️</div>
+    <p>Aucun document enregistré pour le moment. Commencez par ajouter les métadonnées des documents importants.</p>
+    <br>
+    <button class="btn btn-primary" onclick="showTab('upload')">➕ Ajouter un document</button>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PANEL: TOUS LES DOCUMENTS                                     -->
+<!-- ============================================================ -->
+<div id="panel-all" class="panel">
+  <div class="sec-hdr">
+    <h2>Tous les documents</h2>
+    <button class="btn btn-primary btn-sm" onclick="showTab('upload')">➕ Ajouter</button>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="Rechercher un document…" oninput="filterDocs()">
+  </div>
+
+  <div class="filters" id="filter-cats">
+    <span class="filter-chip active" onclick="setCatFilter('',this)">Tous</span>
+    <span class="filter-chip" onclick="setCatFilter('legal',this)">⚖️ Juridique</span>
+    <span class="filter-chip" onclick="setCatFilter('bank',this)">🏦 Banque</span>
+    <span class="filter-chip" onclick="setCatFilter('tax',this)">🧾 Fiscalité</span>
+    <span class="filter-chip" onclick="setCatFilter('hr',this)">👥 RH</span>
+    <span class="filter-chip" onclick="setCatFilter('insurance',this)">🛡️ Assurance</span>
+    <span class="filter-chip" onclick="setCatFilter('property',this)">🏠 Propriété</span>
+    <span class="filter-chip" onclick="setCatFilter('supplier',this)">🤝 Fournisseur</span>
+    <span class="filter-chip" onclick="setCatFilter('finance',this)">📊 Finance</span>
+    <span class="filter-chip" onclick="setCatFilter('other',this)">Autres</span>
+  </div>
+
+  <div class="filters" id="filter-status">
+    <span class="filter-chip active" onclick="setStatusFilter('',this)">Tous statuts</span>
+    <span class="filter-chip" onclick="setStatusFilter('active',this)">Actif</span>
+    <span class="filter-chip" onclick="setStatusFilter('missing',this)">Manquant</span>
+    <span class="filter-chip" onclick="setStatusFilter('expired',this)">Expiré</span>
+    <span class="filter-chip" onclick="setStatusFilter('pending_review',this)">En révision</span>
+    <span class="filter-chip" onclick="setStatusFilter('archived',this)">Archivé</span>
+  </div>
+
+  <div id="all-loading" class="loading"><span class="spinner"></span>Chargement…</div>
+  <div id="all-table" style="display:none">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Titre</th><th>Catégorie</th><th>Statut</th><th>Confidentialité</th>
+          <th>Expiration</th><th>Fichier</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="all-tbody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:var(--fg2)" id="all-count"></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PANEL: À RENOUVELER                                          -->
+<!-- ============================================================ -->
+<div id="panel-renewal" class="panel">
+  <div class="sec-hdr"><h2>Documents à renouveler</h2></div>
+  <div class="alert alert-info">
+    <span>ℹ️</span>
+    <span>Les documents avec une date d'expiration définie sont listés ici par urgence.</span>
+  </div>
+  <div id="renewal-content">
+    <div class="renewal-group" id="rg-expired">
+      <h3>🔴 Expirés</h3>
+      <div id="rg-expired-list"></div>
+    </div>
+    <div class="renewal-group" id="rg-30">
+      <h3>🟠 Expirent dans 30 jours</h3>
+      <div id="rg-30-list"></div>
+    </div>
+    <div class="renewal-group" id="rg-60">
+      <h3>🟡 Expirent dans 31-60 jours</h3>
+      <div id="rg-60-list"></div>
+    </div>
+    <div class="renewal-group" id="rg-90">
+      <h3>🟢 Expirent dans 61-90 jours</h3>
+      <div id="rg-90-list"></div>
+    </div>
+    <div id="renewal-empty" class="empty" style="display:none">
+      <div class="empty-icon">✅</div>
+      <p>Aucun document à renouveler dans les 90 prochains jours.<br>Pensez à renseigner les dates d'expiration de vos documents.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PANEL: DOCUMENTS MANQUANTS                                   -->
+<!-- ============================================================ -->
+<div id="panel-missing" class="panel">
+  <div class="sec-hdr">
+    <h2>Documents manquants</h2>
+    <span class="count" id="missing-count-badge">…</span>
+  </div>
+  <div class="alert alert-warn">
+    <span>⚠️</span>
+    <span>Ces documents sont recommandés pour la gestion de VERALUZ. Complétez la checklist progressivement.</span>
+  </div>
+
+  <div id="missing-loading" class="loading"><span class="spinner"></span>Chargement…</div>
+  <div id="missing-content" style="display:none">
+    <div id="missing-groups"></div>
+    <div style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="addMissingToChecklist()">➕ Ajouter d'autres documents manquants</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PANEL: DOSSIERS                                              -->
+<!-- ============================================================ -->
+<div id="panel-folders" class="panel">
+  <div class="sec-hdr"><h2>Dossiers</h2></div>
+  <div id="folders-loading" class="loading"><span class="spinner"></span>Chargement…</div>
+  <div id="folders-grid" class="folders" style="display:none"></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PANEL: UPLOAD / AJOUTER                                      -->
+<!-- ============================================================ -->
+<div id="panel-upload" class="panel">
+  <div class="sec-hdr"><h2>Ajouter un document</h2></div>
+
+  <div class="alert alert-info">
+    <span>ℹ️</span>
+    <div>
+      <strong>Mode A actif — Métadonnées uniquement.</strong><br>
+      Enregistrez les informations du document. L'upload de fichier sera disponible dans une prochaine version via Edge Function sécurisée.
+    </div>
+  </div>
+
+  <div class="alert alert-warn">
+    <span>🔒</span>
+    <span>Upload fichier désactivé en mode développement. Ajoutez seulement les métadonnées.</span>
+  </div>
+
+  <div style="max-width:700px;">
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Titre du document *</label>
+        <input type="text" id="doc-title" placeholder="ex: Attestation bancaire Afriland First Bank">
+      </div>
+      <div class="form-group">
+        <label>Catégorie *</label>
+        <select id="doc-category">
+          <option value="">— Choisir —</option>
+          <option value="legal">⚖️ Juridique</option>
+          <option value="bank">🏦 Banque</option>
+          <option value="tax">🧾 Fiscalité</option>
+          <option value="hr">👥 RH</option>
+          <option value="supplier">🤝 Fournisseur</option>
+          <option value="insurance">🛡️ Assurance</option>
+          <option value="property">🏠 Propriété</option>
+          <option value="finance">📊 Finance</option>
+          <option value="operations">⚙️ Opérations</option>
+          <option value="identity">🪪 Identité</option>
+          <option value="other">📄 Autre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Type de document</label>
+        <input type="text" id="doc-type" placeholder="ex: attestation, contrat, facture…">
+      </div>
+      <div class="form-group">
+        <label>Niveau de confidentialité *</label>
+        <select id="doc-confidentiality">
+          <option value="internal">🔵 Interne</option>
+          <option value="confidential">🟡 Confidentiel</option>
+          <option value="restricted">🔴 Restreint</option>
+          <option value="public">🟢 Public</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Statut *</label>
+        <select id="doc-status">
+          <option value="active">✅ Actif</option>
+          <option value="missing">⚠️ Manquant</option>
+          <option value="pending_review">🔄 En révision</option>
+          <option value="expired">❌ Expiré</option>
+          <option value="archived">📦 Archivé</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date d'expiration</label>
+        <input type="date" id="doc-expiry">
+      </div>
+      <div class="form-group">
+        <label>Date de rappel</label>
+        <input type="date" id="doc-reminder">
+      </div>
+      <div class="form-group">
+        <label>Module lié</label>
+        <select id="doc-module">
+          <option value="">— Aucun —</option>
+          <option value="rh">RH</option>
+          <option value="finance">Finance</option>
+          <option value="paiements">Paiements</option>
+          <option value="reservations">Réservations</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Ajouté par</label>
+        <input type="text" id="doc-uploader" placeholder="Votre nom ou rôle">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Notes</label>
+        <textarea id="doc-notes" rows="3" placeholder="Informations complémentaires…"></textarea>
+      </div>
+
+      <!-- Upload section — désactivé -->
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Fichier (désactivé en mode DEV)</label>
+        <div style="background:var(--bg3);border:2px dashed var(--brd);border-radius:var(--rad2);
+                    padding:24px;text-align:center;color:var(--fg3);">
+          <div style="font-size:24px;margin-bottom:8px;">🔒</div>
+          <div style="font-size:13px;">Upload fichier désactivé</div>
+          <div style="font-size:11px;margin-top:4px;">Activé via Edge Function <code>veraluz-document-upload</code> (PROMPT 020+)</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;display:flex;gap:10px;">
+      <button class="btn btn-primary" onclick="submitDocument()">💾 Enregistrer les métadonnées</button>
+      <button class="btn btn-secondary" onclick="resetForm()">✕ Effacer</button>
+    </div>
+    <div id="form-msg" style="margin-top:12px;font-size:13px;"></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PANEL: SÉCURITÉ                                              -->
+<!-- ============================================================ -->
+<div id="panel-security" class="panel">
+  <div class="sec-hdr"><h2>Sécurité Documentaire</h2></div>
+
+  <div class="alert alert-warn">
+    <span>⚠️</span>
+    <span><strong>Mode DEV actif.</strong> RLS Niveau B non appliquée. À durcir dans PROMPT 023 avec authentification Supabase complète.</span>
+  </div>
+
+  <div class="sec-items">
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">Buckets Storage privés</div>
+           <div class="sec-item-sub">5 buckets créés — public = false — aucune URL publique permanente</div></div>
+      <span class="badge badge-ok">✅ ACTIFS</span>
+    </div>
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">Documents publics dans buckets sensibles</div>
+           <div class="sec-item-sub">veraluz-hr-private / legal-private / bank-private / payslips-private</div></div>
+      <span class="badge badge-ok">🚫 INTERDIT</span>
+    </div>
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">Upload fichier frontend (mode DEV)</div>
+           <div class="sec-item-sub">Upload désactivé — passera par Edge Function côté serveur</div></div>
+      <span class="badge badge-warn">⏳ DÉSACTIVÉ</span>
+    </div>
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">URL signée pour accès fichier</div>
+           <div class="sec-item-sub">Max 15 minutes — à configurer via Edge Function (PROMPT 020+)</div></div>
+      <span class="badge badge-warn">⏳ À ACTIVER</span>
+    </div>
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">Agent IA — lecture contenu fichier</div>
+           <div class="sec-item-sub">legal_docs_ai accède uniquement aux métadonnées (titre, catégorie, statut, expiration)</div></div>
+      <span class="badge badge-ok">🚫 INTERDIT</span>
+    </div>
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">Agent juridique legal_docs_ai</div>
+           <div class="sec-item-sub">Statut draft — non activé en production — validation humaine obligatoire</div></div>
+      <span class="badge badge-warn">📋 DRAFT</span>
+    </div>
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">Suppression définitive de document</div>
+           <div class="sec-item-sub">Aucune politique DELETE pour anon dans veraluz_documents</div></div>
+      <span class="badge badge-ok">🚫 DÉSACTIVÉE</span>
+    </div>
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">service_role dans le frontend</div>
+           <div class="sec-item-sub">Jamais exposé — uniquement côté serveur (Edge Function)</div></div>
+      <span class="badge badge-ok">🚫 ABSENT</span>
+    </div>
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">RLS veraluz_documents — niveau A</div>
+           <div class="sec-item-sub">Métadonnées lisibles en DEV (anon read). DELETE bloquée.</div></div>
+      <span class="badge badge-warn">⚠️ DEV</span>
+    </div>
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">RLS Niveau B (production)</div>
+           <div class="sec-item-sub">SQL préparé mais non appliqué — rôles par utilisateur Supabase requis</div></div>
+      <span class="badge badge-danger">🔴 PROMPT 023</span>
+    </div>
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">Documents confidential / restricted</div>
+           <div class="sec-item-sub">Actuellement accessibles en lecture DEV — à restreindre en production</div></div>
+      <span class="badge badge-danger">🔴 À DURCIR</span>
+    </div>
+    <div class="sec-item">
+      <div><div class="sec-item-lbl">Buckets hr-private / legal-private / bank-private</div>
+           <div class="sec-item-sub">Aucune policy de lecture anon — accès uniquement via service_role serveur</div></div>
+      <span class="badge badge-ok">✅ SÉCURISÉS</span>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;background:var(--bg2);border:1px solid rgba(239,68,68,.3);
+              border-radius:var(--rad);padding:16px;">
+    <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:10px;">🔴 Actions à réaliser avant production</div>
+    <ul style="font-size:12px;color:var(--fg2);padding-left:18px;line-height:2;">
+      <li>Appliquer RLS Niveau B (PROMPT 023) — rôles Supabase auth</li>
+      <li>Configurer Edge Function <code>veraluz-document-upload</code> avec service_role côté serveur</li>
+      <li>Activer URLs signées 15 min max pour accès aux fichiers</li>
+      <li>Restreindre lecture des métadonnées confidential/restricted aux rôles autorisés</li>
+      <li>Ne jamais rendre publics les buckets privés</li>
+    </ul>
+  </div>
+
+  <!-- PROMPT 019B — Bouton diagnostic connexion Supabase (DEV) -->
+  <div id="docs-diag-wrap" style="margin-top:20px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--rad);padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:600;">🔌 Diagnostic connexion Supabase</div>
+      <button class="btn btn-secondary btn-sm" onclick="runDocsDiag()" style="font-size:11px;">Tester la connexion</button>
+    </div>
+    <div id="docs-diag-result" style="font-size:12px;color:var(--fg2);font-family:monospace;line-height:1.8;display:none;"></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PANEL: GUIDE                                                  -->
+<!-- ============================================================ -->
+<div id="panel-guide" class="panel">
+  <div class="sec-hdr"><h2>Guide d'utilisation</h2></div>
+
+  <div class="guide-section">
+    <h3>📋 Comment ajouter un document</h3>
+    <p>Allez dans l'onglet <strong>Ajouter</strong> et renseignez les métadonnées :</p>
+    <ul>
+      <li>Titre clair et précis (ex: <em>Attestation bancaire Afriland 2026</em>)</li>
+      <li>Catégorie (juridique, banque, fiscalité, RH…)</li>
+      <li>Niveau de confidentialité adapté</li>
+      <li>Date d'expiration si applicable (très important pour les rappels)</li>
+      <li>Notes complémentaires (numéro de référence, contact, etc.)</li>
+    </ul>
+    <p style="margin-top:8px;">Le fichier lui-même sera uploadé dans une prochaine version via un canal sécurisé.</p>
+  </div>
+
+  <div class="guide-section">
+    <h3>📄 Différence entre métadonnées et fichier</h3>
+    <p><strong>Métadonnées</strong> = informations sur le document : titre, catégorie, date d'expiration, statut. Stockées dans la base de données <code>veraluz_documents</code>.</p>
+    <p style="margin-top:6px;"><strong>Fichier</strong> = le document lui-même (PDF, scan, image). Stocké dans un bucket Supabase Storage privé. Jamais accessible publiquement. Accessible uniquement via URL signée de courte durée (15 min max).</p>
+  </div>
+
+  <div class="guide-section">
+    <h3>🔐 Niveaux de confidentialité</h3>
+    <ul>
+      <li><span class="badge badge-public">public</span> — Information non sensible, peut être partagée librement</li>
+      <li style="margin-top:6px;"><span class="badge badge-internal">internal</span> — Usage interne uniquement — pas de partage externe</li>
+      <li style="margin-top:6px;"><span class="badge badge-confidential">confidential</span> — Données sensibles — accès restreint aux managers et propriétaire</li>
+      <li style="margin-top:6px;"><span class="badge badge-restricted">restricted</span> — Très sensible — accès propriétaire uniquement (contrats bancaires, titres, NIF…)</li>
+    </ul>
+  </div>
+
+  <div class="guide-section">
+    <h3>🏦 Pourquoi les documents bancaires et RH restent privés</h3>
+    <p>Les documents bancaires (relevés, conventions, IBAN) et RH (contrats, bulletins) contiennent des informations personnelles et financières protégées. Ils doivent rester dans des buckets privés et ne jamais être accessibles via une URL publique.</p>
+    <ul style="margin-top:8px;">
+      <li>Bucket <code>veraluz-bank-private</code> → documents bancaires</li>
+      <li>Bucket <code>veraluz-hr-private</code> → contrats et dossiers employés</li>
+      <li>Bucket <code>veraluz-legal-private</code> → statuts, actes, NIF</li>
+      <li>Bucket <code>veraluz-payslips-private</code> → bulletins de paie (future paie formelle)</li>
+    </ul>
+  </div>
+
+  <div class="guide-section">
+    <h3>🤖 Comment l'agent juridique utilisera les métadonnées</h3>
+    <p>L'agent <code>legal_docs_ai</code> (statut : <strong>draft</strong>) pourra dans le futur :</p>
+    <ul>
+      <li>Détecter les documents manquants dans la checklist</li>
+      <li>Alerter sur les documents expirés ou proches de l'expiration</li>
+      <li>Préparer des questions pour le notaire, le fiscaliste ou la banque</li>
+      <li>Créer des recommandations à valider par le propriétaire</li>
+    </ul>
+    <p style="margin-top:8px;"><strong>Ce qu'il ne fera pas :</strong> lire le contenu des fichiers, donner des avis juridiques définitifs, signer ou envoyer des documents, remplacer un avocat ou notaire.</p>
+  </div>
+
+  <div class="guide-section">
+    <h3>⚙️ Ce qui n'est pas encore automatisé</h3>
+    <ul>
+      <li>Upload de fichiers (PROMPT 020+)</li>
+      <li>Notifications automatiques d'expiration par email/SMS</li>
+      <li>Génération automatique de bulletins de paie</li>
+      <li>Export bancaire de documents</li>
+      <li>Activation de l'agent juridique (PROMPT 021+)</li>
+      <li>Partage sécurisé externe avec lien signé</li>
+    </ul>
+  </div>
+
+  <!-- PROMPT 019B — Roadmap Assistant Documents / OCR -->
+  <div class="guide-section" style="border:1px solid rgba(99,102,241,.25);border-radius:var(--rad);padding:16px;background:rgba(99,102,241,.04);">
+    <h3>🤖 Roadmap — Assistant Documents (OCR + IA)</h3>
+    <p style="font-size:12px;color:var(--fg2);margin-bottom:12px;">
+      Le workflow complet d'analyse automatique de documents est prévu dans les prochains prompts.
+      <strong>Aucune de ces étapes n'est active aujourd'hui.</strong> Validation humaine obligatoire à chaque étape.
+    </p>
+    <ol style="font-size:12px;line-height:2.2;padding-left:18px;color:var(--fg);">
+      <li>
+        <strong>Upload sécurisé</strong> — Le fichier est envoyé via Edge Function
+        vers le bucket privé correspondant à la catégorie du document. Jamais directement du frontend.
+      </li>
+      <li>
+        <strong>Extraction texte / OCR côté serveur</strong> — L'Edge Function lit le fichier
+        (PDF ou image), extrait le texte brut via un service OCR sécurisé. Le contenu brut
+        est stocké dans <code>veraluz_document_extracted_text</code>.
+      </li>
+      <li>
+        <strong>Détection automatique (IA)</strong> — L'agent <code>legal_docs_ai</code> analyse
+        le texte et suggère :
+        <ul style="margin-top:4px;">
+          <li>Titre du document</li>
+          <li>Catégorie (juridique, banque, fiscalité, RH…)</li>
+          <li>Type précis (contrat, attestation, extrait, relevé…)</li>
+          <li>Dates clés (signature, début, fin, expiration)</li>
+          <li>Parties concernées (noms, sociétés, numéros)</li>
+          <li>Montants mentionnés (si applicable)</li>
+          <li>Échéances et délais</li>
+          <li>Statut recommandé (actif, expiré, à renouveler)</li>
+        </ul>
+        Ces suggestions sont stockées dans <code>veraluz_document_ai_suggestions</code>.
+      </li>
+      <li>
+        <strong>Pré-remplissage des champs</strong> — Les métadonnées suggérées apparaissent
+        pré-remplies dans le formulaire. L'utilisateur peut corriger chaque champ.
+        Aucun champ n'est enregistré sans action humaine.
+      </li>
+      <li>
+        <strong>Validation humaine obligatoire</strong> — Le propriétaire ou manager
+        confirme ou corrige les suggestions IA dans <code>veraluz_document_approvals</code>.
+        L'IA ne peut jamais valider elle-même.
+      </li>
+      <li>
+        <strong>Archivage</strong> — Après validation, le document passe en statut <em>active</em>.
+        L'accès au fichier se fait uniquement via URL signée (max 15 min).
+      </li>
+      <li>
+        <strong>Signature interne</strong> (si nécessaire) — Pour les documents nécessitant
+        une signature, un workflow de signature électronique interne est déclenché.
+        Géré via <code>veraluz_document_signatures</code>.
+      </li>
+      <li>
+        <strong>Journal d'audit</strong> — Chaque action (upload, lecture, modification, signature,
+        suppression logique) est enregistrée dans <code>veraluz_document_audit_logs</code>
+        avec horodatage, auteur et détail de l'action.
+      </li>
+    </ol>
+    <div style="margin-top:14px;padding:10px 14px;background:rgba(245,158,11,.08);
+                border:1px solid rgba(245,158,11,.3);border-radius:var(--rad2);font-size:11px;color:var(--fg2);">
+      <strong>⚠️ Tables futures (non créées) :</strong>
+      <code>veraluz_document_analysis_jobs</code> ·
+      <code>veraluz_document_extracted_text</code> ·
+      <code>veraluz_document_ai_suggestions</code> ·
+      <code>veraluz_document_approvals</code> ·
+      <code>veraluz_document_signatures</code> ·
+      <code>veraluz_document_audit_logs</code>
+      — À créer dans PROMPT 022+.
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DÉTAILS DOCUMENT -->
+<div class="modal-overlay" id="doc-modal">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3 id="modal-title">Détails du document</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal()">Fermer</button>
+      <button class="btn btn-primary btn-sm" id="modal-edit-btn">✏️ Modifier</button>
+    </div>
+  </div>
+</div>
+
+<script>
+window.__MODULE_NAME__ = 'documents';
+
+/* ── CONFIG ──────────────────────────────────────── */
+var SB_URL = (function(){
+  if(window.VERALUZ_SB_URL) return window.VERALUZ_SB_URL;
+  if(window.parent && window.parent.VERALUZ_SB_URL) return window.parent.VERALUZ_SB_URL;
+  return 'https://dfdmasejsoibxrvubegu.supabase.co';
+})();
+var SB_KEY = (function(){
+  /* PROMPT 019B — même pattern que RH_EMBEDDED / AI_CENTER (clé anon publique, RLS protège) */
+  if(window.VERALUZ_SB_KEY) return window.VERALUZ_SB_KEY;
+  try { if(window.parent && window.parent !== window && window.parent.VERALUZ_SB_KEY)
+    return window.parent.VERALUZ_SB_KEY; } catch(e){}
+  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+})();
+
+/* ── STATE ───────────────────────────────────────── */
+var ALL_DOCS = [];
+var CURRENT_CAT = '';
+var CURRENT_STATUS = '';
+var EDIT_ID = null;
+
+/* ── PRIVATE BUCKETS ─────────────────────────────── */
+var PRIVATE_BUCKETS = [
+  'veraluz-documents-private',
+  'veraluz-hr-private',
+  'veraluz-legal-private',
+  'veraluz-bank-private',
+  'veraluz-payslips-private'
+];
+
+/* ── CAT MAP ─────────────────────────────────────── */
+var CAT_LABELS = {
+  legal:'⚖️ Juridique', bank:'🏦 Banque', tax:'🧾 Fiscalité',
+  hr:'👥 RH', supplier:'🤝 Fournisseur', insurance:'🛡️ Assurance',
+  property:'🏠 Propriété', finance:'📊 Finance', operations:'⚙️ Opérations',
+  identity:'🪪 Identité', other:'📄 Autre'
+};
+var CAT_BUCKETS = {
+  legal:'veraluz-legal-private', bank:'veraluz-bank-private',
+  tax:'veraluz-documents-private', hr:'veraluz-hr-private',
+  supplier:'veraluz-documents-private', insurance:'veraluz-documents-private',
+  property:'veraluz-legal-private', finance:'veraluz-documents-private',
+  operations:'veraluz-documents-private', identity:'veraluz-legal-private',
+  other:'veraluz-documents-private'
+};
+
+/* ── UTILS ───────────────────────────────────────── */
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function badgeStatus(s){
+  var map={active:'active',expired:'expired',missing:'missing',
+           archived:'archived',pending_review:'pending'};
+  var labels={active:'Actif',expired:'Expiré',missing:'Manquant',
+              archived:'Archivé',pending_review:'Révision'};
+  return '<span class="badge badge-'+(map[s]||'info')+'">'+esc(labels[s]||s)+'</span>';
+}
+function badgeConf(c){
+  var labels={public:'Public',internal:'Interne',confidential:'Confidentiel',restricted:'Restreint'};
+  return '<span class="badge badge-'+esc(c)+'">'+esc(labels[c]||c)+'</span>';
+}
+function fmtDate(d){
+  if(!d) return '—';
+  try{ var dt=new Date(d); return dt.toLocaleDateString('fr-FR'); }catch(e){ return d; }
+}
+function daysUntil(d){
+  if(!d) return null;
+  var diff=new Date(d)-new Date();
+  return Math.round(diff/(1000*60*60*24));
+}
+function expColor(days){
+  if(days===null) return '';
+  if(days<0) return 'color:var(--red)';
+  if(days<=30) return 'color:var(--ylw)';
+  return 'color:var(--grn)';
+}
+
+/* ── FETCH ───────────────────────────────────────── */
+function sbGet(table, params){
+  var url = SB_URL+'/rest/v1/'+table+'?'+params+'&limit=500';
+  return fetch(url,{headers:{
+    'apikey': SB_KEY,
+    'Authorization':'Bearer '+SB_KEY,
+    'Accept':'application/json'
+  }}).then(function(r){
+    if(!r.ok) throw new Error(r.status);
+    return r.json();
+  });
+}
+
+function sbPost(table, data){
+  return fetch(SB_URL+'/rest/v1/'+table,{
+    method:'POST',
+    headers:{
+      'apikey': SB_KEY,
+      'Authorization':'Bearer '+SB_KEY,
+      'Content-Type':'application/json',
+      'Prefer':'return=representation'
+    },
+    body: JSON.stringify(data)
+  }).then(function(r){
+    if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||r.status); });
+    return r.json();
+  });
+}
+
+function sbPatch(table, id, data){
+  return fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+id,{
+    method:'PATCH',
+    headers:{
+      'apikey': SB_KEY,
+      'Authorization':'Bearer '+SB_KEY,
+      'Content-Type':'application/json',
+      'Prefer':'return=representation'
+    },
+    body: JSON.stringify(data)
+  }).then(function(r){
+    if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||r.status); });
+    return r.json();
+  });
+}
+
+/* ── TAB NAVIGATION ──────────────────────────────── */
+function showTab(name){
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  var panel=document.getElementById('panel-'+name);
+  if(panel) panel.classList.add('active');
+  document.querySelectorAll('.tab').forEach(function(t){
+    if(t.getAttribute('onclick').indexOf("'"+name+"'")>=0) t.classList.add('active');
+  });
+  if(name==='overview') loadOverview();
+  if(name==='all') loadAll();
+  if(name==='renewal') loadRenewal();
+  if(name==='missing') loadMissing();
+  if(name==='folders') loadFolders();
+}
+
+/* ── LOAD ALL DOCS ───────────────────────────────── */
+function loadDocs(){
+  return sbGet('veraluz_documents','select=*&order=created_at.desc')
+    .then(function(docs){ ALL_DOCS=docs||[]; return docs; });
+}
+
+/* ── OVERVIEW ────────────────────────────────────── */
+function loadOverview(){
+  document.getElementById('overview-loading').style.display='';
+  document.getElementById('overview-content').style.display='none';
+  document.getElementById('overview-empty').style.display='none';
+
+  loadDocs().then(function(docs){
+    document.getElementById('overview-loading').style.display='none';
+    if(!docs||!docs.length){
+      document.getElementById('overview-empty').style.display='';
+      return;
+    }
+    document.getElementById('overview-content').style.display='';
+
+    var total=docs.length;
+    var active=docs.filter(function(d){return d.status==='active';}).length;
+    var expired=docs.filter(function(d){return d.status==='expired';}).length;
+    var missing=docs.filter(function(d){return d.status==='missing';}).length;
+    var soon=docs.filter(function(d){
+      var n=daysUntil(d.expiry_date);
+      return n!==null && n>=0 && n<=30;
+    }).length;
+
+    if(missing>0){
+      document.getElementById('alert-checklist').style.display='';
+      document.getElementById('alert-checklist-msg').textContent=
+        missing+' document(s) manquant(s) dans la checklist. Complétez le coffre documentaire progressivement.';
+    }
+
+    var cards=[
+      {icon:'📋',val:total,lbl:'Total documents',cls:'stat-info'},
+      {icon:'✅',val:active,lbl:'Actifs',cls:'stat-ok'},
+      {icon:'⚠️',val:missing,lbl:'Manquants',cls:'stat-warn'},
+      {icon:'⏰',val:soon,lbl:'À renouveler (30j)',cls:soon>0?'stat-warn':'stat-ok'},
+      {icon:'❌',val:expired,lbl:'Expirés',cls:expired>0?'stat-err':'stat-ok'},
+      {icon:'🔒',val:PRIVATE_BUCKETS.length,lbl:'Buckets privés actifs',cls:'stat-ok'}
+    ];
+    document.getElementById('overview-cards').innerHTML=cards.map(function(c){
+      return '<div class="card '+c.cls+'"><div class="card-icon">'+c.icon+'</div>'+
+             '<div class="card-val">'+c.val+'</div>'+
+             '<div class="card-lbl">'+c.lbl+'</div></div>';
+    }).join('');
+
+    // Par catégorie
+    var cats={};
+    docs.forEach(function(d){ cats[d.category]=(cats[d.category]||0)+1; });
+    var catHtml='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;">';
+    Object.keys(cats).sort().forEach(function(c){
+      var count=cats[c];
+      var pct=Math.round(count/total*100);
+      catHtml+='<div style="background:var(--bg2);border:1px solid var(--brd);border-radius:var(--rad2);padding:12px;">'+
+        '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">'+
+        '<span style="font-size:13px;">'+esc(CAT_LABELS[c]||c)+'</span>'+
+        '<span style="font-size:13px;font-weight:600;">'+count+'</span></div>'+
+        '<div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%;background:var(--acc);"></div></div>'+
+        '</div>';
+    });
+    catHtml+='</div>';
+    document.getElementById('overview-cats').innerHTML=catHtml;
+
+    // Derniers docs
+    var recent=docs.slice(0,8);
+    document.getElementById('recent-docs').innerHTML=recent.map(function(d){
+      return '<tr>'+
+        '<td><strong>'+esc(d.title)+'</strong></td>'+
+        '<td><span class="badge badge-cat">'+esc(CAT_LABELS[d.category]||d.category)+'</span></td>'+
+        '<td>'+badgeStatus(d.status)+'</td>'+
+        '<td>'+badgeConf(d.confidentiality_level)+'</td>'+
+        '<td style="font-size:12px;color:var(--fg2);">'+fmtDate(d.created_at)+'</td>'+
+        '</tr>';
+    }).join('');
+  }).catch(function(e){
+    document.getElementById('overview-loading').style.display='none';
+    document.getElementById('overview-empty').style.display='';
+    var _code=parseInt(e.message)||0;
+    var _msg=_code===401?'Connexion Supabase refusée (401). La clé anon est absente ou invalide. Rechargez la page.'
+      :_code===403?'Accès refusé par RLS (403). Vérifiez les policies de veraluz_documents.'
+      :_code===404||String(e.message).indexOf('veraluz_documents')>=0?'Table veraluz_documents introuvable. Vérifiez la migration PROMPT 019.'
+      :'Erreur Supabase ('+esc(e.message)+'). Vérifiez la connexion réseau.';
+    document.getElementById('overview-empty').innerHTML=
+      '<div class="empty-icon">⚠️</div><p style="font-size:13px;">'+_msg+'</p>';
+  });
+}
+
+/* ── ALL DOCS ────────────────────────────────────── */
+function loadAll(){
+  document.getElementById('all-loading').style.display='';
+  document.getElementById('all-table').style.display='none';
+  loadDocs().then(renderAll);
+}
+function filterDocs(){renderAll(ALL_DOCS);}
+function setCatFilter(cat,el){
+  CURRENT_CAT=cat;
+  document.querySelectorAll('#filter-cats .filter-chip').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+  renderAll(ALL_DOCS);
+}
+function setStatusFilter(st,el){
+  CURRENT_STATUS=st;
+  document.querySelectorAll('#filter-status .filter-chip').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+  renderAll(ALL_DOCS);
+}
+function renderAll(docs){
+  document.getElementById('all-loading').style.display='none';
+  document.getElementById('all-table').style.display='';
+  var q=(document.getElementById('search-input').value||'').toLowerCase();
+  var filtered=docs.filter(function(d){
+    if(CURRENT_CAT && d.category!==CURRENT_CAT) return false;
+    if(CURRENT_STATUS && d.status!==CURRENT_STATUS) return false;
+    if(q && (d.title||'').toLowerCase().indexOf(q)<0 &&
+            (d.document_type||'').toLowerCase().indexOf(q)<0 &&
+            (d.notes||'').toLowerCase().indexOf(q)<0) return false;
+    return true;
+  });
+  document.getElementById('all-count').textContent=filtered.length+' document(s)';
+  if(!filtered.length){
+    document.getElementById('all-tbody').innerHTML=
+      '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:30px;">Aucun document trouvé</td></tr>';
+    return;
+  }
+  document.getElementById('all-tbody').innerHTML=filtered.map(function(d){
+    var days=daysUntil(d.expiry_date);
+    var expStr=d.expiry_date
+      ? '<span style="'+expColor(days)+'">'+fmtDate(d.expiry_date)+(days!==null?' ('+days+'j)':'')+'</span>'
+      : '—';
+    var hasFile=d.storage_path?'<span style="color:var(--grn)">✅ Oui</span>':'<span style="color:var(--fg3)">— Non</span>';
+    return '<tr>'+
+      '<td><strong>'+esc(d.title)+'</strong>'+(d.document_type?'<br><span style="font-size:11px;color:var(--fg3)">'+esc(d.document_type)+'</span>':'')+'</td>'+
+      '<td><span class="badge badge-cat">'+esc(CAT_LABELS[d.category]||d.category)+'</span></td>'+
+      '<td>'+badgeStatus(d.status)+'</td>'+
+      '<td>'+badgeConf(d.confidentiality_level)+'</td>'+
+      '<td style="font-size:12px;">'+expStr+'</td>'+
+      '<td style="font-size:12px;">'+hasFile+'</td>'+
+      '<td>'+
+        '<button class="btn btn-secondary btn-sm" onclick="viewDoc(\''+d.id+'\')">👁 Voir</button> '+
+        '<button class="btn btn-secondary btn-sm" onclick="archiveDoc(\''+d.id+'\')">📦</button>'+
+      '</td>'+
+      '</tr>';
+  }).join('');
+}
+
+/* ── RENEWAL ─────────────────────────────────────── */
+function loadRenewal(){
+  loadDocs().then(function(docs){
+    var expired=[],d30=[],d60=[],d90=[];
+    docs.forEach(function(d){
+      if(!d.expiry_date) return;
+      var days=daysUntil(d.expiry_date);
+      if(days<0) expired.push({d:d,days:days});
+      else if(days<=30) d30.push({d:d,days:days});
+      else if(days<=60) d60.push({d:d,days:days});
+      else if(days<=90) d90.push({d:d,days:days});
+    });
+    var total=expired.length+d30.length+d60.length+d90.length;
+    document.getElementById('renewal-empty').style.display=total?'none':'';
+
+    function renderRenewGroup(arr,containerId,dotClass){
+      var el=document.getElementById(containerId);
+      el.innerHTML=!arr.length?'<div style="font-size:12px;color:var(--fg3);padding:8px;">Aucun</div>':
+        arr.map(function(item){
+          var d=item.d;
+          return '<div class="chk-item" style="margin-bottom:6px;">'+
+            '<div class="exp-dot '+dotClass+'"></div>'+
+            '<div class="chk-info">'+
+              '<div class="chk-title">'+esc(d.title)+'</div>'+
+              '<div class="chk-cat">'+esc(CAT_LABELS[d.category]||d.category)+
+              ' · Expire le '+fmtDate(d.expiry_date)+
+              (item.days<0?' — <span style="color:var(--red)">Expiré depuis '+(Math.abs(item.days))+'j</span>':
+               ' — <span style="color:var(--ylw)">Dans '+item.days+'j</span>')+'</div>'+
+            '</div>'+
+            badgeConf(d.confidentiality_level)+
+            '</div>';
+        }).join('');
+    }
+    renderRenewGroup(expired,'rg-expired-list','exp-red');
+    renderRenewGroup(d30,'rg-30-list','exp-red');
+    renderRenewGroup(d60,'rg-60-list','exp-ylw');
+    renderRenewGroup(d90,'rg-90-list','exp-grn');
+  });
+}
+
+/* ── MISSING ─────────────────────────────────────── */
+var MISSING_CHECKLIST = {
+  'Société / Juridique': [
+    {title:'Statuts de la société',cat:'legal',conf:'restricted'},
+    {title:'RCCM / Immatriculation',cat:'legal',conf:'confidential'},
+    {title:'Acte constitutif',cat:'legal',conf:'restricted'},
+    {title:'NIF / Identifiant fiscal',cat:'tax',conf:'confidential'},
+    {title:'Procès-verbal important',cat:'legal',conf:'confidential'}
+  ],
+  'Banque': [
+    {title:'Attestation bancaire',cat:'bank',conf:'restricted'},
+    {title:'Convention de compte bancaire',cat:'bank',conf:'restricted'},
+    {title:'Coordonnées bancaires société',cat:'bank',conf:'restricted'},
+    {title:'Documents de prêt',cat:'bank',conf:'restricted'}
+  ],
+  'Fiscalité': [
+    {title:'Attestation de régularité fiscale',cat:'tax',conf:'confidential'},
+    {title:'Déclarations fiscales importantes',cat:'tax',conf:'confidential'},
+    {title:'Quittances impôts',cat:'tax',conf:'confidential'},
+    {title:'Patente',cat:'tax',conf:'confidential'}
+  ],
+  'RH': [
+    {title:'Contrats employés',cat:'hr',conf:'confidential'},
+    {title:'Pièces identité employés',cat:'hr',conf:'confidential'},
+    {title:'Attestations de travail',cat:'hr',conf:'internal'}
+  ],
+  'Propriété / Résidence': [
+    {title:'Titre foncier / Propriété',cat:'property',conf:'restricted'},
+    {title:'Bail',cat:'property',conf:'confidential'},
+    {title:'Plans du bâtiment',cat:'property',conf:'internal'},
+    {title:'Permis de construire / Autorisations',cat:'property',conf:'confidential'},
+    {title:'Assurance bâtiment',cat:'insurance',conf:'confidential'}
+  ],
+  'Fournisseurs': [
+    {title:'Contrats fournisseurs',cat:'supplier',conf:'internal'},
+    {title:'Devis acceptés',cat:'supplier',conf:'internal'},
+    {title:'Bons de commande importants',cat:'supplier',conf:'internal'}
+  ]
+};
+
+function loadMissing(){
+  document.getElementById('missing-loading').style.display='';
+  document.getElementById('missing-content').style.display='none';
+  loadDocs().then(function(docs){
+    document.getElementById('missing-loading').style.display='none';
+    document.getElementById('missing-content').style.display='';
+    var existingTitles=docs.map(function(d){return d.title.toLowerCase();});
+    var missingCount=0;
+    var html='';
+    Object.keys(MISSING_CHECKLIST).forEach(function(grp){
+      html+='<div style="margin-bottom:20px;"><div style="font-size:13px;font-weight:600;'+
+            'color:var(--fg2);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--brd);">'+esc(grp)+'</div>'+
+            '<div class="checklist">';
+      MISSING_CHECKLIST[grp].forEach(function(item){
+        var present=existingTitles.indexOf(item.title.toLowerCase())>=0;
+        if(!present) missingCount++;
+        html+='<div class="chk-item '+(present?'present':'missing')+'">'+
+          '<div style="font-size:16px;">'+(present?'✅':'⚠️')+'</div>'+
+          '<div class="chk-info">'+
+            '<div class="chk-title">'+esc(item.title)+'</div>'+
+            '<div class="chk-cat">'+esc(CAT_LABELS[item.cat]||item.cat)+
+              ' · '+badgeConf(item.conf)+'</div>'+
+          '</div>'+
+          (!present?'<button class="btn btn-primary btn-sm" onclick="createMissingDoc(\''+
+            esc(item.title)+'\',\''+item.cat+'\',\''+item.conf+'\')">➕ Créer</button>':'<span style="color:var(--grn);font-size:12px;">Présent</span>')+
+          '</div>';
+      });
+      html+='</div></div>';
+    });
+    document.getElementById('missing-groups').innerHTML=html;
+    document.getElementById('missing-count-badge').textContent=missingCount+' manquants';
+    document.getElementById('missing-count-badge').className='count';
+  });
+}
+
+function createMissingDoc(title,cat,conf){
+  if(!confirm('Créer une fiche "manquant" pour : '+title+' ?')) return;
+  sbPost('veraluz_documents',{
+    title:title, category:cat, confidentiality_level:conf,
+    status:'missing', uploaded_by:'checklist_auto'
+  }).then(function(){
+    alert('Fiche créée. Document marqué comme manquant.');
+    loadMissing();
+  }).catch(function(e){ alert('Erreur: '+e.message); });
+}
+
+function addMissingToChecklist(){
+  showTab('upload');
+  document.getElementById('doc-status').value='missing';
+}
+
+/* ── FOLDERS ─────────────────────────────────────── */
+function loadFolders(){
+  document.getElementById('folders-loading').style.display='';
+  document.getElementById('folders-grid').style.display='none';
+  loadDocs().then(function(docs){
+    document.getElementById('folders-loading').style.display='none';
+    document.getElementById('folders-grid').style.display='';
+    var cats=Object.keys(CAT_LABELS);
+    document.getElementById('folders-grid').innerHTML=cats.map(function(c){
+      var catDocs=docs.filter(function(d){return d.category===c;});
+      var active=catDocs.filter(function(d){return d.status==='active';}).length;
+      var expired=catDocs.filter(function(d){return d.status==='expired';}).length;
+      var missing=catDocs.filter(function(d){return d.status==='missing';}).length;
+      var confRestr=catDocs.filter(function(d){return d.confidentiality_level==='restricted';}).length;
+      var confConf=catDocs.filter(function(d){return d.confidentiality_level==='confidential';}).length;
+      var domConf=confRestr>0?'restricted':(confConf>0?'confidential':'internal');
+      return '<div class="folder" onclick="openFolder(\''+c+'\')">'+
+        '<div class="folder-icon">'+CAT_LABELS[c].split(' ')[0]+'</div>'+
+        '<div class="folder-name">'+CAT_LABELS[c].split(' ').slice(1).join(' ')+'</div>'+
+        '<div class="folder-stats">'+
+          catDocs.length+' doc' +(catDocs.length>1?'s':'')+
+          (active?' · '+active+' actif':'')+(expired?' · <span style="color:var(--red)">'+expired+' exp.</span>':'')+
+          (missing?' · <span style="color:var(--ylw)">'+missing+' manq.</span>':'')+
+        '</div>'+
+        '<div style="margin-top:6px;">'+badgeConf(domConf)+'</div>'+
+        '</div>';
+    }).join('');
+  });
+}
+
+function openFolder(cat){
+  CURRENT_CAT=cat;
+  showTab('all');
+  document.querySelectorAll('#filter-cats .filter-chip').forEach(function(c){
+    c.classList.remove('active');
+    if(c.getAttribute('onclick') && c.getAttribute('onclick').indexOf("'"+cat+"'")>=0) c.classList.add('active');
+  });
+}
+
+/* ── SUBMIT DOC ──────────────────────────────────── */
+function submitDocument(){
+  var title=(document.getElementById('doc-title').value||'').trim();
+  var category=document.getElementById('doc-category').value;
+  var conf=document.getElementById('doc-confidentiality').value;
+  var status=document.getElementById('doc-status').value;
+  var expiry=document.getElementById('doc-expiry').value||null;
+  var reminder=document.getElementById('doc-reminder').value||null;
+  var module=document.getElementById('doc-module').value||null;
+  var uploader=(document.getElementById('doc-uploader').value||'').trim()||null;
+  var notes=(document.getElementById('doc-notes').value||'').trim()||null;
+  var dtype=(document.getElementById('doc-type').value||'').trim()||null;
+
+  if(!title){ showFormMsg('⚠️ Le titre est obligatoire.','warn'); return; }
+  if(!category){ showFormMsg('⚠️ La catégorie est obligatoire.','warn'); return; }
+
+  var data={
+    title:title, category:category, document_type:dtype,
+    confidentiality_level:conf, status:status,
+    expiry_date:expiry, reminder_date:reminder,
+    related_module:module, uploaded_by:uploader, notes:notes,
+    storage_bucket: EDIT_ID ? undefined : CAT_BUCKETS[category] || 'veraluz-documents-private'
+  };
+  // Nettoyer les undefined
+  Object.keys(data).forEach(function(k){ if(data[k]===undefined) delete data[k]; });
+
+  showFormMsg('⏳ Enregistrement…','info');
+
+  var promise = EDIT_ID
+    ? sbPatch('veraluz_documents', EDIT_ID, data)
+    : sbPost('veraluz_documents', data);
+
+  promise.then(function(){
+    showFormMsg('✅ Document enregistré avec succès.','ok');
+    resetForm();
+    ALL_DOCS=[];
+  }).catch(function(e){
+    showFormMsg('❌ Erreur: '+e.message,'danger');
+  });
+}
+
+function resetForm(){
+  ['doc-title','doc-type','doc-expiry','doc-reminder','doc-uploader','doc-notes'].forEach(function(id){
+    document.getElementById(id).value='';
+  });
+  document.getElementById('doc-category').value='';
+  document.getElementById('doc-confidentiality').value='internal';
+  document.getElementById('doc-status').value='active';
+  document.getElementById('doc-module').value='';
+  EDIT_ID=null;
+}
+
+function showFormMsg(msg,type){
+  var el=document.getElementById('form-msg');
+  var colors={info:'var(--acc2)',ok:'var(--grn)',warn:'var(--ylw)',danger:'var(--red)'};
+  el.style.color=colors[type]||'var(--fg2)';
+  el.textContent=msg;
+}
+
+/* ── VIEW DOC ────────────────────────────────────── */
+function viewDoc(id){
+  var d=ALL_DOCS.filter(function(x){return x.id===id;})[0];
+  if(!d) return;
+  document.getElementById('modal-title').textContent=d.title;
+  var days=daysUntil(d.expiry_date);
+  document.getElementById('modal-body').innerHTML=
+    '<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
+    row('Titre', esc(d.title))+
+    row('Catégorie', esc(CAT_LABELS[d.category]||d.category))+
+    row('Type', esc(d.document_type||'—'))+
+    row('Statut', badgeStatus(d.status))+
+    row('Confidentialité', badgeConf(d.confidentiality_level))+
+    row('Expiration', d.expiry_date?(fmtDate(d.expiry_date)+(days!==null?' (<span style="'+expColor(days)+'">'+days+'j</span>)':'')):'—')+
+    row('Rappel', fmtDate(d.reminder_date))+
+    row('Module lié', esc(d.related_module||'—'))+
+    row('Ajouté par', esc(d.uploaded_by||'—'))+
+    row('Révisé par', esc(d.reviewed_by||'—'))+
+    row('Fichier', d.storage_path?'<span style="color:var(--grn)">✅ Présent (privé)</span>':'<span style="color:var(--fg3)">Non uploadé</span>')+
+    row('Bucket', d.storage_bucket?('<code>'+esc(d.storage_bucket)+'</code>'):'—')+
+    row('Notes', esc(d.notes||'—'))+
+    row('Créé le', fmtDate(d.created_at))+
+    row('Mis à jour', fmtDate(d.updated_at))+
+    '</table>'+
+    (d.storage_path?'<div class="alert alert-info" style="margin-top:14px;"><span>🔒</span>'+
+    '<span>Fichier stocké dans un bucket privé. Accès via URL signée (15 min max) — disponible dans PROMPT 020+.</span></div>':'');
+  document.getElementById('modal-edit-btn').onclick=function(){ closeModal(); editDoc(id); };
+  document.getElementById('doc-modal').classList.add('open');
+}
+
+function row(lbl,val){
+  return '<tr><td style="padding:7px 0;color:var(--fg2);width:140px;vertical-align:top;">'+esc(lbl)+'</td>'+
+         '<td style="padding:7px 0;">'+val+'</td></tr>';
+}
+
+function closeModal(){ document.getElementById('doc-modal').classList.remove('open'); }
+
+function editDoc(id){
+  var d=ALL_DOCS.filter(function(x){return x.id===id;})[0];
+  if(!d) return;
+  EDIT_ID=id;
+  showTab('upload');
+  document.getElementById('doc-title').value=d.title||'';
+  document.getElementById('doc-category').value=d.category||'';
+  document.getElementById('doc-type').value=d.document_type||'';
+  document.getElementById('doc-confidentiality').value=d.confidentiality_level||'internal';
+  document.getElementById('doc-status').value=d.status||'active';
+  document.getElementById('doc-expiry').value=d.expiry_date||'';
+  document.getElementById('doc-reminder').value=d.reminder_date||'';
+  document.getElementById('doc-module').value=d.related_module||'';
+  document.getElementById('doc-uploader').value=d.uploaded_by||'';
+  document.getElementById('doc-notes').value=d.notes||'';
+  showFormMsg('✏️ Mode modification — ID: '+id,'info');
+}
+
+function archiveDoc(id){
+  if(!confirm('Archiver ce document ?')) return;
+  sbPatch('veraluz_documents',id,{status:'archived'}).then(function(){
+    ALL_DOCS=[];
+    loadAll();
+  }).catch(function(e){ alert('Erreur: '+e.message); });
+}
+
+/* ── INIT ────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', function(){
+  // Hériter des clés du parent (VERALUZ_OS_CORE)
+  try {
+    if(window.parent && window.parent !== window){
+      if(window.parent.VERALUZ_SB_URL) SB_URL = window.parent.VERALUZ_SB_URL;
+      if(window.parent.VERALUZ_SB_KEY) SB_KEY = window.parent.VERALUZ_SB_KEY;
+    }
+  } catch(e){}
+  loadOverview();
+});
+
+/* ── PROMPT 019B — Diagnostic connexion Supabase ─────────────── */
+function runDocsDiag(){
+  var wrap = document.getElementById('docs-diag-result');
+  if(!wrap) return;
+  wrap.style.display = '';
+  wrap.innerHTML = '⏳ Test en cours…';
+
+  var url  = SB_URL || '';
+  var key  = SB_KEY || '';
+  var lines = [];
+
+  lines.push('URL Supabase : ' + (url ? '✅ ' + url : '❌ ABSENTE'));
+  lines.push('Clé anon détectée : ' + (key ? '✅ oui' : '❌ NON — 401 probable'));
+  if(key) lines.push('Longueur clé : ' + key.length + ' caractères');
+
+  if(!key){ wrap.innerHTML = lines.join('<br>'); return; }
+
+  fetch(url+'/rest/v1/veraluz_documents?select=id&limit=1',{
+    headers:{ 'apikey':key, 'Authorization':'Bearer '+key, 'Accept':'application/json' }
+  }).then(function(r){
+    lines.push('Requête GET veraluz_documents : HTTP ' + r.status);
+    if(r.status===200||r.status===206){
+      lines.push('✅ Connexion OK — la table est accessible');
+    } else if(r.status===401){
+      lines.push('❌ 401 — Clé anon rejetée par Supabase. Vérifiez la clé et les policies anon.');
+    } else if(r.status===403){
+      lines.push('\u274C 403 — RLS bloque l\'acc\u00e8s anon. Ajoutez GRANT SELECT \u2026 TO anon.');
+    } else if(r.status===404){
+      lines.push('❌ 404 — Table veraluz_documents introuvable. Migration PROMPT 019 non appliquée ?');
+    } else {
+      lines.push('⚠️ Code inattendu : '+r.status);
+    }
+    wrap.innerHTML = lines.join('<br>');
+  }).catch(function(err){
+    lines.push('❌ Erreur réseau : ' + err.message);
+    wrap.innerHTML = lines.join('<br>');
+  });
+}
+
+// Fermer modal sur overlay click
+document.getElementById('doc-modal').addEventListener('click',function(e){
+  if(e.target===this) closeModal();
+});
+</script>
+
+<script>
+/* ── Veraluz Theme toggle — PROMPT 036F ─────────────────────────────── */
+function applyVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';document.documentElement.classList.toggle('vl-dark',dark);var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';}
+function toggleVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';localStorage.setItem('vl_theme',dark?'light':'dark');applyVlTheme();try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}}
+document.addEventListener('DOMContentLoaded',applyVlTheme);
+window.addEventListener('message',function(e){if(e.data&&e.data.type==='vl-theme')applyVlTheme();});
+</script>
+</body>
+</html>

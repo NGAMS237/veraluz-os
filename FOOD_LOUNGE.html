@@ -1,0 +1,2279 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0f0f0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Veraluz Food">
+<link rel="manifest" href="./manifest-food.webmanifest">
+<title>Veraluz Food &amp; Lounge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  /* ── Dark zone (top) ── */
+  --dk:#0f0f0d;--dk2:#181816;--dk3:#222220;--dk4:#2a2a28;
+  --gold:#c9a84c;--gold2:#e8c56d;--gold3:rgba(201,168,76,.14);--gold4:rgba(201,168,76,.07);
+  --dt:#f5f5f0;--dt2:#a0a09a;--dt3:#555550;
+  --dborder:rgba(255,255,255,.07);--dborder2:rgba(255,255,255,.12);
+  /* ── Light zone (menu) ── */
+  --bg:#fafaf8;--bg2:#fff;--bg3:#f4f3ef;--bg4:#eceae4;
+  --am:#b8860b;--am2:#c9a84c;--am3:rgba(184,134,11,.09);
+  --tx:#1a1a18;--tx2:#666;--tx3:#aaa;
+  --border:#e8e6e0;--border2:#d8d6ce;
+  --green:#16a34a;--red:#dc2626;
+  --sh-sm:0 1px 4px rgba(0,0,0,.06);
+  --sh:0 4px 16px rgba(0,0,0,.08);
+  --sh-lg:0 12px 40px rgba(0,0,0,.12);
+  --r8:8px;--r12:12px;--r16:16px;--r20:20px;--r50:50px;
+}
+html,body{height:100%;background:var(--dk);color:var(--dt);font-family:'Inter',sans-serif;overflow-x:hidden;overscroll-behavior:none}
+body{max-width:480px;margin:0 auto;min-height:100vh;position:relative}
+@supports (height:100dvh){body{min-height:100dvh;}}
+/* ── Responsive iPhone ── */
+@media (max-width:430px){
+  body{max-width:100%;}
+  .bottom-nav{max-width:100%;}
+  .drawer,.modal,.sheet{max-width:100%;left:0;transform:none;right:0;}
+  .drawer.open,.sheet.open{transform:translateY(0);}
+}
+@media (max-width:390px){
+  .hero-title{font-size:1.5rem;}
+  .hero-sub{font-size:.72rem;max-width:220px;}
+  .card-name{font-size:.82rem;}
+  .card-price{font-size:.82rem;}
+  .bnav-item span{font-size:.58rem;}
+  .sheet-head h2{font-size:.9rem;}
+}
+@media (max-width:375px){
+  .hero-title{font-size:1.35rem;}
+  .promo-txt{font-size:.64rem;}
+  .card-name{font-size:.78rem;}
+}
+@media (max-height:700px) and (max-width:480px){
+  .confirm-screen{padding-top:env(safe-area-inset-top,20px);}
+}
+button{font-family:'Inter',sans-serif;cursor:pointer;border:none;outline:none;background:none}
+img{display:block;object-fit:cover}
+a{text-decoration:none;color:inherit}
+svg{flex-shrink:0}
+
+
+/* ── PROMO BANNER ── */
+.promo-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  background:linear-gradient(90deg,#1a160a 0%,#2a2010 50%,#1a160a 100%);
+  border-bottom:1px solid rgba(201,168,76,.18);
+  padding:0 14px;height:36px;overflow:hidden;
+  position:relative;
+}
+.promo-bar.hidden{display:none}
+.promo-scroll{
+  flex:1;overflow:hidden;position:relative;
+  display:flex;align-items:center;gap:16px;
+}
+.promo-inner{
+  display:flex;align-items:center;gap:8px;
+  animation:promoscroll 18s linear infinite;
+  white-space:nowrap;
+}
+@keyframes promoscroll{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(-50%)}
+}
+.promo-bar:hover .promo-inner{animation-play-state:paused}
+.promo-ico{
+  width:18px;height:18px;flex-shrink:0;color:var(--gold);
+}
+.promo-txt{
+  font-size:.68rem;font-weight:600;letter-spacing:.3px;color:var(--dt);
+}
+.promo-txt strong{color:var(--gold2);font-weight:700}
+.promo-sep{color:var(--dt3);opacity:.4;font-size:.6rem;margin:0 4px}
+.promo-close{
+  flex-shrink:0;width:22px;height:22px;border-radius:50%;
+  background:rgba(255,255,255,.06);border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--dt3);margin-left:8px;transition:background .15s;
+}
+.promo-close:active{background:rgba(255,255,255,.15)}
+.promo-close svg{width:10px;height:10px}
+
+/* ══════════════════════════════════
+   DARK ZONE (top bar + hero + strip + lounge)
+══════════════════════════════════ */
+
+/* ── TOP BAR ── */
+.top-bar{
+  position:sticky;top:0;z-index:100;
+  background:rgba(15,15,13,.93);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--dborder);
+  height:54px;padding:0 16px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.tb-logo{display:flex;align-items:center;gap:9px}
+.tb-mark{
+  width:32px;height:32px;border-radius:10px;
+  border:1px solid rgba(201,168,76,.3);
+  background:var(--gold3);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--gold);
+}
+.tb-name{font-family:'Cormorant Garamond',serif;font-size:1.08rem;font-weight:600;letter-spacing:.3px;color:var(--dt)}
+.tb-name em{color:var(--gold);font-style:italic}
+.tb-right{display:flex;align-items:center;gap:8px}
+.dk-icon-btn{
+  position:relative;width:38px;height:38px;border-radius:var(--r8);
+  background:var(--dk3);border:1px solid var(--dborder);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--dt2);transition:background .15s;
+}
+.dk-icon-btn:active{background:var(--dk4)}
+.tb-mark svg{width:16px;height:16px}
+.dk-icon-btn svg{width:16px;height:16px}
+.dk-wa{color:#4ade80;background:rgba(74,222,128,.07);border-color:rgba(74,222,128,.2)}
+.cart-badge{
+  position:absolute;top:-5px;right:-5px;
+  min-width:17px;height:17px;border-radius:50%;
+  background:var(--gold);color:var(--dk);font-size:9px;font-weight:800;
+  display:none;align-items:center;justify-content:center;padding:0 3px;
+}
+.cart-badge.show{display:flex}
+
+/* ── HERO ── */
+.hero{
+  position:relative;height:256px;overflow:hidden;
+  background:var(--dk2);
+}
+.hero-bg{
+  position:absolute;inset:0;
+  background:url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=900&q=80') center/cover no-repeat;
+  opacity:.28;
+}
+.hero-grain{
+  position:absolute;inset:0;
+  background:linear-gradient(160deg,rgba(15,15,13,.95) 0%,rgba(15,15,13,.6) 50%,rgba(15,15,13,.85) 100%);
+}
+.hero-c{
+  position:relative;z-index:1;
+  height:100%;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:20px 20px 26px;
+}
+.hero-eyebrow{
+  display:flex;align-items:center;gap:7px;margin-bottom:10px;
+  font-size:.67rem;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);
+}
+.hero-eyebrow::before{content:'';width:18px;height:1px;background:var(--gold);opacity:.6}
+.hero h1{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.95rem;font-weight:600;line-height:1.1;
+  color:var(--dt);margin-bottom:8px;
+}
+.hero h1 em{color:var(--gold);font-style:italic}
+.hero-sub{font-size:.77rem;color:var(--dt2);line-height:1.6;margin-bottom:18px;max-width:260px}
+.hero-btns{display:flex;gap:7px;flex-wrap:wrap}
+.btn-gold{
+  padding:10px 18px;border-radius:var(--r50);
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:var(--dk);font-size:.77rem;font-weight:700;
+  display:inline-flex;align-items:center;gap:6px;transition:opacity .15s;
+}
+.btn-gold:active{opacity:.85}
+.btn-gold svg{width:14px;height:14px;flex-shrink:0}
+.btn-dk-outline{
+  padding:10px 16px;border-radius:var(--r50);
+  background:transparent;border:1px solid var(--dborder2);
+  color:var(--dt2);font-size:.77rem;font-weight:600;
+}
+.btn-wa-dk{
+  padding:10px 16px;border-radius:var(--r50);
+  background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.25);
+  color:#4ade80;font-size:.77rem;font-weight:600;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.btn-wa-dk svg{width:14px;height:14px;flex-shrink:0}
+
+/* ── SERVICE STRIP ── */
+.service-strip{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  background:var(--dk2);border-bottom:1px solid var(--dborder);
+}
+.ss-item{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:11px 4px;cursor:pointer;
+  border-bottom:2px solid transparent;
+  color:var(--dt3);font-size:.67rem;font-weight:600;letter-spacing:.3px;
+  transition:all .15s;
+}
+.ss-item svg{color:var(--dt3);transition:color .15s;width:18px;height:18px}
+.ss-item.active{color:var(--gold);border-bottom-color:var(--gold)}
+.ss-item.active svg{color:var(--gold)}
+
+/* ── LOUNGE BANNER ── */
+.lounge-banner{
+  margin:0;background:var(--dk2);
+  border-bottom:1px solid var(--dborder);
+  padding:18px 20px;position:relative;overflow:hidden;
+}
+.lounge-banner::after{
+  content:'';position:absolute;right:0;top:0;bottom:0;width:45%;
+  background:url('https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=70') center/cover no-repeat;
+  opacity:.15;
+  -webkit-mask-image:linear-gradient(to left,black 30%,transparent);
+  mask-image:linear-gradient(to left,black 30%,transparent);
+}
+.lb-c{position:relative;z-index:1}
+.lb-tag-top{
+  font-size:.63rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:var(--gold);margin-bottom:5px;
+}
+.lb-c h3{
+  font-family:'Cormorant Garamond',serif;
+  font-size:1.1rem;font-weight:600;color:var(--dt);margin-bottom:4px;
+}
+.lb-c p{font-size:.72rem;color:var(--dt2);margin-bottom:12px;max-width:210px;line-height:1.5}
+.lb-tags{display:flex;gap:5px;flex-wrap:wrap}
+.lb-tag{
+  padding:3px 10px;border-radius:var(--r50);
+  background:var(--gold4);border:1px solid rgba(201,168,76,.2);
+  font-size:.65rem;font-weight:600;color:var(--gold);
+}
+
+/* ══════════════════════════════════
+   LIGHT ZONE (menu section)
+══════════════════════════════════ */
+.light-zone{background:var(--bg)}
+
+/* zone break */
+.zone-break{
+  height:32px;
+  background:linear-gradient(to bottom,var(--dk2),var(--bg3));
+}
+
+/* ── SECTION HEADER ── */
+.sec-hdr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 16px 12px;background:var(--bg);
+}
+.sec-hdr h2{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:600;color:var(--tx)}
+.sec-count{font-size:.72rem;color:var(--tx3)}
+
+/* ── CATEGORY CHIPS ── */
+.cats-row{
+  display:flex;gap:6px;padding:0 14px 14px;
+  overflow-x:auto;scrollbar-width:none;background:var(--bg);
+}
+.cats-row::-webkit-scrollbar{display:none}
+.cat-chip{
+  flex-shrink:0;display:flex;align-items:center;gap:5px;
+  padding:7px 13px;border-radius:var(--r50);
+  background:var(--bg2);border:1.5px solid var(--border);
+  font-size:.74rem;font-weight:600;color:var(--tx2);
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.cat-chip svg{color:var(--tx3)}
+.cat-chip.active{background:var(--tx);border-color:var(--tx);color:#fff}
+.cat-chip.active svg{color:var(--gold2)}
+.cat-chip:active{transform:scale(.95)}
+
+/* ── SEARCH ── */
+.search-row{padding:0 14px 14px;background:var(--bg)}
+.search-box{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg2);border:1.5px solid var(--border);
+  border-radius:var(--r12);padding:10px 13px;transition:border-color .15s;
+}
+.search-box:focus-within{border-color:rgba(184,134,11,.4)}
+.search-box svg{color:var(--tx3);width:18px;height:18px;flex-shrink:0}
+.search-box input{
+  background:none;border:none;outline:none;flex:1;
+  font-family:'Inter',sans-serif;font-size:.85rem;color:var(--tx);
+}
+.search-box input::placeholder{color:var(--tx3)}
+
+/* ── PRODUCT GRID ── */
+.prod-grid{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:10px;padding:0 12px 110px;background:var(--bg);
+}
+
+/* skeleton */
+.skel-card{border-radius:var(--r16);overflow:hidden;background:var(--bg2);border:1px solid var(--border)}
+.skel-img{height:130px;background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shim 1.4s infinite}
+@keyframes shim{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skel-body{padding:10px}
+.skel-line{height:10px;border-radius:4px;background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200% 100%;animation:shim 1.4s infinite;margin-bottom:7px}
+.skel-line.short{width:60%}
+
+.prod-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r16);overflow:hidden;
+  display:flex;flex-direction:column;cursor:pointer;
+  box-shadow:var(--sh-sm);transition:box-shadow .2s;
+}
+.prod-card:active{box-shadow:none;transform:scale(.98)}
+.prod-img{
+  height:130px;overflow:hidden;position:relative;
+  background:var(--bg3);display:flex;align-items:center;justify-content:center;
+}
+.prod-img img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+}
+.prod-img .prod-ico{color:var(--tx3);opacity:.3;position:relative;z-index:1}
+.prod-img img ~ .prod-ico{display:none}
+.avail-tag{
+  position:absolute;top:8px;left:8px;z-index:2;
+  padding:3px 8px;border-radius:var(--r50);
+  font-size:.64rem;font-weight:700;
+  background:rgba(255,255,255,.92);
+}
+.avail-tag.in{color:var(--green)}
+.avail-tag.out{color:var(--red)}
+
+/* category color bar */
+.prod-cat-bar{height:3px;width:100%}
+
+.prod-body{padding:10px 10px 11px;flex:1;display:flex;flex-direction:column}
+.prod-name{font-size:.8rem;font-weight:700;color:var(--tx);line-height:1.3;margin-bottom:3px}
+.prod-cat-lbl{font-size:.67rem;color:var(--tx3);margin-bottom:3px;text-transform:capitalize}
+.prod-foot{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:7px}
+.prod-price{font-size:.82rem;font-weight:800;color:var(--tx)}
+.prod-price .currency{font-size:.6rem;font-weight:500;color:var(--tx2);margin-left:1px}
+.add-btn{
+  width:26px;height:26px;border-radius:var(--r8);
+  background:var(--tx);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .15s;
+}
+.add-btn:active{opacity:.8}
+.add-btn.in-cart{
+  background:var(--am3);color:var(--am);
+  border:1.5px solid var(--am2);
+  font-size:.7rem;font-weight:800;
+}
+
+.prod-empty{
+  grid-column:1/-1;padding:48px 20px;text-align:center;color:var(--tx3);
+}
+.prod-empty svg{margin:0 auto 12px;opacity:.35}
+.prod-empty p{font-size:.84rem;line-height:1.6}
+
+/* error state */
+.menu-error{
+  padding:24px 16px;text-align:center;color:var(--tx3);background:var(--bg);
+}
+.menu-error svg{margin:0 auto 10px;color:var(--tx3);opacity:.35}
+.menu-error p{font-size:.82rem;margin-bottom:14px}
+.retry-btn{
+  padding:10px 20px;border-radius:var(--r50);
+  background:var(--tx);color:#fff;font-size:.8rem;font-weight:600;
+  display:inline-flex;align-items:center;gap:6px;
+}
+
+
+
+/* ── LIVRAISON GPS ── */
+.addr-modes{display:flex;gap:7px;margin-bottom:12px}
+.addr-mode-btn{
+  flex:1;padding:10px 8px;border-radius:var(--r12);
+  background:var(--bg3);border:1.5px solid var(--border);
+  cursor:pointer;transition:all .15s;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  font-size:.7rem;font-weight:600;color:var(--tx2);
+}
+.addr-mode-btn svg{width:18px;height:18px;color:var(--tx3)}
+.addr-mode-btn.active{background:var(--bg2);border-color:var(--tx);color:var(--tx)}
+.addr-mode-btn.active svg{color:var(--am)}
+.addr-mode-btn:active{transform:scale(.97)}
+
+.gps-card{
+  background:var(--bg2);border:1.5px solid var(--border);
+  border-radius:var(--r12);overflow:hidden;margin-bottom:12px;
+}
+.gps-map{height:130px;background:var(--bg3);position:relative;display:flex;align-items:center;justify-content:center}
+.gps-map #mini-map{position:absolute;inset:0;z-index:1}
+.gps-map .map-loading{position:relative;z-index:2;text-align:center;color:var(--tx3);font-size:.75rem}
+.gps-map .map-loading svg{margin:0 auto 6px;opacity:.4;width:28px;height:28px}
+.gps-info{padding:10px 13px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gps-coords{font-size:.69rem;color:var(--tx2);line-height:1.5}
+.gps-coords strong{color:var(--tx);font-size:.72rem}
+.gps-retry{padding:5px 10px;border-radius:var(--r50);background:var(--bg3);border:1px solid var(--border);font-size:.68rem;font-weight:600;color:var(--tx2);cursor:pointer}
+
+.gps-btn{
+  width:100%;padding:12px;border-radius:var(--r12);
+  background:var(--bg2);border:1.5px solid var(--border);
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  font-size:.82rem;font-weight:700;color:var(--tx);cursor:pointer;
+  transition:all .18s;margin-bottom:12px;
+}
+.gps-btn svg{width:18px;height:18px;color:var(--am)}
+.gps-btn.loading{opacity:.6;pointer-events:none}
+.gps-btn.ok{background:rgba(22,163,74,.06);border-color:rgba(22,163,74,.3);color:#16a34a}
+.gps-btn.ok svg{color:#16a34a}
+
+/* Zone livraison */
+.zone-card{
+  border-radius:var(--r12);padding:11px 14px;margin-bottom:12px;
+  border:1.5px solid var(--border);background:var(--bg2);
+  display:flex;align-items:center;gap:11px;
+}
+.zone-ico{
+  width:36px;height:36px;border-radius:var(--r8);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.zone-ico svg{width:16px;height:16px}
+.zone-body{flex:1;min-width:0}
+.zone-name{font-size:.78rem;font-weight:700;color:var(--tx)}
+.zone-meta{font-size:.69rem;color:var(--tx2);margin-top:2px}
+.zone-fee{font-size:.88rem;font-weight:800;text-align:right}
+.zone-c1{background:rgba(22,163,74,.08);color:#16a34a}  /* Centre-ville */
+.zone-c2{background:rgba(59,130,246,.08);color:#3b82f6} /* La Lobé */
+.zone-c3{background:rgba(245,158,11,.08);color:#f59e0b} /* Grand Batanga */
+.zone-c4{background:rgba(239,68,68,.08);color:#ef4444}  /* Éloigné */
+
+/* Sélecteur manuel de zone */
+.zone-select{
+  width:100%;padding:10px 13px;border-radius:var(--r12);
+  background:var(--bg2);border:1.5px solid var(--border);
+  font-family:'Inter',sans-serif;font-size:.84rem;color:var(--tx);
+  outline:none;appearance:none;margin-bottom:12px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+  padding-right:32px;cursor:pointer;
+}
+.zone-select:focus{border-color:rgba(184,134,11,.45)}
+
+/* Timeline suivi */
+.timeline{padding:4px 0 8px}
+.tl-item{display:flex;gap:12px;position:relative;padding-bottom:14px}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{
+  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--border);background:var(--bg3);
+  color:var(--tx3);position:relative;z-index:1;
+}
+.tl-dot svg{width:12px;height:12px}
+.tl-dot.done{background:var(--green);border-color:var(--green);color:#fff}
+.tl-dot.active{background:var(--am);border-color:var(--am);color:#fff;
+  box-shadow:0 0 0 4px rgba(184,134,11,.15)}
+.tl-line{
+  position:absolute;left:13px;top:28px;bottom:0;
+  width:2px;background:var(--border);
+}
+.tl-item.done .tl-line{background:var(--green)}
+.tl-body{flex:1;padding-top:4px}
+.tl-label{font-size:.78rem;font-weight:700;color:var(--tx)}
+.tl-time{font-size:.66rem;color:var(--tx3);margin-top:2px}
+
+/* ── RESIDENCE INFO CARD ── */
+.info-card{
+  margin:12px 12px 20px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r12);overflow:hidden;box-shadow:var(--sh-sm);
+}
+.info-card-top{
+  background:linear-gradient(135deg,#0f0f0d 0%,#1e1c14 60%,#2a2415 100%);
+  padding:12px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.info-card-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:.95rem;font-weight:600;color:#f5f5f0;letter-spacing:.2px;
+}
+.info-card-name em{color:#c9a84c;font-style:italic}
+.info-card-tag{
+  padding:3px 10px;border-radius:var(--r50);
+  background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);
+  font-size:.62rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+  color:#c9a84c;
+}
+.info-rows{padding:4px 0}
+.info-row{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;border-bottom:1px solid var(--border);
+}
+.info-row:last-child{border-bottom:none}
+.info-row-ico{
+  width:28px;height:28px;border-radius:var(--r8);
+  background:var(--am3);border:1px solid rgba(184,134,11,.15);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--am);flex-shrink:0;
+}
+.info-row-ico svg{width:14px;height:14px}
+.info-row-body{flex:1;min-width:0}
+.info-row-label{font-size:.63rem;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:2px}
+.info-row-val{font-size:.75rem;font-weight:600;color:var(--tx)}
+.info-row-sub{font-size:.66rem;color:var(--tx2);margin-top:1px}
+.info-row-action{
+  padding:5px 10px;border-radius:var(--r50);
+  background:var(--tx);color:#fff;font-size:.65rem;font-weight:700;
+  text-decoration:none;display:inline-block;white-space:nowrap;
+}
+.info-wa-row{
+  background:rgba(74,222,128,.04);
+}
+.info-wa-row .info-row-ico{background:rgba(74,222,128,.08);border-color:rgba(74,222,128,.2);color:#16a34a}
+.info-wa-row .info-row-action{background:#16a34a}
+
+/* ══════════════════════════════════
+   BOTTOM NAV (stays light)
+══════════════════════════════════ */
+.bottom-nav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;z-index:90;
+  background:rgba(255,255,255,.97);backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--border);
+  display:flex;padding-bottom:env(safe-area-inset-bottom);
+}
+.bnav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:9px 0;cursor:pointer;color:var(--tx3);
+  font-size:.61rem;font-weight:600;letter-spacing:.2px;position:relative;
+  transition:color .15s;
+}
+.bnav-item svg{transition:color .15s;width:20px;height:20px}
+.bnav-item.active{color:var(--tx)}
+.bnav-item.active svg{color:var(--am)}
+.bnav-badge{
+  position:absolute;top:8px;left:calc(50% + 7px);
+  min-width:16px;height:16px;border-radius:50%;
+  background:var(--am);color:#fff;font-size:.6rem;font-weight:800;
+  display:none;align-items:center;justify-content:center;padding:0 3px;
+}
+.bnav-badge.show{display:flex}
+
+/* ══════════════════════════════════
+   CART DRAWER (light)
+══════════════════════════════════ */
+.overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,.4);
+  opacity:0;pointer-events:none;transition:opacity .28s;
+  backdrop-filter:blur(2px);
+}
+.overlay.open{opacity:1;pointer-events:all}
+.drawer{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(106%);
+  width:100%;max-width:480px;z-index:201;
+  background:var(--bg2);border-radius:22px 22px 0 0;
+  border-top:1px solid var(--border);box-shadow:var(--sh-lg);
+  transition:transform .32s cubic-bezier(.32,0,.2,1);
+  max-height:86vh;display:flex;flex-direction:column;
+}
+.drawer.open{transform:translateX(-50%) translateY(0)}
+.drawer-handle{width:36px;height:3px;background:var(--border2);border-radius:2px;margin:10px auto 0;flex-shrink:0}
+.drawer-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.drawer-title{font-family:'Cormorant Garamond',serif;font-size:1.22rem;font-weight:600;color:var(--tx)}
+.icon-close{
+  width:30px;height:30px;border-radius:var(--r8);background:var(--bg3);
+  display:flex;align-items:center;justify-content:center;color:var(--tx2);
+}
+.icon-close svg{width:14px;height:14px}
+.drawer-body{overflow-y:auto;flex:1;padding:12px 16px}
+.cart-empty{text-align:center;padding:36px 16px;color:var(--tx3)}
+.cart-empty svg{margin:0 auto 12px;opacity:.3}
+.cart-empty p{font-size:.82rem;line-height:1.6}
+
+.cart-item{
+  display:flex;align-items:center;gap:11px;
+  padding:11px 0;border-bottom:1px solid var(--border);
+}
+.ci-img{
+  width:52px;height:52px;border-radius:var(--r12);background:var(--bg3);
+  overflow:hidden;flex-shrink:0;position:relative;
+  display:flex;align-items:center;justify-content:center;color:var(--tx3);
+}
+.ci-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ci-info{flex:1;min-width:0}
+.ci-name{font-size:.8rem;font-weight:700;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-sub{font-size:.72rem;color:var(--tx2);margin-top:2px}
+.ci-qty{display:flex;align-items:center;gap:7px}
+.qty-btn{
+  width:26px;height:26px;border-radius:6px;
+  background:var(--bg3);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--tx2);transition:background .1s;
+}
+.qty-btn:active{background:var(--bg4)}
+.qty-btn svg{width:12px;height:12px}
+.qty-n{font-size:.82rem;font-weight:700;min-width:18px;text-align:center;color:var(--tx)}
+
+/* delivery opts */
+.del-sect{padding:13px 0;border-bottom:1px solid var(--border)}
+.del-label{font-size:.67rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx3);margin-bottom:9px}
+.del-opts{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.del-opt{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:9px 4px;border-radius:var(--r12);
+  background:var(--bg3);border:1.5px solid var(--border);
+  cursor:pointer;font-size:.65rem;font-weight:600;color:var(--tx2);
+  text-align:center;transition:all .15s;
+}
+.del-opt svg{color:var(--tx3);width:16px;height:16px}
+.del-opt.active{background:var(--bg2);border-color:var(--tx);color:var(--tx)}
+.del-opt.active svg{color:var(--am)}
+
+.cart-sum{padding:13px 0 0}
+.cs-row{display:flex;justify-content:space-between;font-size:.79rem;color:var(--tx2);margin-bottom:5px}
+.cs-row.total{font-size:.9rem;font-weight:800;color:var(--tx);border-top:1px solid var(--border);padding-top:9px;margin-top:4px}
+.drawer-foot{padding:14px 16px 22px;flex-shrink:0}
+.btn-main{
+  width:100%;padding:14px;border-radius:var(--r12);
+  background:var(--tx);color:#fff;
+  font-size:.87rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity .15s;
+}
+.btn-main:active{opacity:.85}
+.btn-main svg{width:14px;height:14px;flex-shrink:0}
+.btn-main:disabled{opacity:.45}
+
+/* ══════════════════════════════════
+   CHECKOUT SHEET (light)
+══════════════════════════════════ */
+.overlay2{
+  position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,.45);
+  opacity:0;pointer-events:none;transition:opacity .28s;
+  backdrop-filter:blur(2px);
+}
+.overlay2.open{opacity:1;pointer-events:all}
+.sheet{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(106%);
+  width:100%;max-width:480px;z-index:301;
+  background:var(--bg);border-radius:22px 22px 0 0;
+  border-top:1px solid var(--border);box-shadow:var(--sh-lg);
+  transition:transform .32s cubic-bezier(.32,0,.2,1);
+  max-height:92vh;display:flex;flex-direction:column;
+}
+.sheet.open{transform:translateX(-50%) translateY(0)}
+.sheet-handle{width:36px;height:3px;background:var(--border2);border-radius:2px;margin:10px auto 0;flex-shrink:0}
+.sheet-head{
+  padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.sheet-head h2{font-family:'Cormorant Garamond',serif;font-size:1.18rem;font-weight:600;color:var(--tx)}
+.sheet-body{flex:1;overflow-y:auto;padding:16px 18px 8px}
+.sheet-foot{padding:14px 18px 24px;border-top:1px solid var(--border);flex-shrink:0}
+
+.fg{margin-bottom:12px}
+.fl{font-size:.67rem;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--tx2);margin-bottom:5px;display:block}
+.fi{
+  width:100%;padding:11px 13px;border-radius:var(--r12);
+  background:var(--bg2);border:1.5px solid var(--border);
+  font-family:'Inter',sans-serif;font-size:.86rem;color:var(--tx);outline:none;
+  transition:border-color .15s;
+}
+.fi:focus{border-color:rgba(184,134,11,.45)}
+.fi::placeholder{color:var(--tx3)}
+.frow{display:flex;gap:9px}
+.frow .fg{flex:1}
+
+.order-mini{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r12);padding:12px 14px;margin-bottom:14px;
+}
+.om-row{display:flex;justify-content:space-between;font-size:.77rem;color:var(--tx2);margin-bottom:3px;gap:8px}
+.om-row span:first-child{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.om-tot{font-size:.88rem;font-weight:800;color:var(--tx);margin-top:7px;padding-top:7px;border-top:1px solid var(--border);display:flex;justify-content:space-between}
+
+.pay-cards{display:flex;flex-direction:column;gap:7px;margin-top:2px}
+.pay-card{border:1.5px solid var(--border);border-radius:var(--r12);padding:11px 13px;cursor:pointer;display:flex;align-items:center;gap:11px;background:var(--bg2);transition:all .18s}
+.pay-card.active{border-color:var(--am);background:rgba(184,134,11,.06)}
+.pay-ico-ring{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--bg3)}
+.pay-ico-ring svg{color:var(--tx2)}
+.pay-card.active .pay-ico-ring svg{color:var(--am)}
+.pay-name{font-weight:700;font-size:.82rem;color:var(--tx);line-height:1.2}
+.pay-sub{font-size:.69rem;color:var(--tx3);margin-top:2px;line-height:1.3}
+.pay-badge{font-size:.58rem;background:var(--am);color:#fff;border-radius:4px;padding:1px 5px;font-weight:800;letter-spacing:.5px;margin-left:5px;vertical-align:middle}
+.pay-check{width:18px;height:18px;border:1.5px solid var(--border);border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .18s;margin-left:auto}
+.pay-card.active .pay-check{border-color:var(--am);background:var(--am)}
+.pay-instr{margin-top:8px;padding:10px 12px;background:rgba(184,134,11,.07);border-radius:8px;border-left:2.5px solid var(--am);font-size:.75rem;color:var(--tx2);line-height:1.6;display:none}
+.pay-instr.show{display:block}
+.pay-num-big{font-size:1rem;font-weight:800;color:var(--am);letter-spacing:2px;display:block;margin:4px 0 6px}
+/* Receipt */
+.rcp-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin:12px 0;text-align:left;width:100%}
+.rcp-top{text-align:center;padding-bottom:10px;border-bottom:1px dashed var(--border)}
+.rcp-logo{font-weight:800;font-size:.88rem;color:var(--am);letter-spacing:1px}
+.rcp-sub{font-size:.67rem;color:var(--tx3);margin-top:3px}
+.rcp-row{display:flex;justify-content:space-between;font-size:.77rem;color:var(--tx2);padding:3px 0;gap:8px}
+.rcp-row span:first-child{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rcp-tot{font-weight:800;color:var(--tx);font-size:.9rem;padding-top:8px;border-top:1px dashed var(--border);margin-top:5px;display:flex;justify-content:space-between}
+.rcp-pay{display:flex;justify-content:space-between;font-size:.73rem;color:var(--tx3);padding-top:5px;margin-top:2px}
+.pay-status-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-size:.72rem;font-weight:700;margin-top:8px}
+.ps-pending{background:rgba(245,158,11,.12);color:#d97706}
+.ps-paid{background:rgba(34,197,94,.12);color:#16a34a}
+.ps-delivery{background:rgba(139,92,246,.12);color:#7c3aed}
+
+/* ══════════════════════════════════
+   CONFIRM SCREEN
+══════════════════════════════════ */
+.confirm-screen{
+  position:fixed;inset:0;z-index:500;
+  background:var(--bg);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 24px;text-align:center;
+  max-width:480px;left:50%;transform:translateX(-50%);
+}
+.confirm-screen.show{display:flex}
+.confirm-ring{
+  width:76px;height:76px;border-radius:50%;
+  background:rgba(22,163,74,.07);border:1.5px solid rgba(22,163,74,.25);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--green);margin-bottom:18px;
+  animation:pop .4s ease;
+}
+.confirm-ring svg{width:32px;height:32px}
+@keyframes pop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+.confirm-screen h2{font-family:'Cormorant Garamond',serif;font-size:1.85rem;font-weight:600;color:var(--tx);margin-bottom:8px}
+.confirm-screen p{font-size:.8rem;color:var(--tx2);margin-bottom:22px;line-height:1.7;max-width:280px}
+.confirm-box{
+  width:100%;background:var(--bg2);border:1px solid var(--border);
+  border-radius:var(--r16);padding:16px 20px;margin-bottom:22px;text-align:left;
+}
+.cbox-lbl{font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--tx3)}
+.cbox-num{font-size:1.45rem;font-weight:800;color:var(--tx);letter-spacing:2px;margin-top:4px}
+.confirm-btns{display:flex;flex-direction:column;gap:9px;width:100%}
+.btn-wa-big{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px;border-radius:var(--r12);
+  background:rgba(22,163,74,.07);border:1.5px solid rgba(22,163,74,.25);
+  color:#16a34a;font-size:.86rem;font-weight:700;
+}
+.btn-back{
+  padding:12px;border-radius:var(--r12);
+  background:var(--bg3);border:1px solid var(--border);
+  color:var(--tx2);font-size:.82rem;font-weight:600;
+}
+
+
+/* ═══ TRACKING OVERLAY ═══ */
+.track-overlay{position:fixed;inset:0;z-index:600;background:var(--bg);display:none;flex-direction:column;overflow-y:auto}
+.track-overlay.open{display:flex}
+.track-hdr{background:var(--dk);padding:14px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:1}
+.track-hdr-title{font-size:.92rem;font-weight:700;color:var(--dt);flex:1}
+.track-close{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:var(--dt);flex-shrink:0;cursor:pointer}
+.track-body{flex:1;padding:20px 18px;max-width:480px;margin:0 auto;width:100%}
+.track-order-box{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:16px}
+.track-order-num{font-size:1.3rem;font-weight:800;color:var(--tx);letter-spacing:2px}
+.track-order-sub{font-size:.72rem;color:var(--tx3);margin-top:3px}
+/* Status progress */
+.track-prog{display:flex;align-items:flex-start;margin:20px 0;padding:0 4px}
+.track-step{display:flex;flex-direction:column;align-items:center;gap:5px;flex:1}
+.track-dot{width:34px;height:34px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg2);color:var(--tx3);transition:all .3s;flex-shrink:0}
+.track-dot.done{border-color:var(--am);background:var(--am);color:#fff}
+.track-dot.active{border-color:var(--am);color:var(--am);animation:tpulse 1.5s infinite}
+.track-dot svg{width:13px;height:13px}
+.track-lbl{font-size:.6rem;color:var(--tx3);text-align:center;font-weight:500;line-height:1.2}
+.track-lbl.done,.track-lbl.active{color:var(--am);font-weight:700}
+.track-seg{flex:1;height:2px;background:var(--border);margin-top:17px;margin-bottom:0;transition:all .3s;flex-shrink:0}
+.track-seg.done{background:var(--am)}
+@keyframes tpulse{0%,100%{box-shadow:0 0 0 0 rgba(184,134,11,.4)}50%{box-shadow:0 0 0 6px rgba(184,134,11,0)}}
+.track-info-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;padding:14px 16px;margin-bottom:12px}
+.track-info-row{display:flex;justify-content:space-between;font-size:.78rem;padding:3px 0;gap:8px}
+.track-info-row .lbl{color:var(--tx3)}
+.track-info-row .val{color:var(--tx);font-weight:600;text-align:right}
+.track-refresh-row{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--tx3);font-size:.72rem;margin:14px 0;cursor:pointer}
+.track-refresh-row svg{color:var(--tx3)}
+.track-not-found{text-align:center;padding:48px 20px;color:var(--tx3)}
+.track-not-found svg{margin:0 auto 16px;opacity:.3}
+/* ── Section Votre Livreur — PROMPT 026 ── */
+.track-driver-card{background:var(--bg2);border:1px solid var(--border);border-radius:11px;
+  padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.track-driver-avatar{width:46px;height:46px;border-radius:50%;background:var(--dk);
+  border:2px solid var(--border);flex-shrink:0;overflow:hidden;display:flex;
+  align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:var(--am)}
+.track-driver-avatar img{width:100%;height:100%;object-fit:cover}
+.track-driver-info{flex:1;min-width:0}
+.track-driver-label{font-size:.63rem;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--tx3);font-weight:600;margin-bottom:2px}
+.track-driver-name{font-size:.9rem;font-weight:700;color:var(--tx);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.track-driver-status{font-size:.72rem;color:var(--am);font-weight:600;margin-top:2px}
+.track-driver-pending{color:var(--tx3);font-style:italic}
+/* ═══ PRINT ═══ */
+@media print{
+  body>*{display:none!important}
+  .rcp-print{display:block!important}
+}
+.rcp-print{display:none}
+/* ── TOAST ── */
+.toast{
+  position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-8px);
+  z-index:999;width:calc(100% - 28px);max-width:340px;
+  background:var(--dk);border:1px solid var(--dborder);color:var(--dt);
+  border-radius:var(--r12);padding:11px 15px;
+  display:none;align-items:center;gap:9px;
+  box-shadow:0 8px 32px rgba(0,0,0,.25);
+  animation:tslide .2s ease;
+}
+.toast.show{display:flex}
+@keyframes tslide{from{transform:translateX(-50%) translateY(-16px);opacity:0}to{transform:translateX(-50%) translateY(-8px);opacity:1}}
+.toast svg{color:var(--gold);flex-shrink:0;width:18px;height:18px;min-width:18px;min-height:18px}
+.toast-msg{font-size:.8rem;font-weight:500;flex:1}
+</style>
+</head>
+<body>
+
+<!-- ═══ DARK ZONE ═══ -->
+
+<!-- TOP BAR -->
+<header class="top-bar">
+  <div class="tb-logo">
+    <div class="tb-mark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6h3.8a1 1 0 0 1 1 1.1l-.5 5.3A2 2 0 0 1 18.3 22h-.6a2 2 0 0 1-2-1.6l-.5-5.3a1 1 0 0 1 1-1.1H19"/></svg></div>
+    <div class="tb-name">Veraluz <em>Food</em></div>
+  </div>
+  <div class="tb-right">
+    <a class="dk-icon-btn dk-wa" id="wa-topbar" href="https://wa.me/237600000000" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.26 4.8L2.05 22l5.43-1.43A9.8 9.8 0 0 0 12.04 21.8c5.46 0 9.9-4.45 9.9-9.9 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.27.86 5.82 2.41a8.22 8.22 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.4-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.32a8.16 8.16 0 0 1-1.26-4.36c0-4.54 3.7-8.24 8.25-8.24m-3.17 4.35c-.18 0-.47.07-.71.34-.25.27-.96.94-.96 2.29s.98 2.65 1.12 2.83c.13.18 1.91 3 4.68 4.08.65.28 1.16.45 1.56.58.65.2 1.25.17 1.72.1.53-.08 1.62-.66 1.85-1.3.23-.63.23-1.17.16-1.28-.06-.12-.25-.19-.53-.33-.28-.14-1.62-.8-1.88-.89-.25-.1-.44-.14-.62.14-.19.28-.72.89-.88 1.08-.16.19-.33.21-.61.07-.28-.14-1.18-.43-2.24-1.38a8.43 8.43 0 0 1-1.56-1.93c-.16-.28-.02-.43.12-.57.13-.13.28-.33.42-.5.14-.16.19-.28.28-.47.1-.18.05-.35-.02-.49-.07-.13-.62-1.5-.86-2.05-.22-.53-.45-.45-.62-.46-.16 0-.34-.01-.53-.01"/></svg></a>
+    <button class="dk-icon-btn" onclick="openCart()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+      <span class="cart-badge" id="cart-badge"></span>
+    </button>
+  </div>
+</header>
+
+<!-- PROMO BANNER -->
+<div class="promo-bar" id="promoBar">
+  <div class="promo-scroll">
+    <div class="promo-inner" id="promoInner">
+      <!-- Les messages sont répétés 2× pour le scroll infini -->
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+      <span class="promo-txt"><strong>Livraison offerte</strong> pour votre 1ère commande</span>
+      <span class="promo-sep">✦</span>
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span class="promo-txt">Commandez avant <strong>22h</strong> — Livraison express 30 min</span>
+      <span class="promo-sep">✦</span>
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <span class="promo-txt">Room service disponible <strong>7j/7</strong> — 7h à minuit</span>
+      <span class="promo-sep">✦</span>
+      <!-- Répétition pour boucle continue -->
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+      <span class="promo-txt"><strong>Livraison offerte</strong> pour votre 1ère commande</span>
+      <span class="promo-sep">✦</span>
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span class="promo-txt">Commandez avant <strong>22h</strong> — Livraison express 30 min</span>
+      <span class="promo-sep">✦</span>
+      <svg class="promo-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      <span class="promo-txt">Room service disponible <strong>7j/7</strong> — 7h à minuit</span>
+      <span class="promo-sep">✦</span>
+    </div>
+  </div>
+  <button class="promo-close" onclick="document.getElementById('promoBar').classList.add('hidden')" aria-label="Fermer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grain"></div>
+  <div class="hero-c">
+    <div class="hero-eyebrow">Kribi · Cameroun</div>
+    <h1>Veraluz<br><em>Food &amp; Lounge</em></h1>
+    <p class="hero-sub">Cuisine locale, grillades, cocktails et livraison rapide à Kribi.</p>
+    <div class="hero-btns">
+      <button class="btn-gold" onclick="scrollToMenu()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6h3.8a1 1 0 0 1 1 1.1l-.5 5.3A2 2 0 0 1 18.3 22h-.6a2 2 0 0 1-2-1.6l-.5-5.3a1 1 0 0 1 1-1.1H19"/></svg> Commander</button>
+      <a class="btn-wa-dk" id="hero-wa" href="https://wa.me/237600000000" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.26 4.8L2.05 22l5.43-1.43A9.8 9.8 0 0 0 12.04 21.8c5.46 0 9.9-4.45 9.9-9.9 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.27.86 5.82 2.41a8.22 8.22 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.4-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.32a8.16 8.16 0 0 1-1.26-4.36c0-4.54 3.7-8.24 8.25-8.24m-3.17 4.35c-.18 0-.47.07-.71.34-.25.27-.96.94-.96 2.29s.98 2.65 1.12 2.83c.13.18 1.91 3 4.68 4.08.65.28 1.16.45 1.56.58.65.2 1.25.17 1.72.1.53-.08 1.62-.66 1.85-1.3.23-.63.23-1.17.16-1.28-.06-.12-.25-.19-.53-.33-.28-.14-1.62-.8-1.88-.89-.25-.1-.44-.14-.62.14-.19.28-.72.89-.88 1.08-.16.19-.33.21-.61.07-.28-.14-1.18-.43-2.24-1.38a8.43 8.43 0 0 1-1.56-1.93c-.16-.28-.02-.43.12-.57.13-.13.28-.33.42-.5.14-.16.19-.28.28-.47.1-.18.05-.35-.02-.49-.07-.13-.62-1.5-.86-2.05-.22-.53-.45-.45-.62-.46-.16 0-.34-.01-.53-.01"/></svg> WhatsApp</a>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICE STRIP -->
+<div class="service-strip" id="svcStrip">
+  <div class="ss-item active" data-type="delivery" onclick="setSvc('delivery')">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg><span>Livraison</span>
+  </div>
+  <div class="ss-item" data-type="room" onclick="setSvc('room')">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg><span>Room service</span>
+  </div>
+  <div class="ss-item" data-type="lounge" onclick="setSvc('lounge')">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"/><path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H7v-2a2 2 0 0 0-4 0z"/><path d="M5 18v2"/><path d="M19 18v2"/></svg><span>Lounge</span>
+  </div>
+  <div class="ss-item" data-type="pickup" onclick="setSvc('pickup')">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8.5 2 5.5 4.5 5 8H3l1 12h16l1-12h-2c-.5-3.5-3.5-6-7-6z"/><path d="M9 12h6"/></svg><span>À emporter</span>
+  </div>
+</div>
+
+<!-- LOUNGE BANNER -->
+<div class="lounge-banner" id="lounge-section">
+  <div class="lb-c">
+    <div class="lb-tag-top">Expérience exclusive</div>
+    <h3>Lounge Veraluz</h3>
+    <p>Vue sur la mer, cocktails signature et musique live le week-end.</p>
+    <div class="lb-tags">
+      <span class="lb-tag">Vue mer</span>
+      <span class="lb-tag">Cocktails</span>
+      <span class="lb-tag">Musique live</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ZONE BREAK ═══ -->
+<div class="zone-break"></div>
+
+<!-- ═══ LIGHT ZONE (MENU) ═══ -->
+<div class="light-zone">
+  <div id="menu-anchor"></div>
+  <div class="sec-hdr">
+    <h2>Notre menu</h2>
+    <span class="sec-count" id="prod-count"></span>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div class="cats-row" id="catsRow"></div>
+
+  <!-- SEARCH -->
+  <div class="search-row">
+    <div class="search-box">
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="search" id="searchInput" placeholder="Rechercher un plat ou boisson…" oninput="renderProds()" autocomplete="off">
+    </div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div class="prod-grid" id="prodGrid">
+    <!-- 6 skeleton cards on load -->
+    <div class="skel-card"><div class="skel-img"></div><div class="skel-body"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+    <div class="skel-card"><div class="skel-img"></div><div class="skel-body"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+    <div class="skel-card"><div class="skel-img"></div><div class="skel-body"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+    <div class="skel-card"><div class="skel-img"></div><div class="skel-body"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+    <div class="skel-card"><div class="skel-img"></div><div class="skel-body"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+    <div class="skel-card"><div class="skel-img"></div><div class="skel-body"><div class="skel-line"></div><div class="skel-line short"></div></div></div>
+  </div>
+
+<!-- ═══ INFOS RÉSIDENCE ═══ -->
+<div class="info-card">
+  <div class="info-card-top">
+    <div class="info-card-name"><em>Résidence</em> Veraluz</div>
+    <span class="info-card-tag">Kribi · Cameroun</span>
+  </div>
+  <div class="info-rows">
+    <!-- Adresse -->
+    <div class="info-row">
+      <div class="info-row-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+      </div>
+      <div class="info-row-body">
+        <div class="info-row-label">Adresse</div>
+        <div class="info-row-val">Front de mer, Kribi</div>
+        <div class="info-row-sub">Région du Sud, Cameroun</div>
+      </div>
+      <a class="info-row-action" href="https://maps.google.com/?q=Kribi+Cameroun" target="_blank">Itinéraire</a>
+    </div>
+    <!-- Horaires -->
+    <div class="info-row">
+      <div class="info-row-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <div class="info-row-body">
+        <div class="info-row-label">Horaires</div>
+        <div class="info-row-val">Accueil ouvert 24h/24</div>
+        <div class="info-row-sub">Restaurant : 7h – 23h · Bar Lounge : 11h – minuit</div>
+      </div>
+    </div>
+    <!-- Téléphone -->
+    <div class="info-row">
+      <div class="info-row-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.97a16 16 0 0 0 6.06 6.06l1.82-1.82a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7a2 2 0 0 1 1.72 2.04z"/></svg>
+      </div>
+      <div class="info-row-body">
+        <div class="info-row-label">Téléphone</div>
+        <div class="info-row-val">+237 600 000 000</div>
+        <div class="info-row-sub">Réservations & informations</div>
+      </div>
+      <a class="info-row-action" href="tel:+237600000000">Appeler</a>
+    </div>
+    <!-- WhatsApp -->
+    <div class="info-row info-wa-row">
+      <div class="info-row-ico">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.26 4.8L2.05 22l5.43-1.43A9.8 9.8 0 0 0 12.04 21.8c5.46 0 9.9-4.45 9.9-9.9 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.27.86 5.82 2.41a8.22 8.22 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.4-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.32a8.16 8.16 0 0 1-1.26-4.36c0-4.54 3.7-8.24 8.25-8.24m-3.17 4.35c-.18 0-.47.07-.71.34-.25.27-.96.94-.96 2.29s.98 2.65 1.12 2.83c.13.18 1.91 3 4.68 4.08.65.28 1.16.45 1.56.58.65.2 1.25.17 1.72.1.53-.08 1.62-.66 1.85-1.3.23-.63.23-1.17.16-1.28-.06-.12-.25-.19-.53-.33-.28-.14-1.62-.8-1.88-.89-.25-.1-.44-.14-.62.14-.19.28-.72.89-.88 1.08-.16.19-.33.21-.61.07-.28-.14-1.18-.43-2.24-1.38a8.43 8.43 0 0 1-1.56-1.93c-.16-.28-.02-.43.12-.57.13-.13.28-.33.42-.5.14-.16.19-.28.28-.47.1-.18.05-.35-.02-.49-.07-.13-.62-1.5-.86-2.05-.22-.53-.45-.45-.62-.46-.16 0-.34-.01-.53-.01"/></svg>
+      </div>
+      <div class="info-row-body">
+        <div class="info-row-label">WhatsApp</div>
+        <div class="info-row-val">Message instantané</div>
+        <div class="info-row-sub">Réponse rapide · 7j/7</div>
+      </div>
+      <a class="info-row-action" href="https://wa.me/237600000000?text=Bonjour%20Résidence%20Veraluz" target="_blank">Écrire</a>
+    </div>
+    <!-- Accès -->
+    <div class="info-row">
+      <div class="info-row-ico">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>
+      </div>
+      <div class="info-row-body">
+        <div class="info-row-label">Comment venir</div>
+        <div class="info-row-val">Vue sur la mer — bord de plage</div>
+        <div class="info-row-sub">Parking gratuit · Transfer aéroport sur demande</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /light-zone -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <div class="bnav-item active" id="bn-menu" onclick="goView('menu')">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6h3.8a1 1 0 0 1 1 1.1l-.5 5.3A2 2 0 0 1 18.3 22h-.6a2 2 0 0 1-2-1.6l-.5-5.3a1 1 0 0 1 1-1.1H19"/></svg><span>Menu</span>
+  </div>
+  <div class="bnav-item" id="bn-cart" onclick="openCart()">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span>Panier</span>
+    <span class="bnav-badge" id="bnav-badge"></span>
+  </div>
+  <div class="bnav-item" id="bn-orders" onclick="showOrders()">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg><span>Commandes</span>
+  </div>
+  <div class="bnav-item" id="bn-lounge" onclick="goLounge()">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22h8"/><path d="M12 11v11"/><path d="m19 3-2 7H7L5 3z"/></svg><span>Lounge</span>
+  </div>
+</nav>
+
+<!-- CART OVERLAY + DRAWER -->
+<div class="overlay" id="cartOv" onclick="closeCart()"></div>
+<div class="drawer" id="cartDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-head">
+    <span class="drawer-title">Mon panier</span>
+    <button class="icon-close" onclick="closeCart()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <div class="drawer-body" id="cartBody"></div>
+  <div class="drawer-foot" id="cartFoot" style="display:none">
+    <button class="btn-main" onclick="openCheckout()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Passer la commande · <span id="cart-total-btn">0 FCFA</span>
+    </button>
+  </div>
+</div>
+
+<!-- CHECKOUT OVERLAY + SHEET -->
+<div class="overlay2" id="coOv" onclick="closeCheckout()"></div>
+<div class="sheet" id="coSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head">
+    <h2>Finaliser la commande</h2>
+    <button class="icon-close" onclick="closeCheckout()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <div class="sheet-body" id="coBody"></div>
+  <div class="sheet-foot">
+    <button class="btn-main" id="submitBtn" onclick="submitOrder()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Confirmer</button>
+  </div>
+</div>
+
+<!-- CONFIRM SCREEN -->
+<div class="confirm-screen" id="confirmScreen">
+  <div class="confirm-ring"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+  <h2>Commande confirmée</h2>
+  <p id="confirm-msg">Votre commande a été reçue. Nous préparons votre repas avec soin.</p>
+  <div id="confirm-receipt" style="width:100%"></div>
+  <div class="confirm-box">
+    <div class="cbox-lbl">Numéro de commande</div>
+    <div class="cbox-num" id="confirm-num">VLZ-00000</div>
+  </div>
+  <div class="confirm-btns">
+    <a class="btn-wa-big" id="wa-confirm" href="#" target="_blank"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.38 1.26 4.8L2.05 22l5.43-1.43A9.8 9.8 0 0 0 12.04 21.8c5.46 0 9.9-4.45 9.9-9.9 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.27.86 5.82 2.41a8.22 8.22 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.24 8.23-1.48 0-2.93-.4-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.32a8.16 8.16 0 0 1-1.26-4.36c0-4.54 3.7-8.24 8.25-8.24m-3.17 4.35c-.18 0-.47.07-.71.34-.25.27-.96.94-.96 2.29s.98 2.65 1.12 2.83c.13.18 1.91 3 4.68 4.08.65.28 1.16.45 1.56.58.65.2 1.25.17 1.72.1.53-.08 1.62-.66 1.85-1.3.23-.63.23-1.17.16-1.28-.06-.12-.25-.19-.53-.33-.28-.14-1.62-.8-1.88-.89-.25-.1-.44-.14-.62.14-.19.28-.72.89-.88 1.08-.16.19-.33.21-.61.07-.28-.14-1.18-.43-2.24-1.38a8.43 8.43 0 0 1-1.56-1.93c-.16-.28-.02-.43.12-.57.13-.13.28-.33.42-.5.14-.16.19-.28.28-.47.1-.18.05-.35-.02-.49-.07-.13-.62-1.5-.86-2.05-.22-.53-.45-.45-.62-.46-.16 0-.34-.01-.53-.01"/></svg> Confirmer via WhatsApp</a>
+    <button class="btn-back" style="background:rgba(184,134,11,.07);border-color:rgba(184,134,11,.25);color:var(--am);font-weight:700" onclick="openTrackFromConfirm()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Suivre ma commande</button>
+    <button class="btn-back" onclick="printReceipt()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimer le reçu</button>
+    <button class="btn-back" onclick="hideConfirm()">← Continuer les achats</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span class="toast-msg" id="toastMsg"></span>
+</div>
+
+<script src="veraluz-core.js?v=0.3.0"></script>
+<script>
+/* ══════════════════════════════════════════
+   VERALUZ FOOD & LOUNGE v3
+   Menu live depuis veraluz_restaurant_products
+   Zone haute sombre · Menu clair
+══════════════════════════════════════════ */
+
+var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+var WA  = '237600000000';
+/* ── Veraluz Core — référence globale + fallback ── */
+var VC  = window.VeraluzCore || {};
+
+/* PROMPT 007 — SÉCURITÉ XSS ─────────────────────────────────
+   esc(s)     : échappe données utilisateur/Supabase avant innerHTML
+   safeUrl(u) : valide les URLs dynamiques (whiteliste schémas)
+   safeAttr(s): valide les attributs HTML (data-*, onclick valeurs)
+────────────────────────────────────────────────────────────── */
+function esc(s){
+  if(VC&&typeof VC.esc==='function') return VC.esc(s);
+  return String(s==null?'':s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function safeUrl(url){
+  var s=String(url||'').trim();
+  if(!s)return '#';
+  if(s.startsWith('data:image/')||s.startsWith('http://')||s.startsWith('https://')||s.startsWith('/')) return s;
+  return '#';
+}
+function safeAttr(s){
+  return esc(String(s||'')).replace(/"/g,'&quot;');
+}
+
+/* ── State ── */
+var _prods  = [];    /* live from Supabase */
+var _cats   = [];    /* derived from products */
+var _cart   = [];
+var _svc    = 'delivery';
+var _cat    = 'all';
+var MTN_NUM = '651 234 567';   // ← N° MTN MoMo Veraluz (à mettre à jour)
+var OM_NUM  = '699 234 567';   // ← N° Orange Money Veraluz (à mettre à jour)
+var PAY_METHODS = [
+  {id:'mtn',          name:'MTN Mobile Money',    sub:'Avant préparation · Recommandé', badge:'RECOMMANDÉ', instr:'Envoyez <strong>MONTANT F CFA</strong> au :<br><span class="pay-num-big">MTN_NUM_SLOT</span>Puis confirmez votre commande.', prepay:true},
+  {id:'orange',       name:'Orange Money',         sub:'Paiement avant préparation',            badge:null,           instr:'Effectuez le transfert de <strong>MONTANT F CFA</strong> au :<br><span class="pay-num-big">OM_NUM_SLOT</span>Puis confirmez.', prepay:true},
+  {id:'cinetpay',     name:'CinetPay',             sub:'Carte Visa / Mastercard sécurisée', badge:'EN LIGNE',     instr:'Après confirmation, vous serez redirigé vers la page de paiement <strong>CinetPay</strong> sécurisée.', prepay:true},
+  {id:'cash_site',    name:'Cash sur place',       sub:'Payer à la réception ou au lounge', badge:null,           instr:'Présentez-vous à la <strong>réception</strong> avec le montant exact. Commande lancée à réception du paiement.', prepay:false},
+  {id:'cash_delivery',name:'Paiement à la livraison',sub:'Espèces remises au livreur',       badge:null,           instr:'Préparez le montant exact. Disponible en zone <strong>Centre-ville</strong> (0–2 km) uniquement.', prepay:false, delivery_only:true}
+];
+var PAY_LABELS={mtn:'MTN Mobile Money',orange:'Orange Money',cinetpay:'CinetPay',cash_site:'Cash sur place',cash_delivery:'Paiement livraison'};
+var _pay    = 'mtn';
+var _orders = [];
+var _loadErr= false;
+
+/* ── Constants ── */
+var FEES      = {delivery:1000, room:500, lounge:0, pickup:0};
+
+/* ── ZONES LIVRAISON KRIBI ── */
+var RESTAURANT_LAT = 2.9366;
+var RESTAURANT_LNG = 9.9067;
+
+var DELIVERY_ZONES = [
+  {id:'z1', name:'Centre-ville',   maxKm:2,  fee:1000,  time:'15–20 min',  cls:'zone-c1'},
+  {id:'z2', name:'La Lobé',        maxKm:5,  fee:1500,  time:'25–35 min',  cls:'zone-c2'},
+  {id:'z3', name:'Grand Batanga',  maxKm:10, fee:2500,  time:'40–60 min',  cls:'zone-c3'},
+  {id:'z4', name:'Zone éloignée',  maxKm:999,fee:4000,  time:'60–90 min',  cls:'zone-c4'}
+];
+
+var _gpsLat = null, _gpsLng = null, _zone = null, _addrMode = 'text', _mapInited = false;
+
+/* Haversine distance km */
+function haversine(lat1,lng1,lat2,lng2){
+  var R=6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function getZoneByDist(km){
+  for(var i=0;i<DELIVERY_ZONES.length;i++){if(km<=DELIVERY_ZONES[i].maxKm)return DELIVERY_ZONES[i];}
+  return DELIVERY_ZONES[DELIVERY_ZONES.length-1];
+}
+
+function getZoneById(id){
+  for(var i=0;i<DELIVERY_ZONES.length;i++){if(DELIVERY_ZONES[i].id===id)return DELIVERY_ZONES[i];}
+  return DELIVERY_ZONES[0];
+}
+
+function setAddrMode(mode){
+  _addrMode=mode;
+  document.querySelectorAll('.addr-mode-btn').forEach(function(b){
+    b.classList.toggle('active', b.dataset.mode===mode);
+  });
+  var gpsSection=document.getElementById('gps-section');
+  var txtSection=document.getElementById('txt-section');
+  if(gpsSection) gpsSection.style.display = mode==='gps'?'block':'none';
+  if(txtSection) txtSection.style.display = mode==='text'?'block':'none';
+}
+
+function startGPS(){
+  if(!navigator.geolocation){ alert('Géolocalisation non disponible sur cet appareil.'); return; }
+  var btn=document.getElementById('gps-btn');
+  if(btn){btn.classList.add('loading');btn.querySelector('span').textContent='Localisation en cours…';}
+  navigator.geolocation.getCurrentPosition(
+    function(pos){
+      _gpsLat=pos.coords.latitude;
+      _gpsLng=pos.coords.longitude;
+      var km=haversine(_gpsLat,_gpsLng,RESTAURANT_LAT,RESTAURANT_LNG);
+      _zone=getZoneByDist(km);
+      if(btn){btn.classList.remove('loading');btn.classList.add('ok');btn.querySelector('span').textContent='Position capturée ✓';}
+      showGPSCard(km);
+      updateZoneCard(_zone,km);
+      updateDeliveryFee(_zone.fee);
+    },
+    function(err){
+      if(btn){btn.classList.remove('loading');btn.querySelector('span').textContent='Réessayer la localisation';}
+      var msg={1:'Permission refusée',2:'Position indisponible',3:'Délai expiré'};
+      alert('Erreur GPS : '+(msg[err.code]||err.message));
+    },
+    {timeout:10000,maximumAge:60000,enableHighAccuracy:true}
+  );
+}
+
+function showGPSCard(km){
+  var card=document.getElementById('gps-card');
+  if(!card) return;
+  card.style.display='block';
+  var ci=document.getElementById('gps-coords-info');
+  if(ci) ci.innerHTML='<strong>'+_gpsLat.toFixed(5)+'° N, '+_gpsLng.toFixed(5)+'° E</strong><br>~'+km.toFixed(1)+' km de la résidence';
+  /* Mini carte Leaflet */
+  if(!document.getElementById('leaflet-css')){
+    var lnk=document.createElement('link');
+    lnk.id='leaflet-css';lnk.rel='stylesheet';
+    lnk.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(lnk);
+  }
+  if(!window.L){
+    var sc=document.createElement('script');
+    sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    sc.onload=function(){ initMiniMap(); };
+    document.body.appendChild(sc);
+  } else { initMiniMap(); }
+}
+
+function initMiniMap(){
+  if(_mapInited) return;
+  _mapInited=true;
+  var mapEl=document.getElementById('mini-map');
+  if(!mapEl||!window.L) return;
+  try{
+    var map=window.L.map('mini-map',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false});
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    var icon=window.L.divIcon({className:'',html:'<div style="width:14px;height:14px;background:#b8860b;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',iconSize:[14,14],iconAnchor:[7,7]});
+    var ricon=window.L.divIcon({className:'',html:'<div style="width:12px;height:12px;background:#1a1a18;border:2px solid #fff;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,.3)"></div>',iconSize:[12,12],iconAnchor:[6,6]});
+    window.L.marker([_gpsLat,_gpsLng],{icon:icon}).addTo(map);
+    window.L.marker([RESTAURANT_LAT,RESTAURANT_LNG],{icon:ricon}).addTo(map);
+    map.fitBounds([[_gpsLat,_gpsLng],[RESTAURANT_LAT,RESTAURANT_LNG]],{padding:[24,24]});
+  }catch(e){ console.warn('Map error:',e); }
+}
+
+function updateZoneCard(zone,km){
+  var zc=document.getElementById('zone-card');
+  if(!zc) return;
+  zc.style.display='flex';
+  zc.className='zone-card';
+  zc.innerHTML='<div class="zone-ico '+zone.cls+'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div>'
+    +'<div class="zone-body"><div class="zone-name">'+zone.name+'</div><div class="zone-meta">~'+( km?km.toFixed(1)+' km · ' :'' )+zone.time+'</div></div>'
+    +'<div class="zone-fee '+zone.cls+'">'+fmt(zone.fee)+'</div>';
+}
+
+function onZoneSelect(val){
+  _zone=getZoneById(val);
+  updateZoneCard(_zone,null);
+  updateDeliveryFee(_zone.fee);
+}
+
+function updateDeliveryFee(fee){
+  FEES.delivery=fee;
+  /* rafraîchir le résumé de commande visible */
+  var el=document.getElementById('cart-fee');
+  if(el) el.textContent=fmt(fee);
+  var tot=document.getElementById('cart-total-val');
+  var cartTotal=_cart.reduce(function(s,x){return s+x.price*x.qty;},0);
+  if(tot) tot.textContent=fmt(cartTotal+fee);
+  var btn=document.getElementById('cart-total-btn');
+  if(btn) btn.textContent=fmt(cartTotal+fee);
+}
+
+var SVC_LBLS  = {delivery:'Livraison', room:'Room service', lounge:'Lounge', pickup:'À emporter'};
+
+/* Category labels (match restaurant module IDs) */
+var CAT_NAMES = {
+  all:'Tout',
+  entree:'Entrées', entrees:'Entrées',
+  plat:'Plats', plats:'Plats',
+  grillade:'Grillades', grillades:'Grillades',
+  poisson:'Poissons', poissons:'Poissons',
+  dessert:'Desserts', desserts:'Desserts',
+  cocktail:'Cocktails', cocktails:'Cocktails',
+  biere:'Bières', bieres:'Bières',
+  boisson:'Boissons', soft:'Softs', softs:'Softs',
+  eau:'Eau & Jus',
+  vin:'Vins', vins:'Vins',
+  snack:'Snacks', snacks:'Snacks'
+};
+
+/* Default images per category (Unsplash) */
+var CAT_IMGS = {
+  entrees:   'https://images.unsplash.com/photo-1547592180-85f173990554?w=400&q=75',
+  plats:     'https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&q=75',
+  grillades: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&q=75',
+  poissons:  'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&q=75',
+  desserts:  'https://images.unsplash.com/photo-1551024601-bec78aea704b?w=400&q=75',
+  cocktails: 'https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=400&q=75',
+  bieres:    'https://images.unsplash.com/photo-1608270586620-248524c67de9?w=400&q=75',
+  softs:     'https://images.unsplash.com/photo-1553530979-212c5c19d7aa?w=400&q=75',
+  vins:      'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=400&q=75',
+  snacks:    'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=75',
+  default:   'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=75'
+};
+
+/* Category accent colors */
+var CAT_COLORS = {
+  entree:'#84cc16',entrees:'#84cc16',
+  plat:'#10b981',plats:'#10b981',
+  grillade:'#f97316',grillades:'#f97316',
+  poisson:'#0ea5e9',poissons:'#0ea5e9',
+  dessert:'#ec4899',desserts:'#ec4899',
+  cocktail:'#a855f7',cocktails:'#a855f7',
+  biere:'#f59e0b',bieres:'#f59e0b',
+  boisson:'#06b6d4',soft:'#06b6d4',softs:'#06b6d4',
+  eau:'#38bdf8',
+  vin:'#8b5cf6',vins:'#8b5cf6',
+  snack:'#ef4444',snacks:'#ef4444',
+  default:'#c9a84c'
+};
+
+/* SVG icons for categories */
+var CAT_SVG = {
+  all:      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3v7"/></svg>',
+  entrees:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 8v4l3 3"/></svg>',
+  plats:    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><ellipse cx="12" cy="15" rx="10" ry="3"/><path d="M6 12V6a6 6 0 0112 0v6"/></svg>',
+  grillades:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 2.5z"/></svg>',
+  poissons: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 12c0 0-3.5-3-4.5-6 3 0 6 1.5 8.5 4L12 8c2.5-2.5 6-3.5 9-3-1 3-4.5 6-4.5 6s3.5 3 4.5 6c-3 .5-6.5-.5-9-3l-1.5-2c-2.5 2.5-5.5 3-8.5 3 1-3 4.5-6 4.5-6z"/></svg>',
+  desserts: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-8a2 2 0 00-2-2H6a2 2 0 00-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2 1 2 1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 6v5"/><path d="M17 8v3"/></svg>',
+  cocktails:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22h8"/><path d="M12 11v11"/><path d="M20 2H4l4 10a4 4 0 008 0l4-10z"/></svg>',
+  bieres:   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11h1a3 3 0 010 6h-1"/><path d="M9 11V7a2 2 0 014 0v4"/><path d="M5 11h12v10a2 2 0 01-2 2H7a2 2 0 01-2-2V11z"/></svg>',
+  softs:    '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 9l1 13h12L19 9"/><line x1="5" y1="9" x2="19" y2="9"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="9" y1="2" x2="15" y2="2"/></svg>',
+  vins:     '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22h8"/><path d="M7 10h10"/><path d="M12 15v7"/><path d="M12 15A5 5 0 007 10V3h10v7a5 5 0 01-5 5z"/></svg>',
+  snacks:   '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5c0-1.1.9-2 2-2h12a2 2 0 012 2v2H4V5z"/><path d="M3 7h18l-1 13a2 2 0 01-2 2H6a2 2 0 01-2-2L3 7z"/></svg>',
+  default:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3v7"/></svg>'
+};
+
+/* DEL icons for cart */
+var DEL_ICONS = {
+  delivery: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-3l2-4h6l-2 7"/><path d="M12 5l-2 9h8l-2-5h-4"/><path d="M19 10h2"/></svg>',
+  room:     '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 012 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>',
+  lounge:   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22h8"/><path d="M12 11v11"/><path d="M20 2H4l4 10a4 4 0 008 0l4-10z"/></svg>',
+  pickup:   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5c0-1.1.9-2 2-2h12a2 2 0 012 2v2H4V5z"/><path d="M3 7h18l-1 13a2 2 0 01-2 2H6a2 2 0 01-2-2L3 7z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>'
+};
+
+/* ── Supabase ── */
+var _FALLBACK = [{"id": "p19", "name": "33 Export", "category": "bieres", "price": 1000, "available": true, "station": "bar"}, {"id": "p18", "name": "Castel Beer", "category": "bieres", "price": 1000, "available": true, "station": "bar"}, {"id": "p13", "name": "Eau minérale 50cl", "category": "bieres", "price": 500, "available": true, "station": "bar"}, {"id": "p20", "name": "Grande Guinness", "category": "bieres", "price": 2000, "available": true, "station": "bar"}, {"id": "p16", "name": "Coca Cola", "category": "boisson", "price": 1000, "available": true, "station": "bar"}, {"id": "p23", "name": "Mojito", "category": "cocktail", "price": 4000, "available": true, "station": "bar"}, {"id": "p22", "name": "Punch maison", "category": "cocktail", "price": 3500, "available": true, "station": "bar"}, {"id": "p21", "name": "Cocktail Kribi", "category": "cocktails", "price": 4500, "available": true, "station": "bar"}, {"id": "p15", "name": "Jus de fruits naturel", "category": "cocktails", "price": 1500, "available": true, "station": "bar"}, {"id": "p11", "name": "Ananas frais", "category": "dessert", "price": 1500, "available": true, "station": "cuisine"}, {"id": "p12", "name": "Pastèque", "category": "dessert", "price": 1000, "available": true, "station": "cuisine"}, {"id": "p14", "name": "Eau minérale 1.5L", "category": "eau", "price": 1000, "available": true, "station": "bar"}, {"id": "p03", "name": "Crevettes grillées", "category": "entree", "price": 5500, "available": true, "station": "cuisine"}, {"id": "p01", "name": "Salade Kribi", "category": "entree", "price": 2500, "available": true, "station": "cuisine"}, {"id": "p07", "name": "Eru au water fufu", "category": "plat", "price": 5500, "available": true, "station": "cuisine"}, {"id": "p08", "name": "Homard grillé", "category": "plat", "price": 15000, "available": true, "station": "cuisine"}, {"id": "p06", "name": "Ndolé complet", "category": "plat", "price": 6000, "available": true, "station": "cuisine"}, {"id": "p10", "name": "Plantain braisé", "category": "plat", "price": 2000, "available": true, "station": "cuisine"}, {"id": "p05", "name": "Poisson braisé", "category": "plat", "price": 7500, "available": true, "station": "cuisine"}, {"id": "p09", "name": "Riz blanc + sauce", "category": "plat", "price": 3000, "available": true, "station": "cuisine"}, {"id": "p04", "name": "Poulet DG", "category": "plats", "price": 5000, "available": true, "station": "cuisine"}, {"id": "p02", "name": "Soupe de poisson", "category": "plats", "price": 3000, "available": true, "station": "cuisine"}, {"id": "p17", "name": "Cappuccino", "category": "softs", "price": 800, "available": true, "station": "bar"}, {"id": "p24", "name": "Vin rouge (verre)", "category": "vins", "price": 3000, "available": true, "station": "bar"}];
+
+function sbFetch(path){
+  return fetch(SB+'/rest/v1/'+path,{
+    method:'GET',
+    mode:'cors',
+    credentials:'omit',
+    headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json','Cache-Control':'no-cache'}
+  }).then(function(r){
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    return r.json();
+  });
+}
+function sbInsert(table,data){
+  return fetch(SB+'/rest/v1/'+table,{
+    method:'POST',
+    headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+    body:JSON.stringify(data)
+  }).then(function(r){if(!r.ok)throw new Error(r.status);return r.json();});
+}
+
+/* ── Load menu from Supabase ── */
+function loadMenu(){
+  _loadErr=false;
+  sbFetch('veraluz_restaurant_products?select=*&order=category,name')
+    .then(function(data){
+      /* Only show available items (available=true or available not set) */
+      _prods = (data||[]).filter(function(p){
+        return p.available !== false;
+      });
+      /* Build category list from actual products */
+      buildCats();
+      renderCats();
+      renderProds();
+    })
+    .catch(function(err){
+      console.warn('Menu load failed, using fallback:',err);
+      /* Fallback: use hardcoded products so app is always functional */
+      _prods = _FALLBACK.filter(function(p){ return p.available !== false; });
+      buildCats();
+      renderCats();
+      renderProds();
+      /* Small offline badge */
+      var hdr=document.getElementById('prod-count');
+      if(hdr) hdr.title='Données hors ligne';
+    });
+}
+
+function showMenuError(){
+  var el=document.getElementById('prodGrid'); if(!el) return;
+  el.innerHTML='<div class="menu-error" style="grid-column:1/-1">'
+    +'<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'
+    +'<p>Impossible de charger le menu.<br>Vérifiez votre connexion.</p>'
+    +'<button class="retry-btn" onclick="loadMenu()">'
+    +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>'
+    +'Réessayer</button></div>';
+}
+
+function buildCats(){
+  var seen={'all':true};
+  var cats=[{id:'all'}];
+  _prods.forEach(function(p){
+    if(p.category&&!seen[p.category]){seen[p.category]=true;cats.push({id:p.category});}
+  });
+  _cats=cats;
+  /* Reset active cat if no longer available */
+  if(_cat!=='all'&&!seen[_cat]) _cat='all';
+}
+
+/* ── Refresh menu (called on focus, every 90s) ── */
+var _lastRefresh=0;
+function maybeRefresh(){
+  var now=Date.now();
+  if(now-_lastRefresh>90000){_lastRefresh=now;loadMenu();}
+}
+window.addEventListener('focus',maybeRefresh);
+window.addEventListener('visibilitychange',function(){if(!document.hidden)maybeRefresh();});
+
+/* ── Utils ── */
+/* VERALUZ CORE v0.3.0 — déléguée à VC.fmtMoney (format FCFA) */
+var fmt = VC.fmtMoney || function(n){ return Number(n||0).toLocaleString('fr-FR')+' FCFA'; };
+function oNum(){return 'VLZ-'+Date.now().toString(36).toUpperCase().slice(-5);}
+function g(id){return (document.getElementById(id)||{}).value||'';}
+function applyWA(n){if(!n)return;WA=n.replace(/\D/g,'');['wa-topbar','hero-wa','wa-confirm'].forEach(function(id){var e=document.getElementById(id);if(e)e.href='https://wa.me/'+WA;});}
+/* TODO VERALUZ CORE: toast local conservé — utilise #toast + #toastMsg spécifiques à ce module.
+   Incompatible avec VC.toast() qui crée son propre conteneur.
+   Migration possible dans PROMPT 004 si structure DOM unifiée. */
+function toast(msg,dur){
+  var t=document.getElementById('toast'),m=document.getElementById('toastMsg');
+  if(!t)return;m.textContent=msg;t.className='toast show';
+  clearTimeout(t._t);t._t=setTimeout(function(){t.className='toast';},dur||2400);
+}
+function getProdImg(p){
+  if(p.image_url) return p.image_url;
+  return CAT_IMGS[p.category]||CAT_IMGS.default;
+}
+function getProdColor(p){return CAT_COLORS[p.category]||CAT_COLORS.default;}
+function getCatIcon(id){return CAT_SVG[id]||CAT_SVG.default;}
+function getCatName(id){return CAT_NAMES[id]||(id?id.charAt(0).toUpperCase()+id.slice(1):'Autre');}
+
+/* ── Cart ── */
+function ci(id){return _cart.find(function(x){return x.id===id;});}
+function cartCount(){return _cart.reduce(function(s,x){return s+x.qty;},0);}
+function cartSub(){return _cart.reduce(function(s,x){return s+x.price*x.qty;},0);}
+function cartTotal(){return cartSub()+(FEES[_svc]||0);}
+
+function addToCart(id){
+  var p=_prods.find(function(x){return x.id===id||String(x.id)===String(id);});
+  if(!p) return;
+  var item=ci(id);
+  if(item){item.qty++;}
+  else{_cart.push({id:p.id,name:p.name,price:p.price,img:getProdImg(p),cat:p.category,qty:1});}
+  saveCart();updateBadges();updateCardBtn(id);
+  toast(p.name+' ajouté');
+}
+function removeFromCart(id){
+  var item=ci(id);if(!item)return;
+  if(item.qty>1){item.qty--;}else{_cart=_cart.filter(function(x){return x.id!==id;});}
+  saveCart();updateBadges();updateCardBtn(id);renderCartBody();
+}
+function saveCart(){try{localStorage.setItem('vlz_food_cart',JSON.stringify(_cart));}catch(e){}}
+function loadCart(){try{var c=localStorage.getItem('vlz_food_cart');if(c)_cart=JSON.parse(c);}catch(e){}}
+function updateBadges(){
+  var n=cartCount();
+  ['cart-badge','bnav-badge'].forEach(function(id){
+    var e=document.getElementById(id);if(!e)return;
+    e.textContent=n>9?'9+':String(n);
+    e.className=(id==='cart-badge'?'cart-badge':'bnav-badge')+(n>0?' show':'');
+  });
+  var bt=document.getElementById('cart-total-btn');if(bt)bt.textContent=fmt(cartTotal());
+}
+function updateCardBtn(id){
+  var item=ci(id);var btn=document.getElementById('ab-'+id);if(!btn)return;
+  if(item&&item.qty>0){
+    btn.className='add-btn in-cart';
+    btn.innerHTML='<span style="font-size:.7rem;font-weight:800">'+item.qty+'</span>';
+  } else {
+    btn.className='add-btn';
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  }
+}
+
+/* ── Service ── */
+function setSvc(t){
+  _svc=t;
+  document.querySelectorAll('[data-type]').forEach(function(el){el.classList.toggle('active',el.dataset.type===t);});
+  var bt=document.getElementById('cart-total-btn');if(bt)bt.textContent=fmt(cartTotal());
+  var cs=document.getElementById('cartSum');if(cs)renderCartSummary();
+}
+
+/* ── Render categories ── */
+function renderCats(){
+  var el=document.getElementById('catsRow');if(!el)return;
+  el.innerHTML=_cats.map(function(c){
+    var icon=getCatIcon(c.id);
+    var name=getCatName(c.id);
+    return '<button class="cat-chip'+(c.id===_cat?' active':'')+'" onclick="setCat(\''+c.id+'\')">'
+      +icon+' '+name+'</button>';
+  }).join('');
+}
+function setCat(id){_cat=id;renderCats();renderProds();}
+
+/* ── Render products ── */
+function renderProds(){
+  var el=document.getElementById('prodGrid');if(!el)return;
+  var q=(document.getElementById('searchInput')||{}).value||'';
+  q=q.toLowerCase().trim();
+  /* Filter: category + search + available (already filtered on load, but re-check) */
+  var list=_prods.filter(function(p){
+    if(p.available===false)return false;
+    if(_cat!=='all'&&p.category!==_cat)return false;
+    if(q)return (p.name||'').toLowerCase().includes(q);
+    return true;
+  });
+  var cnt=document.getElementById('prod-count');
+  if(cnt)cnt.textContent=list.length+' plat'+(list.length>1?'s':'');
+  if(!list.length){
+    el.innerHTML='<div class="prod-empty"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>'
+      +(q?'<p>Aucun résultat pour «'+q+'»</p>':'<p>Aucun plat disponible<br>dans cette catégorie.</p>')+'</div>';
+    return;
+  }
+  var plusSvg='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  el.innerHTML=list.map(function(p){
+    var item=ci(p.id);
+    var btnHtml=item
+      ?('<button class="add-btn in-cart" id="ab-'+p.id+'" onclick="event.stopPropagation();addToCart(\''+p.id+'\')" data-id="'+p.id+'"><span style="font-size:.7rem;font-weight:800">'+item.qty+'</span></button>')
+      :('<button class="add-btn" id="ab-'+p.id+'" onclick="event.stopPropagation();addToCart(\''+p.id+'\')" data-id="'+p.id+'">'+plusSvg+'</button>');
+    var color=getProdColor(p);
+    var img=getProdImg(p);
+    // SECURITY: p.name vient de Supabase — échappé avec esc(), img via safeUrl()
+    return '<div class="prod-card" onclick="addToCart(\''+safeAttr(p.id)+'\')">'+
+      '<div class="prod-img">'+
+      '<img src="'+safeUrl(img)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">'+
+      '<div class="prod-ico">'+getCatIcon(p.category)+'</div>'+
+      '</div>'+
+      '<div class="prod-cat-bar" style="background:'+color+';opacity:.5"></div>'+
+      '<div class="prod-body">'+
+      '<div class="prod-name">'+esc(p.name)+'</div>'+
+      '<div class="prod-cat-lbl">'+getCatName(p.category)+'</div>'+
+      '<div class="prod-foot">'+
+      '<div class="prod-price">'+fmt(p.price)+'</div>'+
+      btnHtml+
+      '</div></div></div>';
+  }).join('');
+}
+
+/* ── Cart drawer ── */
+function openCart(){
+  renderCartBody();
+  document.getElementById('cartOv').classList.add('open');
+  document.getElementById('cartDrawer').classList.add('open');
+}
+function closeCart(){
+  document.getElementById('cartOv').classList.remove('open');
+  document.getElementById('cartDrawer').classList.remove('open');
+}
+function renderCartBody(){
+  var body=document.getElementById('cartBody');
+  var foot=document.getElementById('cartFoot');
+  if(!body||!foot)return;
+  if(!_cart.length){
+    body.innerHTML='<div class="cart-empty"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg><p>Votre panier est vide.<br>Ajoutez des plats depuis le menu !</p></div>';
+    foot.style.display='none';return;
+  }
+  foot.style.display='block';
+  var items=_cart.map(function(x){
+    // SECURITY: x.name/x.img viennent de Supabase via _prods — échappés
+    return '<div class="cart-item"><div class="ci-img"><img src="'+safeUrl(x.img)+'" alt="" loading="lazy" onerror="this.style.display=\'none\'"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3v7"/></svg></div>'
+      +'<div class="ci-info"><div class="ci-name">'+esc(x.name)+'</div><div class="ci-sub">'+fmt(x.price)+' / unité</div></div>'
+      +'<div class="ci-qty"><button class="qty-btn" onclick="removeFromCart(\''+x.id+'\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>'
+      +'<span class="qty-n">'+x.qty+'</span>'
+      +'<button class="qty-btn" onclick="addToCart(\''+x.id+'\');renderCartBody()"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div></div>';
+  }).join('');
+  var delOpts=['delivery','room','lounge','pickup'].map(function(t){
+    return '<div class="del-opt'+(t===_svc?' active':'')+'" data-type="'+t+'" onclick="setSvc(\''+t+'\');renderCartBody()">'+DEL_ICONS[t]+'<span>'+SVC_LBLS[t]+'</span></div>';
+  }).join('');
+  body.innerHTML=items
+    +'<div class="del-sect"><div class="del-label">Mode de service</div><div class="del-opts">'+delOpts+'</div></div>'
+    +'<div class="cart-sum" id="cartSum"></div>';
+  renderCartSummary();
+  var bt=document.getElementById('cart-total-btn');if(bt)bt.textContent=fmt(cartTotal());
+}
+function renderCartSummary(){
+  var el=document.getElementById('cartSum');if(!el)return;
+  var sub=cartSub(),fee=FEES[_svc]||0;
+  el.innerHTML='<div class="cs-row"><span>Sous-total</span><span>'+fmt(sub)+'</span></div>'
+    +'<div class="cs-row"><span>'+SVC_LBLS[_svc]+'</span><span>'+(fee?fmt(fee):'Offert')+'</span></div>'
+    +'<div class="cs-row total"><span>Total</span><span>'+fmt(sub+fee)+'</span></div>';
+}
+
+/* ── Checkout ── */
+
+function buildDeliverySection(){
+  var zonesOpts=DELIVERY_ZONES.map(function(z){
+    return '<option value="'+z.id+'">'+z.name+' — '+fmt(z.fee)+' ('+z.time+')</option>';
+  }).join('');
+  var html='<div class="fg" style="margin-top:4px">'
+    +'<label class="fl">Adresse de livraison</label>'
+    +'<div class="addr-modes">'
+    +'<button class="addr-mode-btn active" data-mode="text" onclick="setAddrMode(this.dataset.mode)">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>'
+    +'Saisir</button>'
+    +'<button class="addr-mode-btn" data-mode="gps" onclick="setAddrMode(this.dataset.mode)">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>'
+    +'GPS</button>'
+    +'</div>'
+    +'<div id="txt-section">'
+    +'<textarea class="fi" id="co-addr" rows="2" placeholder="Ex: Quartier Talla, derrière le supermarché Total…" style="resize:none;line-height:1.5"></textarea>'
+    +'<div class="fg" style="margin-top:8px"><label class="fl">Zone de livraison</label>'
+    +'<select class="zone-select" id="co-zone" onchange="onZoneSelect(this.value)">'+zonesOpts+'</select></div>'
+    +'</div>'
+    +'<div id="gps-section" style="display:none">'
+    +'<button class="gps-btn" id="gps-btn" onclick="startGPS()" type="button">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>'
+    +'<span>Utiliser ma position actuelle</span></button>'
+    +'<div class="gps-card" id="gps-card" style="display:none">'
+    +'<div class="gps-map"><div id="mini-map"></div>'
+    +'<div class="map-loading" id="map-loading"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:28px;height:28px;display:block;margin:0 auto 6px;opacity:.4"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7z"/><circle cx="12" cy="9" r="2.5"/></svg>Chargement carte…</div>'
+    +'</div>'
+    +'<div class="gps-info"><div class="gps-coords" id="gps-coords-info">—</div>'
+    +'<button class="gps-retry" onclick="startGPS()" type="button">Actualiser</button></div></div>'
+    +'</div>'
+    +'<div class="zone-card" id="zone-card" style="display:none"></div>'
+    +'</div>';
+  return html;
+}
+
+function openCheckout(){
+  closeCart();renderCheckout();
+  document.getElementById('coOv').classList.add('open');
+  document.getElementById('coSheet').classList.add('open');
+}
+function closeCheckout(){
+  document.getElementById('coOv').classList.remove('open');
+  document.getElementById('coSheet').classList.remove('open');
+}
+function renderCheckout(){
+  var sub=cartSub(),fee=FEES[_svc]||0,total=sub+fee;
+  var body=document.getElementById('coBody');if(!body)return;
+  // SECURITY: x.name de Supabase — échappé avec esc()
+  var items=_cart.map(function(x){return '<div class="om-row"><span>'+esc(x.name)+' ×'+x.qty+'</span><span>'+fmt(x.price*x.qty)+'</span></div>';}).join('');
+  var room=_svc==='room'?'<div class="fg"><label class="fl">Numéro de chambre</label><input class="fi" id="co-room" type="text" placeholder="Ex: 12 ou Studio Horizon…"></div>':'';
+  var addr=_svc==='delivery'?'<div class="fg"><label class="fl">Adresse de livraison</label><input class="fi" id="co-addr" type="text" placeholder="Quartier, rue, point de repère…"></div>':'';
+  body.innerHTML='<div class="order-mini">'+items
+    +(fee?'<div class="om-row"><span>'+SVC_LBLS[_svc]+'</span><span>'+fmt(fee)+'</span></div>':'')
+    +'<div class="om-tot"><span>Total à régler</span><span>'+fmt(total)+'</span></div></div>'
+    +'<div class="frow"><div class="fg"><label class="fl">Prénom</label><input class="fi" id="co-fn" type="text" placeholder="Jean" autocomplete="given-name"></div>'
+    +'<div class="fg"><label class="fl">Nom</label><input class="fi" id="co-ln" type="text" placeholder="Dupont" autocomplete="family-name"></div></div>'
+    +'<div class="fg"><label class="fl">Téléphone</label><input class="fi" id="co-ph" type="tel" placeholder="+237 6XX XXX XXX" autocomplete="tel"></div>'
+    +(_svc==='delivery'?buildDeliverySection():'')
+    +room+addr
+    +'<div class="fg"><label class="fl">Notes</label><input class="fi" id="co-nt" placeholder="Allergies, cuisson, heure souhaitée…"></div>'
+    +'<div class="fg"><div class="fl" style="margin-bottom:8px">Mode de paiement <span style="font-size:.67rem;color:var(--tx3);font-weight:400">— paiement avant préparation recommandé</span></div>'
+    +'<div class="pay-cards" id="pay-cards-list"></div>'
+    +'<div class="pay-instr" id="pay-instr-box"></div>'
+    +'</div>';
+  _pay=_pay||'mtn';
+  renderPayMethods(sub+fee);
+}
+function setPay(m){_pay=m;renderPayMethods(cartSub()+(FEES[_svc]||0));}
+function getPayIco(id){
+  var S={
+    mtn:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/><line x1="9" y1="7" x2="15" y2="7"/></svg>',
+    orange:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+    cinetpay:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/><line x1="6" y1="15" x2="10" y2="15"/></svg>',
+    cash_site:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/></svg>',
+    cash_delivery:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m2 12 5-9 5 9"/><path d="m12 12 5-9 5 9"/><line x1="2" y1="12" x2="22" y2="12"/></svg>'
+  };
+  return S[id]||S.mtn;
+}
+function renderPayMethods(total){
+  var list=document.getElementById('pay-cards-list');
+  var ibox=document.getElementById('pay-instr-box');
+  if(!list)return;
+  list.innerHTML='';
+  if(_pay==='cash_delivery'&&_svc!=='delivery')_pay='mtn';
+  var vis=PAY_METHODS.filter(function(p){return !(p.delivery_only&&_svc!=='delivery');});
+  vis.forEach(function(pm){
+    var card=document.createElement('div');
+    card.className='pay-card'+(pm.id===_pay?' active':'');
+    card.dataset.pid=pm.id;
+    card.onclick=function(){setPay(this.dataset.pid);};
+    var chk=pm.id===_pay?'<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':'';
+    var badge=pm.badge?'<span class="pay-badge">'+pm.badge+'</span>':'';
+    card.innerHTML='<div class="pay-ico-ring">'+getPayIco(pm.id)+'</div>'
+      +'<div style="flex:1;min-width:0"><div class="pay-name">'+pm.name+badge+'</div>'
+      +'<div class="pay-sub">'+pm.sub+'</div></div>'
+      +'<div class="pay-check">'+chk+'</div>';
+    list.appendChild(card);
+  });
+  if(ibox){
+    var sel=PAY_METHODS.find(function(p){return p.id===_pay;});
+    if(sel){
+      var t=total||0;
+      var instr=sel.instr.replace('MONTANT',fmt(t)).replace('MTN_NUM_SLOT',MTN_NUM).replace('OM_NUM_SLOT',OM_NUM);
+      ibox.innerHTML=instr;ibox.className='pay-instr show';
+    }else{ibox.className='pay-instr';}
+  }
+}
+function submitOrder(){
+  var fn=g('co-fn').trim(),ln=g('co-ln').trim(),ph=g('co-ph').trim();
+  if(!fn||!ln||!ph){toast('Prénom, nom et téléphone requis');return;}
+  var btn=document.getElementById('submitBtn');if(btn)btn.disabled=true;
+  var num=oNum();
+  var sub=cartSub(),fee=FEES[_svc]||0,total=sub+fee;
+  var sel=PAY_METHODS.find(function(p){return p.id===_pay;})||PAY_METHODS[0];
+  var payStatus=sel.prepay?'pending':'pay_on_delivery';
+  var order={
+    order_number:num,customer_name:fn+' '+ln,customer_phone:ph,
+    delivery_type:_svc,room_number:g('co-room')||null,
+    address:_gpsLat?('GPS: '+_gpsLat.toFixed(5)+', '+_gpsLng.toFixed(5)):(g('co-addr')||null),
+    delivery_lat:_gpsLat||null,delivery_lng:_gpsLng||null,
+    delivery_zone:_zone?_zone.name:(g('co-zone')?DELIVERY_ZONES.filter(function(z){return z.id===g('co-zone');})[0].name:null),
+    notes:g('co-nt')||null,payment_method:_pay,payment_status:payStatus,
+    items:JSON.stringify(_cart),subtotal:sub,delivery_fee:fee,total:sub+fee,
+    status:'pending',source:'food-lounge'
+  };
+  _orders.unshift(order);
+  try{localStorage.setItem('vlz_food_orders',JSON.stringify(_orders.slice(0,20)));
+    localStorage.setItem('vlz_food_order',JSON.stringify(order));
+    localStorage.setItem('vlz_food_updated',String(Date.now()));}catch(e){}
+  try{if(window.parent&&window.parent!==window)window.parent.postMessage({veraluzEvent:true,source:'food-lounge',type:'new_food_order',data:order},'*');}catch(e){}
+  /* Insert Supabase avec feedback et retry */
+  function _doInsert(attempt){
+    sbInsert('veraluz_food_orders',order)
+      .then(function(rows){
+        if(rows&&rows[0]&&rows[0].id){
+          try{localStorage.setItem('vlz_food_sb_id_'+num,rows[0].id);}catch(e){}
+        }
+      })
+      .catch(function(err){
+        if(attempt<2){setTimeout(function(){_doInsert(attempt+1);},3000);}
+        else{toast('⚠ Commande non synchronisée — vérifiez votre connexion','err');}
+      });
+  }
+  _doInsert(0);
+  /* WA message */
+  var addrLine=order.delivery_lat
+    ?('\n📍 GPS: https://maps.google.com/?q='+order.delivery_lat+','+order.delivery_lng)
+    :(order.address?'\n📍 '+order.address:'');
+  var zoneLine=order.delivery_zone?'\n🗺 Zone: '+order.delivery_zone:'';
+  var payLine=sel.prepay
+    ?'\n💳 '+sel.name+(sel.id==='mtn'?' — '+MTN_NUM:sel.id==='orange'?' — '+OM_NUM:'')
+    :'\n💳 '+sel.name+' (à régler à réception)';
+  var waMsg=encodeURIComponent(
+    '🍽 *Commande Veraluz Food & Lounge*\n'
+    +'━━━━━━━━━━━━━━━━━━\n'
+    +'📋 N° *'+num+'*\n'
+    +'👤 '+fn+' '+ln+'\n'
+    +'📞 '+ph+'\n'
+    +'🚀 Mode: '+SVC_LBLS[_svc]+addrLine+zoneLine+'\n'
+    +'━━━━━━━━━━━━━━━━━━\n'
+    +_cart.map(function(x){return '• '+x.name+' ×'+x.qty+' — '+fmt(x.price*x.qty)+' F';}).join('\n')
+    +(fee?'\n🚚 Livraison: '+fmt(fee)+' F':'')
+    +'\n━━━━━━━━━━━━━━━━━━\n'
+    +'💰 *TOTAL: '+fmt(total)+' F CFA*'
+    +payLine
+    +(g('co-nt')?'\n📝 Note: '+g('co-nt'):'')
+    +'\n\n🔍 Suivi: https://ngams237.github.io/mako-city_suivis_ok/FOOD_LOUNGE.html#track='+num
+  );
+  var wa=document.getElementById('wa-confirm');if(wa)wa.href='https://wa.me/'+WA+'?text='+waMsg;
+  /* Digital receipt */
+  var rcpDiv=document.getElementById('confirm-receipt');
+  if(rcpDiv){
+    var now=new Date();
+    var ds=now.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+    var ts=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    // SECURITY: x.name de Supabase — échappé avec esc()
+    var rows=_cart.map(function(x){return '<div class="rcp-row"><span>'+esc(x.name)+' ×'+x.qty+'</span><span>'+fmt(x.price*x.qty)+' F</span></div>';}).join('');
+    var chipCls=payStatus==='pending'?'ps-pending':payStatus==='pay_on_delivery'?'ps-delivery':'ps-paid';
+    var chipLbl=payStatus==='pending'?'⏳ En attente paiement':payStatus==='pay_on_delivery'?'🚚 Paiement à la livraison':'✓ Payé';
+    rcpDiv.innerHTML='<div class="rcp-wrap">'
+      +'<div class="rcp-top"><div class="rcp-logo">VERALUZ FOOD & LOUNGE</div>'
+      +'<div class="rcp-sub">'+ds+' · '+ts+' · '+SVC_LBLS[_svc]+'</div></div>'
+      +'<div style="padding-top:10px">'+rows
+      +(fee?'<div class="rcp-row" style="color:var(--tx3)"><span>🚚 Livraison</span><span>'+fmt(fee)+' F</span></div>':'')
+      +'<div class="rcp-tot"><span>Total à régler</span><span>'+fmt(total)+' F CFA</span></div>'
+      +'<div class="rcp-pay"><span>'+sel.name+'</span></div>'
+      +'</div>'
+      +'<div style="text-align:center"><span class="pay-status-chip '+chipCls+'">'+chipLbl+'</span></div>'
+      +'</div>';
+  }
+  /* Confirm message */
+  var msgEl=document.getElementById('confirm-msg');
+  if(msgEl)msgEl.textContent=sel.prepay
+    ?'Effectuez le paiement puis envoyez votre confirmation WhatsApp.'
+    :'Commande enregistrée. Le paiement sera effectué à la réception.';
+  closeCheckout();
+  _cart=[];saveCart();updateBadges();
+  if(btn)btn.disabled=false;
+  document.getElementById('confirm-num').textContent=num;
+  document.getElementById('confirmScreen').classList.add('show');
+}
+function hideConfirm(){
+  document.getElementById('confirmScreen').classList.remove('show');
+  renderProds();
+}
+/* PROMPT 034 — Historique commandes client */
+function showOrders(){
+  document.getElementById('histOverlay').classList.add('open');
+  /* Pré-remplir si commande locale disponible */
+  if(_orders.length&&_orders[0].customer_phone){
+    document.getElementById('hist-phone').value=_orders[0].customer_phone;
+    loadOrderHistoryByPhone(_orders[0].customer_phone);
+  } else {
+    document.getElementById('hist-list').innerHTML='<div style="text-align:center;padding:32px;color:var(--tx3);font-size:.8rem;">Entrez votre téléphone pour retrouver vos commandes.</div>';
+  }
+}
+function scrollToMenu(){document.getElementById('menu-anchor').scrollIntoView({behavior:'smooth'});}
+function goView(v){document.querySelectorAll('.bnav-item').forEach(function(e){e.classList.remove('active');});var el=document.getElementById('bn-'+v);if(el)el.classList.add('active');}
+function goLounge(){document.getElementById('lounge-section').scrollIntoView({behavior:'smooth'});}
+
+
+/* ══════════════════════════════════════════
+   NORMALIZE UTILS — VERALUZ CORE v0.3.0
+   Déléguée à veraluz-core.js.
+   Utilisé pour le suivi client (renderTrackOrder).
+══════════════════════════════════════════ */
+var normalizeOrderStatus = VC.normalizeOrderStatus || function(s) {
+  /* Fallback minimal — passe le statut tel quel */
+  return String(s || 'pending');
+};
+
+/* ══════════════════════════════════
+   TRACKING CLIENT
+══════════════════════════════════ */
+var _trackNum=null;
+/* PROMPT 034 */
+var _trackOrderId=null;    /* UUID Supabase de la commande en suivi */
+var _trackMsgInterval=null; /* Polling messages dans trackOverlay */
+var _histPhone='';          /* Téléphone saisi pour historique */
+var TRACK_STATUSES=[
+  {id:'pending',    lbl:'En attente',     ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'},
+  {id:'preparing',  lbl:'Préparation',    ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6h2.8a1 1 0 0 1 1 1.1l-.5 4.3A2 2 0 0 1 17.3 20h-.6a2 2 0 0 1-2-1.6l-.5-4.3a1 1 0 0 1 1-1.1H17"/></svg>'},
+  {id:'ready',      lbl:'Prête',          ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'},
+  {id:'out_for_delivery', lbl:'En livraison',   ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>'},
+  {id:'delivered',  lbl:'Livrée',         ico:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'}
+];
+/* PROMPT 027 : auto-refresh tracking 15s */
+var _trackAutoRefresh=null;
+function startTrackAutoRefresh(){
+  stopTrackAutoRefresh();
+  _trackAutoRefresh=setInterval(function(){if(_trackNum)loadTrackOrder(_trackNum,true);},15000);
+}
+function stopTrackAutoRefresh(){
+  if(_trackAutoRefresh){clearInterval(_trackAutoRefresh);_trackAutoRefresh=null;}
+}
+function openTrack(num){
+  _trackNum=num||null;
+  _vlzFoodPrevStatus=''; /* PROMPT 033A — F1 : reset avant chaque nouvelle commande pour éviter les fausses alertes */
+  document.getElementById('trackOverlay').classList.add('open');
+  if(_trackNum){loadTrackOrder(_trackNum);startTrackAutoRefresh();}
+}
+function openTrackFromConfirm(){
+  var num=document.getElementById('confirm-num').textContent;
+  hideConfirm();
+  openTrack(num);
+}
+function closeTrack(){
+  document.getElementById('trackOverlay').classList.remove('open');
+  stopTrackMsgRefresh(); /* PROMPT 034 */
+  _trackOrderId=null;
+}
+function loadTrackOrder(num){
+  var body=document.getElementById('trackBody');
+  body.innerHTML='<div style="text-align:center;padding:32px;color:var(--tx3)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg><p style="margin-top:10px;font-size:.8rem">Chargement…</p></div>';
+  sbFetch('veraluz_food_orders?order_number=eq.'+encodeURIComponent(num)+'&select=id,order_number,customer_name,customer_phone,status,delivery_status,payment_status,delivery_type,delivery_zone,address,created_at,total,payment_method,livreur_id,assigned_livreur_id,assigned_to,driver_photo_url,accepted_at,picked_up_at,out_for_delivery_at,arrived_at,delivered_at')
+    .then(function(data){
+      if(!data||!data.length){renderTrackNotFound(num);return;}
+      renderTrackOrder(data[0]);
+    }).catch(function(){
+      /* Try localStorage */
+      var local=_orders.find(function(o){return o.order_number===num;});
+      if(local)renderTrackOrder(local);
+      else renderTrackNotFound(num);
+    });
+}
+function renderTrackOrder(o){
+  var body=document.getElementById('trackBody');
+  /* PROMPT 034 : mémoriser l'UUID pour le chat */
+  _trackOrderId=o.id||null;
+  /* P0 FIX: normalise le statut pour compatibilité anciens enregistrements */
+  var status=normalizeOrderStatus(o.status);
+  /* PROMPT 032 — alerte si statut changé depuis dernier affichage */
+  if(_vlzFoodPrevStatus&&_vlzFoodPrevStatus!==status){
+    var sidxTmp=TRACK_STATUSES.findIndex(function(s){return s.id===status;});
+    var lbl=sidxTmp>=0?TRACK_STATUSES[sidxTmp].lbl:status;
+    _vlzFoodAlertSound();
+    try{if(navigator.vibrate)navigator.vibrate([80,40,120]);}catch(e){}
+    if(typeof toast==='function')toast('\uD83D\uDD14 Commande : '+lbl,'ok');
+    _vlzFoodNotif('Statut mis à jour',lbl,'vlz-food-order');
+    console.log('[FOOD ALERT] Statut:',_vlzFoodPrevStatus,'->',status);
+  }
+  _vlzFoodPrevStatus=status;
+  var sidx=TRACK_STATUSES.findIndex(function(s){return s.id===status;});
+  if(sidx<0)sidx=0;
+  var now=new Date();
+  var created=o.created_at?new Date(o.created_at):now;
+  var mins=Math.floor((now-created)/60000);
+  var timeStr=mins<60?mins+' min':Math.floor(mins/60)+'h'+('0'+mins%60).slice(-2);
+  /* Progress bar */
+  var progHtml='<div class="track-prog">';
+  TRACK_STATUSES.forEach(function(s,i){
+    var cls=i<sidx?'done':i===sidx?'active':'';
+    progHtml+='<div class="track-step"><div class="track-dot '+cls+'">'+s.ico+'</div><div class="track-lbl '+cls+'">'+s.lbl+'</div></div>';
+    if(i<TRACK_STATUSES.length-1)progHtml+='<div class="track-seg '+(i<sidx?'done':'')+'"></div>';
+  });
+  progHtml+='</div>';
+  /* Pay status chip */
+  var pmap={pending:'⏳ Paiement en attente',paid:'✓ Payé',pay_on_delivery:'🚚 Paiement livraison',failed:'✗ Échec paiement',refunded:'↩ Remboursé'};
+  var pChip=pmap[o.payment_status||'pending']||'';
+  /* Info card */
+  var infoHtml='<div class="track-info-card">';
+  // SECURITY: o.customer_name, o.delivery_zone, o.address, o.order_number viennent de Supabase — échappés
+  infoHtml+='<div class="track-info-row"><span class="lbl">Client</span><span class="val">'+esc(o.customer_name||'—')+'</span></div>';
+  infoHtml+='<div class="track-info-row"><span class="lbl">Mode</span><span class="val">'+(SVC_LBLS[o.delivery_type]||esc(o.delivery_type||'—'))+'</span></div>';
+  if(o.delivery_zone)infoHtml+='<div class="track-info-row"><span class="lbl">Zone</span><span class="val">'+esc(o.delivery_zone)+'</span></div>';
+  if(o.address)infoHtml+='<div class="track-info-row"><span class="lbl">Adresse</span><span class="val" style="max-width:160px;overflow:hidden;text-overflow:ellipsis">'+esc(o.address)+'</span></div>';
+  infoHtml+='<div class="track-info-row"><span class="lbl">Total</span><span class="val">'+(o.total?fmt(o.total)+' F':'—')+'</span></div>';
+  if(pChip)infoHtml+='<div class="track-info-row"><span class="lbl">Paiement</span><span class="val">'+pChip+'</span></div>';
+  infoHtml+='<div class="track-info-row"><span class="lbl">Il y a</span><span class="val">'+timeStr+'</span></div>';
+  infoHtml+='</div>';
+  /* Section Votre Livreur (uniquement pour livraisons) — PROMPT 026 */
+  var driverHtml='';
+  if(o.delivery_type==='delivery'){
+    driverHtml=renderDriverSection(o);
+  }
+  body.innerHTML='<div class="track-order-box"><div class="track-order-num">'+esc(String(o.order_number||''))+'</div><div class="track-order-sub">'+TRACK_STATUSES[sidx].lbl+(o.delivery_type==='delivery'?' · Livraison en cours':o.delivery_type==='room'?' · Service en chambre':' · Sur place')+'</div></div>'
+    +progHtml
+    +driverHtml
+    +infoHtml
+    +'<div class="track-refresh-row" id="trackRefBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Actualiser</div>';
+  var rbtn=document.getElementById('trackRefBtn');if(rbtn){rbtn.dataset.num=o.order_number;rbtn.onclick=function(){loadTrackOrder(this.dataset.num);};}
+  /* PROMPT 027 : stopper auto-refresh si livraison terminée */
+  if(o.status==='delivered'||o.status==='cancelled')stopTrackAutoRefresh();
+  /* PROMPT 034 : charger et démarrer polling messages */
+  if(_trackOrderId){
+    loadTrackMessages();
+    startTrackMsgRefresh();
+  }
+}
+/* Construit la carte livreur visible côté client — PROMPT 026
+   NE PAS AFFICHER : salaire, email, adresse, données RH, tel perso (sauf décision admin) */
+function renderDriverSection(o){
+  /* PROMPT 027 : statuts dynamiques */
+  var STATUS_LABELS={
+    pending:          'Commande reçue',
+    confirmed:        'Commande confirmée',
+    preparing:        'En préparation',
+    ready:            'Prêt · Livreur assigné',
+    out_for_delivery: 'En route vers vous',
+    delivered:        'Livraison effectuée !'
+  };
+  if(o.accepted_at)    STATUS_LABELS.ready='Livreur a accepté la commande';
+  if(o.picked_up_at)   STATUS_LABELS.out_for_delivery='Commande récupérée · En route';
+  if(o.arrived_at)     STATUS_LABELS.out_for_delivery='Livreur arrivé à destination !';
+  var name=esc(o.assigned_to||'');
+  var photoUrl=o.driver_photo_url||'';
+  var deliveryStatus=STATUS_LABELS[o.status]||'';
+  /* Avatar : photo si disponible, sinon initiales */
+  var avatarInner='';
+  if(photoUrl){
+    avatarInner='<img src="'+esc(photoUrl)+'" alt="Photo livreur" onerror="this.style.display=\'none\'">';
+  } else if(name){
+    var parts=name.split(' ');
+    var initials=(parts[0]?parts[0][0]:'')+(parts[1]?parts[1][0]:'');
+    avatarInner=esc(initials.toUpperCase());
+  } else {
+    /* SVG personne par défaut */
+    avatarInner='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+  }
+  if(!name){
+    return '<div class="track-driver-card"><div class="track-driver-avatar">'+avatarInner+'</div>'
+      +'<div class="track-driver-info"><div class="track-driver-label">Votre livreur</div>'
+      +'<div class="track-driver-name track-driver-pending">En attente d\'assignation</div></div></div>';
+  }
+  return '<div class="track-driver-card"><div class="track-driver-avatar">'+avatarInner+'</div>'
+    +'<div class="track-driver-info">'
+    +'<div class="track-driver-label">Votre livreur</div>'
+    +'<div class="track-driver-name">'+name+'</div>'
+    +(deliveryStatus?'<div class="track-driver-status">'+deliveryStatus+'</div>':'')
+    +'</div></div>';
+}
+
+function renderTrackNotFound(num){
+  // SECURITY: num vient de la saisie utilisateur — échappé avec esc()
+  document.getElementById('trackBody').innerHTML='<div class="track-not-found"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Commande <strong>'+esc(String(num||''))+'</strong> introuvable.<br><small>Vérifiez le numéro et réessayez.</small></p></div>';
+}
+/* ═══ PRINT RECEIPT ═══ */
+function printReceipt(){
+  var rcp=document.getElementById('confirm-receipt');
+  if(!rcp||!rcp.innerHTML)return toast('Aucun reçu disponible');
+  var w=window.open('','_blank','width=360,height=600');
+  w.document.write('<html><head><title>Reçu Veraluz</title><style>body{font-family:system-ui,sans-serif;padding:20px;font-size:13px;max-width:320px;margin:0 auto}.rcp-wrap{border:1px solid #ddd;border-radius:8px;padding:16px}.rcp-top{text-align:center;border-bottom:1px dashed #ddd;padding-bottom:10px}.rcp-logo{font-weight:800;font-size:14px;color:#b8860b;letter-spacing:1px}.rcp-sub{color:#999;font-size:11px;margin-top:3px}.rcp-row{display:flex;justify-content:space-between;padding:3px 0;font-size:12px;color:#555}.rcp-tot{font-weight:800;font-size:14px;padding-top:8px;border-top:1px dashed #ddd;margin-top:5px;display:flex;justify-content:space-between}.rcp-pay{color:#999;font-size:11px;padding-top:4px}.pay-status-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-top:8px}.ps-pending{background:#fef3c7;color:#d97706}.ps-paid{background:#dcfce7;color:#16a34a}.ps-delivery{background:#ede9fe;color:#7c3aed}@media print{button{display:none}}</style></head><body>');
+  w.document.write(rcp.innerHTML);
+  w.document.write('<br><button onclick="window.print()" style="width:100%;padding:10px;background:#b8860b;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px">🖨️ Imprimer</button></body></html>');
+  w.document.close();
+}
+
+/* ── Core integration ── */
+window.addEventListener('message',function(ev){
+  if(!ev.data)return;
+  if(ev.data.type==='hotel-config'&&ev.data.data&&ev.data.data.whatsapp)applyWA(ev.data.data.whatsapp);
+  /* Reload menu if admin changed products */
+  if(ev.data.type==='menu_updated'||ev.data.type==='products_updated')loadMenu();
+});
+
+
+/* ══════════════════════════════════════════
+   PROMPT 032 — Alert Engine Food Lounge
+   Alerte client quand statut commande change
+   ══════════════════════════════════════════ */
+var _vlzFoodAC=null,_vlzFoodNP=false;
+function _vlzFoodBeep(f,d,v){
+  try{
+    if(!_vlzFoodAC)_vlzFoodAC=new(window.AudioContext||window.webkitAudioContext||function(){return null;})();
+    if(!_vlzFoodAC)return;
+    if(_vlzFoodAC.state==='suspended')_vlzFoodAC.resume();
+    var o=_vlzFoodAC.createOscillator(),g=_vlzFoodAC.createGain();
+    o.connect(g);g.connect(_vlzFoodAC.destination);
+    o.type='sine';o.frequency.value=f||660;
+    g.gain.setValueAtTime(v||0.22,_vlzFoodAC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,_vlzFoodAC.currentTime+(d||0.3));
+    o.start();o.stop(_vlzFoodAC.currentTime+(d||0.3));
+  }catch(e){}
+}
+function _vlzFoodAlertSound(){
+  _vlzFoodBeep(528,0.18,0.22);setTimeout(function(){_vlzFoodBeep(660,0.22,0.28);},230);
+}
+function _vlzFoodNotif(title,body,tag){
+  _vlzFoodNP=(typeof Notification!=='undefined'&&Notification.permission==='granted');
+  if(!_vlzFoodNP)return;
+  try{new Notification(title||'Veraluz Food',{body:body||'',tag:tag||'vlz-food',
+    icon:'https://ngams237.github.io/mako-city_suivis_ok/icon-192.png',silent:false});}catch(e){}
+}
+function _vlzFoodRequestNotif(){
+  if(!('Notification' in window)||Notification.permission!=='default')return;
+  Notification.requestPermission().then(function(p){_vlzFoodNP=(p==='granted');}).catch(function(){});
+}
+/* Suivi statut commande en cours */
+var _vlzFoodPrevStatus='';
+document.addEventListener('click',function(){_vlzFoodRequestNotif();},{once:true});
+
+/* ══════════════════════════════════════════
+   PROMPT 034 — Historique commandes + Chat
+══════════════════════════════════════════ */
+function loadOrderHistoryByPhone(phone){
+  var el=document.getElementById('hist-list');
+  if(!el)return;
+  phone=(phone||'').trim();
+  if(phone.length<6){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:.8rem;">Numéro trop court</div>';return;}
+  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:.8rem;">Chargement…</div>';
+  sbFetch('veraluz_food_orders?customer_phone=eq.'+encodeURIComponent(phone)+'&order=created_at.desc&limit=20&select=id,order_number,customer_name,status,delivery_status,created_at,total,delivery_type')
+  .then(function(rows){
+    if(!rows||!rows.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--tx3);font-size:.8rem;">Aucune commande trouvée pour ce numéro.</div>';return;}
+    var STAT_LABEL={pending:'En attente',confirmed:'Confirmée',preparing:'Préparation',ready:'Prête',out_for_delivery:'En livraison',delivered:'Livrée',cancelled:'Annulée'};
+    var STAT_CLS={delivered:'#22c55e',out_for_delivery:'#fbbf24',cancelled:'#ef4444'};
+    var html='';
+    rows.forEach(function(o){
+      var s=o.delivery_status||o.status||'pending';
+      var lbl=STAT_LABEL[s]||s;
+      var clr=STAT_CLS[s]||'var(--tx2)';
+      var d=o.created_at?new Date(o.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'—';
+      html+='<div onclick="openHistOrder(\''+esc(String(o.order_number||''))+'\');" style="background:var(--c3);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+        +'<span style="font-size:.8rem;font-weight:800;color:var(--tx1);flex:1;">#'+esc(String(o.order_number||''))+'</span>'
+        +'<span style="font-size:.7rem;font-weight:700;color:'+clr+';">'+esc(lbl)+'</span>'
+        +'</div>'
+        +'<div style="display:flex;gap:10px;font-size:.72rem;color:var(--tx3);flex-wrap:wrap;">'
+        +'<span>📅 '+esc(d)+'</span>'
+        +(o.total?'<span>'+Math.round(o.total).toLocaleString('fr-FR')+' F</span>':'')
+        +'</div>'
+        +'</div>';
+    });
+    el.innerHTML=html;
+  })
+  .catch(function(){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--tx3);font-size:.8rem;">Erreur de chargement</div>';});
+}
+
+function openHistOrder(num){
+  if(!num)return;
+  document.getElementById('histOverlay').classList.remove('open');
+  openTrack(num);
+}
+
+function closeHist(){
+  document.getElementById('histOverlay').classList.remove('open');
+}
+
+/* Messages temps réel dans trackOverlay */
+function startTrackMsgRefresh(){
+  stopTrackMsgRefresh();
+  _trackMsgInterval=setInterval(function(){
+    if(_trackOrderId)loadTrackMessages();
+  },12000);
+}
+function stopTrackMsgRefresh(){
+  if(_trackMsgInterval){clearInterval(_trackMsgInterval);_trackMsgInterval=null;}
+}
+
+function loadTrackMessages(){
+  if(!_trackOrderId)return;
+  sbFetch('veraluz_delivery_messages?order_id=eq.'+encodeURIComponent(_trackOrderId)+'&order=created_at.asc&limit=60')
+  .then(function(msgs){renderTrackMessages(msgs||[]);})
+  .catch(function(){/* silencieux */});
+}
+
+function renderTrackMessages(msgs){
+  var el=document.getElementById('track-chat-msgs');
+  if(!el)return;
+  if(!msgs.length){el.innerHTML='<div style="font-size:.72rem;color:var(--tx3);text-align:center;padding:10px;">Aucun message pour l\'instant</div>';return;}
+  var html='';
+  msgs.forEach(function(m){
+    var st=m.sender_type||'system';
+    var isClient=st==='client';
+    var senderLabel=isClient?'Vous':st==='restaurant'?'🏨 Restaurant':st==='driver'?'🚚 Livreur':'Système';
+    var clr=isClient?'var(--accent)':st==='restaurant'?'#60a5fa':st==='driver'?'#fbbf24':'var(--tx3)';
+    var bg=isClient?'rgba(201,168,76,.18)':'rgba(255,255,255,.05)';
+    var align=isClient?'flex-end':'flex-start';
+    var t=m.created_at?new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
+    html+='<div style="display:flex;flex-direction:column;align-items:'+align+';margin-bottom:6px;">'
+      +'<div style="font-size:.65rem;color:'+clr+';font-weight:700;margin-bottom:2px;">'+esc(senderLabel)+'</div>'
+      +'<div style="background:'+bg+';padding:7px 10px;border-radius:10px;max-width:80%;font-size:.76rem;color:var(--tx1);line-height:1.4;">'+esc(m.message||m.subject||'')+'</div>'
+      +(t?'<div style="font-size:.6rem;color:var(--tx3);margin-top:2px;">'+t+'</div>':'')
+      +'</div>';
+  });
+  el.innerHTML=html;
+  el.scrollTop=el.scrollHeight;
+}
+
+function sendTrackClientMsg(){
+  var inp=document.getElementById('track-chat-inp');
+  if(!inp)return;
+  var txt=(inp.value||'').trim();
+  if(!txt||!_trackOrderId)return;
+  inp.value='';
+  /* Retrouver infos client depuis commande locale */
+  var cname='Client';
+  var local=_orders.find(function(o){return o.id===_trackOrderId||o.order_number===_trackNum;});
+  if(local&&local.customer_name)cname=local.customer_name;
+  sbInsert('veraluz_delivery_messages',{
+    order_id:_trackOrderId,
+    sender_type:'client',
+    sender_name:cname,
+    recipient_type:'restaurant',
+    tenant_id:'veraluz-001',
+    message:txt,
+    subject:txt.substring(0,50),
+    is_read:false,
+    created_at:new Date().toISOString()
+  })
+  .then(function(){loadTrackMessages();})
+  .catch(function(){toast('Erreur envoi');inp.value=txt;});
+}
+
+/* ══════════════════════════════════════════ */
+
+/* ── Init ── */
+(function(){
+  /* Check for tracking hash */
+  (function(){
+    var h=window.location.hash;
+    if(h&&h.indexOf('#track=')===0){
+      var num=decodeURIComponent(h.slice(7));
+      if(num)setTimeout(function(){openTrack(num);},500);
+    }
+  })();
+  loadCart();
+  try{var inf=JSON.parse(localStorage.getItem('vz_hotel_info')||'{}');if(inf.whatsapp)applyWA(inf.whatsapp);}catch(e){}
+  try{var o=localStorage.getItem('vlz_food_orders');if(o)_orders=JSON.parse(o);}catch(e){}
+  updateBadges();
+  _lastRefresh=Date.now();
+  loadMenu();
+})();
+</script>
+<!-- PROMPT 034 — HISTORIQUE COMMANDES -->
+<div class="track-overlay" id="histOverlay" style="z-index:1050;">
+  <div class="track-hdr">
+    <div class="track-close" onclick="closeHist()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+    <div class="track-hdr-title">Mes commandes</div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="track-body">
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <input id="hist-phone" class="inp" type="tel" placeholder="Votre téléphone (ex: 237XXXXXXXXX)"
+        style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx1);border-radius:10px;padding:10px 12px;font-size:.8rem;"
+        onkeydown="if(event.key==='Enter')loadOrderHistoryByPhone(this.value)">
+      <button onclick="loadOrderHistoryByPhone(document.getElementById('hist-phone').value)"
+        style="background:var(--accent);color:#0f0f0d;border:none;border-radius:10px;padding:10px 14px;font-size:.8rem;font-weight:700;cursor:pointer;">Chercher</button>
+    </div>
+    <div id="hist-list"></div>
+  </div>
+</div>
+
+<!-- TRACKING OVERLAY -->
+<div class="track-overlay" id="trackOverlay">
+  <div class="track-hdr">
+    <div class="track-close" onclick="closeTrack()"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+    <div class="track-hdr-title">Suivi de commande</div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="track-body" id="trackBody" style="flex:1;overflow-y:auto;">
+    <div class="track-not-found"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>Entrez votre numéro de commande</p></div>
+  </div>
+  <!-- PROMPT 034 — Chat client ↔ restaurant/livreur -->
+  <div id="track-chat-section" style="border-top:1px solid rgba(255,255,255,.08);padding:10px 12px;display:flex;flex-direction:column;gap:6px;max-height:240px;">
+    <div style="font-size:.65rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.06em;">Chat</div>
+    <div id="track-chat-msgs" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;min-height:60px;max-height:160px;"></div>
+    <div style="display:flex;gap:6px;">
+      <input id="track-chat-inp" type="text" placeholder="Votre message…"
+        style="flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--tx1);border-radius:20px;padding:8px 12px;font-size:.76rem;"
+        onkeydown="if(event.key==='Enter')sendTrackClientMsg()">
+      <button onclick="sendTrackClientMsg()"
+        style="background:var(--accent);color:#0f0f0d;border:none;border-radius:50%;width:34px;height:34px;font-size:1rem;cursor:pointer;flex-shrink:0;">&#10148;</button>
+    </div>
+  </div>
+</div>
+
+<!-- PWA Install Banner iOS — PROMPT 025 -->
+<div id="pwa-ios-banner" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:440px;background:#1a1a18;border:1px solid rgba(201,168,76,.3);border-radius:16px;padding:14px 16px;z-index:500;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+    <div style="font-size:.8rem;font-weight:700;color:#f5f5f0;">Installer l\'app</div>
+    <button onclick="document.getElementById('pwa-ios-banner').style.display='none'" style="background:none;border:none;color:#a0a09a;font-size:1.2rem;cursor:pointer;line-height:1;">×</button>
+  </div>
+  <div style="font-size:.72rem;color:#a0a09a;line-height:1.5;">Appuyez sur <strong style="color:#c9a84c;">Partager</strong> puis <strong style="color:#c9a84c;">Ajouter à l\'écran d\'accueil</strong> pour accéder rapidement au menu VERALUZ.</div>
+</div>
+<!-- PWA Install Button Android — PROMPT 025 -->
+<button id="pwa-install-btn" style="display:none;position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#c9a84c;color:#0f0f0d;border:none;border-radius:40px;padding:12px 24px;font-size:.8rem;font-weight:700;cursor:pointer;z-index:500;box-shadow:0 4px 16px rgba(201,168,76,.4);" onclick="pwaInstall()">
+  + Installer l\'app
+</button>
+<script>
+(function(){
+  /* Service Worker — PROMPT 025 */
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  }
+  /* PWA install — Android/Chrome */
+  var _deferredPrompt=null;
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault(); _deferredPrompt=e;
+    var btn=document.getElementById('pwa-install-btn');
+    if(btn) btn.style.display='block';
+  });
+  window.pwaInstall=function(){
+    if(!_deferredPrompt) return;
+    _deferredPrompt.prompt();
+    _deferredPrompt.userChoice.then(function(){_deferredPrompt=null;
+      var btn=document.getElementById('pwa-install-btn');if(btn)btn.style.display='none';});
+  };
+  /* PWA install — iOS : afficher le banner si pas standalone */
+  var isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  var isStandalone=window.matchMedia('(display-mode:standalone)').matches||window.navigator.standalone;
+  if(isIOS&&!isStandalone){
+    /* Afficher après 3 secondes */
+    setTimeout(function(){
+      var b=document.getElementById('pwa-ios-banner');
+      var shown=localStorage.getItem('vlz_food_pwa_shown');
+      if(b&&!shown){b.style.display='block';try{localStorage.setItem('vlz_food_pwa_shown','1');}catch(e){}}
+    },3000);
+  }
+})();
+</script>
+</body>
+</html>

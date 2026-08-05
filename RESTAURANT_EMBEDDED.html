@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Restaurant · Veraluz OS</title>
+<script>if(localStorage.getItem('vl_theme')=='dark')document.documentElement.classList.add('vl-dark');</script>
 <style>
 :root{
   --bg:#0d0d1a;--bg2:#12121f;--bg3:#1a1a2e;--bg4:#22223a;
@@ -96,7 +97,58 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 
 /* ── Cart ── */
 .cart{width:250px;display:flex;flex-direction:column;background:var(--bg2);}
-@media(max-width:600px){.split{flex-direction:column;}.cart{width:100%;max-height:220px;border-top:1px solid var(--border);}}
+/* PROMPT 028 : Tablette 900px — 2 colonnes KDS */
+@media(max-width:900px){
+  .kds-grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+  .kds-header{flex-wrap:wrap;gap:8px;}
+  /* PROMPT 028 : Responsive utilitaires */
+.kds-flt{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.kds-filters{display:flex;flex-wrap:nowrap;gap:6px;}
+.kds-topbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.order-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.livreur-modal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+
+.kds-flt{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
+  .kds-filters{display:flex;gap:6px;min-width:max-content;}
+  .kds-topbar{flex-wrap:wrap;gap:6px;}
+  .kds-section-head{font-size:13px;}
+  .order-summary-grid{grid-template-columns:repeat(2,1fr);}
+}
+@media(max-width:600px){
+  .kds-grid{grid-template-columns:1fr;gap:6px;}
+  .kds-card{min-height:unset;}
+  .kds-topbar{padding:6px 8px;}
+  .kds-section-head{font-size:12px;}
+  .kds-title{font-size:15px;}
+  .kds-flt button{font-size:11px;padding:4px 8px;}
+  .livreur-modal-grid{grid-template-columns:1fr;}
+  .order-summary-grid{grid-template-columns:1fr;}
+  .snd-btn{padding:4px 8px;font-size:11px;}
+}.cart{width:100%;max-height:220px;border-top:1px solid var(--border);}}
+@media(max-width:430px){
+  .kds-topbar{padding:4px 6px;}
+  .kds-title{font-size:14px;}
+  .kds-card-head{font-size:13px;}
+  .kds-card-body{font-size:12px;}
+  .kds-flt button{font-size:10px;padding:3px 7px;}
+  .order-alert-banner{font-size:12px;padding:8px 10px;}
+  .kds-card .btns button{font-size:11px;padding:4px 8px;}
+}
+  #header{padding:5px 8px;flex-wrap:wrap;gap:4px;}
+  #tabs{padding:4px 6px;}
+  .tab{padding:6px 8px;font-size:11px;}
+  .tbl-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;padding:8px;}
+  .mitems{grid-template-columns:repeat(auto-fill,minmax(110px,1fr));}
+  .kds-card{padding:9px;}
+  .kds-hdr-top{flex-wrap:wrap;}
+}
+@media(max-width:390px){
+  .tab{padding:5px 7px;font-size:10px;}
+  .mitems{grid-template-columns:repeat(auto-fill,minmax(95px,1fr));}
+  .tbl-grid{grid-template-columns:repeat(3,1fr);}
+  .kds-stat-n{font-size:13px;}
+  .kds-stat-l{font-size:7px;}
+}
 .ch{padding:9px 12px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .ct{font-size:13px;font-weight:700;}
 .cs{font-size:10px;color:var(--text3);}
@@ -118,18 +170,90 @@ html,body{height:100%;background:var(--bg);color:var(--text);
   background:var(--bg3);color:var(--text);font-size:11px;resize:none;height:40px;margin-bottom:7px;}
 .cacts{display:flex;gap:5px;}
 
-/* ── KDS ── */
-.kds-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
-  gap:10px;padding:10px;}
-.kc{background:var(--bg2);border:1px solid var(--bord2);border-radius:12px;padding:12px;}
-.kc-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
-.kc-tbl{font-size:14px;font-weight:700;}
-.kc-t{font-size:11px;color:var(--warn);}
-.kc-t.ok{color:var(--accent);}
-.kc-item{display:flex;justify-content:space-between;padding:4px 0;
-  border-bottom:1px solid var(--border);font-size:12px;}
-.kc-item:last-child{border:none;}
-.kc-acts{display:flex;gap:5px;margin-top:9px;}
+/* ── KDS EXTENDED — Centre Opérationnel Cuisine ── */
+.kds-pane-wrap{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
+.kds-hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:8px 10px;flex-shrink:0}
+.kds-hdr-top{display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap}
+.kds-hdr-title{font-size:12px;font-weight:700;color:var(--text);flex:1;min-width:120px}
+.kds-stats{display:flex;gap:5px;flex-shrink:0}
+.kds-stat{background:var(--bg3);border-radius:7px;padding:3px 8px;text-align:center;min-width:44px}
+.kds-stat-n{font-size:15px;font-weight:800;color:var(--text)}
+.kds-stat-l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px}
+.kds-stat-n.warn{color:var(--warn)} .kds-stat-n.danger{color:var(--danger)}
+.kds-filters{display:flex;gap:4px;overflow-x:auto;padding-bottom:2px;flex-shrink:0}
+.kds-flt{padding:4px 9px;border-radius:6px;border:1px solid var(--bord2);background:transparent;
+  color:var(--text3);cursor:pointer;font-size:10px;font-weight:600;white-space:nowrap;
+  flex-shrink:0;display:inline-flex;align-items:center;gap:3px;transition:all .15s}
+.kds-flt.on{border-color:var(--accent);color:var(--accent);background:rgba(34,211,165,.08)}
+.kds-flt.f-livraison.on{border-color:#60a5fa;color:#60a5fa;background:rgba(96,165,250,.08)}
+.kds-flt.f-room.on{border-color:#a78bfa;color:#a78bfa;background:rgba(167,139,250,.08)}
+.kds-flt.f-lounge.on{border-color:var(--warn);color:var(--warn);background:rgba(245,158,11,.08)}
+.kds-body{flex:1;overflow-y:auto;padding:10px}
+.snd-btn{padding:3px 7px;border-radius:6px;border:1px solid var(--bord2);background:transparent;
+  color:var(--text3);font-size:10px;cursor:pointer;display:flex;align-items:center;gap:3px;flex-shrink:0;transition:all .15s}
+.snd-btn.on{border-color:var(--accent);color:var(--accent)}
+/* PROMPT 027 — Alerte nouvelle commande Food */
+.order-alert-banner{position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(90deg,#16a34a 0%,#15803d 100%);color:#fff;padding:12px 16px;display:none;align-items:center;gap:10px;font-size:14px;font-weight:700;box-shadow:0 4px 20px rgba(22,163,74,.5);animation:orderAlertSlide .35s ease;}
+@keyframes orderAlertSlide{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+@keyframes orderAlertPulse{0%,100%{opacity:1}50%{opacity:.7}}
+.order-alert-close{margin-left:auto;background:rgba(255,255,255,.2);border:none;color:#fff;
+  border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.9rem;display:flex;
+  align-items:center;justify-content:center;flex-shrink:0}
+.kds-stk-alert{display:flex;align-items:center;gap:7px;padding:5px 10px;
+  background:rgba(244,63,94,.08);border-bottom:1px solid rgba(244,63,94,.18);
+  font-size:10px;color:var(--danger);flex-shrink:0;line-height:1.4}
+/* KDS Cards */
+.kds-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.kc2{background:var(--bg2);border:1px solid var(--bord2);border-radius:12px;
+  overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .2s}
+.kc2:hover{box-shadow:0 4px 20px rgba(0,0,0,.25)}
+.kc2-stripe{height:3px;width:100%;flex-shrink:0}
+.kc2-stripe.s-place{background:var(--accent)}
+.kc2-stripe.s-livraison{background:#3b82f6}
+.kc2-stripe.s-room{background:linear-gradient(90deg,#7c3aed 0%,#c9a84c 100%)}
+.kc2-stripe.s-lounge{background:var(--warn)}
+.kc2-top{padding:9px 11px 5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kc2-badge{font-size:8px;font-weight:800;letter-spacing:.7px;padding:2px 6px;
+  border-radius:4px;text-transform:uppercase;flex-shrink:0}
+.kc2-badge.b-place{background:rgba(34,211,165,.15);color:var(--accent)}
+.kc2-badge.b-livraison{background:rgba(59,130,246,.15);color:#60a5fa}
+.kc2-badge.b-room{background:rgba(124,58,237,.15);color:#a78bfa}
+.kc2-badge.b-lounge{background:rgba(245,158,11,.15);color:var(--warn)}
+.kc2-ref{font-size:13px;font-weight:700;color:var(--text);flex:1;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.kc2-timer{font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;
+  white-space:nowrap;flex-shrink:0}
+.kc2-timer.ok{background:rgba(34,211,165,.1);color:var(--accent)}
+.kc2-timer.warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.kc2-timer.late{background:rgba(244,63,94,.15);color:var(--danger);
+  animation:kpulse 1.2s ease infinite}
+@keyframes kpulse{0%,100%{opacity:1}50%{opacity:.5}}
+.kc2-info{padding:2px 11px;font-size:10px;color:var(--text3);line-height:1.5}
+.kc2-info strong{color:var(--text2);font-weight:600}
+.kc2-items{padding:6px 11px;border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);max-height:160px;overflow-y:auto}
+.kc2-it{display:flex;align-items:baseline;padding:3px 0;font-size:12px;
+  border-bottom:1px solid rgba(255,255,255,.04)}
+.kc2-it:last-child{border:none}
+.kc2-it-qty{font-weight:800;color:var(--accent);margin-right:5px;flex-shrink:0;min-width:18px}
+.kc2-it-name{color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kc2-prog{padding:7px 11px 3px;display:flex;gap:3px;align-items:center}
+.kc2-step{height:3px;flex:1;border-radius:2px;background:var(--bg4)}
+.kc2-step.done{background:var(--accent)}
+.kc2-step.curr{background:var(--warn);animation:kpulse 1.2s infinite}
+.kc2-prog-lbl{font-size:9px;color:var(--text3);padding:0 11px 6px;font-weight:600}
+.kc2-acts{padding:7px 9px;display:flex;gap:5px}
+.kc2-note{padding:3px 11px 7px;font-size:10px;color:var(--text3);font-style:italic;
+  border-top:1px solid var(--border)}
+.pay-chip{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;flex-shrink:0}
+.pay-chip.pending{background:rgba(245,158,11,.2);color:var(--warn)}
+.pay-chip.paid{background:rgba(34,211,165,.15);color:var(--accent)}
+.pay-chip.delivery{background:rgba(129,140,248,.2);color:var(--acc2)}
+.kds-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:50px 20px;color:var(--text3);text-align:center;grid-column:1/-1}
+.kds-empty svg{opacity:.25;margin-bottom:12px}
+.kds-empty p{font-size:13px;margin-bottom:4px}
+.kds-empty small{font-size:11px;opacity:.7}
 
 /* ── Stock ── */
 .stabs{display:flex;gap:4px;padding:7px 9px;background:var(--bg2);
@@ -164,12 +288,42 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 .sobdg.annule{background:rgba(244,63,94,.2);color:var(--danger);}
 
 /* ── Admin ── */
-.atabs{display:flex;gap:4px;padding:7px 9px;background:var(--bg2);border-bottom:1px solid var(--border);}
+.atabs{display:flex;gap:4px;padding:7px 9px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;}
 .atab{padding:6px 11px;border-radius:7px;border:none;background:var(--bg3);
   color:var(--text3);cursor:pointer;font-size:11px;font-weight:600;}
 .atab.on{background:var(--bg4);color:var(--accent);}
 .apane{display:none;overflow-y:auto;}
 .apane.on{display:block;}
+/* App Manager */
+.app-sec{margin-bottom:18px}
+.app-sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.app-sec-ttl{font-size:13px;font-weight:700;color:var(--text);flex:1}
+.promo-card{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
+.promo-card.inactive{opacity:.5}
+.promo-emoji{font-size:22px;flex-shrink:0;line-height:1.2}
+.promo-info{flex:1;min-width:0}
+.promo-ttl{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+.promo-body{font-size:11px;color:var(--text2);white-space:pre-wrap}
+.promo-badge{display:inline-block;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:4px;text-transform:uppercase}
+.pb-promo{background:#f97316;color:#fff}.pb-comm{background:#3b82f6;color:#fff}.pb-banner{background:#8b5cf6;color:#fff}
+.promo-acts{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.app-dispo-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)}
+.app-dispo-item:last-child{border-bottom:none}
+.app-dispo-name{flex:1;font-size:12px;color:var(--text)}
+.app-dispo-cat{font-size:10px;color:var(--text3)}
+.vlz-toggle{position:relative;display:inline-block;width:34px;height:19px;flex-shrink:0}
+.vlz-toggle input{opacity:0;width:0;height:0;position:absolute}
+.vlz-slider{position:absolute;cursor:pointer;inset:0;background:var(--bord2);border-radius:10px;transition:.2s}
+.vlz-slider:before{content:'';position:absolute;width:15px;height:15px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s}
+.vlz-toggle input:checked+.vlz-slider{background:var(--ok)}
+.vlz-toggle input:checked+.vlz-slider:before{transform:translateX(15px)}
+.app-cfg-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+.app-cfg-row:last-child{border-bottom:none}
+.app-cfg-lbl{flex:1;font-size:12px;color:var(--text)}
+.app-cfg-sub{font-size:10px;color:var(--text3)}
+.app-subsec-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.app-stab{padding:5px 10px;border-radius:6px;border:1px solid var(--bord2);background:var(--bg2);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer}
+.app-stab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .atbar{display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);}
 .atbar h3{font-size:13px;font-weight:700;flex:1;}
 .arow{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);}
@@ -244,9 +398,100 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 #toast.ok{border-color:var(--accent);color:var(--accent);}
 #toast.er{border-color:var(--danger);color:var(--danger);}
+/* LIVREUR PICKER */
+.liv-card{width:100%;display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1.5px solid var(--border);border-radius:12px;margin-bottom:7px;cursor:pointer;transition:border-color .15s;text-align:left;}
+.liv-card:active{opacity:.8;}.liv-card:hover{border-color:var(--acc1);}
+.liv-card.liv-cur{border-color:var(--acc1);background:rgba(34,211,165,.06);}
+.liv-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;}
+.liv-info{flex:1;min-width:0;}
+.liv-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.liv-role{font-size:11px;color:var(--text3);margin-top:1px;}
+/* PROMPT 034 — Livraisons onglet */
+.dlv-card{background:var(--bg3);border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
+.dlv-card:hover{border-color:var(--acc1);}
+.dlv-card-head{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.dlv-card-num{font-size:13px;font-weight:800;color:var(--text);flex:1;}
+.dlv-card-status{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--bg2);color:var(--text2);}
+.dlv-card-status.st-delivered{background:rgba(34,197,94,.15);color:#22c55e;}
+.dlv-card-status.st-out{background:rgba(251,191,36,.15);color:#fbbf24;}
+.dlv-card-status.st-pending{background:rgba(148,163,184,.15);color:#94a3b8;}
+.dlv-card-meta{font-size:12px;color:var(--text2);display:flex;gap:10px;flex-wrap:wrap;}
+.dlv-sec-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px;}
+.dlv-empty{text-align:center;padding:40px 16px;color:var(--text3);font-size:13px;}
+/* Timeline */
+.dlv-tl{position:relative;padding-left:22px;}
+.dlv-tl::before{content:'';position:absolute;left:7px;top:4px;bottom:4px;width:2px;background:var(--border);}
+.dlv-tl-item{position:relative;margin-bottom:14px;}
+.dlv-tl-dot{position:absolute;left:-22px;top:2px;width:12px;height:12px;border-radius:50%;background:var(--acc1);border:2px solid var(--bg);}
+.dlv-tl-dot.tl-done{background:var(--acc1);}
+.dlv-tl-dot.tl-pending{background:var(--border);}
+.dlv-tl-label{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.dlv-tl-time{font-size:11px;color:var(--text3);}
+/* Conversation dans modal livraison */
+.dlv-msg{padding:8px 10px;border-radius:10px;max-width:85%;font-size:12px;line-height:1.45;margin-bottom:4px;}
+.dlv-msg.me{align-self:flex-end;background:var(--acc1);color:#fff;}
+.dlv-msg.them{align-self:flex-start;background:var(--bg2);color:var(--text);}
+.dlv-msg-sender{font-size:10px;font-weight:700;margin-bottom:2px;opacity:.75;}
+.dlv-msg-sender.client{color:#f59e0b;}
+.dlv-msg-sender.driver{color:var(--acc1);}
+.dlv-msg-sender.restaurant{color:#60a5fa;}
+/* Groupe livreur */
+.dlv-lv-row{display:flex;align-items:center;gap:12px;padding:11px 13px;background:var(--bg3);border:1.5px solid var(--border);border-radius:12px;margin-bottom:7px;cursor:pointer;}
+.dlv-lv-row:hover{border-color:var(--acc1);}
+.dlv-lv-av{width:36px;height:36px;border-radius:50%;background:var(--acc1);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0;}
+.dlv-lv-name{font-size:13px;font-weight:700;color:var(--text);}
+.dlv-lv-stat{font-size:11px;color:var(--text3);}
 </style>
+<style id="veraluz-theme">
+/* ═══ VERALUZ THEME PROMPT 036C ══════════════════════════════════
+   Light : bg #e8ecf0 · surfaces #fff · neumorphic shadows 3px
+   Dark  : bg #131722 · surfaces #1e2538 · sombre shadows
+   Toggle: html.vl-dark / localStorage('vl_theme')
+   ══════════════════════════════════════════════════════════════ */
+:root{--bg:#e8ecf0;--bg2:#eef1f5;--bg3:#fff;--bg4:#e0e4e8;--text:#1e293b;--text2:#475569;--text3:#94a3b8;--border:rgba(0,0,0,.07);--bord2:rgba(0,0,0,.10);--border2:rgba(0,0,0,.07);--radius:3px;--radius-sm:3px;--vl-sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;--vl-sh-in:inset 2px 2px 6px #c8cdd4,inset -1px -1px 4px #fff;--vl-r:3px;}
+html,body{background:var(--bg)!important;color:var(--text)!important;}
+html.vl-dark{--bg:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:rgba(255,255,255,.07);--bord2:rgba(255,255,255,.12);--border2:rgba(255,255,255,.07);--radius:3px;--radius-sm:3px;--vl-sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;--vl-sh-in:inset 2px 2px 6px #0d1118,inset -1px -1px 4px #242b3e;}
+html.vl-dark body{background:#131722!important;}
+/* ── Tabs / Headers ─────────────────────────────────────────── */
+#tabs,.mod-hdr,#topbar{background:#fff!important;border-bottom:1px solid rgba(0,0,0,.07)!important;box-shadow:0 1px 6px rgba(0,0,0,.05)!important;}
+html.vl-dark #tabs,html.vl-dark .mod-hdr,html.vl-dark #topbar{background:#1a1f2e!important;border-bottom:1px solid rgba(255,255,255,.06)!important;box-shadow:0 1px 8px rgba(0,0,0,.3)!important;}
+.tab,.tab-btn{border-radius:3px 3px 0 0!important;}
+.tab.on,.tab-btn.active{color:var(--accent,var(--acc1))!important;border-bottom-color:var(--accent,var(--acc1))!important;background:rgba(0,0,0,.025)!important;}
+html.vl-dark .tab.on,html.vl-dark .tab-btn.active{background:rgba(255,255,255,.04)!important;}
+/* ── Cards & KPI ────────────────────────────────────────────── */
+.card,.kpi,.stat-card,.emp-card,.detail-card,.sec-card,.rez-card,.room-card,.param-card,.param-card-body,.unit-card-p,.promo-card,.pane-card,.socard{background:#fff!important;border:none!important;border-radius:3px!important;box-shadow:var(--vl-sh)!important;}
+html.vl-dark .card,html.vl-dark .kpi,html.vl-dark .stat-card,html.vl-dark .emp-card,html.vl-dark .detail-card,html.vl-dark .sec-card,html.vl-dark .rez-card,html.vl-dark .room-card,html.vl-dark .param-card,html.vl-dark .param-card-body,html.vl-dark .unit-card-p,html.vl-dark .promo-card,html.vl-dark .pane-card,html.vl-dark .socard{background:var(--bg3)!important;border:1px solid var(--border)!important;box-shadow:var(--vl-sh)!important;}
+.emp-card:hover,.rez-card:hover,.room-card:hover{box-shadow:6px 6px 16px #c0c5cc,-2px -2px 8px #fff!important;transform:translateY(-1px);}
+html.vl-dark .emp-card:hover,html.vl-dark .rez-card:hover,html.vl-dark .room-card:hover{box-shadow:6px 6px 16px #0a0e16,-2px -2px 8px #242b3e!important;}
+/* ── Param card header gradient ─────────────────────────────── */
+.param-card-hdr{background:linear-gradient(135deg,var(--accent,var(--acc1)),rgba(8,145,178,.55))!important;border-radius:3px 3px 0 0!important;}
+/* ── Inputs / Selects ───────────────────────────────────────── */
+input:not([type=checkbox]):not([type=radio]),select,textarea,.search{background:#f1f5f9!important;border:1px solid rgba(0,0,0,.09)!important;border-radius:3px!important;color:var(--text)!important;}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{border-color:var(--accent,var(--acc1))!important;box-shadow:0 0 0 2px rgba(8,145,178,.12)!important;outline:none!important;}
+html.vl-dark input:not([type=checkbox]):not([type=radio]),html.vl-dark select,html.vl-dark textarea,html.vl-dark .search{background:var(--bg3)!important;border-color:rgba(255,255,255,.1)!important;}
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn-sec,.btn-warn,.sf,.fchip,.mode-btn{border-radius:3px!important;}
+.btn-sec{background:#f1f5f9!important;color:var(--text2)!important;border:1px solid rgba(0,0,0,.09)!important;}
+.sf,.fchip,.mode-btn{background:#f1f5f9!important;color:var(--text2)!important;border:1px solid rgba(0,0,0,.09)!important;}
+.fchip.on,.mode-btn.mr{background:var(--accent,var(--acc1))!important;color:#000!important;border-color:transparent!important;}
+html.vl-dark .btn-sec,html.vl-dark .sf,html.vl-dark .fchip,html.vl-dark .mode-btn{background:var(--bg4)!important;color:var(--text2)!important;border-color:rgba(255,255,255,.08)!important;}
+html.vl-dark .fchip.on,html.vl-dark .mode-btn.mr{background:var(--accent,var(--acc1))!important;color:#000!important;border-color:transparent!important;}
+/* ── Entries ────────────────────────────────────────────────── */
+.entry{border-bottom-color:rgba(0,0,0,.06)!important;}
+html.vl-dark .entry{border-bottom-color:rgba(255,255,255,.05)!important;}
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:#c8cdd4!important;border-radius:3px!important;}
+html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
+/* ── Theme toggle FAB ───────────────────────────────────────── */
+#vl-tm-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);right:14px;z-index:9990;width:36px;height:36px;border-radius:3px;border:none;background:#fff;color:#475569;cursor:pointer;font-size:15px;box-shadow:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s,transform .15s;}
+#vl-tm-btn:hover{transform:scale(1.05);}
+html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;}
+</style>
+
 </head>
 <body>
+<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Mode sombre / clair">🌙</button>
 <div id="app">
 
 <!-- HEADER -->
@@ -265,7 +510,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
   <button class="tab" data-p="cmd" onclick="goTab('cmd')">&#128203; <span id="cmd-lbl">Commande</span></button>
   <button class="tab" data-p="kds" onclick="goTab('kds');loadKDS()">&#128104;&#8205;&#127859; <span id="kds-lbl">Cuisine</span> <span class="bdg" id="bdg-kds">0</span></button>
   <button class="tab" data-p="rs" id="tab-rs" onclick="goTab('rs')">&#128718; Room Service</button>
-  
+  <button class="tab" data-p="livraisons" onclick="goTab('livraisons');renderLivraisonsTab()">&#128666; Livraisons <span class="bdg" id="bdg-liv" style="display:none">0</span></button>
   <button class="tab" data-p="ventes" onclick="goTab('ventes')">&#128200; Ventes</button>
     <button class="tab" data-p="resa" onclick="goTab('resa')">&#128197; R&#233;sa Salle</button>
     <button class="tab" data-p="stock" onclick="goTab('stock')">&#128230; Stock <span class="bdg" id="bdg-stk" style="display:none">!</span></button>
@@ -318,13 +563,56 @@ html,body{height:100%;background:var(--bg);color:var(--text);
     </div>
   </div>
 
-  <!-- KDS -->
-  <div class="pane" id="pane-kds">
-    <div style="display:flex;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg2);">
-      <span id="kds-title" style="font-size:13px;font-weight:700;">&#128104;&#8205;&#127859; Cuisine</span>
-      <button class="btn bg bs" onclick="loadKDS()" style="margin-left:auto;">&#8635;</button>
+  <!-- KDS — Centre Opérationnel Cuisine -->
+  <div class="pane-flex" id="pane-kds" style="flex-direction:column;">
+    <div class="kds-pane-wrap">
+      <!-- Header -->
+      <div class="kds-hdr">
+        <div class="kds-hdr-top">
+          <span class="kds-hdr-title">&#128104;&#8205;&#127859; Cuisine — Centre Op&#233;rationnel</span>
+          <div class="kds-stats">
+            <div class="kds-stat"><div class="kds-stat-n" id="kds-n-new">0</div><div class="kds-stat-l">Nouvelles</div></div>
+            <div class="kds-stat"><div class="kds-stat-n warn" id="kds-n-prep">0</div><div class="kds-stat-l">En cours</div></div>
+            <div class="kds-stat"><div class="kds-stat-n danger" id="kds-n-late">0</div><div class="kds-stat-l">En retard</div></div>
+          </div>
+          <button class="snd-btn" id="kds-snd-btn" onclick="toggleKdsSnd()" title="Cliquez pour activer les alertes sonores">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>Son
+          </button>
+          <button class="btn bg bs" onclick="loadKDS()" style="padding:4px 8px;font-size:12px">&#8635;</button>
+        </div>
+        <!-- Stock alert row -->
+        <div class="kds-stk-alert" id="kds-stk-alert" style="display:none">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span id="kds-stk-txt">Alerte stock</span>
+        </div>
+        <!-- Type filters -->
+        <div class="kds-filters">
+          <button class="kds-flt on" data-f="all" onclick="kdsFilter(this,'all')">Tout</button>
+          <button class="kds-flt" data-f="place" onclick="kdsFilter(this,'place')">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/></svg>Sur Place
+          </button>
+          <button class="kds-flt f-livraison" data-f="livraison" onclick="kdsFilter(this,'livraison')">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>Livraison
+          </button>
+          <button class="kds-flt f-room" data-f="room" onclick="kdsFilter(this,'room')">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Room Svc
+          </button>
+          <button class="kds-flt f-lounge" data-f="lounge" onclick="kdsFilter(this,'lounge')">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Lounge
+          </button>
+        </div>
+      </div>
+      <!-- KDS grid -->
+      <div class="kds-body">
+        <div class="kds-grid" id="kds-grid">
+          <div class="kds-empty">
+            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3v7"/></svg>
+            <p id="kds-empty-msg">Chargement des commandes...</p>
+            <small>Les commandes apparaissent automatiquement</small>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="kds-grid" id="kds-grid"><div class="empty">&#128104;&#8205;&#127859; Aucune commande</div></div>
   </div>
 
   <!-- ROOM SERVICE -->
@@ -334,6 +622,25 @@ html,body{height:100%;background:var(--bg);color:var(--text);
       <button class="btn bp bs" onclick="openRSModal()" style="margin-left:auto;">+ Commande</button>
     </div>
     <div id="rs-list"></div>
+  </div>
+
+  <!-- LIVRAISONS — PROMPT 034 -->
+  <div class="pane-flex" id="pane-livraisons" style="flex-direction:column;">
+    <div class="stabs" style="flex-shrink:0;" id="liv-stabs">
+      <button class="stab on" onclick="goLiv('jour',this)">&#128197; Aujourd&#39;hui</button>
+      <button class="stab" onclick="goLiv('hist',this)">&#128202; Historique</button>
+      <button class="stab" onclick="goLiv('livreurs',this)">&#128667; Livreurs</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:8px;" id="liv-jour-body"></div>
+    <div style="display:none;flex:1;overflow-y:auto;padding:8px;" id="liv-hist-body">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+        <input type="date" id="liv-hist-date" class="inp" style="max-width:180px;"
+          onchange="loadLivraisonsDate(this.value)">
+        <button class="btn bp bs" onclick="loadLivraisonsDate(document.getElementById('liv-hist-date').value)">Charger</button>
+      </div>
+      <div id="liv-hist-content"></div>
+    </div>
+    <div style="display:none;flex:1;overflow-y:auto;padding:8px;" id="liv-livreurs-body"></div>
   </div>
 
   <!-- TICKETS -->
@@ -397,6 +704,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
       <button class="atab" onclick="goAdm('mnu',this)">&#127869;&#65039; Menu</button>
       <button class="atab" onclick="goAdm('cat',this)">&#127991;&#65039; Cat&#233;g.</button>
       <button class="atab" onclick="goAdm('sup',this)">&#128666; Fourn.</button>
+      <button class="atab" onclick="goAdm('app',this)">&#128241; App</button>
     </div>
     <div style="flex:1;position:relative;">
       <div class="apane on" id="ap-tbl" style="position:absolute;inset:0;">
@@ -415,6 +723,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);
         <div class="atbar"><h3>Fournisseurs</h3><button class="btn bp bs" onclick="openSupMd(null)">+ Ajouter</button></div>
         <div id="adm-sup"></div>
       </div>
+      <!-- App Manager pane -->
+      <div class="apane" id="ap-app" style="position:absolute;inset:0;padding:10px;">
+        <div class="atbar" style="padding:0 0 10px;"><h3>&#128241; App Manager</h3></div>
+        <div class="app-subsec-tabs" style="margin-bottom:12px;">
+          <button class="app-stab on" id="apstab-promos" onclick="goAppSub('promos',this)">&#127881; Promos &amp; Comm</button>
+          <button class="app-stab" id="apstab-dispo" onclick="goAppSub('dispo',this)">&#9989; Dispo Menu</button>
+          <button class="app-stab" id="apstab-cfg" onclick="goAppSub('cfg',this)">&#9881;&#65039; Param&#232;tres</button>
+        </div>
+        <div id="ap-app-body"></div>
+      </div>
     </div>
   </div>
 
@@ -422,6 +740,38 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 </div><!-- /app -->
 
 <div id="toast"></div>
+
+<!-- PROMPT 030 — KDS MESSAGES MODAL (Restaurant ↔ Livreur) -->
+<div class="ov" id="md-kds-msg">
+  <div class="md" style="max-height:85vh;display:flex;flex-direction:column;padding:0;border-radius:18px 18px 0 0;overflow:hidden;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px 10px;border-bottom:1px solid var(--bord2);">
+      <span style="font-size:15px;font-weight:800;">&#128172; Messages commande <span id="kds-msg-ref" style="font-weight:400;font-size:13px;color:var(--text3)"></span></span>
+      <button class="mdc" onclick="closeKdsMsg()">&#10005;</button>
+    </div>
+    <!-- Quick replies -->
+    <div style="display:flex;gap:7px;overflow-x:auto;padding:10px 14px 0;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-shrink:0;" id="kds-qr-row"></div>
+    <!-- Messages list -->
+    <div id="kds-msg-list" style="flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px;"></div>
+    <!-- Compose -->
+    <div style="padding:10px 14px;border-top:1px solid var(--bord2);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;">
+      <input id="kds-msg-inp" class="inp" type="text" placeholder="Message au livreur..."
+        style="flex:1;font-size:13px;" onkeydown="if(event.key==='Enter')sendKdsMsg()">
+      <button class="btn bg" style="padding:8px 14px;font-size:13px;" onclick="sendKdsMsg()">Envoyer</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIVREUR PICKER MODAL -->
+<div class="ov" id="md-livreur">
+  <div class="md" style="max-height:82vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <span style="font-size:15px;font-weight:800;">&#128667; Assigner un livreur</span>
+      <button class="mdc" onclick="closeMd('md-livreur')">&#10005;</button>
+    </div>
+    <div id="liv-order-ref" style="font-size:11px;color:var(--text3);margin-bottom:14px;"></div>
+    <div id="liv-list"></div>
+  </div>
+</div>
 
 <!-- ══ MODALS ══ -->
 <!-- Pick table -->
@@ -689,14 +1039,36 @@ html,body{height:100%;background:var(--bg);color:var(--text);
   </div>
 </div>
 
+<script src="veraluz-core.js?v=0.3.0"></script>
 <script>
 'use strict';
 var SB='https://dfdmasejsoibxrvubegu.supabase.co';
 var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+/* ── Veraluz Core — référence globale + fallback ── */
+var VC = window.VeraluzCore || {};
 function H(x){return Object.assign({apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},x||{});}
 function GET(p){return fetch(SB+p,{headers:H({Accept:'application/json'})}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
 function POST(t,d){return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:H({Prefer:'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
-function PATCH(t,id,d){return fetch(SB+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:H({Prefer:'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
+/* PROMPT 028 : PATCH enrichi — capture erreur Supabase */
+function PATCH(t,id,d){
+  return fetch(SB+'/rest/v1/'+t+'?id=eq.'+id,{
+    method:'PATCH',
+    headers:H({Prefer:'return=representation'}),
+    body:JSON.stringify(d)
+  }).then(function(r){
+    if(!r.ok){
+      return r.json().then(function(e){
+        var err=new Error(e&&(e.message||e.details)||'HTTP '+r.status);
+        err.sbCode=e&&e.code;err.sbDetails=e&&e.details;err.httpStatus=r.status;
+        throw err;
+      }).catch(function(je){
+        if(je&&je.httpStatus){throw je;}
+        var err=new Error('HTTP '+r.status);err.httpStatus=r.status;throw err;
+      });
+    }
+    return r.json().catch(function(){return null;});
+  });
+}
 function DEL(t,id){return fetch(SB+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:H()}).then(function(r){if(!r.ok)throw r.status;});}
 
 /* State */
@@ -719,13 +1091,57 @@ var curStk='inv',curAdm='tbl',curTix='all',curVnt='today';
 var cartTbl=null,cartType='table',cartRoom='';
 var payMeth='cash',payOid=null;
 var _tt=null;
+var APP_PROMOS=[], _appSub='promos';
+var LIVREURS=[], _assignOid=null;
+/* PROMPT 034 — Livraisons */
+var _curLiv='jour', _livDate='', _curLivDetailId=null, _livMsgInterval=null;
+var RESTAURANT_BUILD = 'v034-livraisons-2026-08-04';
 
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function fmt(n){return Number(n||0).toLocaleString('fr-FR')+' FCFA';}
+/* ══════════════════════════════════════════
+   NORMALIZE UTILS — VERALUZ CORE v0.3.0
+   Déléguées à veraluz-core.js.
+   Fallback minimal intégré si bibliothèque non disponible.
+   NB: normalizeOrderStatus NE concerne QUE les food orders
+   (veraluz_food_orders). Les restaurant orders ont leur propre
+   système de statuts français (ouvert/en_preparation/pret/paye/annule).
+══════════════════════════════════════════ */
+var normalizeEmployee = VC.normalizeEmployee || function(row) {
+  /* Fallback minimal — veraluz-core.js absent */
+  var p = (row.full_name || '').trim().split(' ');
+  return Object.assign({
+    prenom: p[0] || '', nom: p.slice(1).join(' ') || '',
+    poste: row.role || '' /* PROMPT 025: code PIN retiré du select — jamais exposé */
+  }, row);
+};
+var normalizeOrderStatus = VC.normalizeOrderStatus || function(s) {
+  /* Fallback minimal */
+  return String(s || 'pending');
+};
+var isDeliveryEmployee = VC.isDeliveryEmployee || function(emp) {
+  /* Fallback minimal */
+  var t = String((emp && emp.team && emp.team.name) || emp.team_name || '').toLowerCase();
+  var r = String((emp && (emp.role || emp.poste)) || '').toLowerCase();
+  return t.includes('livr') || r.includes('livreur');
+};
+
+/* VERALUZ CORE v0.3.0 — esc déléguée (neutralise & < > " ' `) */
+var esc = VC.esc || function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); };
+/* PROMPT 007 — safeUrl() pour liens dynamiques */
+function safeUrl(url){
+  var s=String(url||'').trim();if(!s)return'#';
+  if(s.startsWith('http://')||s.startsWith('https://')||s.startsWith('mailto:')||s.startsWith('tel:')||s.startsWith('data:image/'))return s;return'#';
+}
+/* VERALUZ CORE v0.3.0 — fmt déléguée à VC.fmtMoney (format FCFA) */
+var fmt = VC.fmtMoney || function(n){ return Number(n||0).toLocaleString('fr-FR')+' FCFA'; };
+/* TODO VERALUZ CORE: gid() conservé local — UUID v4 utilisé pour les IDs DB.
+   VC.gid() génère un format différent (ts_rand) — ne pas migrer sans validation.  */
 function gid(){return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c=='x'?r:(r&0x3|0x8)).toString(16);});}
 function fdt(iso){if(!iso)return'';var d=new Date(iso);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
 function elapsed(iso){var m=Math.floor((Date.now()-new Date(iso))/60000);return m<60?m+'min':Math.floor(m/60)+'h'+String(m%60).padStart(2,'0');}
 
+/* TODO VERALUZ CORE: toast local conservé — classe CSS 'on' spécifique à ce module.
+   VC.toast() utilise 'show' et crée son propre conteneur — incompatible direct.
+   Migration possible dans PROMPT 004 si CSS unifié. */
 function toast(msg,type){
   var el=document.getElementById('toast');
   el.textContent=msg;el.className='on '+(type||'');
@@ -733,7 +1149,7 @@ function toast(msg,type){
   _tt=setTimeout(function(){el.className='';},3000);
 }
 function openMd(id){document.getElementById(id).classList.add('on');}
-function closeMd(id){document.getElementById(id).classList.remove('on');}
+/* closeMd définie dans PROMPT 034 (version enrichie avec nettoyage _livMsgInterval) */
 
 /* Clock */
 setInterval(function(){var n=new Date();document.getElementById('clk').textContent=n.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});},1000);
@@ -875,37 +1291,77 @@ function renderDash(){
   el.innerHTML=html;
 }
 
+/* ── Poll global badge (60s) — actif sur tous les onglets ── */
+var _globalInterval=null;
+function startGlobalPoll(){
+  if(_globalInterval)return;
+  _globalInterval=setInterval(function(){
+    var kdsOn=curTab==='kds';
+    var q1=kdsOn
+      ?'/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60'
+      :'/rest/v1/veraluz_restaurant_orders?select=id,status&order=created_at.desc&limit=60';
+    var q2=kdsOn
+      ?'/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50'
+      :'/rest/v1/veraluz_food_orders?select=id,status&order=created_at.desc&limit=50';
+    Promise.all([GET(q1),GET(q2)]).then(function(r){
+      ORDERS=r[0]||ORDERS;FOOD_ORDERS=r[1]||FOOD_ORDERS;
+      updateBdg();
+      if(kdsOn)renderKDS();
+    }).catch(function(){});
+  },60000);
+}
+
 function goTab(t){
   curTab=t;
   document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('on');});
   var btn=document.querySelector('[data-p="'+t+'"]');if(btn)btn.classList.add('on');
   document.querySelectorAll('.pane,.pane-flex').forEach(function(p){p.classList.remove('on');});
   var pane=document.getElementById('pane-'+t);if(pane)pane.classList.add('on');
+  /* KDS polling lifecycle */
+  if(t==='kds'){checkMigration029();
+  loadKDS();startKdsPoll();}else{stopKdsPoll();}
   if(t==='rs')renderRS();
   if(t==='ventes')goVnt(curVnt,null);
   if(t==='resa')renderResa();
   if(t==='stock')goStk(curStk,null);
   if(t==='admin')goAdm(curAdm,null);
+  if(t==='livraisons')renderLivraisonsTab(); /* PROMPT 034 */
 }
 
 var ROOM_CHARGES=[],ACTIVE_HOTEL_GUESTS=[];
 /* Load all */
 function loadAll(){
+  var _safe=function(p){return p.catch(function(){return[];});};
   Promise.all([
-    GET('/rest/v1/veraluz_restaurant_tables?select=*&order=name'),
-    GET('/rest/v1/veraluz_restaurant_products?select=*&order=category,name'),
-    GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60'),
-    GET('/rest/v1/veraluz_restaurant_stock?select=*&order=name'),
-    GET('/rest/v1/veraluz_restaurant_suppliers?select=*&order=name'),
-    GET('/rest/v1/veraluz_restaurant_reservations?select=*&order=date.asc'),
-    GET('/rest/v1/veraluz_reservations?select=id,unit_id,client_name,check_in,check_out,status&status=eq.checkedin'),
-    GET('/rest/v1/veraluz_room_charges?select=*&settled=eq.false&order=created_at.desc'),
+    _safe(GET('/rest/v1/veraluz_restaurant_tables?select=*&order=name')),
+    _safe(GET('/rest/v1/veraluz_restaurant_products?select=*&order=category,name')),
+    _safe(GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60')),
+    _safe(GET('/rest/v1/veraluz_restaurant_stock?select=*&order=name')),
+    _safe(GET('/rest/v1/veraluz_restaurant_suppliers?select=*&order=name')),
+    _safe(GET('/rest/v1/veraluz_restaurant_reservations?select=*&order=date.asc')),
+    _safe(GET('/rest/v1/veraluz_reservations?select=id,unit_id,client_name,check_in,check_out,status&status=eq.checkedin')),
+    _safe(GET('/rest/v1/veraluz_room_charges?select=*&settled=eq.false&order=created_at.desc')),
+    _safe(GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50')),
+    _safe(GET('/rest/v1/veraluz_food_promotions?select=*&order=created_at.desc')),
+    /* P0 FIX: veraluz_employees (table officielle) + join equipe */
+    /* PROMPT 025 SÉCURITÉ: code PIN retiré du select — jamais exposé côté frontend */
+    /* PROMPT 026 : photo_url + identity_verified pour affichage livreur */
+    _safe(GET('/rest/v1/veraluz_employees?select=id,full_name,role,status,phone,email,photo_url,public_display_name,identity_verified,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')),
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
-    RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];
+    RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];APP_PROMOS=r[9]||[];
+    /* Filtre livreurs via isDeliveryEmployee() : équipe OU rôle */
+    LIVREURS=(r[10]||[]).filter(isDeliveryEmployee).map(normalizeEmployee);
+    /* P0 FIX: normalise les statuts food à la source — tout le code aval utilise o.status directement */
+    FOOD_ORDERS=(FOOD_ORDERS||[]).map(function(o){
+      var ns=normalizeOrderStatus(o.status);
+      return ns!==o.status?Object.assign({},o,{status:ns}):o;
+    });
     buildSecFilt();renderTables();buildMenu();updateBdg();
     loadMvts();loadSOs();
     if(curTab==='resa')renderResa();
+    if(curTab==='kds')renderKDS();
+    startGlobalPoll();
   }).catch(function(e){toast('Erreur chargement: '+e,'er');});
 }
 function loadMvts(){GET('/rest/v1/veraluz_restaurant_stock_movements?select=*&order=created_at.desc&limit=100').then(function(r){MVTS=r||[];}).catch(function(){});}
@@ -914,7 +1370,10 @@ function loadSOs(){GET('/rest/v1/veraluz_restaurant_supplier_orders?select=*&ord
 /* Badges */
 function updateBdg(){
   document.getElementById('bdg-tbl').textContent=TABLES.filter(function(t){return t.status==='occupee';}).length;
-  document.getElementById('bdg-kds').textContent=ORDERS.filter(function(o){return o.status==='ouvert'||o.status==='en_preparation';}).length;
+  var kdsRest=ORDERS.filter(function(o){return o.status==='ouvert'||o.status==='en_preparation';}).length;
+  /* Statuts food déjà normalisés au chargement — confirmed = en attente cuisine */
+  var kdsFood=(FOOD_ORDERS||[]).filter(function(o){return o.status==='pending'||o.status==='confirmed'||o.status==='preparing';}).length;
+  document.getElementById('bdg-kds').textContent=kdsRest+kdsFood;
   var lo=STOCK.filter(function(s){return(s.quantity||0)<=(s.min_threshold||5);}).length;
   var bel=document.getElementById('bdg-stk');bel.textContent=lo;bel.style.display=lo?'':'none';
 }
@@ -1197,34 +1656,827 @@ function _doSendKitchen(){
   }
 }
 
-/* KDS */
-function loadKDS(){
-  document.getElementById('kds-title').textContent='&#128104;&#8205;&#127859; Cuisine & Bar — Commandes en cours';
-  var wrap=document.getElementById('kds-grid');
-  var active=ORDERS.filter(function(o){return o.status==='ouvert'||o.status==='en_preparation';});
-  if(!active.length){wrap.innerHTML='<div class="empty"><div class="eico">&#128104;&#8205;&#127859;</div>Aucune commande</div>';return;}
-  wrap.innerHTML=active.map(function(o){
-    var items=o.items_json||[];
-    if(!items.length)return'';
-    var tbl=TABLES.find(function(t){return t.id===o.table_id;});
-    var tnm=o.type==='room'?'Room '+o.room_number:tbl?tbl.name:'Table';
-    var el=Math.floor((Date.now()-new Date(o.created_at))/60000);
-    return '<div class="kc">'
-      +'<div class="kc-h"><span class="kc-tbl">'+esc(tnm)+'</span><span class="kc-t'+(el>15?'':' ok')+'">&#9200; '+el+'min</span></div>'
-      +items.map(function(it){return'<div class="kc-item"><span>'+it.qty+'&#215; '+esc(it.name)+'</span><span style="font-size:10px;color:var(--text3)">'+it.status+'</span></div>';}).join('')
-      +'<div class="kc-acts">'
-      +(o.status==='ouvert'?'<button class="btn bw bs" style="flex:1" data-id="'+o.id+'" data-s="en_preparation" onclick="kdsUpd(this.dataset.id,this.dataset.s)">&#9654; D&#233;marrer</button>':'')
-      +(o.status==='en_preparation'?'<button class="btn bp bs" style="flex:1" data-id="'+o.id+'" data-s="pret" onclick="kdsUpd(this.dataset.id,this.dataset.s)">&#9989; Pr&#234;t</button>':'')
-      +(o.status==='pret'?'<button class="btn bw bs" style="flex:1" data-id="'+o.id+'" onclick="openPayMd(this.dataset.id)">&#128179; Encaisser</button>':'')
-      +'</div></div>';
-  }).filter(Boolean).join('');
+/* ═══════════════════════════════════════════════════════
+   KDS — CENTRE OPÉRATIONNEL CUISINE
+   Sources: Restaurant (ORDERS) + Web App (FOOD_ORDERS)
+════════════════════════════════════════════════════════ */
+var FOOD_ORDERS=[];
+var _kdsFilter='all';
+var _kdsSnd=true;
+/* PROMPT 028 : AudioContext persistant — créé seulement après geste utilisateur */
+var _kdsAudioCtx=null;
+var _kdsAudioReady=false;
+
+function initKdsAudio(){
+  if(_kdsAudioCtx){
+    _kdsAudioCtx.resume().catch(function(){});
+    _kdsAudioReady=true;
+    _updateSndBtnLabel();
+    toast('&#128276; Alertes sonores activ&#233;es','ok');
+    return;
+  }
+  try{
+    _kdsAudioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    _kdsAudioCtx.resume().then(function(){
+      _kdsAudioReady=true;
+      _updateSndBtnLabel();
+      toast('&#128276; Alertes sonores activ&#233;es','ok');
+      /* Test bip discret à l'activation */
+      _playBeepOnCtx(440,0.1,0);
+    }).catch(function(e){
+      console.warn('[Audio] Resume failed:',e);
+      toast('Son non disponible sur ce navigateur','er');
+    });
+  }catch(e){
+    console.warn('[Audio] AudioContext non supporté:',e);
+    toast('Audio non supporté sur cet appareil','er');
+  }
 }
+
+function _playBeepOnCtx(freq,vol,delay){
+  if(!_kdsAudioCtx||!_kdsAudioReady)return;
+  try{
+    var o=_kdsAudioCtx.createOscillator();
+    var g=_kdsAudioCtx.createGain();
+    o.connect(g);g.connect(_kdsAudioCtx.destination);
+    o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,_kdsAudioCtx.currentTime+delay);
+    g.gain.exponentialRampToValueAtTime(0.001,_kdsAudioCtx.currentTime+delay+0.3);
+    o.start(_kdsAudioCtx.currentTime+delay);
+    o.stop(_kdsAudioCtx.currentTime+delay+0.3);
+  }catch(e){}
+}
+
+function _updateSndBtnLabel(){
+  var b=document.getElementById('kds-snd-btn');if(!b)return;
+  var actif=document.getElementById('kds-snd-actif');if(actif)actif.style.display=_kdsAudioReady?'none':'inline';
+  b.classList.toggle('on',_kdsSnd&&_kdsAudioReady);
+}
+var _kdsInterval=null;
+var _kdsKnownIds=[];
+
+/* ══ PROMPT 027 — Alerte visuelle nouvelles commandes Food ══ */
+function showOrderAlert(n,name){
+  /* PROMPT 028 : popup plus visible + son 3 bips */
+  var banner=document.getElementById('order-alert-banner');
+  var txt=document.getElementById('order-alert-txt');
+  if(txt)txt.textContent=(n>1?n+' nouvelles commandes':name?'Nouvelle commande : '+name:'Nouvelle commande Food');
+  if(banner){
+    banner.classList.add('show');
+    /* Animation pulse */
+    banner.style.animation='none';
+    void banner.offsetWidth;
+    banner.style.animation='';
+  }
+  kdsBeep();
+  /* Auto-dismiss après 3 min (rappel visuel seulement) */
+  setTimeout(function(){dismissOrderAlert();},180000);
+}
+
+function dismissOrderAlert(){
+  var b=document.getElementById('order-alert-banner');if(b)b.classList.remove('show');
+}
+
+/* Sound notification */
+function kdsBeep(){
+  if(!_kdsSnd)return;
+  if(!_kdsAudioReady||!_kdsAudioCtx){
+    /* PROMPT 028 : son non encore activé — montrer l'invite */
+    var b=document.getElementById('kds-snd-actif');if(b)b.style.display='inline';
+    return;
+  }
+  /* PROMPT 028 : 3 bips via contexte persistant */
+  _kdsAudioCtx.resume().then(function(){
+    [880,1100,1320].forEach(function(freq,i){
+      _playBeepOnCtx(freq,0.25,i*0.18);
+    });
+  }).catch(function(){});
+}
+function toggleKdsSnd(){
+  if(!_kdsAudioReady){
+    /* PROMPT 028 : premier clic → initialiser AudioContext */
+    initKdsAudio();
+    _kdsSnd=true;
+  } else {
+    _kdsSnd=!_kdsSnd;
+  }
+  var b=document.getElementById('kds-snd-btn');if(!b)return;
+  b.classList.toggle('on',_kdsSnd&&_kdsAudioReady);
+  b.innerHTML='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">'
+    +(_kdsSnd?'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>'
+      :'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>')
+    +'</svg>'+(_kdsSnd?'Son':'Muet');
+}
+
+/* Filter buttons */
+function kdsFilter(btn,f){
+  _kdsFilter=f;
+  document.querySelectorAll('.kds-flt').forEach(function(b){b.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  renderKDS();
+}
+
+/* Load food web app orders */
+function loadFoodOrders(){
+  return GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50')
+    .then(function(d){FOOD_ORDERS=d||[];})
+    .catch(function(){});
+}
+
+/* Main KDS entry point */
+function loadKDS(){
+  var _sf=function(p){return p.catch(function(){return[];});};
+  Promise.all([
+    _sf(GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60')),
+    _sf(GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50'))
+  ]).then(function(r){
+    ORDERS=r[0]||[];FOOD_ORDERS=r[1]||[];
+    renderKDS();updateBdg();
+  }).catch(function(){renderKDS();});
+}
+
+/* Stock alert */
+function renderKdsStockAlert(){
+  var low=STOCK.filter(function(s){return(s.quantity||0)<=(s.min_threshold||5);});
+  var el=document.getElementById('kds-stk-alert');
+  var tx=document.getElementById('kds-stk-txt');
+  if(!el||!tx)return;
+  if(low.length){
+    el.style.display='flex';
+    tx.textContent='&#9888; Stock critique: '+low.map(function(s){return s.name+' ('+s.quantity+')';}).join(' · ');
+  }else{el.style.display='none';}
+}
+
+/* Normalize all sources → unified format */
+function buildKdsUnified(){
+  var unified=[];
+  var skipRest=['paye','annule','cancelled','remis'];
+  /* Restaurant orders */
+  ORDERS.forEach(function(o){
+    if(skipRest.indexOf(o.status)>-1)return;
+    var src=o.type==='room'?'room':'place';
+    var kst=o.status==='ouvert'?'new':o.status==='en_preparation'?'prep':o.status==='pret'?'ready':'new';
+    var tbl=TABLES.find(function(t){return t.id===o.table_id;});
+    var ref=o.type==='room'?'Ch. '+(o.room_number||'?'):tbl?tbl.name:'Table';
+    unified.push({
+      _id:o.id,_table:'rest',_src:src,_kst:kst,
+      ref:ref,
+      info:o.type==='room'?'Chambre '+(o.room_number||'?')+(o.room_name?' · '+o.room_name:''):'',
+      items:o.items_json||[],note:o.notes||'',
+      created_at:o.created_at,payStatus:null,phone:'',zone:''
+    });
+  });
+  /* Food web app orders — statuts déjà normalisés au chargement dans loadAll() */
+  var skipFood=['delivered','cancelled'];
+  FOOD_ORDERS.forEach(function(o){
+    if(skipFood.indexOf(o.status)>-1)return;
+    var dt=o.delivery_type||'pickup';
+    var src=dt==='delivery'?'livraison':dt==='room'?'room':dt==='lounge'?'lounge':'place';
+    var kst=o.status==='pending'?'new':o.status==='confirmed'?'new':o.status==='preparing'?'prep':o.status==='ready'?'ready':o.status==='out_for_delivery'?'handed':'new';
+    var items=[];
+    try{items=typeof o.items==='string'?JSON.parse(o.items):(o.items||[]);}catch(e){}
+    unified.push({
+      _id:o.id,_table:'food',_src:src,_kst:kst,
+      ref:o.order_number||'WEB',
+      info:src==='livraison'?(o.customer_name||'')+(o.delivery_zone?' · '+o.delivery_zone:''):
+           src==='room'?'Chambre '+(o.room_number||'?'):
+           src==='lounge'?'Lounge — '+(o.customer_name||''):(o.customer_name||''),
+      phone:src==='livraison'?(o.customer_phone||''):'',
+      zone:o.delivery_zone||'',
+      items:items,note:o.notes||'',
+      created_at:o.created_at,
+      payStatus:o.payment_status||null,
+      assigned:o.assigned_to||''
+    });
+  });
+  /* Sort oldest first (most urgent) */
+  unified.sort(function(a,b){return new Date(a.created_at)-new Date(b.created_at);});
+  return unified;
+}
+
+/* Main render */
+function renderKDS(){
+  renderKdsStockAlert();
+  var all=buildKdsUnified();
+  /* New order sound */
+  var ids=all.map(function(o){return o._table+'_'+o._id;});
+  if(_kdsKnownIds.length){
+    var added=ids.filter(function(id){return _kdsKnownIds.indexOf(id)<0;});
+    if(added.length){
+      kdsBeep();
+      /* PROMPT 027 : bannière pour nouvelles commandes Food */
+      var newFoodOrd=all.filter(function(o){
+        return o._src==='livraison'&&_kdsKnownIds.indexOf(o._table+'_'+o._id)<0;
+      });
+      if(newFoodOrd.length){
+        var nm=newFoodOrd[0]&&(newFoodOrd[0].customer||newFoodOrd[0].ref||'');
+        showOrderAlert(newFoodOrd.length,nm);
+      }
+    }
+  }
+  _kdsKnownIds=ids;
+  /* Stats */
+  var nNew=all.filter(function(o){return o._kst==='new';}).length;
+  var nPrep=all.filter(function(o){return o._kst==='prep';}).length;
+  var nLate=all.filter(function(o){
+    var el=Math.floor((Date.now()-new Date(o.created_at))/60000);
+    return el>20&&o._kst!=='handed'&&o._kst!=='done';
+  }).length;
+  var sn=document.getElementById('kds-n-new');if(sn)sn.textContent=nNew;
+  var sp=document.getElementById('kds-n-prep');if(sp)sp.textContent=nPrep;
+  var slb=document.getElementById('kds-n-late');if(slb)slb.textContent=nLate;
+  var bdg=document.getElementById('bdg-kds');if(bdg)bdg.textContent=nNew+nPrep;
+  /* Filter */
+  var vis=_kdsFilter==='all'?all:all.filter(function(o){return o._src===_kdsFilter;});
+  var wrap=document.getElementById('kds-grid');if(!wrap)return;
+  if(!vis.length){
+    wrap.innerHTML='<div class="kds-empty">'
+      +'<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 002-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 00-5 5v6c0 1.1.9 2 2 2h3v7"/></svg>'
+      +'<p>Aucune commande'+(vis.length<all.length?' dans ce filtre':'')+'</p>'
+      +'<small>Vérifiez les filtres ou rafraîchissez (&#8635;)</small></div>';
+    return;
+  }
+  wrap.innerHTML=vis.map(kdsCard).join('');
+}
+
+/* Render one KDS card */
+function kdsCard(o){
+  var el=Math.floor((Date.now()-new Date(o.created_at))/60000);
+  var tcls=el>20?'late':el>12?'warn':'ok';
+  var tstr=el<60?el+'min':Math.floor(el/60)+'h'+String(el%60).padStart(2,'0');
+  var bCls={place:'b-place',livraison:'b-livraison',room:'b-room',lounge:'b-lounge'}[o._src]||'b-place';
+  var sCls={place:'s-place',livraison:'s-livraison',room:'s-room',lounge:'s-lounge'}[o._src]||'s-place';
+  var bTxt={place:'Sur Place',livraison:'Livraison',room:'Room Service',lounge:'Lounge'}[o._src]||'';
+  /* 5-step progress */
+  var STEPS=['new','prep','ready','handed','done'];
+  var STEP_LBL=['Nouvelle','Préparation','Prête','Remise','Terminée'];
+  var si=STEPS.indexOf(o._kst);
+  var progBar=STEPS.map(function(s,i){
+    var c=i<si?'done':i===si?'curr':'';
+    return '<div class="kc2-step '+c+'"></div>';
+  }).join('');
+  /* Items */
+  var itHtml=(o.items||[]).map(function(it){
+    var q=it.qty||it.quantity||1;
+    var n=it.name||it.product_name||'Article';
+    return '<div class="kc2-it"><span class="kc2-it-qty">'+q+'×</span><span class="kc2-it-name">'+esc(n)+'</span></div>';
+  }).join('');
+  if(!itHtml)itHtml='<div class="kc2-it" style="color:var(--text3);font-style:italic">Détails non disponibles</div>';
+  /* Pay chip */
+  var pChip='';
+  if(o.payStatus){
+    var pm={pending:'⏳ En attente',paid:'✓ Payé',pay_on_delivery:'🚚 Livraison',failed:'✗ Échec'};
+    var pc={pending:'pending',paid:'paid',pay_on_delivery:'delivery'};
+    pChip='<span class="pay-chip '+(pc[o.payStatus]||'pending')+'">'+(pm[o.payStatus]||o.payStatus)+'</span>';
+  }
+  /* Info lines */
+  var infoHtml='';
+  if(o.info)infoHtml+='<div class="kc2-info">'+esc(o.info)+'</div>';
+  if(o.phone)infoHtml+='<div class="kc2-info"><strong>&#128222;</strong> '+esc(o.phone)+'</div>';
+  if(o.assigned){
+    /* PROMPT 026 : afficher photo + identité livreur dans la carte KDS */
+    var livreurData=LIVREURS.find(function(l){return String(l.id)===String(o.livreur_id||'');});
+    var driverAvatar='';
+    if(livreurData&&livreurData.photo_url){
+      driverAvatar='<img src="'+esc(livreurData.photo_url)+'" style="width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:4px" alt="">';
+    }
+    var idBadge=(livreurData&&livreurData.identity_verified)
+      ?'<span style="font-size:9px;color:#22d3a5;font-weight:700;margin-left:4px">&#10003;</span>'
+      :(livreurData&&!livreurData.photo_url)
+        ?'<span style="font-size:9px;color:#f59e0b;margin-left:4px">📷</span>'
+        :'';
+    infoHtml+='<div class="kc2-info" style="color:#a78bfa;display:flex;align-items:center">'+driverAvatar+'<strong>&#128667;</strong> '+esc(o.assigned)+idBadge+'</div>';
+  }
+  if(o.zone)infoHtml+='<div class="kc2-info"><strong>&#128506;</strong> Zone: '+esc(o.zone)+'</div>';
+  /* Action buttons */
+  var acts='';
+  if(o._table==='rest'){
+    if(o._kst==='new')
+      acts='<button class="btn bw bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-s="en_preparation" onclick="kdsUpd(this.dataset.id,this.dataset.s)">&#9654; D&#233;marrer</button>';
+    else if(o._kst==='prep')
+      acts='<button class="btn bp bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-s="pret" onclick="kdsUpd(this.dataset.id,this.dataset.s)">&#10003; Pr&#234;te</button>';
+    else if(o._kst==='ready')
+      acts=(o._src==='place')
+        ?'<button class="btn bp bs" style="flex:1;font-size:11px" data-id="'+o._id+'" onclick="openPayMd(this.dataset.id)">&#128179; Encaisser</button>'
+        :'<button class="btn bp bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-s="remis" onclick="kdsUpd(this.dataset.id,this.dataset.s)">&#8599; Remis</button>';
+  }else{
+    if(o._kst==='new')
+      acts='<button class="btn bw bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-st="preparing" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#9654; D&#233;marrer</button>';
+    else if(o._kst==='prep')
+      acts='<button class="btn bp bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-st="ready" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Pr&#234;te</button>';
+    else if(o._kst==='ready'){
+      var livLabel=o.assigned_to?'&#128667; '+esc(o.assigned_to):'&#128100; Livreur';
+      acts='<button class="btn bp bs" style="flex:2;font-size:11px" data-id="'+o._id+'" data-st="out_for_delivery" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#8599; Remis livreur</button>';
+      if(o._src==='livraison')
+        acts+='<button class="btn '+(o.assigned_to?'bw':'bg')+' bs" style="flex:1;font-size:10px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-id="'+o._id+'" onclick="kdsAssignLivreur(this.dataset.id)">'+livLabel+'</button>';
+    }else if(o._kst==='handed')
+      acts='<button class="btn bg bs" style="flex:1;font-size:10px;color:var(--text3)" data-id="'+o._id+'" data-st="delivered" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Confirm&#233;e</button>';
+  }
+  /* PROMPT 030 — bouton Messages pour commandes livraison */
+  var msgBtn='';
+  if(o._src==='livraison'||o._src==='room'){
+    msgBtn='<button class="btn bw bs" style="flex:0 0 auto;font-size:11px;padding:4px 8px;" '
+      +'data-id="'+o._id+'" onclick="openKdsMsg(this.dataset.id)" title="Messagerie livreur">'
+      +'&#128172; Msg'
+      +'<span id="kds-msg-badge-'+o._id+'" style="display:none;background:#ef4444;color:#fff;border-radius:8px;font-size:9px;font-weight:800;padding:0 4px;margin-left:3px;"></span>'
+      +'</button>';
+  }
+  return '<div class="kc2">'
+    +'<div class="kc2-stripe '+sCls+'"></div>'
+    +'<div class="kc2-top">'
+      +'<span class="kc2-badge '+bCls+'">'+bTxt+'</span>'+pChip
+      +'<span class="kc2-ref">'+esc(o.ref)+'</span>'
+      +'<span class="kc2-timer '+tcls+'">&#8987; '+tstr+'</span>'
+    +'</div>'
+    +infoHtml
+    +'<div class="kc2-items">'+itHtml+'</div>'
+    +(o.note?'<div class="kc2-note">&#128221; '+esc(o.note)+'</div>':'')
+    +'<div class="kc2-prog">'+progBar+'</div>'
+    +'<div class="kc2-prog-lbl">'+( STEP_LBL[si]||'')+'</div>'
+    +'<div class="kc2-acts">'+acts+(msgBtn?'<div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">'+msgBtn+'</div>':'')+'</div>'
+    +'</div>';
+}
+
+/* Update restaurant order status */
 function kdsUpd(oid,st){
   PATCH('veraluz_restaurant_orders',oid,{status:st}).then(function(){
     var o=ORDERS.find(function(x){return x.id===oid;});if(o)o.status=st;
-    loadKDS();updateBdg();toast('Statut mis &#224; jour','ok');
+    renderKDS();updateBdg();toast('&#10003; '+st,'ok');
+  }).catch(function(){toast('Erreur mise &#224; jour','er');});
+}
+
+/* PROMPT 028 : kdsFoodUpd — statuts + horodatages complets + erreurs détaillées */
+function kdsFoodUpd(oid,st){
+  var now=new Date().toISOString();
+  var patchData={status:st};
+  var lblMap={
+    confirmed:'Commande confirm&#233;e',
+    preparing:'Pr&#233;paration d&#233;marr&#233;e',
+    ready:'Commande pr&#234;te',
+    out_for_delivery:'Remise au livreur',
+    delivered:'Livraison confirm&#233;e'
+  };
+  /* Horodatages + delivery_status par &#233;tape */
+  if(st==='ready'){
+    patchData.delivery_status='waiting_assignment';
+  } else if(st==='out_for_delivery'){
+    /* PROMPT 028 : Remis livreur = picked_up (pas out_for_delivery) */
+    patchData.delivery_status='picked_up';
+    patchData.picked_up_at=now;
+  } else if(st==='delivered'){
+    patchData.delivery_status='delivered';
+    patchData.delivered_at=now;
+  }
+  PATCH('veraluz_food_orders',oid,patchData)
+    .then(function(){
+      var o=FOOD_ORDERS.find(function(x){return x.id===oid;});
+      if(o){o.status=st;if(patchData.delivery_status)o.delivery_status=patchData.delivery_status;}
+      renderKDS();
+      toast('&#10003; '+(lblMap[st]||st),'ok');
+      if(st==='delivered')syncStockFromFood(o);
+      /* PROMPT 028 : log delivery event */
+      _logRestEvent(oid,st);
+    })
+    .catch(function(e){
+      /* PROMPT 028 : si colonne manquante (PGRST204), fallback statut seulement */
+      if(e&&e.sbCode==='PGRST204'){
+        console.warn('[Restaurant] Colonne manquante — fallback statut seul. Exécutez MIGRATION_SQL_PROMPT_028.sql');
+        PATCH('veraluz_food_orders',oid,{status:st})
+          .then(function(){
+            var o=FOOD_ORDERS.find(function(x){return x.id===oid;});if(o)o.status=st;
+            renderKDS();
+            toast('&#10003; '+(lblMap[st]||st)+' (sans horodatage — migration requise)','ok');
+          })
+          .catch(function(e2){toast('Erreur Supabase: '+(e2&&e2.message||'mise &#224; jour'),'er');});
+        return;
+      }
+      console.warn('[Restaurant] PATCH erreur:',{
+  message:e&&e.message, code:e&&e.sbCode,
+  details:e&&e.sbDetails, http:e&&e.httpStatus,
+  payload:patchData, orderId:oid
+});
+      toast('Erreur: '+(e&&e.message||'mise &#224; jour'),'er');
+    });
+}
+
+/* Assign deliverer — modal avec cartes livreurs */
+function kdsAssignLivreur(oid){
+  _assignOid=oid;
+  var o=FOOD_ORDERS.find(function(x){return x.id===oid;});
+  var cur=o&&o.livreur_id;
+  var el=document.getElementById('liv-list');
+  if(!el)return;
+  if(!LIVREURS.length){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:var(--text3);">Aucun livreur actif trouvé.<br><small>Ajoutez des livreurs dans le module RH (équipe Livreurs).</small></div>';
+  }else{
+    el.innerHTML=LIVREURS.map(function(l){
+      var initials=((l.prenom||'').charAt(0)+(l.nom||'').charAt(0)).toUpperCase();
+      var isCur=cur===l.id;
+      var colors=['#22d3a5','#818cf8','#f59e0b','#f43f5e','#10b981','#3b82f6'];
+      var hsh=0;for(var i=0;i<(l.nom||'').length;i++){hsh=(hsh*31+l.nom.charCodeAt(i))%colors.length;}
+      var col=colors[Math.abs(hsh)%colors.length];
+      /* PROMPT 026 : afficher photo profil si disponible */
+      var photoUrl=l.photo_url||'';
+      var avContent=photoUrl
+        ?'<img src="'+esc(photoUrl)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="'+esc(initials)+'" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'block\'">'
+          +'<span style="display:none">'+initials+'</span>'
+        :initials;
+      /* Badge identité */
+      var idBadge=l.identity_verified
+        ?'<span style="font-size:9px;color:#22d3a5;font-weight:700">&#10003; vérif.</span>'
+        :!photoUrl
+          ?'<span style="font-size:9px;color:#f59e0b">📷 manquant</span>'
+          :'';
+      return '<button class="liv-card'+(isCur?' liv-cur':'')+'" data-lid="'+esc(l.id)+'" data-lnom="'+esc(l.prenom+' '+l.nom)+'" data-lphoto="'+esc(photoUrl)+'" onclick="pickLivreur(this)">'
+        +'<div class="liv-av" style="background:'+col+';overflow:hidden;position:relative">'+avContent+'</div>'
+        +'<div class="liv-info"><div class="liv-name">'+esc(l.prenom+' '+l.nom)+' '+idBadge+'</div>'
+        +'<div class="liv-role">'+esc(l.poste||'Livreur')+(l.vehicule?' · '+esc(l.vehicule):'')+'</div></div>'
+        +(isCur?'<span style="color:var(--acc1);font-size:16px;">&#10003;</span>':'')
+        +'</button>';
+    }).join('')
+    +'<button class="liv-card" style="border-style:dashed;color:var(--text3);" onclick="pickLivreur(null)">'
+    +'<div class="liv-av" style="background:var(--bg4);color:var(--text3);">&#10005;</div>'
+    +'<div class="liv-info"><div class="liv-name">Retirer l\'assignation</div></div>'
+    +'</button>';
+  }
+  /* Header avec infos commande */
+  var hdr=document.getElementById('liv-order-ref');
+  if(hdr&&o)hdr.textContent='Commande '+(o.order_number||o.id.slice(0,8).toUpperCase());
+  openMd('md-livreur');
+}
+function pickLivreur(btn){
+  var oid=_assignOid;
+  var o=FOOD_ORDERS.find(function(x){return x.id===oid;});
+  var lid=btn?btn.dataset.lid:null;
+  var lnom=btn?btn.dataset.lnom:null;
+  closeMd('md-livreur');
+  /* PROMPT 028 : confirmation si déjà assigné à un autre livreur */
+  if(o&&o.livreur_id&&lid&&String(o.livreur_id)!==String(lid)){
+    if(!confirm('Cette commande est déjà assignée à '+esc(o.assigned_to||'un livreur')+'. Voulez-vous réassigner ?'))return;
+  }
+  /* PROMPT 026 : copier driver_photo_url au moment de l'assignation */
+  var lphoto=btn?btn.dataset.lphoto||null:null;
+  /* PROMPT 027 : enregistrer assigned_at + delivery_status */
+  var now027=new Date().toISOString();
+  var assignPatch={
+    assigned_to: lnom||null,
+    livreur_id:  lid||null,
+    driver_photo_url: lphoto||null,
+    assigned_at: lid?now027:null,
+    delivery_status: lid?'assigned':'waiting_assignment'
+  };
+  /* PROMPT 031 : debug log avant PATCH + toast détaillé */
+  console.log('[Restaurant] pickLivreur PATCH', {
+    table: 'veraluz_food_orders',
+    filter: 'id=eq.'+oid,
+    livreur_id: lid,
+    assigned_to: lnom,
+    payload: assignPatch,
+    order: o ? {id:o.id,num:o.order_number,status:o.status} : null
+  });
+  PATCH('veraluz_food_orders',oid,assignPatch)
+    .then(function(){
+      if(o){o.assigned_to=lnom;o.livreur_id=lid;o.assigned_at=lid?now027:null;}
+      renderKDS();
+      toast(lnom?'&#128667; '+lnom+' assign&#233;':'Livreur retiré','ok');
+    })
+    .catch(function(e){
+      console.error('[Restaurant] Erreur assignation:', {
+        message: e&&e.message, code: e&&e.sbCode,
+        details: e&&e.sbDetails, http: e&&e.httpStatus,
+        oid: oid, lid: lid, lnom: lnom, payload: assignPatch
+      });
+      if(e&&e.sbCode==='PGRST204'){
+        console.warn('[Restaurant] Colonne manquante assignation. Exécutez MIGRATION_SQL_PROMPT_031.sql');
+        /* Fallback : assigner sans delivery_status/assigned_at */
+        PATCH('veraluz_food_orders',oid,{assigned_to:lnom||null,livreur_id:lid||null})
+          .then(function(){if(o){o.assigned_to=lnom;o.livreur_id=lid;}renderKDS();toast(lnom?'&#128667; '+lnom+' assign&#233; (partiel)':'Livreur retiré','ok');})
+          .catch(function(e2){
+            var msg2='Erreur assignation [F]: '+(e2&&e2.message||'?');
+            if(e2&&e2.sbCode)msg2+=' ['+e2.sbCode+']';
+            toast(msg2,'er');
+          });
+        return;
+      }
+      var msg='Erreur assignation: '+(e&&e.message||'?');
+      if(e&&e.sbCode)msg+=' (code: '+e.sbCode+')';
+      if(e&&e.sbDetails)msg+=' — '+e.sbDetails.slice(0,60);
+      toast(msg,'er');
+    });
+}
+
+/* PROMPT 029 : Vérification colonnes migration au démarrage */
+var _migrationOk = null; /* null=inconnu, true=ok, false=manquante */
+
+function checkMigration029(){
+  /* Vérifier qu'au moins delivery_status existe dans une commande */
+  fetch(SB+'/rest/v1/veraluz_food_orders?select=id,delivery_status&limit=1',
+    {headers:H()}
+  ).then(function(r){
+    if(!r.ok){
+      _migrationOk=false;
+      showMigrationAlert();
+      return;
+    }
+    return r.json().then(function(data){
+      /* PGRST204 = colonne inexistante dans les données */
+      if(Array.isArray(data)){
+        _migrationOk=true;
+        var b=document.getElementById('migration-alert-banner');
+        if(b)b.style.display='none';
+      } else {
+        _migrationOk=false;
+        showMigrationAlert();
+      }
+    });
+  }).catch(function(e){
+    console.warn('[Restaurant] checkMigration:', e.message||e);
   });
 }
+
+function showMigrationAlert(){
+  var b=document.getElementById('migration-alert-banner');
+  if(b)b.style.display='block';
+  console.warn('[Restaurant] MIGRATION REQUISE — Exécutez MIGRATION_SQL_PROMPT_028.sql dans Supabase');
+}
+
+var _MIGRATION_SQL = `-- Exécuter dans Supabase SQL Editor\nALTER TABLE veraluz_food_orders\n  ADD COLUMN IF NOT EXISTS delivery_status text DEFAULT 'not_required',\n  ADD COLUMN IF NOT EXISTS assigned_at timestamptz,\n  ADD COLUMN IF NOT EXISTS accepted_at timestamptz,\n  ADD COLUMN IF NOT EXISTS picked_up_at timestamptz,\n  ADD COLUMN IF NOT EXISTS out_for_delivery_at timestamptz,\n  ADD COLUMN IF NOT EXISTS arrived_at timestamptz,\n  ADD COLUMN IF NOT EXISTS delivered_at timestamptz,\n  ADD COLUMN IF NOT EXISTS livreur_id text,\n  ADD COLUMN IF NOT EXISTS assigned_to text,\n  ADD COLUMN IF NOT EXISTS driver_photo_url text,\n  ADD COLUMN IF NOT EXISTS proof_photo_url text;`;
+
+function copyMigrationSQL(){
+  if(navigator.clipboard&&_MIGRATION_SQL){
+    navigator.clipboard.writeText(_MIGRATION_SQL).then(function(){
+      toast('SQL copié dans le presse-papier','ok');
+    }).catch(function(){
+      prompt('Copiez ce SQL dans Supabase:', _MIGRATION_SQL);
+    });
+  } else {
+    prompt('Copiez ce SQL dans Supabase:', _MIGRATION_SQL);
+  }
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 030 — MESSAGERIE KDS RESTAURANT ↔ LIVREUR
+══════════════════════════════════════════ */
+var _kdsMsgOrderId = null;
+
+/* Messages rapides Restaurant */
+var KDS_QUICK_REPLIES = [
+  'Commande prête',
+  'Merci de récupérer la commande',
+  'Client attend depuis longtemps',
+  'Vérifie le paiement',
+  'Appelle le restaurant',
+  'Adresse modifiée',
+  'Attention : commande prioritaire'
+];
+
+function openKdsMsg(orderId){
+  _kdsMsgOrderId = orderId;
+  var o = FOOD_ORDERS.find(function(x){return x.id===orderId;});
+  var ref = o ? (o.order_number||o.id||'').toString().slice(0,8) : orderId.slice(0,8);
+  document.getElementById('kds-msg-ref').textContent = '#'+ref;
+  /* Quick replies */
+  var qrEl = document.getElementById('kds-qr-row');
+  if(qrEl){
+    qrEl.innerHTML = KDS_QUICK_REPLIES.map(function(q){
+      return '<button style="flex-shrink:0;background:var(--bg3,#1c2333);border:1px solid var(--bord2,#30363d);color:var(--text3,#8b949e);padding:5px 10px;border-radius:14px;font-size:11px;cursor:pointer;white-space:nowrap;" '
+        +'onclick="sendKdsMsgText(\''+q.replace(/'/g,"\\'")+'\')">'
+        +q+'</button>';
+    }).join('');
+  }
+  var list = document.getElementById('kds-msg-list');
+  if(list) list.innerHTML = '<div style="text-align:center;color:var(--text3,#8b949e);padding:12px;font-size:12px;">Chargement…</div>';
+  openMd('md-kds-msg');
+  renderKdsMsgs(orderId);
+}
+
+function closeKdsMsg(){
+  closeMd('md-kds-msg');
+  _kdsMsgOrderId = null;
+}
+
+function renderKdsMsgs(orderId){
+  var list = document.getElementById('kds-msg-list');
+  if(!list)return;
+  fetch(SB+'/rest/v1/veraluz_delivery_messages?tenant_id=eq.veraluz-001&order_id=eq.'+encodeURIComponent(orderId)+'&order=created_at.asc',{headers:H()})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      if(!rows||!rows.length){
+        list.innerHTML='<div style="text-align:center;color:var(--text3,#8b949e);padding:20px;font-size:12px;">Aucun message pour cette commande</div>';
+        return;
+      }
+      list.innerHTML = rows.map(function(m){
+        var isRest = m.sender_type==='restaurant';
+        var dt = m.created_at ? new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : '';
+        var align = isRest ? 'flex-end' : 'flex-start';
+        var bg = isRest ? 'rgba(88,166,255,.18)' : 'var(--bg3,#1c2333)';
+        return '<div style="display:flex;justify-content:'+align+'">'
+          +'<div style="max-width:80%;padding:8px 12px;border-radius:10px;background:'+bg+';font-size:13px;">'
+          +'<div style="font-size:10px;color:var(--text3,#8b949e);margin-bottom:3px;">'
+          +(isRest?'🍽️ Restaurant':'🛵 '+esc(m.sender_name||'Livreur'))+' · '+dt+'</div>'
+          +esc(m.message||'')
+          +'</div></div>';
+      }).join('');
+      /* scroll to bottom */
+      setTimeout(function(){list.scrollTop=list.scrollHeight;},40);
+    }).catch(function(){
+      list.innerHTML='<div style="text-align:center;color:var(--text3);padding:16px;font-size:12px;">Messages indisponibles</div>';
+    });
+}
+
+function sendKdsMsgText(text){
+  var inp = document.getElementById('kds-msg-inp');
+  if(inp) inp.value = text;
+  sendKdsMsg();
+}
+
+function sendKdsMsg(){
+  /* PROMPT 031D — Double INSERT: delivery_messages + internal_messages miroir */
+  if(!_kdsMsgOrderId)return;
+  var inp = document.getElementById('kds-msg-inp');
+  var txt = inp ? (inp.value||'').trim() : '';
+  if(!txt)return;
+
+  /* Récupérer l'objet commande pour obtenir le livreur assigné */
+  var order = FOOD_ORDERS.find(function(x){return x.id===_kdsMsgOrderId;});
+  var livreurId = order ? String(order.livreur_id||'') : '';
+  /* Trouver le nom du livreur dans la liste */
+  var livreurObj = livreurId ? LIVREURS.find(function(l){return String(l.id)===livreurId;}) : null;
+  var livreurName = livreurObj ? (livreurObj.full_name||livreurObj.prenom||'Livreur') : 'Livreur';
+
+  /* Guard : si pas de livreur assigné, bloquer l'envoi */
+  if(!livreurId){
+    toast('Aucun livreur assigné à cette commande','er');
+    console.warn('[KDS MSG] Pas de livreur_id pour order='+_kdsMsgOrderId);
+    return;
+  }
+
+  if(inp)inp.value='';
+  inp.disabled = true;
+  var now = new Date().toISOString();
+  console.log('[KDS MSG] Envoi order='+_kdsMsgOrderId+' → livreur='+livreurId+' txt='+txt.substring(0,30));
+
+  var delivPayload = {
+    tenant_id:'veraluz-001',
+    order_id:_kdsMsgOrderId,
+    sender_type:'restaurant',
+    sender_name:'Restaurant Veraluz',
+    recipient_type:'driver',
+    recipient_id:livreurId,
+    recipient_name:livreurName,
+    department:'delivery',
+    message:txt,
+    message_type:'text',
+    priority:'normal',
+    status:'sent',
+    livreur_id:livreurId,
+    created_at:now
+  };
+
+  /* INSERT 1 — veraluz_delivery_messages (principal) */
+  fetch(SB+'/rest/v1/veraluz_delivery_messages',{
+    method:'POST',
+    headers:H({Prefer:'return=minimal'}),
+    body:JSON.stringify(delivPayload)
+  }).then(function(r){
+    if(!r.ok){
+      return r.text().then(function(body){
+        var detail='';
+        try{var j=JSON.parse(body);detail=j.message||j.error||j.hint||j.code||JSON.stringify(j);}
+        catch(e){detail=body?body.substring(0,120):'HTTP '+r.status;}
+        throw {status:r.status, detail:detail};
+      });
+    }
+    return r.json().catch(function(){return {};});
+  }).then(function(){
+    toast('Message envoyé ✓','ok');
+    console.log('[KDS MSG] delivery_messages OK order='+_kdsMsgOrderId);
+    renderKdsMsgs(_kdsMsgOrderId);
+    var badge = document.getElementById('kds-msg-badge-'+_kdsMsgOrderId);
+    if(badge){badge.style.display='none';}
+
+    /* INSERT 2 — veraluz_internal_messages miroir (non-bloquant) */
+    var mirrorPayload = {
+      tenant_id:'veraluz-001',
+      sender_type:'restaurant',
+      sender_id:'restaurant',
+      sender_name:'Restaurant Veraluz',
+      recipient_type:'driver',
+      recipient_id:livreurId,
+      recipient_name:livreurName,
+      department:'delivery',
+      context_type:'order',
+      context_id:_kdsMsgOrderId,
+      message:txt,
+      message_type:'text',
+      priority:'normal',
+      is_internal:true,
+      status:'sent',
+      source_type:'delivery_message',
+      created_at:now
+    };
+    fetch(SB+'/rest/v1/veraluz_internal_messages',{
+      method:'POST',
+      headers:H({Prefer:'return=minimal'}),
+      body:JSON.stringify(mirrorPayload)
+    }).then(function(r2){
+      if(!r2.ok) r2.text().then(function(b){console.warn('[KDS MSG] Mirror 400:', b.substring(0,120));});
+      else console.log('[KDS MSG] internal_messages miroir OK');
+    }).catch(function(e2){console.warn('[KDS MSG] Mirror erreur:', e2&&e2.message||e2);});
+
+  }).catch(function(e){
+    var msg=e&&(e.detail||e.message||JSON.stringify(e))||'Erreur inconnue';
+    var code=e&&e.status?' [HTTP '+e.status+']':'';
+    toast('Erreur: '+msg+code,'er');
+    console.error('[KDS MSG] Erreur:', e, 'order='+_kdsMsgOrderId);
+    if(inp){inp.disabled=false;inp.value=txt;}
+  }).finally(function(){if(inp)inp.disabled=false;});
+}
+
+/* Polling messages non lus (toutes les 30s) — badge par commande */
+function pollKdsMsgBadges(){
+  if(!FOOD_ORDERS||!FOOD_ORDERS.length)return;
+  var today=new Date().toISOString().slice(0,10);
+  fetch(SB+'/rest/v1/veraluz_delivery_messages?tenant_id=eq.veraluz-001&created_at=gte.'+today+'T00:00:00&sender_type=eq.driver&order=created_at.desc&limit=40',{headers:H()})
+    .then(function(r){return r.json();})
+    .then(function(rows){
+      /* Compter messages livreur par order_id pour les commandes actives */
+      var counts={};
+      (rows||[]).forEach(function(m){if(m.order_id)counts[m.order_id]=(counts[m.order_id]||0)+1;});
+      Object.keys(counts).forEach(function(oid){
+        var badge=document.getElementById('kds-msg-badge-'+oid);
+        if(badge&&counts[oid]>0){badge.textContent=counts[oid];badge.style.display='';}
+      });
+    }).catch(function(){});
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 028 : log événement livraison côté Restaurant */
+function _logRestEvent(orderId,eventType){
+  if(!orderId)return;
+  var evtMap={
+    preparing:'preparing',ready:'ready_to_deliver',
+    out_for_delivery:'picked_up',delivered:'delivered_confirmed'
+  };
+  var evt=evtMap[eventType];
+  if(!evt)return;
+  var row={tenant_id:'veraluz-001',order_id:String(orderId),
+    event_type:evt,actor_type:'restaurant',
+    actor_name:'Cuisine',note:'Mise à jour Restaurant PROMPT 028'};
+  fetch(SB+'/rest/v1/veraluz_delivery_events',{
+    method:'POST',headers:H({Prefer:'return=minimal'}),body:JSON.stringify(row)
+  }).catch(function(e){console.warn('[RestEvent]',e.message||e);}); /* best effort */
+}
+
+/* Stock deduction on delivery */
+function syncStockFromFood(order){
+  if(!order)return;
+  var items=[];
+  try{items=typeof order.items==='string'?JSON.parse(order.items):(order.items||[]);}catch(e){return;}
+  items.forEach(function(it){
+    var s=STOCK.find(function(s){return s.name===it.name||s.product_id===it.product_id;});
+    if(s&&s.id){
+      var nq=Math.max(0,(s.quantity||0)-(it.qty||it.quantity||1));
+      PATCH('veraluz_restaurant_stock',s.id,{quantity:nq})
+        .then(function(){s.quantity=nq;renderKdsStockAlert();updateBdg();})
+        .catch(function(){});
+    }
+  });
+}
+
+/* Auto-refresh polling */
+/* ── Écoute postMessage de FOOD_LOUNGE (notification immédiate) ── */
+window.addEventListener('message',function(ev){
+  try{
+    var d=ev.data;
+    if(!d||!d.veraluzEvent||d.source!=='food-lounge'||d.type!=='new_food_order')return;
+    var order=d.data;if(!order)return;
+    /* Ajouter à FOOD_ORDERS si pas déjà présent */
+    var exists=FOOD_ORDERS.some(function(o){return o.order_number===order.order_number;});
+    if(!exists){
+      FOOD_ORDERS.unshift(order);
+      renderKDS();updateBdg();
+      kdsBeep();
+      toast('🍽 Nouvelle commande '+order.order_type+' — '+(order.customer_name||order.order_number),'ok');
+    }
+  }catch(e){}
+});
+
+function startKdsPoll(){
+  stopKdsPoll();
+  _kdsInterval=setInterval(function(){
+    Promise.all([
+      GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60'),
+      GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50')
+    ]).then(function(r){
+      ORDERS=r[0]||[];FOOD_ORDERS=r[1]||[];
+      renderKDS();updateBdg();
+    }).catch(function(){});
+  },12000); /* PROMPT 027 : 12s → réactivité livraison */
+  /* PROMPT 030 : badge messages non lus toutes les 30s */
+  setInterval(pollKdsMsgBadges, 30000);
+}
+function stopKdsPoll(){if(_kdsInterval){clearInterval(_kdsInterval);_kdsInterval=null;}}
 
 /* Payment */
 function openPayMd(oid){
@@ -1788,13 +3040,14 @@ function goAdm(t,btn){
   curAdm=t;
   document.querySelectorAll('.atab').forEach(function(b){b.classList.remove('on');});
   if(btn)btn.classList.add('on');
-  else{var i=['tbl','mnu','cat','sup'].indexOf(t);var bs=document.querySelectorAll('.atab');if(bs[i])bs[i].classList.add('on');}
+  else{var i=['tbl','mnu','cat','sup','app'].indexOf(t);var bs=document.querySelectorAll('.atab');if(bs[i])bs[i].classList.add('on');}
   document.querySelectorAll('.apane').forEach(function(p){p.classList.remove('on');});
   document.getElementById('ap-'+t).classList.add('on');
   if(t==='tbl')renderAdmTbl();
   if(t==='mnu')renderAdmMnu();
   if(t==='cat')renderAdmCat();
   if(t==='sup')renderAdmSup();
+  if(t==='app')renderAdmApp();
 }
 /* Tables CRUD */
 function openTblMd(id){
@@ -1925,8 +3178,375 @@ function renderAdmSup(){
   }).join('')||'<div class="empty">Aucun fournisseur</div>';
 }
 
+
+/* ── PROMPT 032 — Alert notifications OS Restaurant ── */
+var _vlzRestNP=false,_vlzLastDelivMsgId='',_vlzRestMsgInterval=null;
+function _vlzRestRequestNotif(){
+  if(!('Notification' in window)||Notification.permission!=='default')return;
+  Notification.requestPermission().then(function(p){_vlzRestNP=(p==='granted');}).catch(function(){});
+}
+function _vlzRestNotif(title,body,tag){
+  _vlzRestNP=(typeof Notification!=='undefined'&&Notification.permission==='granted');
+  if(!_vlzRestNP)return;
+  try{new Notification(title||'Veraluz Restaurant',{body:body||'',tag:tag||'vlz-rest',
+    icon:'https://ngams237.github.io/mako-city_suivis_ok/icon-192.png',silent:false});}catch(e){}
+}
+function startRestaurantMsgPolling(){
+  if(_vlzRestMsgInterval)return;
+  /* PROMPT 033A \u2014 R1 : remplac\u00E9 sbGet (inexistant) + TENANT (non d\u00E9fini) par GET() + tenant en dur */
+  _vlzRestMsgInterval=setInterval(function(){
+    GET('/rest/v1/veraluz_delivery_messages'
+      +'?tenant_id=eq.veraluz-001'
+      +'&sender_type=eq.driver'
+      +'&order=created_at.desc'
+      +'&limit=5')
+    .then(function(msgs){
+      if(!msgs||!msgs.length)return;
+      var newest=msgs[0];
+      if(!newest||!newest.id)return;
+      if(_vlzLastDelivMsgId===String(newest.id))return;
+      /* Premier chargement : m\u00E9moriser l'ID sans d\u00E9clencher d'alerte */
+      if(_vlzLastDelivMsgId===''){ _vlzLastDelivMsgId=String(newest.id); return; }
+      _vlzLastDelivMsgId=String(newest.id);
+      var from=newest.sender_name||'Livreur';
+      var txt=(newest.message||newest.subject||'Message livreur').substring(0,60);
+      _playBeepOnCtx(880,0.3,0);
+      setTimeout(function(){_playBeepOnCtx(1000,0.28,0.15);},180);
+      toast('\uD83D\uDD14 '+from+' : '+txt,'ok');
+      _vlzRestNotif('Message de '+from, txt, 'vlz-rest-msg-'+newest.id);
+      console.log('[REST ALERT] Livreur:', from, txt);
+    }).catch(function(e){
+      console.warn('[REST MSG POLL] Erreur polling messages livreur:', e);
+    });
+  },15000);
+}
+/* ═══════════════════════════════════════════
+   PROMPT 034 — LIVRAISONS
+═══════════════════════════════════════════ */
+
+function goLiv(t,btn){
+  _curLiv=t;
+  document.querySelectorAll('#liv-stabs .stab').forEach(function(b){b.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  else{var sel=document.querySelector('#liv-stabs .stab[onclick*="\''+t+'\'"]');if(sel)sel.classList.add('on');}
+  ['jour','hist','livreurs'].forEach(function(k){
+    var el=document.getElementById('liv-'+k+'-body');
+    if(el)el.style.display=(k===t)?'':'none';
+  });
+  if(t==='jour')loadLivraisonsJour();
+  if(t==='hist'){}  /* chargé par date picker */
+  if(t==='livreurs')loadLivraisonsLivreurs();
+}
+
+function renderLivraisonsTab(){
+  /* Pré-remplir date aujourd'hui */
+  var today=new Date().toISOString().slice(0,10);
+  var dInp=document.getElementById('liv-hist-date');
+  if(dInp&&!dInp.value)dInp.value=today;
+  /* Forcer sous-onglet actif */
+  goLiv(_curLiv,null);
+}
+
+function _fmtTime(iso){
+  if(!iso)return'—';
+  try{return new Date(iso).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}catch(e){return iso.slice(11,16);}
+}
+function _fmtDate(iso){
+  if(!iso)return'—';
+  try{return new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});}catch(e){return iso.slice(0,10);}
+}
+function _dlvStatusCls(s){
+  if(s==='delivered')return'st-delivered';
+  if(s==='out_for_delivery'||s==='ready')return'st-out';
+  return'st-pending';
+}
+function _dlvStatusLabel(s){
+  var M={pending:'En attente',confirmed:'Confirmée',preparing:'Préparation',ready:'Prête',
+    out_for_delivery:'En livraison',delivered:'Livrée',cancelled:'Annulée'};
+  return M[s]||s||'—';
+}
+
+function loadLivraisonsJour(){
+  var el=document.getElementById('liv-jour-body');
+  if(!el)return;
+  el.innerHTML='<div class="dlv-empty">Chargement…</div>';
+  var today=new Date().toISOString().slice(0,10);
+  GET('/rest/v1/veraluz_food_orders'
+    +'?select=*'
+    +'&created_at=gte.'+today+'T00:00:00'
+    +'&order=created_at.desc'
+    +'&limit=80')
+  .then(function(rows){renderLivraisonsJour(rows||[]);})
+  .catch(function(){el.innerHTML='<div class="dlv-empty">Erreur chargement</div>';});
+}
+
+function renderLivraisonsJour(rows){
+  var el=document.getElementById('liv-jour-body');
+  if(!el)return;
+  if(!rows.length){el.innerHTML='<div class="dlv-empty">Aucune livraison aujourd\'hui</div>';return;}
+  var counts={total:rows.length,delivered:0,inProgress:0,pending:0};
+  rows.forEach(function(o){
+    var s=o.delivery_status||o.status||'';
+    if(s==='delivered')counts.delivered++;
+    else if(s==='out_for_delivery'||s==='ready')counts.inProgress++;
+    else counts.pending++;
+  });
+  var html='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">'
+    +'<div style="flex:1;min-width:70px;background:var(--bg3);border-radius:10px;padding:10px;text-align:center;">'
+    +'<div style="font-size:20px;font-weight:800;color:var(--text)">'+counts.total+'</div>'
+    +'<div style="font-size:11px;color:var(--text3)">Total</div></div>'
+    +'<div style="flex:1;min-width:70px;background:var(--bg3);border-radius:10px;padding:10px;text-align:center;">'
+    +'<div style="font-size:20px;font-weight:800;color:#22c55e">'+counts.delivered+'</div>'
+    +'<div style="font-size:11px;color:var(--text3)">Livrées</div></div>'
+    +'<div style="flex:1;min-width:70px;background:var(--bg3);border-radius:10px;padding:10px;text-align:center;">'
+    +'<div style="font-size:20px;font-weight:800;color:#fbbf24">'+counts.inProgress+'</div>'
+    +'<div style="font-size:11px;color:var(--text3)">En cours</div></div>'
+    +'<div style="flex:1;min-width:70px;background:var(--bg3);border-radius:10px;padding:10px;text-align:center;">'
+    +'<div style="font-size:20px;font-weight:800;color:var(--text2)">'+counts.pending+'</div>'
+    +'<div style="font-size:11px;color:var(--text3)">En attente</div></div>'
+    +'</div>';
+  rows.forEach(function(o){
+    var s=o.delivery_status||o.status||'pending';
+    html+='<div class="dlv-card" onclick="openLivraisonDetail(\''+esc(String(o.id||''))+'\')">'
+      +'<div class="dlv-card-head">'
+      +'<span class="dlv-card-num">#'+esc(o.order_number||o.id||'—')+'</span>'
+      +'<span class="dlv-card-status '+_dlvStatusCls(s)+'">'+_dlvStatusLabel(s)+'</span>'
+      +'</div>'
+      +'<div class="dlv-card-meta">'
+      +'<span>👤 '+esc(o.customer_name||'—')+'</span>'
+      +'<span>⏰ '+_fmtTime(o.created_at)+'</span>'
+      +(o.assigned_livreur_name?'<span>🚚 '+esc(o.assigned_livreur_name)+'</span>':'')
+      +(o.delivered_at?'<span>✅ '+_fmtTime(o.delivered_at)+'</span>':'')
+      +'</div>'
+      +'</div>';
+  });
+  el.innerHTML=html;
+}
+
+function loadLivraisonsDate(d){
+  if(!d)return;
+  var el=document.getElementById('liv-hist-content');
+  if(!el)return;
+  el.innerHTML='<div class="dlv-empty">Chargement…</div>';
+  GET('/rest/v1/veraluz_food_orders'
+    +'?select=*'
+    +'&created_at=gte.'+d+'T00:00:00'
+    +'&created_at=lte.'+d+'T23:59:59'
+    +'&order=created_at.desc'
+    +'&limit=200')
+  .then(function(rows){
+    if(!rows||!rows.length){el.innerHTML='<div class="dlv-empty">Aucune livraison ce jour</div>';return;}
+    var html='';
+    rows.forEach(function(o){
+      var s=o.delivery_status||o.status||'pending';
+      html+='<div class="dlv-card" onclick="openLivraisonDetail(\''+esc(String(o.id||''))+'\')">'
+        +'<div class="dlv-card-head">'
+        +'<span class="dlv-card-num">#'+esc(o.order_number||o.id||'—')+'</span>'
+        +'<span class="dlv-card-status '+_dlvStatusCls(s)+'">'+_dlvStatusLabel(s)+'</span>'
+        +'</div>'
+        +'<div class="dlv-card-meta">'
+        +'<span>👤 '+esc(o.customer_name||'—')+'</span>'
+        +'<span>⏰ '+_fmtTime(o.created_at)+'</span>'
+        +(o.assigned_livreur_name?'<span>🚚 '+esc(o.assigned_livreur_name)+'</span>':'')
+        +(o.delivered_at?'<span>✅ '+_fmtTime(o.delivered_at)+'</span>':'')
+        +'</div>'
+        +'</div>';
+    });
+    el.innerHTML=html;
+  })
+  .catch(function(){el.innerHTML='<div class="dlv-empty">Erreur chargement</div>';});
+}
+
+function loadLivraisonsLivreurs(){
+  var el=document.getElementById('liv-livreurs-body');
+  if(!el)return;
+  el.innerHTML='<div class="dlv-empty">Chargement…</div>';
+  var today=new Date().toISOString().slice(0,10);
+  GET('/rest/v1/veraluz_food_orders'
+    +'?select=id,assigned_livreur_id,assigned_livreur_name,status,delivery_status,delivered_at,created_at'
+    +'&created_at=gte.'+today+'T00:00:00'
+    +'&order=created_at.desc'
+    +'&limit=200')
+  .then(function(rows){renderLivraisonsLivreurs(rows||[]);})
+  .catch(function(){el.innerHTML='<div class="dlv-empty">Erreur chargement</div>';});
+}
+
+function renderLivraisonsLivreurs(rows){
+  var el=document.getElementById('liv-livreurs-body');
+  if(!el)return;
+  /* Regrouper par livreur */
+  var groups={};
+  rows.forEach(function(o){
+    var lid=o.assigned_livreur_id||'none';
+    var lname=o.assigned_livreur_name||'Non assigné';
+    if(!groups[lid])groups[lid]={name:lname,orders:[],delivered:0};
+    groups[lid].orders.push(o);
+    var s=o.delivery_status||o.status||'';
+    if(s==='delivered')groups[lid].delivered++;
+  });
+  var keys=Object.keys(groups);
+  if(!keys.length){el.innerHTML='<div class="dlv-empty">Aucune donnée</div>';return;}
+  var html='';
+  keys.forEach(function(lid){
+    var g=groups[lid];
+    var initials=(g.name||'?').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+    html+='<div class="dlv-lv-row">'
+      +'<div class="dlv-lv-av">'+esc(initials)+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div class="dlv-lv-name">'+esc(g.name)+'</div>'
+      +'<div class="dlv-lv-stat">'+g.orders.length+' commandes · '+g.delivered+' livrées</div>'
+      +'</div>'
+      +'<div style="font-size:12px;color:var(--text3);">'+Math.round(g.delivered/Math.max(g.orders.length,1)*100)+'%</div>'
+      +'</div>';
+  });
+  el.innerHTML=html;
+}
+
+function openLivraisonDetail(oid){
+  if(!oid)return;
+  _curLivDetailId=oid;
+  var el=document.getElementById('md-liv-detail');
+  if(!el)return;
+  el.classList.add('on');
+  document.getElementById('liv-detail-title').textContent='Chargement…';
+  document.getElementById('liv-detail-info').innerHTML='';
+  document.getElementById('liv-detail-timeline').innerHTML='<div class="dlv-empty">Chargement…</div>';
+  document.getElementById('liv-detail-msgs').innerHTML='';
+  /* Charger commande */
+  GET('/rest/v1/veraluz_food_orders?id=eq.'+encodeURIComponent(oid)+'&select=*&limit=1')
+  .then(function(rows){
+    var o=(rows&&rows[0])||null;
+    if(!o){document.getElementById('liv-detail-title').textContent='Introuvable';return;}
+    document.getElementById('liv-detail-title').textContent='#'+(o.order_number||oid.slice(0,8));
+    var s=o.delivery_status||o.status||'—';
+    document.getElementById('liv-detail-info').innerHTML=''
+      +'<div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;">'
+      +'<span>👤 <b>'+esc(o.customer_name||'—')+'</b></span>'
+      +'<span>📞 '+esc(o.customer_phone||'—')+'</span>'
+      +'<span>🏠 '+esc(o.delivery_address||o.room_number||'—')+'</span>'
+      +'</div>'
+      +'<div style="margin-top:6px;font-size:12px;">'
+      +'<span class="dlv-card-status '+_dlvStatusCls(s)+'" style="display:inline-block;margin-right:6px;">'+_dlvStatusLabel(s)+'</span>'
+      +(o.assigned_livreur_name?'🚚 <b>'+esc(o.assigned_livreur_name)+'</b>':'')
+      +'</div>';
+    /* Timeline statique depuis les champs de la commande */
+    var tl=[
+      {label:'Commande reçue',     time:o.created_at,    done:true},
+      {label:'Confirmée',          time:o.confirmed_at,  done:!!(o.confirmed_at||['confirmed','preparing','ready','out_for_delivery','delivered'].includes(s))},
+      {label:'En préparation',     time:o.preparing_at,  done:!!(o.preparing_at||['preparing','ready','out_for_delivery','delivered'].includes(s))},
+      {label:'Prête — remise livreur',time:o.ready_at,   done:!!(o.ready_at||['ready','out_for_delivery','delivered'].includes(s))},
+      {label:'En livraison',       time:o.pickup_at||o.out_at, done:s==='out_for_delivery'||s==='delivered'},
+      {label:'Livrée',             time:o.delivered_at,  done:s==='delivered'},
+    ];
+    var tlHtml='<div class="dlv-tl">';
+    tl.forEach(function(step){
+      tlHtml+='<div class="dlv-tl-item">'
+        +'<div class="dlv-tl-dot '+(step.done?'tl-done':'tl-pending')+'"></div>'
+        +'<div class="dlv-tl-label" style="color:'+(step.done?'var(--text)':'var(--text3)')+'">'+esc(step.label)+'</div>'
+        +(step.time?'<div class="dlv-tl-time">'+_fmtDate(step.time)+' '+_fmtTime(step.time)+'</div>':'')
+        +'</div>';
+    });
+    tlHtml+='</div>';
+    document.getElementById('liv-detail-timeline').innerHTML=tlHtml;
+    /* Charger événements DB (veraluz_delivery_events) */
+    loadDeliveryEventsInModal(oid);
+  })
+  .catch(function(){document.getElementById('liv-detail-title').textContent='Erreur';});
+  /* Charger messages */
+  loadLivraisonMsgs(oid);
+  /* Auto-refresh messages */
+  if(_livMsgInterval)clearInterval(_livMsgInterval);
+  _livMsgInterval=setInterval(function(){if(_curLivDetailId===oid)loadLivraisonMsgs(oid);},12000);
+}
+
+function loadDeliveryEventsInModal(oid){
+  GET('/rest/v1/veraluz_delivery_events?order_id=eq.'+encodeURIComponent(oid)+'&order=occurred_at.asc&limit=30')
+  .then(function(evts){
+    if(!evts||!evts.length)return;
+    var tl=document.getElementById('liv-detail-timeline');
+    if(!tl)return;
+    var extra='<div class="dlv-sec-title" style="margin-top:10px;">Événements terrain</div><div class="dlv-tl">';
+    evts.forEach(function(e){
+      extra+='<div class="dlv-tl-item">'
+        +'<div class="dlv-tl-dot tl-done"></div>'
+        +'<div class="dlv-tl-label">'+esc(e.event_type||'Événement')+'</div>'
+        +(e.notes?'<div class="dlv-tl-time">'+esc(e.notes)+'</div>':'')
+        +(e.occurred_at?'<div class="dlv-tl-time">'+_fmtDate(e.occurred_at)+' '+_fmtTime(e.occurred_at)+'</div>':'')
+        +'</div>';
+    });
+    extra+='</div>';
+    tl.insertAdjacentHTML('beforeend',extra);
+  })
+  .catch(function(){/* événements optionnels */});
+}
+
+function loadLivraisonMsgs(oid){
+  var el=document.getElementById('liv-detail-msgs');
+  if(!el)return;
+  GET('/rest/v1/veraluz_delivery_messages?order_id=eq.'+encodeURIComponent(oid)+'&order=created_at.asc&limit=80')
+  .then(function(msgs){renderLivraisonMsgs(msgs||[]);})
+  .catch(function(){});
+}
+
+function renderLivraisonMsgs(msgs){
+  var el=document.getElementById('liv-detail-msgs');
+  if(!el)return;
+  if(!msgs.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);text-align:center;padding:10px;">Aucun message</div>';return;}
+  var html='';
+  msgs.forEach(function(m){
+    var st=m.sender_type||'system';
+    var isMe=st==='restaurant';
+    var senderLabel=st==='restaurant'?'Restaurant':st==='driver'?'Livreur':st==='client'?'Client':'Système';
+    html+='<div style="display:flex;flex-direction:column;align-items:'+(isMe?'flex-end':'flex-start')+'">'
+      +'<div class="dlv-msg-sender '+st+'">'+esc(senderLabel)+(m.sender_name?(' — '+esc(m.sender_name)):'')+'</div>'
+      +'<div class="dlv-msg '+(isMe?'me':'them')+'">'+esc(m.message||m.subject||'')+'</div>'
+      +'<div style="font-size:10px;color:var(--text3);margin-bottom:4px;">'+_fmtTime(m.created_at)+'</div>'
+      +'</div>';
+  });
+  el.innerHTML=html;
+  el.scrollTop=el.scrollHeight;
+}
+
+function sendLivraisonMsg(){
+  var inp=document.getElementById('liv-detail-msg-inp');
+  if(!inp)return;
+  var txt=(inp.value||'').trim();
+  if(!txt||!_curLivDetailId)return;
+  inp.value='';
+  /* Identifier le livreur de la commande */
+  GET('/rest/v1/veraluz_food_orders?id=eq.'+encodeURIComponent(_curLivDetailId)+'&select=assigned_livreur_id&limit=1')
+  .then(function(rows){
+    var livId=(rows&&rows[0]&&rows[0].assigned_livreur_id)||null;
+    return POST('veraluz_delivery_messages',{
+      order_id:_curLivDetailId,
+      sender_type:'restaurant',
+      sender_name:'Restaurant',
+      recipient_type:'driver',
+      livreur_id:livId,
+      tenant_id:'veraluz-001',
+      message:txt,
+      subject:txt.substring(0,50),
+      is_read:false,
+      created_at:new Date().toISOString()
+    });
+  })
+  .then(function(){loadLivraisonMsgs(_curLivDetailId);})
+  .catch(function(){toast('Erreur envoi message','err');inp.value=txt;});
+}
+
+function closeMd(id){
+  var el=document.getElementById(id);
+  if(el)el.classList.remove('on');
+  if(id==='md-liv-detail'){
+    if(_livMsgInterval){clearInterval(_livMsgInterval);_livMsgInterval=null;}
+    _curLivDetailId=null;
+  }
+}
+
+document.addEventListener('click',function(){_vlzRestRequestNotif();},{once:true});
+/* ─────────────────────────────────────────────────────────────────────────── */
 /* ── Init ── */
-document.addEventListener('DOMContentLoaded',function(){loadAll();});
+document.addEventListener('DOMContentLoaded',function(){loadAll();startRestaurantMsgPolling();});
 /* GUARD [G01][G02][G03][G04][G05][G06][G07][G08][G09][G10] */
 /* GUARD [G11][G12][G13][G14][G15][G16][G17][G18][G19][G20] */
 
@@ -2413,6 +4033,182 @@ function confirmRoomCharge(){
   }).catch(function(e){toast('Erreur: '+e,'er');});
 }
 
+
+/* =======================================================================
+   APP MANAGER JS
+   ======================================================================= */
+function goAppSub(sub,btn){
+  _appSub=sub;
+  document.querySelectorAll('.app-stab').forEach(function(b){b.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  else{var el=document.getElementById('apstab-'+sub);if(el)el.classList.add('on');}
+  renderAdmApp();
+}
+
+function renderAdmApp(){
+  var el=document.getElementById('ap-app-body');if(!el)return;
+  document.querySelectorAll('.app-stab').forEach(function(b){b.classList.remove('on');});
+  var cur=document.getElementById('apstab-'+_appSub);if(cur)cur.classList.add('on');
+  if(_appSub==='promos')el.innerHTML=renderAppPromos();
+  else if(_appSub==='dispo')el.innerHTML=renderAppDispo();
+  else el.innerHTML=renderAppCfg();
+}
+
+/* Promos & Communications */
+function renderAppPromos(){
+  var html='<div class="app-sec"><div class="app-sec-hdr"><span class="app-sec-ttl">&#127881; Promos &amp; Communications</span>'
+    +'<button class="btn bp bs" onclick="openPromoMd(null)">+ Nouveau</button></div>';
+  if(!APP_PROMOS.length){
+    html+='<p style="font-size:12px;color:var(--text3);text-align:center;padding:20px 0">'
+      +'Aucune promo en cours.<br><small>Cliquez + Nouveau pour en créer une.</small></p>';
+  }else{
+    APP_PROMOS.forEach(function(p){
+      var typLbl={promo:'Promo',comm:'Comm',banner:'Bandeau'}[p.type]||p.type;
+      var typCls={promo:'pb-promo',comm:'pb-comm',banner:'pb-banner'}[p.type]||'pb-promo';
+      html+='<div class="promo-card'+(p.active?'':' inactive')+'">'
+        +'<div class="promo-emoji">'+(p.emoji||'\u{1F381}')+'</div>'
+        +'<div class="promo-info">'
+        +'<div class="promo-ttl">'+esc(p.title)
+        +'<span class="promo-badge '+typCls+'">'+esc(typLbl)+'</span>'
+        +(p.active?'<span class="promo-badge" style="background:var(--ok);color:#fff">On</span>'
+                  :'<span class="promo-badge" style="background:var(--bord2);color:var(--text3)">Off</span>')
+        +'</div>'
+        +'<div class="promo-body">'+esc(p.body)+'</div>'
+        +(p.start_date||p.end_date?'<div style="font-size:10px;color:var(--text3);margin-top:3px">'
+          +(p.start_date?'Du '+p.start_date:'')+(p.end_date?' au '+p.end_date:'')+'</div>':'')
+        +'</div>'
+        +'<div class="promo-acts">'
+        +'<button class="btn bg bs" style="font-size:11px;padding:3px 7px" data-id="'+p.id
+        +'" onclick="openPromoMd(this.dataset.id)">&#9999;&#65039;</button>'
+        +'<button class="btn '+(p.active?'bg':'bp')+' bs" style="font-size:11px;padding:3px 7px"'
+        +' data-id="'+p.id+'" data-act="'+(p.active?'0':'1')
+        +'" onclick="togglePromo(this.dataset.id,this.dataset.act===\'1\')">'
+        +(p.active?'&#9208;':'&#9654;')+'</button>'
+        +'</div></div>';
+    });
+  }
+  return html+'</div>';
+}
+
+function togglePromo(id,activate){
+  PATCH('veraluz_food_promotions',id,{active:activate}).then(function(){
+    var p=APP_PROMOS.find(function(x){return x.id===id;});if(p)p.active=activate;
+    renderAdmApp();toast(activate?'Activée':'Désactivée','ok');
+  }).catch(function(){toast('Erreur','er');});
+}
+function delPromo(id){
+  if(!confirm('Supprimer ?'))return;
+  DEL('veraluz_food_promotions',id).then(function(){
+    APP_PROMOS=APP_PROMOS.filter(function(x){return x.id!==id;});
+    closeMd('md-promo');renderAdmApp();toast('Supprimé','ok');
+  }).catch(function(){toast('Erreur','er');});
+}
+var _promoEditId=null;
+function openPromoMd(id){
+  _promoEditId=id||null;
+  var p=id?APP_PROMOS.find(function(x){return x.id===id;}):null;
+  document.getElementById('promo-id').value=id||'';
+  document.getElementById('promo-type').value=p?p.type:'promo';
+  document.getElementById('promo-emoji').value=p&&p.emoji?p.emoji:'\u{1F381}';
+  document.getElementById('promo-title').value=p?p.title:'';
+  document.getElementById('promo-body').value=p?p.body:'';
+  document.getElementById('promo-start').value=p&&p.start_date?p.start_date:'';
+  document.getElementById('promo-end').value=p&&p.end_date?p.end_date:'';
+  document.getElementById('promo-active').checked=p?p.active:true;
+  document.getElementById('promo-del-btn').style.display=p?'':'none';
+  document.getElementById('promo-md-title').textContent=p?'Modifier':'Nouvelle promo / comm';
+  openMd('md-promo');
+}
+function savePromo(){
+  var id=document.getElementById('promo-id').value;
+  var d={
+    type:document.getElementById('promo-type').value,
+    emoji:document.getElementById('promo-emoji').value.trim()||'\u{1F381}',
+    title:document.getElementById('promo-title').value.trim(),
+    body:document.getElementById('promo-body').value.trim(),
+    start_date:document.getElementById('promo-start').value||null,
+    end_date:document.getElementById('promo-end').value||null,
+    active:document.getElementById('promo-active').checked
+  };
+  if(!d.title){toast('Titre requis','er');return;}
+  if(id){
+    PATCH('veraluz_food_promotions',id,d).then(function(){
+      var p=APP_PROMOS.find(function(x){return x.id===id;});if(p)Object.assign(p,d);
+      closeMd('md-promo');renderAdmApp();toast('Mis à jour','ok');
+    }).catch(function(){toast('Erreur','er');});
+  }else{
+    d.id=gid();
+    POST('veraluz_food_promotions',d).then(function(r){
+      APP_PROMOS.unshift(r[0]||d);
+      closeMd('md-promo');renderAdmApp();toast('Créé','ok');
+    }).catch(function(){toast('Erreur','er');});
+  }
+}
+
+/* Disponibilite Menu */
+function renderAppDispo(){
+  var catNames={entrees:'Entrées',plats:'Plats',grillades:'Grillades',poissons:'Poissons',
+    desserts:'Desserts',cocktails:'Cocktails',bieres:'Bières',softs:'Softs',vins:'Vins',snacks:'Snacks'};
+  var byCat={};
+  PRODS.forEach(function(p){var cat=p.category||'autres';if(!byCat[cat])byCat[cat]=[];byCat[cat].push(p);});
+  var html='<div class="app-sec"><div class="app-sec-hdr"><span class="app-sec-ttl">&#9989; Disponibilité sur l\'App</span>'
+    +'<small style="font-size:10px;color:var(--text3)">Désactiver masque l\'article sur l\'app mobile</small></div>';
+  var cats=Object.keys(byCat).sort();
+  if(!cats.length)html+='<p style="text-align:center;color:var(--text3);font-size:12px;padding:20px">Aucun produit</p>';
+  cats.forEach(function(cat){
+    html+='<div style="margin-bottom:14px">'
+      +'<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:4px 0;border-bottom:1px solid var(--border);margin-bottom:4px">'
+      +esc(catNames[cat]||cat)+'</div>';
+    byCat[cat].forEach(function(p){
+      var vis=p.app_visible!==false;
+      html+='<div class="app-dispo-item">'
+        +'<div class="app-dispo-name">'+esc(p.name||'—')
+        +'<div class="app-dispo-cat">'+fmt(p.price||0)+' FCFA</div></div>'
+        +'<label class="vlz-toggle"><input type="checkbox"'+(vis?' checked':'')
+        +' data-id="'+p.id+'" onchange="toggleProdAppVis(this.dataset.id,this.checked)">'
+        +'<span class="vlz-slider"></span></label></div>';
+    });
+    html+='</div>';
+  });
+  return html+'</div>';
+}
+function toggleProdAppVis(id,visible){
+  PATCH('veraluz_restaurant_products',id,{app_visible:visible}).then(function(){
+    var p=PRODS.find(function(x){return x.id===id;});if(p)p.app_visible=visible;
+    toast((visible?'Visible':'Masqué')+' sur l\'app','ok');
+  }).catch(function(){toast('Erreur','er');});
+}
+
+/* Parametres App */
+var _appCfgCache={delivery_enabled:'true',lounge_enabled:'true',room_enabled:'true',min_order:'0',delivery_fee_default:'500'};
+(function(){try{var s=localStorage.getItem('vlz_app_cfg');if(s)_appCfgCache=JSON.parse(s);}catch(e){}})();
+
+function renderAppCfg(){
+  var cfg=_appCfgCache;
+  return '<div class="app-sec"><div class="app-sec-hdr"><span class="app-sec-ttl">&#9881;&#65039; Paramètres</span>'
+    +'<button class="btn bp bs" onclick="saveAppCfg()">&#128190; Sauvegarder</button></div>'
+    +'<div class="app-cfg-row"><div class="app-cfg-lbl">&#128666; Livraison<div class="app-cfg-sub">Activer/désactiver commandes livraison</div></div>'
+    +'<label class="vlz-toggle"><input type="checkbox" id="cfg-delivery"'+(cfg.delivery_enabled!=='false'?' checked':'')+'><span class="vlz-slider"></span></label></div>'
+    +'<div class="app-cfg-row"><div class="app-cfg-lbl">&#128715; Lounge<div class="app-cfg-sub">Commandes depuis les tablettes lounge</div></div>'
+    +'<label class="vlz-toggle"><input type="checkbox" id="cfg-lounge"'+(cfg.lounge_enabled!=='false'?' checked':'')+'><span class="vlz-slider"></span></label></div>'
+    +'<div class="app-cfg-row"><div class="app-cfg-lbl">&#127968; Room Service App<div class="app-cfg-sub">Commandes app depuis les chambres</div></div>'
+    +'<label class="vlz-toggle"><input type="checkbox" id="cfg-room"'+(cfg.room_enabled!=='false'?' checked':'')+'><span class="vlz-slider"></span></label></div>'
+    +'<div class="app-cfg-row"><div class="app-cfg-lbl">Commande minimum (FCFA)<div class="app-cfg-sub">Montant min pour les livraisons</div></div>'
+    +'<input class="inp" id="cfg-minorder" type="number" value="'+(cfg.min_order||'0')+'" style="width:90px;text-align:right"></div>'
+    +'<div class="app-cfg-row"><div class="app-cfg-lbl">Frais livraison par défaut (FCFA)<div class="app-cfg-sub">Appliqué si zone non configurée</div></div>'
+    +'<input class="inp" id="cfg-delfee" type="number" value="'+(cfg.delivery_fee_default||'500')+'" style="width:90px;text-align:right"></div>'
+    +'</div>';
+}
+function saveAppCfg(){
+  _appCfgCache.delivery_enabled=document.getElementById('cfg-delivery').checked?'true':'false';
+  _appCfgCache.lounge_enabled=document.getElementById('cfg-lounge').checked?'true':'false';
+  _appCfgCache.room_enabled=document.getElementById('cfg-room').checked?'true':'false';
+  _appCfgCache.min_order=document.getElementById('cfg-minorder').value||'0';
+  _appCfgCache.delivery_fee_default=document.getElementById('cfg-delfee').value||'500';
+  try{localStorage.setItem('vlz_app_cfg',JSON.stringify(_appCfgCache));}catch(e){}
+  toast('Paramètres sauvegardés','ok');
+}
+
 </script>
 
 <!-- Receipt Verification Modal -->
@@ -2448,6 +4244,83 @@ function confirmRoomCharge(){
     </div>
   </div>
 </div>
+
+
+<!-- Promo/Comm Modal -->
+<div class="ov" id="md-promo">
+  <div class="md">
+    <div class="mdh"><span id="promo-md-title">Nouvelle promo</span><button class="mdc" onclick="closeMd('md-promo')">&#10005;</button></div>
+    <div class="mdb" style="display:flex;flex-direction:column;gap:10px;">
+      <input type="hidden" id="promo-id">
+      <div style="display:flex;gap:8px;">
+        <select id="promo-type" class="inp" style="flex:2">
+          <option value="promo">&#127881; Promotion</option>
+          <option value="comm">&#128172; Communication</option>
+          <option value="banner">&#127988; Bandeau</option>
+        </select>
+        <input id="promo-emoji" class="inp" placeholder="&#127881;" style="flex:1;font-size:18px;text-align:center" maxlength="4">
+      </div>
+      <input id="promo-title" class="inp" placeholder="Titre (ex: -20% ce weekend !)">
+      <textarea id="promo-body" class="inp" rows="3" placeholder="Message / description (optionnel)"></textarea>
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1"><label class="fl">Début</label><input id="promo-start" class="inp" type="date" style="width:100%"></div>
+        <div style="flex:1"><label class="fl">Fin</label><input id="promo-end" class="inp" type="date" style="width:100%"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="promo-active" checked> Activer immédiatement
+      </label>
+    </div>
+    <div class="mdf" style="display:flex;gap:8px;">
+      <button class="btn bd bs" id="promo-del-btn" style="display:none" onclick="delPromo(document.getElementById('promo-id').value)">&#128465;</button>
+      <button class="btn bg" onclick="closeMd('md-promo')" style="flex:1">Annuler</button>
+      <button class="btn bp" onclick="savePromo()" style="flex:2">&#128190; Sauvegarder</button>
+    </div>
+  </div>
+</div>
+<!-- PROMPT 034 — Modal détail livraison (timeline + conversation) -->
+<div class="ov" id="md-liv-detail">
+  <div class="md" style="max-width:480px;max-height:85vh;display:flex;flex-direction:column;">
+    <div class="mdh">
+      <span class="mdt" id="liv-detail-title">Détail livraison</span>
+      <button class="mdc" onclick="closeMd('md-liv-detail')">&#10005;</button>
+    </div>
+    <div class="mdb" style="flex:1;overflow-y:auto;padding:0;">
+      <!-- Infos commande -->
+      <div id="liv-detail-info" style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;"></div>
+      <!-- Timeline événements -->
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Chronologie</div>
+        <div id="liv-detail-timeline"></div>
+      </div>
+      <!-- Conversation (client + livreur + restaurant) -->
+      <div style="padding:12px 16px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Conversation</div>
+        <div id="liv-detail-msgs" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;"></div>
+        <div style="display:flex;gap:6px;margin-top:10px;">
+          <input class="inp" id="liv-detail-msg-inp" type="text" placeholder="Répondre au livreur / client…"
+            onkeydown="if(event.key==='Enter')sendLivraisonMsg()">
+          <button class="btn bp bs" onclick="sendLivraisonMsg()">&#10148;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROMPT 027 — Bannière alerte nouvelle commande Food -->
+<!-- PROMPT 029 : Bannière alerte migration SQL -->
+<div id='migration-alert-banner' style='display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:#7c3aed;color:#fff;padding:10px 16px;font-size:13px;font-weight:600;display:none;align-items:center;gap:10px;'>
+  <span>&#9888;&#65039; Migration Restaurant incomplète. Colonnes livraison manquantes.</span>
+  <button onclick='copyMigrationSQL()' style='background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;'>Copier SQL migration</button>
+  <button onclick='document.getElementById("migration-alert-banner").style.display="none"' style='background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:16px;margin-left:auto;'>&#10005;</button>
+</div>
+<div class="order-alert-banner" id="order-alert-banner"><span style="font-size:18px;animation:orderAlertPulse 1s infinite">&#128276;</span>&nbsp;<span id="order-alert-txt">Nouvelle commande Food !</span>&nbsp;<button onclick="document.getElementById('kds-flt-food')&&kdsFilter(document.getElementById('kds-flt-food'),'all')" style="background:rgba(255,255,255,.25);border:none;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer;font-weight:700;">Voir</button>&nbsp;<button class="order-alert-close" onclick="dismissOrderAlert()">&#10005;</button></div>
+<script>
+/* ── Veraluz Theme toggle — PROMPT 036C ─────────────────────── */
+function applyVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';document.documentElement.classList.toggle('vl-dark',dark);var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';}
+function toggleVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';localStorage.setItem('vl_theme',dark?'light':'dark');applyVlTheme();try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}}
+document.addEventListener('DOMContentLoaded',applyVlTheme);
+window.addEventListener('message',function(e){if(e.data&&e.data.type==='vl-theme')applyVlTheme();});
+</script>
 
 </body>
 </html>

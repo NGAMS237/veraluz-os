@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Réservations — Veraluz OS</title>
+<script>if(localStorage.getItem('vl_theme')=='dark')document.documentElement.classList.add('vl-dark');</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -284,8 +285,56 @@ form-select{background:var(--bg3);border:1px solid var(--border);border-radius:v
 .param-inp-p{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-size:12px;width:145px;text-align:right;font-family:inherit}
 .btn-save-p{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;padding:9px 18px;border-radius:var(--radius-sm);font-size:12px;width:100%;margin-top:12px;border:none;cursor:pointer;font-family:inherit}
 </style>
+<style id="veraluz-theme">
+/* ═══ VERALUZ THEME PROMPT 036C ══════════════════════════════════
+   Light : bg #e8ecf0 · surfaces #fff · neumorphic shadows 3px
+   Dark  : bg #131722 · surfaces #1e2538 · sombre shadows
+   Toggle: html.vl-dark / localStorage('vl_theme')
+   ══════════════════════════════════════════════════════════════ */
+:root{--bg:#e8ecf0;--bg2:#eef1f5;--bg3:#fff;--bg4:#e0e4e8;--text:#1e293b;--text2:#475569;--text3:#94a3b8;--border:rgba(0,0,0,.07);--bord2:rgba(0,0,0,.10);--border2:rgba(0,0,0,.07);--radius:3px;--radius-sm:3px;--vl-sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;--vl-sh-in:inset 2px 2px 6px #c8cdd4,inset -1px -1px 4px #fff;--vl-r:3px;}
+html,body{background:var(--bg)!important;color:var(--text)!important;}
+html.vl-dark{--bg:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:rgba(255,255,255,.07);--bord2:rgba(255,255,255,.12);--border2:rgba(255,255,255,.07);--radius:3px;--radius-sm:3px;--vl-sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;--vl-sh-in:inset 2px 2px 6px #0d1118,inset -1px -1px 4px #242b3e;}
+html.vl-dark body{background:#131722!important;}
+/* ── Tabs / Headers ─────────────────────────────────────────── */
+#tabs,.mod-hdr,#topbar{background:#fff!important;border-bottom:1px solid rgba(0,0,0,.07)!important;box-shadow:0 1px 6px rgba(0,0,0,.05)!important;}
+html.vl-dark #tabs,html.vl-dark .mod-hdr,html.vl-dark #topbar{background:#1a1f2e!important;border-bottom:1px solid rgba(255,255,255,.06)!important;box-shadow:0 1px 8px rgba(0,0,0,.3)!important;}
+.tab,.tab-btn{border-radius:3px 3px 0 0!important;}
+.tab.on,.tab-btn.active{color:var(--accent,var(--acc1))!important;border-bottom-color:var(--accent,var(--acc1))!important;background:rgba(0,0,0,.025)!important;}
+html.vl-dark .tab.on,html.vl-dark .tab-btn.active{background:rgba(255,255,255,.04)!important;}
+/* ── Cards & KPI ────────────────────────────────────────────── */
+.card,.kpi,.stat-card,.emp-card,.detail-card,.sec-card,.rez-card,.room-card,.param-card,.param-card-body,.unit-card-p,.promo-card,.pane-card,.socard{background:#fff!important;border:none!important;border-radius:3px!important;box-shadow:var(--vl-sh)!important;}
+html.vl-dark .card,html.vl-dark .kpi,html.vl-dark .stat-card,html.vl-dark .emp-card,html.vl-dark .detail-card,html.vl-dark .sec-card,html.vl-dark .rez-card,html.vl-dark .room-card,html.vl-dark .param-card,html.vl-dark .param-card-body,html.vl-dark .unit-card-p,html.vl-dark .promo-card,html.vl-dark .pane-card,html.vl-dark .socard{background:var(--bg3)!important;border:1px solid var(--border)!important;box-shadow:var(--vl-sh)!important;}
+.emp-card:hover,.rez-card:hover,.room-card:hover{box-shadow:6px 6px 16px #c0c5cc,-2px -2px 8px #fff!important;transform:translateY(-1px);}
+html.vl-dark .emp-card:hover,html.vl-dark .rez-card:hover,html.vl-dark .room-card:hover{box-shadow:6px 6px 16px #0a0e16,-2px -2px 8px #242b3e!important;}
+/* ── Param card header gradient ─────────────────────────────── */
+.param-card-hdr{background:linear-gradient(135deg,var(--accent,var(--acc1)),rgba(8,145,178,.55))!important;border-radius:3px 3px 0 0!important;}
+/* ── Inputs / Selects ───────────────────────────────────────── */
+input:not([type=checkbox]):not([type=radio]),select,textarea,.search{background:#f1f5f9!important;border:1px solid rgba(0,0,0,.09)!important;border-radius:3px!important;color:var(--text)!important;}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{border-color:var(--accent,var(--acc1))!important;box-shadow:0 0 0 2px rgba(8,145,178,.12)!important;outline:none!important;}
+html.vl-dark input:not([type=checkbox]):not([type=radio]),html.vl-dark select,html.vl-dark textarea,html.vl-dark .search{background:var(--bg3)!important;border-color:rgba(255,255,255,.1)!important;}
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn-sec,.btn-warn,.sf,.fchip,.mode-btn{border-radius:3px!important;}
+.btn-sec{background:#f1f5f9!important;color:var(--text2)!important;border:1px solid rgba(0,0,0,.09)!important;}
+.sf,.fchip,.mode-btn{background:#f1f5f9!important;color:var(--text2)!important;border:1px solid rgba(0,0,0,.09)!important;}
+.fchip.on,.mode-btn.mr{background:var(--accent,var(--acc1))!important;color:#000!important;border-color:transparent!important;}
+html.vl-dark .btn-sec,html.vl-dark .sf,html.vl-dark .fchip,html.vl-dark .mode-btn{background:var(--bg4)!important;color:var(--text2)!important;border-color:rgba(255,255,255,.08)!important;}
+html.vl-dark .fchip.on,html.vl-dark .mode-btn.mr{background:var(--accent,var(--acc1))!important;color:#000!important;border-color:transparent!important;}
+/* ── Entries ────────────────────────────────────────────────── */
+.entry{border-bottom-color:rgba(0,0,0,.06)!important;}
+html.vl-dark .entry{border-bottom-color:rgba(255,255,255,.05)!important;}
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:#c8cdd4!important;border-radius:3px!important;}
+html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
+/* ── Theme toggle FAB ───────────────────────────────────────── */
+#vl-tm-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);right:14px;z-index:9990;width:36px;height:36px;border-radius:3px;border:none;background:#fff;color:#475569;cursor:pointer;font-size:15px;box-shadow:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s,transform .15s;}
+#vl-tm-btn:hover{transform:scale(1.05);}
+html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;}
+</style>
+
 </head>
 <body>
+<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Mode sombre / clair">🌙</button>
 <div class="mod-wrap">
 
   <!-- Header -->
@@ -301,7 +350,7 @@ form-select{background:var(--bg3);border:1px solid var(--border);border-radius:v
       </button>
     </div>
     <div class="tabs-bar">
-      <button class="tab-btn" id="tab-dash" onclick="goTab('dash')">📊 Dashboard</button>
+      <button class="tab-btn active" id="tab-dash" onclick="goTab('dash')">📊 Dashboard</button>
       <button class="tab-btn" id="tab-planning" onclick="goTab('planning')">📅 Planning</button>
       <button class="tab-btn" id="tab-chambres" onclick="goTab('chambres')">
         🛏 Chambres <span class="tbadge" id="avail-badge">0</span>
@@ -318,7 +367,7 @@ form-select{background:var(--bg3);border:1px solid var(--border);border-radius:v
   <div class="mod-body">
 
     <!-- DASHBOARD -->
-    <div class="tab-pane" id="pane-dash">
+    <div class="tab-pane active" id="pane-dash">
       <div class="stat-row">
         <div class="stat-card"><div class="stat-num" id="st-arrivals">—</div><div class="stat-lbl">Arrivées aujourd'hui</div></div>
         <div class="stat-card"><div class="stat-num" id="st-departures">—</div><div class="stat-lbl">Départs aujourd'hui</div></div>
@@ -424,9 +473,9 @@ var ELEGANT_NAMES = {
   loft:'Loft Horizon', penthouse:'Suite Panorama'
 };
 var AM_LABELS = {
-  wifi:'Wi-Fi', clim:'Climatisation', tv:'TV', mer:'Vue mer',
-  cuisine:'Cuisine', terrasse:'Terrasse', jacuzzi:'Jacuzzi',
-  parking:'Parking', piscine:'Piscine', breakfast:'Petit-déj.'
+  wifi:'Wi-Fi', clim:'Climatisation', tv:'TV écran plat', mer:'Vue mer',
+  cuisine:'Cuisine équipée', terrasse:'Terrasse privée', jacuzzi:'Jacuzzi',
+  parking:'Parking', piscine:'Piscine', breakfast:'Petit-déjeuner'
 };
 var UNIT_DATA = {
   std:      {name:'Chambre Azur',    beds:'1 lit double',    capacity:2, sqm:28,  price:35000,  amenities:['clim','wifi','tv','mer','terrasse']},
@@ -434,7 +483,7 @@ var UNIT_DATA = {
   studio:   {name:'Studio Horizon',  beds:'1 lit + canapé',  capacity:3, sqm:38,  price:45000,  amenities:['clim','wifi','tv','cuisine','terrasse']},
   apt:      {name:'Ocean Family',    beds:'2 chambres',      capacity:5, sqm:65,  price:75000,  amenities:['clim','wifi','tv','cuisine','mer','terrasse','parking']},
   suite:    {name:'Veraluz Royale',  beds:'1 lit king size', capacity:2, sqm:55,  price:120000, amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast']},
-  villa:    {name:'Villa Riviera',   beds:'3 chambres',      capacity:6, sqm:120, price:200000, amenities:['clim','wifi','tv','cuisine','mer','terrasse','piscine','parking']},
+  villa:    {name:'Villa Riviera',   beds:'3 chambres',      capacity:6, sqm:120, price:200000, amenities:['clim','wifi','tv','cuisine','mer','terrasse','piscine','parking','breakfast']},
   loft:     {name:'Loft Horizon',    beds:'Mezzanine king',  capacity:2, sqm:50,  price:80000,  amenities:['clim','wifi','tv','cuisine','mer']},
   penthouse:{name:'Suite Panorama',  beds:'King + salon',    capacity:2, sqm:80,  price:150000, amenities:['clim','wifi','tv','mer','terrasse','jacuzzi','breakfast']}
 };
@@ -456,7 +505,16 @@ var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
 /* ── Utilitaires ── */
-function esc(s){ return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+/* PROMPT 007 — délégation VC.esc() + safeUrl() */
+var VC = window.VeraluzCore || {};
+function esc(s){
+  if(VC&&typeof VC.esc==='function') return VC.esc(s);
+  return s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function safeUrl(url){
+  var s=String(url||'').trim();if(!s)return'#';
+  if(s.startsWith('http://')||s.startsWith('https://')||s.startsWith('mailto:')||s.startsWith('tel:'))return s;return'#';
+}
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function addDays(d,n){ var x=new Date(d+'T12:00:00'); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); }
 function diffDays(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
@@ -492,12 +550,16 @@ function sbPost(path,data){
 /* Supabase: client_name, client_email, client_phone, guests, total, paid, status(checkedin/checkedout) */
 /* Interne:  guest_name,  guest_email,  guest_phone,  guests, total, paid, status(checkedin/checkedout) */
 function norm(r){
+  /* Garantir un ID stable — sans ID, Confirmer/Check-in ne peuvent pas fonctionner */
+  if(!r.id) r.id = 'local-'+(r.created_at||Date.now())+'-'+(r.client_name||'').replace(/\s+/g,'').slice(0,6);
+  /* Toujours convertir en String — les IDs Supabase sont des entiers, les onclick les passent en string */
+  r.id = String(r.id);
   r.guest_name  = r.guest_name  || r.client_name   || '';
   r.guest_email = r.guest_email || r.client_email  || '';
   r.guest_phone = r.guest_phone || r.client_phone  || '';
   r.check_in    = r.check_in    || r.checkin        || '';
   r.check_out   = r.check_out   || r.checkout       || '';
-  r.unit_name   = elegantName(r) || r.unit_name     || r.name || '';
+  r.unit_name   = r.unit_name   || elegantName(r)  || r.name || '';
   r.total       = r.total       || r.total_amount   || 0;
   r.paid        = r.paid        || r.amount_paid    || 0;
   r.notes       = r.notes       || r.special_requests || '';
@@ -580,14 +642,14 @@ function loadAll(cb){
     var fromSB = Array.isArray(data) ? data.map(norm) : [];
     /* Réintégrer les entrées locales non-présentes dans Supabase */
     var stillLocal = _localEntries.filter(function(loc){
-      return !fromSB.some(function(s){ return s.id && loc.id && s.id===loc.id; });
+      return !fromSB.some(function(s){ return s.id && loc.id && String(s.id)===String(loc.id); });
     });
     _rez = fromSB.concat(stillLocal);
     /* Fusionner les notifications en attente (vlz_booking_sync non encore importées) */
     try{
       var pending=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
       pending.forEach(function(s){
-        var exists=_rez.some(function(r){return r.id&&s.id&&r.id===s.id;});
+        var exists=_rez.some(function(r){return r.id&&s.id&&String(r.id)===String(s.id);});
         if(!exists) _rez.unshift(norm(Object.assign({},s,{_fromSync:true})));
       });
     }catch(e){}
@@ -599,7 +661,7 @@ function loadAll(cb){
     try{
       var pending=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
       pending.forEach(function(s){
-        var exists=_rez.some(function(r){return r.id&&s.id&&r.id===s.id;});
+        var exists=_rez.some(function(r){return r.id&&s.id&&String(r.id)===String(s.id);});
         if(!exists) _rez.unshift(norm(Object.assign({},s,{_fromSync:true,status:'pending'})));
       });
     }catch(e){}
@@ -1303,10 +1365,10 @@ function buildStep2(){
   return '<div class="form-section"><p class="section-title">Étape 2 — Choisir le logement ('+n+' nuit'+(n>1?'s':'')+')</p>'+
     avail.map(function(r){
       var total=r.price*n;
-      return '<div class="room-option'+((_nf.unit_id===r.id)?' selected':'')+'" onclick="nfSelectRoom(\''+r.id+'\','+r.price+',\''+esc(r.name||'')+'\')">'
+      return '<div class="room-option'+((_nf.unit_id===r.id)?' selected':'')+'" onclick="nfSelectRoom(\''+r.id+'\','+r.price+',\''+esc(elegantName(r)||r.name||'')+'\')">'
         +'<span class="room-option-price">'+fmtMoney(total)+'</span>'
-        +'<div class="room-option-name">'+esc(r.name||'Chambre')+'</div>'
-        +'<div class="room-option-meta">'+(r.type||'')+(r.capacity?' · '+r.capacity+' pers.':'')+'</div>'
+        +'<div class="room-option-name">'+esc(elegantName(r)||r.name||'Chambre')+'</div>'
+        +'<div class="room-option-meta">'+((UNIT_DATA[r.type]||{}).beds||r.type||'')+(r.capacity?' · '+r.capacity+' pers.':'')+'</div>'
         +'</div>';
     }).join('')+'</div>'+
     '<div class="form-nav"><button class="btn-secondary" onclick="_nf.step=1;renderNewForm()">← Retour</button>'+
@@ -1429,7 +1491,7 @@ function openSyncModal(){
     }
     list.innerHTML='<div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#22c55e">✅ Ces réservations sont déjà enregistrées dans Supabase. Cliquez <b>Voir dans la liste</b> pour les consulter.</div>';
     list.innerHTML=sync.map(function(s,i){
-      return '<div class="sync-item"><div class="sync-item-name">'+esc(s.guest_name||'—')+'</div>'+
+      return '<div class="sync-item"><div class="sync-item-name">'+esc(s.guest_name||s.client_name||'—')+'</div>'+
         '<div class="sync-item-sub">'+esc(elegantName(s)||s.unit_name||'—')+' · '+fmtDate(s.check_in)+' → '+fmtDate(s.check_out)+'</div>'+
         '<div class="sync-item-price">'+fmtMoney(s.total||s.paid||s.total_amount||0)+'</div>'+
         '<div class="sync-item-btns"><button class="btn-import" onclick="importSync('+i+')">✓ Voir dans la liste</button>'+
@@ -1446,7 +1508,7 @@ function importSync(i){
     var item=sync[i];
     if(item){
       /* Normaliser et insérer dans _rez s'il n'y est pas déjà */
-      var exists=_rez.some(function(r){return r.id&&item.id&&r.id===item.id;});
+      var exists=_rez.some(function(r){return r.id&&item.id&&String(r.id)===String(item.id);});
       if(!exists){
         var localRez=norm(Object.assign({},item,{_fromSync:true,status:item.status||'pending'}));
         _rez.unshift(localRez);
@@ -1792,6 +1854,73 @@ function saveSettings(){
   toast('Paramètres sauvegardés ✓','success');
 }
 
+
+/* ══════════════════════════════════════════
+   PROMPT 032 — Alert Engine Réservations
+   Détecte nouvelles réservations en DB (30s)
+   ══════════════════════════════════════════ */
+var _vlzRezAC=null,_vlzRezNP=false,_vlzLastRezCreatedAt='',_vlzRezInterval=null;
+function _vlzRezBeep(f,d,v){
+  try{
+    if(!_vlzRezAC)_vlzRezAC=new(window.AudioContext||window.webkitAudioContext||function(){return null;})();
+    if(!_vlzRezAC)return;
+    if(_vlzRezAC.state==='suspended')_vlzRezAC.resume();
+    var o=_vlzRezAC.createOscillator(),g=_vlzRezAC.createGain();
+    o.connect(g);g.connect(_vlzRezAC.destination);
+    o.type='sine';o.frequency.value=f||660;
+    g.gain.setValueAtTime(v||0.22,_vlzRezAC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,_vlzRezAC.currentTime+(d||0.3));
+    o.start();o.stop(_vlzRezAC.currentTime+(d||0.3));
+  }catch(e){}
+}
+function _vlzRezAlertSound(){
+  _vlzRezBeep(440,0.12,0.2);setTimeout(function(){_vlzRezBeep(550,0.15,0.22);},165);
+  setTimeout(function(){_vlzRezBeep(660,0.2,0.28);},330);
+}
+function _vlzRezNotif(title,body,tag){
+  _vlzRezNP=(typeof Notification!=='undefined'&&Notification.permission==='granted');
+  if(!_vlzRezNP)return;
+  try{new Notification(title||'Veraluz',{body:body||'',tag:tag||'vlz-rez',
+    icon:'https://ngams237.github.io/mako-city_suivis_ok/icon-192.png',silent:false});}catch(e){}
+}
+function _vlzRezRequestNotif(){
+  if(!('Notification' in window)||Notification.permission!=='default')return;
+  Notification.requestPermission().then(function(p){_vlzRezNP=(p==='granted');}).catch(function(){});
+}
+function startRezAlertPolling(){
+  if(_vlzRezInterval)return;
+  /* Baseline : mémoriser la dernière réservation connue */
+  sbGet('veraluz_reservations?order=created_at.desc&limit=1').then(function(data){
+    if(data&&data[0]&&data[0].created_at) _vlzLastRezCreatedAt=data[0].created_at;
+  }).catch(function(){});
+  _vlzRezInterval=setInterval(function(){
+    sbGet('veraluz_reservations?order=created_at.desc&limit=3').then(function(data){
+      if(!data||!data.length)return;
+      var newest=data[0];
+      if(!newest||!newest.created_at)return;
+      if(_vlzLastRezCreatedAt===newest.created_at)return; /* rien de nouveau */
+      if(_vlzLastRezCreatedAt===''){ _vlzLastRezCreatedAt=newest.created_at; return; }
+      /* Nouvelle réservation détectée */
+      _vlzLastRezCreatedAt=newest.created_at;
+      var guest=newest.guest_name||newest.name||'Client';
+      var unit=newest.unit_id||newest.room||'';
+      var body=guest+(unit?' — '+unit:'');
+      _vlzRezAlertSound();
+      try{if(navigator.vibrate)navigator.vibrate([100,50,150]);}catch(e){}
+      toast('\uD83D\uDD14 Nouvelle réservation : '+body,'success');
+      _vlzRezNotif('Nouvelle réservation', body, 'vlz-rez-new');
+      /* Recharger les données */
+      if(typeof loadAll==='function')loadAll(function(){
+        if(typeof enrichStatuses==='function')enrichStatuses();
+        if(typeof refresh==='function')refresh();
+        if(typeof updateBadges==='function')updateBadges();
+      });
+      console.log('[REZ ALERT] Nouvelle réservation:', body);
+    }).catch(function(){});
+  },30000);
+}
+document.addEventListener('click',function(){_vlzRezRequestNotif();},{once:true});
+/* ══════════════════════════════════════════ */
 /* ── INIT ── */
 document.addEventListener('DOMContentLoaded', function(){
   goTab('dash');
@@ -1815,6 +1944,9 @@ document.addEventListener('DOMContentLoaded', function(){
       checkBkSync();
       updateBadges();
     }
+    if(ev.key==='vlz_rez_updated'){
+      loadAll(function(){ enrichStatuses(); refresh(); checkBkSync(); });
+    }
   });
 });
   // Auto-refresh when Booking Engine creates a reservation
@@ -1825,7 +1957,17 @@ document.addEventListener('DOMContentLoaded', function(){
       if(ts>_lastRezSync){ _lastRezSync=ts; loadAll(function(){enrichStatuses();refresh();}); toast('Nouvelle réservation reçue du Booking Engine ✓','success'); }
     }catch(e){}
   },5000);
+  /* PROMPT 032 — alertes nouvelles réservations DB */
+  setTimeout(function(){startRezAlertPolling();},2000);
 });
 </script>
+<script>
+/* ── Veraluz Theme toggle — PROMPT 036C ─────────────────────── */
+function applyVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';document.documentElement.classList.toggle('vl-dark',dark);var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';}
+function toggleVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';localStorage.setItem('vl_theme',dark?'light':'dark');applyVlTheme();try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}}
+document.addEventListener('DOMContentLoaded',applyVlTheme);
+window.addEventListener('message',function(e){if(e.data&&e.data.type==='vl-theme')applyVlTheme();});
+</script>
+
 </body>
 </html>

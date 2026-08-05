@@ -1,4 +1,51 @@
-<!DOCTYPE html>
+<!DOCTY
+<style id="veraluz-theme">
+/* ═══ VERALUZ THEME PROMPT 036C ══════════════════════════════════
+   Light : bg #e8ecf0 · surfaces #fff · neumorphic shadows 3px
+   Dark  : bg #131722 · surfaces #1e2538 · sombre shadows
+   Toggle: html.vl-dark / localStorage('vl_theme')
+   ══════════════════════════════════════════════════════════════ */
+:root{--bg:#e8ecf0;--bg2:#eef1f5;--bg3:#fff;--bg4:#e0e4e8;--text:#1e293b;--text2:#475569;--text3:#94a3b8;--border:rgba(0,0,0,.07);--bord2:rgba(0,0,0,.10);--border2:rgba(0,0,0,.07);--radius:3px;--radius-sm:3px;--vl-sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;--vl-sh-in:inset 2px 2px 6px #c8cdd4,inset -1px -1px 4px #fff;--vl-r:3px;}
+html,body{background:var(--bg)!important;color:var(--text)!important;}
+html.vl-dark{--bg:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:rgba(255,255,255,.07);--bord2:rgba(255,255,255,.12);--border2:rgba(255,255,255,.07);--radius:3px;--radius-sm:3px;--vl-sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;--vl-sh-in:inset 2px 2px 6px #0d1118,inset -1px -1px 4px #242b3e;}
+html.vl-dark body{background:#131722!important;}
+/* ── Tabs / Headers ─────────────────────────────────────────── */
+#tabs,.mod-hdr,#topbar{background:#fff!important;border-bottom:1px solid rgba(0,0,0,.07)!important;box-shadow:0 1px 6px rgba(0,0,0,.05)!important;}
+html.vl-dark #tabs,html.vl-dark .mod-hdr,html.vl-dark #topbar{background:#1a1f2e!important;border-bottom:1px solid rgba(255,255,255,.06)!important;box-shadow:0 1px 8px rgba(0,0,0,.3)!important;}
+.tab,.tab-btn{border-radius:3px 3px 0 0!important;}
+.tab.on,.tab-btn.active{color:var(--accent,var(--acc1))!important;border-bottom-color:var(--accent,var(--acc1))!important;background:rgba(0,0,0,.025)!important;}
+html.vl-dark .tab.on,html.vl-dark .tab-btn.active{background:rgba(255,255,255,.04)!important;}
+/* ── Cards & KPI ────────────────────────────────────────────── */
+.card,.kpi,.stat-card,.emp-card,.detail-card,.sec-card,.rez-card,.room-card,.param-card,.param-card-body,.unit-card-p,.promo-card,.pane-card,.socard{background:#fff!important;border:none!important;border-radius:3px!important;box-shadow:var(--vl-sh)!important;}
+html.vl-dark .card,html.vl-dark .kpi,html.vl-dark .stat-card,html.vl-dark .emp-card,html.vl-dark .detail-card,html.vl-dark .sec-card,html.vl-dark .rez-card,html.vl-dark .room-card,html.vl-dark .param-card,html.vl-dark .param-card-body,html.vl-dark .unit-card-p,html.vl-dark .promo-card,html.vl-dark .pane-card,html.vl-dark .socard{background:var(--bg3)!important;border:1px solid var(--border)!important;box-shadow:var(--vl-sh)!important;}
+.emp-card:hover,.rez-card:hover,.room-card:hover{box-shadow:6px 6px 16px #c0c5cc,-2px -2px 8px #fff!important;transform:translateY(-1px);}
+html.vl-dark .emp-card:hover,html.vl-dark .rez-card:hover,html.vl-dark .room-card:hover{box-shadow:6px 6px 16px #0a0e16,-2px -2px 8px #242b3e!important;}
+/* ── Param card header gradient ─────────────────────────────── */
+.param-card-hdr{background:linear-gradient(135deg,var(--accent,var(--acc1)),rgba(8,145,178,.55))!important;border-radius:3px 3px 0 0!important;}
+/* ── Inputs / Selects ───────────────────────────────────────── */
+input:not([type=checkbox]):not([type=radio]),select,textarea,.search{background:#f1f5f9!important;border:1px solid rgba(0,0,0,.09)!important;border-radius:3px!important;color:var(--text)!important;}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{border-color:var(--accent,var(--acc1))!important;box-shadow:0 0 0 2px rgba(8,145,178,.12)!important;outline:none!important;}
+html.vl-dark input:not([type=checkbox]):not([type=radio]),html.vl-dark select,html.vl-dark textarea,html.vl-dark .search{background:var(--bg3)!important;border-color:rgba(255,255,255,.1)!important;}
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn-sec,.btn-warn,.sf,.fchip,.mode-btn{border-radius:3px!important;}
+.btn-sec{background:#f1f5f9!important;color:var(--text2)!important;border:1px solid rgba(0,0,0,.09)!important;}
+.sf,.fchip,.mode-btn{background:#f1f5f9!important;color:var(--text2)!important;border:1px solid rgba(0,0,0,.09)!important;}
+.fchip.on,.mode-btn.mr{background:var(--accent,var(--acc1))!important;color:#000!important;border-color:transparent!important;}
+html.vl-dark .btn-sec,html.vl-dark .sf,html.vl-dark .fchip,html.vl-dark .mode-btn{background:var(--bg4)!important;color:var(--text2)!important;border-color:rgba(255,255,255,.08)!important;}
+html.vl-dark .fchip.on,html.vl-dark .mode-btn.mr{background:var(--accent,var(--acc1))!important;color:#000!important;border-color:transparent!important;}
+/* ── Entries ────────────────────────────────────────────────── */
+.entry{border-bottom-color:rgba(0,0,0,.06)!important;}
+html.vl-dark .entry{border-bottom-color:rgba(255,255,255,.05)!important;}
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:#c8cdd4!important;border-radius:3px!important;}
+html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
+/* ── Theme toggle FAB ───────────────────────────────────────── */
+#vl-tm-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);right:14px;z-index:9990;width:36px;height:36px;border-radius:3px;border:none;background:#fff;color:#475569;cursor:pointer;font-size:15px;box-shadow:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s,transform .15s;}
+#vl-tm-btn:hover{transform:scale(1.05);}
+html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;}
+</style>
+PE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
@@ -6,6 +53,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <title>RH — Veraluz</title>
+<script>if(localStorage.getItem('vl_theme')=='dark')document.documentElement.classList.add('vl-dark');</script>
+<script>if(localStorage.getItem('vl_theme')=='dark')document.documentElement.classList.add('vl-dark');</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{--bg:#0d0d1a;--bg2:#12121f;--bg3:#1a1a2e;--bg4:#22223a;--acc1:#22d3a5;--acc2:#818cf8;--warn:#f59e0b;--danger:#f43f5e;--ok:#10b981;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:rgba(255,255,255,.08);--bord2:rgba(255,255,255,.14);}
@@ -74,7 +123,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 #md-dossier{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;z-index:150;overflow:hidden;}
 #md-dossier.on{display:flex;}
 .dos-hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
-.dos-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;}
+.dos-avatar{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;overflow:hidden;position:relative;}
+.dos-avatar img,.emp-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;position:absolute;top:0;left:0;}
+.id-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:12px;margin-left:4px;vertical-align:middle}
+.id-badge.ok{background:rgba(34,211,165,.12);color:#22d3a5;border:1px solid rgba(34,211,165,.25)}
+.id-badge.warn{background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2)}
+.id-badge.missing{background:rgba(244,63,94,.1);color:#f43f5e;border:1px solid rgba(244,63,94,.2)}
+.checkin-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px}
+.checkin-icon{font-size:1.1rem;flex-shrink:0}
+.checkin-info{flex:1}
+.checkin-time{color:var(--text3);font-size:10px}
+.checkin-selfie{width:36px;height:36px;border-radius:8px;object-fit:cover;cursor:pointer;flex-shrink:0}
 .dos-tabs{display:flex;overflow-x:auto;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;scrollbar-width:none;}
 .dos-tabs::-webkit-scrollbar{display:none;}
 .dos-tab{flex-shrink:0;padding:9px 13px;font-size:11px;font-weight:600;color:var(--text3);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;}
@@ -133,15 +192,65 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .empty{text-align:center;padding:40px 20px;color:var(--text3);}
 .empty-ico{font-size:36px;margin-bottom:8px;}
 </style>
+<style id="veraluz-theme">
+/* ═══ VERALUZ THEME PROMPT 036C ══════════════════════════════════
+   Light : bg #e8ecf0 · surfaces #fff · neumorphic shadows 3px
+   Dark  : bg #131722 · surfaces #1e2538 · sombre shadows
+   Toggle: html.vl-dark / localStorage('vl_theme')
+   ══════════════════════════════════════════════════════════════ */
+:root{--bg:#e8ecf0;--bg2:#eef1f5;--bg3:#fff;--bg4:#e0e4e8;--text:#1e293b;--text2:#475569;--text3:#94a3b8;--border:rgba(0,0,0,.07);--bord2:rgba(0,0,0,.10);--border2:rgba(0,0,0,.07);--radius:3px;--radius-sm:3px;--vl-sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;--vl-sh-in:inset 2px 2px 6px #c8cdd4,inset -1px -1px 4px #fff;--vl-r:3px;}
+html,body{background:var(--bg)!important;color:var(--text)!important;}
+html.vl-dark{--bg:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:rgba(255,255,255,.07);--bord2:rgba(255,255,255,.12);--border2:rgba(255,255,255,.07);--radius:3px;--radius-sm:3px;--vl-sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;--vl-sh-in:inset 2px 2px 6px #0d1118,inset -1px -1px 4px #242b3e;}
+html.vl-dark body{background:#131722!important;}
+/* ── Tabs / Headers ─────────────────────────────────────────── */
+#tabs,.mod-hdr,#topbar{background:#fff!important;border-bottom:1px solid rgba(0,0,0,.07)!important;box-shadow:0 1px 6px rgba(0,0,0,.05)!important;}
+html.vl-dark #tabs,html.vl-dark .mod-hdr,html.vl-dark #topbar{background:#1a1f2e!important;border-bottom:1px solid rgba(255,255,255,.06)!important;box-shadow:0 1px 8px rgba(0,0,0,.3)!important;}
+.tab,.tab-btn{border-radius:3px 3px 0 0!important;}
+.tab.on,.tab-btn.active{color:var(--accent,var(--acc1))!important;border-bottom-color:var(--accent,var(--acc1))!important;background:rgba(0,0,0,.025)!important;}
+html.vl-dark .tab.on,html.vl-dark .tab-btn.active{background:rgba(255,255,255,.04)!important;}
+/* ── Cards & KPI ────────────────────────────────────────────── */
+.card,.kpi,.stat-card,.emp-card,.detail-card,.sec-card,.rez-card,.room-card,.param-card,.param-card-body,.unit-card-p,.promo-card,.pane-card,.socard{background:#fff!important;border:none!important;border-radius:3px!important;box-shadow:var(--vl-sh)!important;}
+html.vl-dark .card,html.vl-dark .kpi,html.vl-dark .stat-card,html.vl-dark .emp-card,html.vl-dark .detail-card,html.vl-dark .sec-card,html.vl-dark .rez-card,html.vl-dark .room-card,html.vl-dark .param-card,html.vl-dark .param-card-body,html.vl-dark .unit-card-p,html.vl-dark .promo-card,html.vl-dark .pane-card,html.vl-dark .socard{background:var(--bg3)!important;border:1px solid var(--border)!important;box-shadow:var(--vl-sh)!important;}
+.emp-card:hover,.rez-card:hover,.room-card:hover{box-shadow:6px 6px 16px #c0c5cc,-2px -2px 8px #fff!important;transform:translateY(-1px);}
+html.vl-dark .emp-card:hover,html.vl-dark .rez-card:hover,html.vl-dark .room-card:hover{box-shadow:6px 6px 16px #0a0e16,-2px -2px 8px #242b3e!important;}
+/* ── Param card header gradient ─────────────────────────────── */
+.param-card-hdr{background:linear-gradient(135deg,var(--accent,var(--acc1)),rgba(8,145,178,.55))!important;border-radius:3px 3px 0 0!important;}
+/* ── Inputs / Selects ───────────────────────────────────────── */
+input:not([type=checkbox]):not([type=radio]),select,textarea,.search{background:#f1f5f9!important;border:1px solid rgba(0,0,0,.09)!important;border-radius:3px!important;color:var(--text)!important;}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{border-color:var(--accent,var(--acc1))!important;box-shadow:0 0 0 2px rgba(8,145,178,.12)!important;outline:none!important;}
+html.vl-dark input:not([type=checkbox]):not([type=radio]),html.vl-dark select,html.vl-dark textarea,html.vl-dark .search{background:var(--bg3)!important;border-color:rgba(255,255,255,.1)!important;}
+/* ── Buttons ────────────────────────────────────────────────── */
+.btn-sec,.btn-warn,.sf,.fchip,.mode-btn{border-radius:3px!important;}
+.btn-sec{background:#f1f5f9!important;color:var(--text2)!important;border:1px solid rgba(0,0,0,.09)!important;}
+.sf,.fchip,.mode-btn{background:#f1f5f9!important;color:var(--text2)!important;border:1px solid rgba(0,0,0,.09)!important;}
+.fchip.on,.mode-btn.mr{background:var(--accent,var(--acc1))!important;color:#000!important;border-color:transparent!important;}
+html.vl-dark .btn-sec,html.vl-dark .sf,html.vl-dark .fchip,html.vl-dark .mode-btn{background:var(--bg4)!important;color:var(--text2)!important;border-color:rgba(255,255,255,.08)!important;}
+html.vl-dark .fchip.on,html.vl-dark .mode-btn.mr{background:var(--accent,var(--acc1))!important;color:#000!important;border-color:transparent!important;}
+/* ── Entries ────────────────────────────────────────────────── */
+.entry{border-bottom-color:rgba(0,0,0,.06)!important;}
+html.vl-dark .entry{border-bottom-color:rgba(255,255,255,.05)!important;}
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:#c8cdd4!important;border-radius:3px!important;}
+html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
+/* ── Theme toggle FAB ───────────────────────────────────────── */
+#vl-tm-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);right:14px;z-index:9990;width:36px;height:36px;border-radius:3px;border:none;background:#fff;color:#475569;cursor:pointer;font-size:15px;box-shadow:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s,transform .15s;}
+#vl-tm-btn:hover{transform:scale(1.05);}
+html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;}
+</style>
+
 </head>
 <body>
+<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Mode sombre / clair">🌙</button>
 <div id="app">
   <div id="tabs">
     <button class="tab on" data-p="emp"      onclick="goTab('emp')">&#128100; Employ&#233;s</button>
+    <button class="tab"    data-p="equipe"   onclick="goTab('equipe')">&#127968; &#201;quipes</button>
     <button class="tab"    data-p="contrats" onclick="goTab('contrats')">&#128203; Contrats</button>
     <button class="tab"    data-p="sched"    onclick="goTab('sched')">&#128197; Horaires</button>
     <button class="tab"    data-p="att"      onclick="goTab('att')">&#9200; Pr&#233;sences</button>
     <button class="tab"    data-p="pay"      onclick="goTab('pay')">&#128176; Paie</button>
+    <button class="tab"    data-p="periodes" onclick="goTab('periodes')">&#128197; P&eacute;riodes</button>
     <button class="tab"    data-p="adv"      onclick="goTab('adv')">&#128180; Avances</button>
     <button class="tab"    data-p="docs"     onclick="goTab('docs')">&#128196; Documents</button>
     <button class="tab"    data-p="tasks"    onclick="goTab('tasks')">&#9989; T&#226;ches</button>
@@ -171,6 +280,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <button class="fchip"    data-f="inactif" onclick="setEmpFilter('inactif',this)">Inactifs</button>
       </div>
       <div class="emp-grid" id="emp-list"><div class="empty"><div class="empty-ico">&#128100;</div>Chargement&#8230;</div></div>
+    </div>
+
+    <!-- EQUIPES -->
+    <div class="pane" id="pane-equipe">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openMd('md-add-team')">&#43; &#201;quipe</button>
+      </div>
+      <div id="equipe-body"><div class="empty"><div class="empty-ico">&#127968;</div>Chargement&#8230;</div></div>
     </div>
 
     <!-- CONTRATS -->
@@ -232,10 +349,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
     <!-- PAIE WORKFLOW -->
     <div class="pane" id="pane-pay">
+      <!-- PROMPT 020B — M7: Bandeau legacy informatif -->
+      <div style="background:rgba(245,158,11,0.1);border:1px solid var(--warn);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;line-height:1.5;">
+        <strong>&#9888; Historique paie legacy</strong> &mdash; Cet onglet affiche les fiches de l&rsquo;ancienne table <code>veraluz_payroll</code>. Pour le cycle de paie formel avec workflow multi-niveaux, CNPS, IRPP et tra&#231;abilit&#233;, utilisez l&rsquo;onglet <strong>&#128197; P&eacute;riodes</strong>. Les actions d&rsquo;&eacute;criture sont <strong>d&eacute;sactiv&eacute;es</strong> ici.
+      </div>
       <div class="pay-step">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <span class="step-num">1</span>
-          <span style="font-size:14px;font-weight:700;">Cycle de paie</span>
+          <span style="font-size:14px;font-weight:700;">Aper&#231;u paie legacy (lecture seule)</span>
         </div>
         <div class="card-row">
           <div class="kpi"><div class="kpi-v" id="pay-mass">&#8212;</div><div class="kpi-l">Masse salariale</div></div>
@@ -243,23 +364,45 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <div class="kpi ok"><div class="kpi-v" id="pay-paid">&#8212;</div><div class="kpi-l">Pay&#233;es</div></div>
         </div>
         <div class="btn-row">
-          <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" /><button class="btn btn-primary" onclick="calcPayroll()">&#128200; Calculer la paie du mois</button>
-          <button class="btn btn-sec"     onclick="openAddPay()">&#43; Fiche manuelle</button>
-          <button class="btn btn-sec"     onclick="exportPayCSV()">&#128438; Export banque</button>
+          <!-- PROMPT 020B — M6: calcPayroll garde son rôle de preview (lecture), les écrits sont désactivés -->
+          <input type="month" id="calc-month" class="fi" style="width:130px;margin-bottom:0;padding:6px 10px;" /><button class="btn btn-primary" onclick="calcPayroll()">&#128200; Aper&#231;u legacy</button>
+          <button class="btn btn-sec" disabled title="D&eacute;sactiv&eacute; — utilisez l&rsquo;onglet P&eacute;riodes" style="opacity:.4;cursor:not-allowed;">&#43; Fiche manuelle</button>
+          <button class="btn btn-sec" disabled title="Export banque d&eacute;sactiv&eacute; &mdash; PROMPT 021" style="opacity:.4;cursor:not-allowed;">&#128438; Export banque</button>
         </div>
       </div>
       <div id="payroll-preview" style="display:none;" class="pay-step">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <span class="step-num">2</span>
-          <span style="font-size:14px;font-weight:700;">V&#233;rifier &amp; Approuver</span>
+          <span style="font-size:14px;font-weight:700;">Aper&#231;u &mdash; consultation uniquement</span>
         </div>
         <div id="payroll-table-wrap"></div>
         <div class="btn-row" style="margin-top:12px;">
-          <button class="btn btn-primary" onclick="approveAllPayroll()">&#9989; Approuver tout</button>
-          <button class="btn btn-sec"     onclick="document.getElementById('payroll-preview').style.display='none'">Annuler</button>
+          <!-- PROMPT 020B — M6: approveAllPayroll désactivé — écriture via onglet Périodes -->
+          <button class="btn btn-sec" disabled title="Approbation d&eacute;sactiv&eacute;e &mdash; utilisez l&rsquo;onglet P&eacute;riodes" style="opacity:.4;cursor:not-allowed;">&#9989; Approuver tout</button>
+          <button class="btn btn-sec" onclick="document.getElementById('payroll-preview').style.display='none'">Fermer</button>
         </div>
       </div>
       <div id="pay-list"><div class="empty"><div class="empty-ico">&#128176;</div>Chargement&#8230;</div></div>
+    </div>
+
+    <!-- PÉRIODES DE PAIE — PROMPT 020 -->
+    <div class="pane" id="pane-periodes">
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="openNewPeriode()">&#43; Nouvelle p&eacute;riode</button>
+        <button class="btn btn-sec" onclick="loadPeriodes()">&#8635; Actualiser</button>
+      </div>
+      <div class="card-row" style="margin-bottom:8px;">
+        <div class="kpi"><div class="kpi-v" id="kpi-per-total">&#8212;</div><div class="kpi-l">P&eacute;riodes</div></div>
+        <div class="kpi warn"><div class="kpi-v" id="kpi-per-draft">&#8212;</div><div class="kpi-l">En cours</div></div>
+        <div class="kpi ok"><div class="kpi-v" id="kpi-per-paid">&#8212;</div><div class="kpi-l">Pay&eacute;es</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;padding:6px 10px;background:rgba(99,102,241,0.06);border-radius:6px;border-left:3px solid var(--acc2);">
+        Workflow : <strong>Brouillon</strong> &#8594; <strong>Calcul&eacute;e</strong> &#8594; <strong>Valid&eacute;e manager</strong> &#8594; <strong>Valid&eacute;e propri&eacute;taire</strong> &#8594; <strong>Pay&eacute;e</strong>. Aucun paiement automatique. Validation humaine obligatoire.
+      </div>
+      <div id="per-list-wrap">
+        <div id="per-list"><div class="empty"><div class="empty-ico">&#128197;</div>Chargement&#8230;</div></div>
+      </div>
+      <div id="per-detail" style="display:none;"></div>
     </div>
 
     <!-- AVANCES -->
@@ -338,8 +481,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <select class="fi" id="param-irpp"><option value="false">Non &#8212; d&#233;sactiv&#233;</option><option value="true">Oui &#8212; activ&#233;</option></select>
 <div style="font-size:10px;color:var(--text3);margin-top:4px;">Bar&#232;me IRPP Cameroun&#160;: 10% jusqu&#8217;&#224;&#160;2M, 15% de 2&#8211;3M, 25% de 3&#8211;5M, 35% au-del&#224; (abattement 30%)</div>
 </div>
-<label class="fl">PIN par d&#233;faut (nouveaux employ&#233;s)</label>
-        <input class="fi" id="param-pin" type="text" maxlength="4" placeholder="1234">
+<!-- PROMPT 020C — M8 : label mis à jour, PIN géré via Edge Function reset -->
+<label class="fl">PIN initial par d&#233;faut <span style="color:var(--text3);font-size:10px;">(utilis&#233; si absent &mdash; conseill&#233; : r&#233;initialiser via Auth)</span></label>
+        <input class="fi" id="param-pin" type="text" maxlength="6" placeholder="000000">
         <label class="fl">Plafond avance (% du salaire)</label>
         <input class="fi" id="param-adv-limit" type="number" min="0" max="100" placeholder="50">
       </div>
@@ -373,12 +517,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <div style="background:var(--bg3);border-radius:20px;padding:24px;width:100%;max-width:320px;border:1px solid var(--border);">
     <label class="fl">Votre nom</label>
     <select class="fi" id="login-emp-sel"></select>
-    <label class="fl" style="margin-top:8px;">Code PIN (4 chiffres)</label>
+    <!-- PROMPT 020D — M10 : login pointage 6 chiffres -->
+    <label class="fl" style="margin-top:8px;">Code PIN employé <span style="font-size:10px;color:var(--text3);">(4 ou 6 chiffres)</span></label>
     <div class="pin-dots" id="pin-dots">
       <div class="pin-dot" id="pd0"></div>
       <div class="pin-dot" id="pd1"></div>
       <div class="pin-dot" id="pd2"></div>
       <div class="pin-dot" id="pd3"></div>
+      <div class="pin-dot" id="pd4"></div>
+      <div class="pin-dot" id="pd5"></div>
     </div>
     <div class="pin-pad" id="pin-pad"></div>
     <div id="login-err" style="color:var(--danger);font-size:12px;text-align:center;margin-top:10px;min-height:18px;"></div>
@@ -449,10 +596,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="ep-pane" id="ep-pin">
       <div class="card">
         <div class="sec-title" style="margin-bottom:12px;">&#128274; Changer mon PIN</div>
-        <label class="fl">Nouveau PIN (4 chiffres)</label>
-        <input class="fi" id="new-pin1" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
-        <label class="fl">Confirmer le PIN</label>
-        <input class="fi" id="new-pin2" type="password" maxlength="4" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;">
+        <!-- PROMPT 020C — M5 : PIN 6 chiffres -->
+        <div style="font-size:12px;color:var(--text3);margin-bottom:10px;">Saisissez votre PIN actuel (4 ou 6 chiffres selon votre g&eacute;n&eacute;ration) puis choisissez un nouveau PIN &agrave; 6 chiffres.</div>
+        <label class="fl">PIN actuel (4 ou 6 chiffres)</label>
+        <input class="fi" id="cur-pin" type="password" maxlength="6" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;" autocomplete="current-password">
+        <label class="fl" style="margin-top:8px;">Nouveau PIN (6 chiffres)</label>
+        <input class="fi" id="new-pin1" type="password" maxlength="6" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" autocomplete="new-password">
+        <label class="fl" style="margin-top:8px;">Confirmer le nouveau PIN</label>
+        <input class="fi" id="new-pin2" type="password" maxlength="6" inputmode="numeric" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;" autocomplete="new-password">
         <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="changePin()">Enregistrer le nouveau PIN</button>
       </div>
     </div>
@@ -472,6 +623,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
   <div class="dos-tabs">
     <button class="dos-tab on" onclick="goDosTb('dos-profil',this)">&#128100; Profil</button>
+    <button class="dos-tab"    onclick="goDosTb('dos-checkins',this)">&#128247; Checkins</button>
     <button class="dos-tab"    onclick="goDosTb('dos-contrat',this)">&#128203; Contrat</button>
     <button class="dos-tab"    onclick="goDosTb('dos-salaire',this)">&#128176; Salaire</button>
     <button class="dos-tab"    onclick="goDosTb('dos-paie',this)">&#128196; Fiches paie</button>
@@ -481,6 +633,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   </div>
   <div class="dos-body">
     <div class="dos-pane on" id="dos-profil"></div>
+    <div class="dos-pane"    id="dos-checkins"><div id="dos-checkins-body"></div></div>
     <div class="dos-pane"    id="dos-contrat"></div>
     <div class="dos-pane"    id="dos-salaire"></div>
     <div class="dos-pane"    id="dos-paie"></div>
@@ -525,7 +678,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="height:8px;"></div>
     <div class="fg">
       <div><label class="fl">Num&#233;ro MoMo</label><input class="fi" id="emp-momo" type="tel" placeholder="+237 6xx..." style="margin-bottom:0"></div>
-      <div><label class="fl">PIN (4 chiffres)</label><input class="fi" id="emp-pin" type="text" maxlength="4" placeholder="1234" style="margin-bottom:0"></div>
+      <!-- PROMPT 020C — M8 : PIN initial à créer, reset recommandé via Auth après création -->
+      <div><label class="fl">PIN initial <span style="font-size:10px;color:var(--text3);">(r&#233;initialiser via Auth apr&#232;s cr&#233;ation)</span></label><input class="fi" id="emp-pin" type="text" maxlength="6" placeholder="000000" style="margin-bottom:0"></div>
     </div>
     <div style="height:8px;"></div>
     <label class="fl">Statut</label>
@@ -746,7 +900,25 @@ function POST(t,d){return fetch(SUPA_URL+'/rest/v1/'+t,{method:'POST',headers:_h
 function PATCH(t,id,d){return fetch(SUPA_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:_hdr({'Content-Type':'application/json','Prefer':'return=representation'}),body:JSON.stringify(d)}).then(_chk);}
 function DELETE(t,id){return fetch(SUPA_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}});}
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
-function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/* PROMPT 007 — délégation VC.esc() + safeUrl() */
+var VC = window.VeraluzCore || {};
+function maskMomo(v){
+  if(!v||v==='—')return'—';
+  var s=String(v).replace(/[^\d+]/g,'');
+  if(s.length>=4)return s.slice(0,4).replace(/./g,'*')+' '+s.slice(-3).replace(/./g,'X')+' (masqué)';
+  return '****';
+}
+function esc(s){
+  if(VC&&typeof VC.esc==='function') return VC.esc(s);
+  if(!s)return'';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function safeUrl(url){
+  var s=String(url||'').trim();
+  if(!s)return'#';
+  if(s.startsWith('http://')||s.startsWith('https://')||s.startsWith('mailto:')||s.startsWith('tel:')||s.startsWith('data:image/'))return s;
+  return'#';
+}
 function fmt(n){return Number(n||0).toLocaleString('fr-FR');}
 function fdate(d){if(!d)return'—';try{return new Date(d).toLocaleDateString('fr-FR');}catch(e){return d;}}
 function fdt(d){if(!d)return'—';try{var dt=new Date(d);return dt.toLocaleDateString('fr-FR')+' '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}catch(e){return d;}}
@@ -754,6 +926,8 @@ function toast(msg,type){var t=document.getElementById('toast');t.textContent=ms
 
 /* ═══════════════ STATE ═══════════════ */
 var EMPS=[],TEAMS=[],CONTRACTS=[],SCHEDS=[],ATTS=[],PAYROLLS=[],ADVANCES=[],DOCS=[],TASKS=[],HIST=[],BONUSES=[],SETTINGS={};
+/* PROMPT 020 — Paie formelle */
+var PAY_PERIODS=[],PAY_ITEMS=[],PAY_ADJ=[];
 var empFilter='all',cFilter='all',attFilter='all',payFilter='all',advFilter='all',docFilter='all',taskFilter='all',histFilter='all';
 var schedWeekOffset=0;
 var LOGGED_EMP=null;
@@ -773,10 +947,12 @@ function goTab(p){
   var pane=document.getElementById('pane-'+p);
   if(pane)pane.classList.add('on');
   if(p==='emp')renderEmps();
+  else if(p==='equipe')renderEquipe();
   else if(p==='contrats'){loadContracts();}
   else if(p==='sched'){renderSched();}
   else if(p==='att'){loadAtt();}
   else if(p==='pay'){loadPay();}
+  else if(p==='periodes'){loadPeriodes();}  /* PROMPT 020 */
   else if(p==='adv'){loadAdv();}
   else if(p==='docs'){loadDocs();}
   else if(p==='tasks'){loadTasks();}
@@ -796,8 +972,16 @@ function initParamSelects(){
   var calEl=document.getElementById('calc-month');if(calEl&&!calEl.value)calEl.value=new Date().toISOString().slice(0,7);
 }
 function safeGet(t){
+  /* PROMPT 020B — M10: erreurs Supabase enrichies avec code HTTP */
   return GET(t).catch(function(e){
-    console.warn('RH load failed ['+t+']:', e.message||e);
+    var raw=e.message||String(e);
+    var m=raw.match(/\b(4\d{2}|5\d{2})\b/);
+    var code=m?m[1]:'';
+    var hint=code==='401'?' — clé anon invalide (vérifier SUPA_KEY)':
+             code==='403'?' — RLS bloque l\'accès anon':
+             code==='404'?' — table introuvable (vérifier migration)':
+             code==='429'?' — trop de requêtes (rate limit Supabase)':'';
+    console.warn('RH safeGet ['+t+']'+(code?' HTTP '+code:'')+hint+':', raw);
     return [];
   });
 }
@@ -815,7 +999,9 @@ function loadAll(){
     safeGet('veraluz_hr_documents?select=*&order=created_at.desc&limit=100'),
     safeGet('veraluz_hr_tasks?select=*&order=created_at.desc&limit=200'),
     safeGet('veraluz_employee_bonuses?select=*&order=created_at.desc&limit=200'),
-    safeGet('veraluz_hr_settings?select=*')
+    safeGet('veraluz_hr_settings?select=*'),
+    safeGet('veraluz_pay_periods?select=*&order=start_date.desc&limit=50'),        /* PROMPT 020 r[11] */
+    safeGet('veraluz_payroll_items?select=*&order=created_at.asc&limit=500')       /* PROMPT 020 r[12] */
   ]).then(function(r){
     EMPS=Array.isArray(r[0])?r[0]:[];
     TEAMS=Array.isArray(r[1])?r[1]:[];
@@ -830,6 +1016,8 @@ function loadAll(){
     var sets=Array.isArray(r[10])?r[10]:[];
     SETTINGS={};
     sets.forEach(function(s){SETTINGS[s.key]=s.value;});
+    PAY_PERIODS=Array.isArray(r[11])?r[11]:[];   /* PROMPT 020 */
+    PAY_ITEMS=Array.isArray(r[12])?r[12]:[];     /* PROMPT 020 */
     if(banner){banner.style.display='none';}
     renderEmps();
     populateSelects();
@@ -844,8 +1032,15 @@ function loadAll(){
       }
     }
   }).catch(function(e){
-    var msg='Erreur chargement: '+(e.message||e);
-    if(banner){banner.textContent=msg;banner.style.display='block';banner.style.color='var(--danger)';}
+    /* PROMPT 020B — M10: message Supabase avec code HTTP */
+    var raw=e.message||String(e);
+    var m=raw.match(/\b(4\d{2}|5\d{2})\b/);
+    var code=m?m[1]:'';
+    var hint=code==='401'?' — clé anon manquante ou invalide':
+             code==='403'?' — RLS bloque l\'accès anon':
+             code==='404'?' — table introuvable (vérifier migrations)':'';
+    var msg='Erreur Supabase'+(code?' ('+code+')':'')+hint;
+    if(banner){banner.textContent=msg+'. '+raw;banner.style.display='block';banner.style.color='var(--danger)';}
     toast(msg,'err');
   });
 }
@@ -889,9 +1084,11 @@ function renderEmps(){
     var color=avatarColor(e.full_name);
     var initials=avatarInitials(e.full_name);
     var team=TEAMS.find(function(t){return t.id===e.team_id;});
+    var photoUrl=e.photo_url||'';
+    var photoImg=photoUrl?'<img src="'+esc(photoUrl)+'" alt="'+esc(initials)+'" onerror="this.style.display=\'none\'">':'';
     return '<div class="emp-card" data-eid="'+esc(e.id)+'" onclick="openDossier(this.dataset.eid)">'
       +'<div class="emp-status-dot '+esc(e.status||'inactif')+'"></div>'
-      +'<div class="emp-avatar" style="background:'+color+'">'+initials+'</div>'
+      +'<div class="emp-avatar" style="background:'+color+'">'+initials+photoImg+'</div>'
       +'<div class="emp-name">'+esc(e.full_name)+'</div>'
       +'<div class="emp-role">'+esc(e.role||'—')+(team?' · <span style="color:'+esc(team.color||'#22d3a5')+'">'+esc(team.name)+'</span>':'')+'</div>'
       +'</div>';
@@ -908,24 +1105,27 @@ function saveEmp(){
     hire_date:document.getElementById('emp-hire').value||null,
     base_salary:parseFloat(document.getElementById('emp-salary').value)||0,
     momo_number:document.getElementById('emp-momo').value.trim()||null,
-    pin_code:document.getElementById('emp-pin').value||SETTINGS.default_pin||'1234',
     status:document.getElementById('emp-status').value,
     notes:document.getElementById('emp-notes').value.trim()||null
   };
   if(!d.full_name){toast('Nom requis','err');return;}
   if(id){
+    /* PROMPT 020D — M9 : modification sans pin_code — géré via Auth > Réinitialiser PIN */
     PATCH('veraluz_employees',id,d).then(function(){
       var idx=EMPS.findIndex(function(e){return e.id===id;});
       if(idx>=0)Object.assign(EMPS[idx],d);
       closeMd('md-add-emp');renderEmps();toast('Employ&#233; mis &#224; jour &#9989;','ok');
-    }).catch(function(e){toast('Erreur: '+e,'err');});
+    }).catch(function(e){toast(explainSupabaseError('Mise à jour','veraluz_employees',e),'err');});
   } else {
     d.id=gid();
+    /* PROMPT 020D — M9 : PIN initial + must_change_pin=true à la création */
+    d.pin_code=document.getElementById('emp-pin').value||SETTINGS.default_pin||'123456';
+    d.must_change_pin=true;
     POST('veraluz_employees',d).then(function(r){
       EMPS.push(r[0]||d);
       populateSelects();
       closeMd('md-add-emp');renderEmps();toast('Employ&#233; ajout&#233; &#9989;','ok');
-    }).catch(function(e){toast('Erreur: '+e,'err');});
+    }).catch(function(e){toast(explainSupabaseError('Création','veraluz_employees',e),'err');});
   }
 }
 function openAddEmp(){
@@ -939,6 +1139,95 @@ function openAddEmp(){
 }
 
 
+/* ═══════════════ EQUIPES ═══════════════ */
+var EQUIPE_DEFS=[
+  {key:'administration',lbl:'Administration',   ico:'&#128188;',color:'#22d3a5'},
+  {key:'reception',     lbl:'R&#233;ception',          ico:'&#127981;',color:'#818cf8'},
+  {key:'cuisine',       lbl:'Cuisine',          ico:'&#127859;',color:'#f59e0b'},
+  {key:'livreur',       lbl:'Livreurs',         ico:'&#128667;',color:'#ec4899'},
+  {key:'securite',      lbl:'S&#233;curit&#233;',            ico:'&#128737;',color:'#f43f5e'},
+  {key:'chauffeur',     lbl:'Chauffeurs',       ico:'&#128664;',color:'#3b82f6'},
+  {key:'housekeeping',  lbl:'Housekeeping',     ico:'&#129529;',color:'#10b981'},
+  {key:'restaurant',    lbl:'Restaurant',       ico:'&#127860;',color:'#f97316'},
+  {key:'entretien',     lbl:'Entretien',        ico:'&#128295;',color:'#8b5cf6'},
+  {key:'autre',         lbl:'Autre',            ico:'&#128101;',color:'#64748b'}
+];
+function getEmpTeamKey(e){
+  /* Try team name match first, then role match */
+  var team=TEAMS.find(function(t){return t.id===e.team_id;});
+  if(team){
+    var tname=(team.name||'').toLowerCase();
+    for(var i=0;i<EQUIPE_DEFS.length;i++){
+      var k=EQUIPE_DEFS[i].key;
+      if(tname.includes(k)||k.includes(tname.replace(/s$/,'')))return k;
+    }
+    /* Map legacy names */
+    if(tname.includes('admin'))return'administration';
+    if(tname.includes('réception')||tname.includes('reception'))return'reception';
+    if(tname.includes('securit')||tname.includes('sécurit'))return'securite';
+    if(tname.includes('house'))return'housekeeping';
+    if(tname.includes('restaurant'))return'restaurant';
+    return 'autre';
+  }
+  /* Fallback: match role */
+  var role=(e.role||'').toLowerCase();
+  if(role.includes('gérant')||role.includes('gerant')||role.includes('admin')||role.includes('compt'))return'administration';
+  if(role.includes('recep'))return'reception';
+  if(role.includes('cuisinier')||role.includes('barman'))return'cuisine';
+  if(role.includes('livr'))return'livreur';
+  if(role.includes('securit')||role.includes('agent'))return'securite';
+  if(role.includes('chauffeur'))return'chauffeur';
+  if(role.includes('chambre')||role.includes('house'))return'housekeeping';
+  if(role.includes('technicien')||role.includes('entretien'))return'entretien';
+  return 'autre';
+}
+function renderEquipe(){
+  var el=document.getElementById('equipe-body');
+  if(!EMPS.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#127968;</div>Aucun employ&#233;</div>';return;}
+  /* Group employees by equipe key */
+  var groups={};
+  EMPS.forEach(function(e){
+    var k=getEmpTeamKey(e);
+    if(!groups[k])groups[k]=[];
+    groups[k].push(e);
+  });
+  var html='';
+  EQUIPE_DEFS.forEach(function(def){
+    var members=groups[def.key]||[];
+    if(!members.length)return;
+    html+='<div class="card" style="margin-bottom:14px;padding:0;overflow:hidden;">'
+      +'<div style="background:'+def.color+'18;border-bottom:1px solid '+def.color+'33;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<span style="font-size:1.1rem;">'+def.ico+'</span>'
+      +'<span style="font-size:13px;font-weight:800;color:var(--text);">'+def.lbl+'</span>'
+      +'</div>'
+      +'<span style="background:'+def.color+'22;color:'+def.color+';padding:3px 9px;border-radius:99px;font-size:11px;font-weight:700;">'+members.length+' membre'+(members.length>1?'s':'')+'</span>'
+      +'</div>'
+      +'<div style="padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;">'
+      +members.map(function(e){
+        var color=avatarColor(e.full_name);
+        var initials=avatarInitials(e.full_name);
+        var statusDot=e.status==='actif'?'var(--ok)':e.status==='conge'?'var(--warn)':'var(--danger)';
+        return '<div class="emp-card" data-eid="'+esc(e.id)+'" onclick="openDossier(this.dataset.eid)" style="margin:0;">'
+          +'<div class="emp-status-dot" style="background:'+statusDot+'"></div>'
+          +'<div class="emp-avatar" style="background:'+color+'">'+initials+'</div>'
+          +'<div class="emp-name">'+esc(e.full_name)+'</div>'
+          +'<div class="emp-role">'+esc(e.role||'—')+'</div>'
+          +'</div>';
+      }).join('')
+      +'</div></div>';
+  });
+  /* If any employees fell outside defs (shouldn't happen), show them */
+  var allKeys=Object.keys(groups);
+  var knownKeys=EQUIPE_DEFS.map(function(d){return d.key;});
+  allKeys.forEach(function(k){
+    if(!knownKeys.includes(k)&&groups[k].length){
+      html+='<div class="card" style="margin-bottom:14px;"><div class="sec-title" style="margin-bottom:8px;">'+k+'</div><div class="emp-grid">'+groups[k].map(function(e){var color=avatarColor(e.full_name);var initials=avatarInitials(e.full_name);return '<div class="emp-card" data-eid="'+esc(e.id)+'" onclick="openDossier(this.dataset.eid)"><div class="emp-avatar" style="background:'+color+'">'+initials+'</div><div class="emp-name">'+esc(e.full_name)+'</div><div class="emp-role">'+esc(e.role||'—')+'</div></div>';}).join('')+'</div></div>';
+    }
+  });
+  el.innerHTML=html||'<div class="empty"><div class="empty-ico">&#127968;</div>Aucun employ&#233; &#224; afficher</div>';
+}
+
 /* ═══════════════ DOSSIER EMPLOYE ═══════════════ */
 var _dosEmpId=null;
 function openDossier(eid){
@@ -948,8 +1237,9 @@ function openDossier(eid){
   var color=avatarColor(e.full_name);
   var initials=avatarInitials(e.full_name);
   var team=TEAMS.find(function(t){return t.id===e.team_id;});
-  document.getElementById('dos-avatar').style.background=color;
-  document.getElementById('dos-avatar').textContent=initials;
+  var dosAv=document.getElementById('dos-avatar');
+  dosAv.style.background=color;
+  dosAv.innerHTML=initials+(e.photo_url?'<img src="'+esc(e.photo_url)+'" alt="'+esc(initials)+'" onerror="this.style.display=\'none\'">':'');
   document.getElementById('dos-name').textContent=e.full_name;
   document.getElementById('dos-sub').textContent=(e.role||'')+(team?' · '+team.name:'')+(e.status?' · '+e.status:'');
   var sd=document.getElementById('dos-status-dot');
@@ -965,18 +1255,66 @@ function goDosTb(pane,btn){
   document.querySelectorAll('.dos-pane').forEach(function(p){p.classList.remove('on');});
   var p=document.getElementById(pane);if(p)p.classList.add('on');
   if(pane==='dos-contrat')renderDosContrat();
+  else if(pane==='dos-checkins')renderDosCheckins();
   else if(pane==='dos-salaire')renderDosSalaire();
   else if(pane==='dos-paie')renderDosPaie();
   else if(pane==='dos-taches')renderDosTaches();
   else if(pane==='dos-att')renderDosAtt();
   else if(pane==='dos-docs')renderDosDocs();
 }
+/* PROMPT 026 — Historique présences / checkins livreur */
+function renderDosCheckins(){
+  var el=document.getElementById('dos-checkins-body');
+  if(!el)return;
+  el.innerHTML='<div style="padding:10px 0;text-align:center;color:var(--text3);font-size:12px;">Chargement...</div>';
+  safeGet('veraluz_employee_checkins?employee_id=eq.'+encodeURIComponent(_dosEmpId)+'&order=created_at.desc&limit=40')
+    .then(function(rows){
+      if(!rows||!rows.length){
+        el.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3)"><div style="font-size:1.5rem;margin-bottom:6px">&#128247;</div>Aucun pointage enregistr&#233;</div>';
+        return;
+      }
+      var TYPE_LBL={shift_start:'Prise de service',shift_end:'Fin de service',break_start:'D&#233;but pause',break_end:'Fin pause'};
+      var TYPE_ICO={shift_start:'🟢',shift_end:'🔴',break_start:'🟡',break_end:'🔵'};
+      el.innerHTML=rows.map(function(c){
+        var lbl=TYPE_LBL[c.checkin_type]||c.checkin_type||'Pointage';
+        var ico=TYPE_ICO[c.checkin_type]||'📍';
+        var dt=c.created_at?new Date(c.created_at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'—';
+        var selfieHtml=c.selfie_url
+          ?'<img class="checkin-selfie" src="'+esc(c.selfie_url)+'" alt="Selfie" onclick="window.open(\''+esc(c.selfie_url)+'\',\'_blank\')" title="Voir selfie" onerror="this.style.display=\'none\'">'
+          :'<div style="width:36px;height:36px;background:var(--bg4);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3)">—</div>';
+        return '<div class="checkin-row">'
+          +'<div class="checkin-icon">'+ico+'</div>'
+          +'<div class="checkin-info">'
+            +'<div style="font-weight:600">'+lbl+'</div>'
+            +'<div class="checkin-time">'+dt+(c.device_info?' · '+esc(c.device_info.slice(0,40)):'')+'</div>'
+          +'</div>'
+          +selfieHtml
+          +'</div>';
+      }).join('');
+    })
+    .catch(function(){
+      el.innerHTML='<div style="padding:16px;color:var(--text3);font-size:12px">Impossible de charger. Table veraluz_employee_checkins absente ou inaccessible.</div>';
+    });
+}
+
 function renderDosProfil(e){
   if(!e){e=EMPS.find(function(x){return x.id===_dosEmpId;});}
   if(!e)return;
   var team=TEAMS.find(function(t){return t.id===e.team_id;});
   var el=document.getElementById('dos-profil');
+  var idBadge=e.identity_verified
+    ?'<span class="id-badge ok">&#10003; Identit&#233; v&#233;rifi&#233;e</span>'
+    :!e.photo_url
+      ?'<span class="id-badge missing">&#128247; Photo manquante</span>'
+      :'<span class="id-badge warn">&#9888; &#192; v&#233;rifier</span>';
+  var photoRow=e.photo_url
+    ?'<div style="margin-bottom:12px;display:flex;align-items:center;gap:10px;">'
+      +'<img src="'+esc(e.photo_url)+'" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid var(--acc1)" alt="Photo">'
+      +'<div><div style="font-weight:700;font-size:13px;">'+esc(e.public_display_name||e.full_name)+'</div>'+idBadge+'</div>'
+      +'</div>'
+    :'<div style="margin-bottom:10px;">'+idBadge+'</div>';
   el.innerHTML='<div class="card">'
+    +photoRow
     +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;">'
     +'<div><div style="color:var(--text3);font-size:10px;">T&#233;l&#233;phone</div><div>'+esc(e.phone||'—')+'</div></div>'
     +'<div><div style="color:var(--text3);font-size:10px;">Email</div><div>'+esc(e.email||'—')+'</div></div>'
@@ -984,8 +1322,10 @@ function renderDosProfil(e){
     +'<div><div style="color:var(--text3);font-size:10px;">&#201;quipe</div><div>'+esc(team?team.name:'—')+'</div></div>'
     +'<div><div style="color:var(--text3);font-size:10px;">Date embauche</div><div>'+fdate(e.hire_date)+'</div></div>'
     +'<div><div style="color:var(--text3);font-size:10px;">Statut</div><div><span class="bdg '+(e.status==='actif'?'ok':e.status==='conge'?'warn':'danger')+'">'+esc(e.status||'—')+'</span></div></div>'
-    +'<div><div style="color:var(--text3);font-size:10px;">MoMo</div><div>'+esc(e.momo_number||'—')+'</div></div>'
-    +'<div><div style="color:var(--text3);font-size:10px;">PIN</div><div>&#9679;&#9679;&#9679;&#9679;</div></div>'
+    +'<div><div style="color:var(--text3);font-size:10px;">MoMo</div><div>'+maskMomo(e.momo_number)+'</div></div>'
+    /* PROMPT 020C — M5 : supprimer PIN •••• — afficher statut */
+    +'<div><div style="color:var(--text3);font-size:10px;">PIN</div>'
+    +'<div style="font-size:12px;">'+(e.must_change_pin?'<span style="color:#f59e0b;font-weight:600;">&#9888; Temporaire actif &mdash; changement requis</span>':'<span style="color:var(--text3);">&#128274; Prot&eacute;g&eacute;</span>')+'</div></div>'
     +'</div>'
     +(e.notes?'<div style="margin-top:10px;font-size:12px;color:var(--text3);">'+esc(e.notes)+'</div>':'')
     +'</div>'
@@ -1025,7 +1365,7 @@ function toggleEmpStatus(eid,cur){
 function renderDosContrat(){
   var list=CONTRACTS.filter(function(c){return c.employee_id===_dosEmpId;});
   var el=document.getElementById('dos-contrat');
-  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openAddContract()">&#43; Contrat</button></div>';
+  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" data-eid="'+esc(_dosEmpId)+'" onclick="openAddContractForEmp(this.dataset.eid)">&#43; Contrat</button></div>';
   if(!list.length){el.innerHTML+='<div class="empty"><div class="empty-ico">&#128203;</div>Aucun contrat</div>';return;}
   el.innerHTML+=list.map(function(c){
     return '<div class="card" style="margin-bottom:8px;">'
@@ -1054,7 +1394,7 @@ function renderDosSalaire(){
     +'<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--danger);"><span>&#8722; Retenues/Absences</span><span>-'+fmt(totalDeduct)+' FCFA</span></div>'
     +'<div style="display:flex;justify-content:space-between;padding:10px 0;font-size:16px;font-weight:800;color:var(--acc1);"><span>Net &#224; payer</span><span>'+fmt(net)+' FCFA</span></div>'
     +'</div>'
-    +'<div class="btn-row"><button class="btn btn-primary btn-sm" data-eid="'+esc(e.id)+'" onclick="openBonusForEmp(this.dataset.eid)">&#43; Prime / Retenue</button></div>'
+    +'<div class="btn-row"><button class="btn btn-sec btn-sm" data-eid="'+esc(e.id)+'" onclick="openEditSalaryForEmp(this.dataset.eid)">&#9998; Modifier salaire</button>'+'<button class="btn btn-primary btn-sm" data-eid="'+esc(e.id)+'" onclick="openBonusForEmp(this.dataset.eid)">&#43; Prime / Retenue</button></div>'
     +(bonuses.length?'<div class="card"><div class="sec-title" style="margin-bottom:8px;">D&#233;tail</div>'
       +bonuses.map(function(b){return '<div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);"><span><span class="bdg '+(b.type==='prime'?'ok':'danger')+'">'+esc(b.type)+'</span> '+esc(b.label)+'</span><span style="color:'+(b.type==='prime'?'var(--ok)':'var(--danger)')+';">'+(b.type==='prime'?'+':'-')+fmt(b.amount)+' F</span></div>';}).join('')
       +'</div>':'');
@@ -1075,7 +1415,7 @@ function renderDosPaie(){
       +'<div class="btn-row" style="margin-top:8px;margin-bottom:0;">'
       +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; PDF</button>'
       +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="sendPayslipEmail(this.dataset.pid)">&#128140; Email</button>'
-      +(p.status!=='paye'?'<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">&#9989; Marquer pay&#233;</button>':'')
+      +(p.status!=='paye'?'<button class="btn btn-sec btn-sm" title="G&#233;rez les paiements via l&#39;onglet P&#233;riodes de paie" disabled>&#9888; Paiement via Paie</button>':'')
       +'</div>'
       +'</div>';
   }).join('');
@@ -1083,7 +1423,7 @@ function renderDosPaie(){
 function renderDosTaches(){
   var list=TASKS.filter(function(t){return t.employee_id===_dosEmpId;});
   var el=document.getElementById('dos-taches');
-  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openAddTask()">&#43; T&#226;che</button></div>';
+  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" data-eid="'+esc(_dosEmpId)+'" onclick="openAddTaskForEmp(this.dataset.eid)">&#43; T&#226;che</button></div>';
   if(!list.length){el.innerHTML+='<div class="empty"><div class="empty-ico">&#9989;</div>Aucune t&#226;che</div>';return;}
   el.innerHTML+=list.map(function(t){
     var ico=t.status==='termine'?'&#9989;':t.status==='en_cours'?'&#9654;':'&#9723;';
@@ -1114,13 +1454,13 @@ function renderDosAtt(){
 function renderDosDocs(){
   var list=DOCS.filter(function(d){return d.employee_id===_dosEmpId;});
   var el=document.getElementById('dos-docs');
-  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" onclick="openAddDoc()">&#43; Document</button></div>';
+  el.innerHTML='<div class="btn-row"><button class="btn btn-primary btn-sm" data-eid="'+esc(_dosEmpId)+'" onclick="openAddDocForEmp(this.dataset.eid)">&#43; Document</button></div>';
   if(!list.length){el.innerHTML+='<div class="empty"><div class="empty-ico">&#128196;</div>Aucun document</div>';return;}
   el.innerHTML+=list.map(function(d){
     return '<div class="entry"><div class="entry-ico acc">&#128196;</div>'
-      +'<div class="entry-body"><div class="entry-title">'+esc(d.title||d.type)+'</div>'
-      +'<div class="entry-sub"><span class="bdg acc">'+esc(d.type)+'</span> · '+fdate(d.date)+'</div></div>'
-      +(d.url?'<a href="'+esc(d.url)+'" target="_blank" class="btn btn-sec btn-sm">&#128279;</a>':'')
+      +'<div class="entry-body"><div class="entry-title">'+esc(d.name||d.type)+'</div>'
+      +'<div class="entry-sub"><span class="bdg acc">'+esc(d.type)+'</span> · '+fdate(d.expires_at)+'</div></div>'
+      +(d.file_url?'<a href="'+esc(d.file_url)+'" target="_blank" class="btn btn-sec btn-sm">&#128279;</a>':'')
       +'</div>';
   }).join('');
 }
@@ -1184,6 +1524,39 @@ function openAddAtt(){openMd('md-add-att');}
 function openAddAdv(){openMd('md-add-adv');}
 function openAddDoc(){openMd('md-add-doc');}
 function openAddTask(){openMd('md-add-task');}
+/* PROMPT 020D — M3/M4/M5 : pré-sélection employé depuis dossier */
+function openAddContractForEmp(eid){var sel=document.getElementById('contract-emp');if(sel)sel.value=eid;openMd('md-add-contract');}
+function openAddTaskForEmp(eid){var sel=document.getElementById('task-emp');if(sel)sel.value=eid;openMd('md-add-task');}
+function openAddDocForEmp(eid){var sel=document.getElementById('doc-emp');if(sel)sel.value=eid;openMd('md-add-doc');}
+/* PROMPT 020D — M7 : modification salaire depuis dossier */
+function openEditSalaryForEmp(eid){
+  var emp=EMPS.find(function(e){return e.id===eid;});
+  if(!emp)return;
+  var cur=emp.base_salary||0;
+  var val=window.prompt('Nouveau salaire de base (FCFA)\nActuel : '+fmt(cur)+' FCFA',String(cur));
+  if(val===null)return;
+  var newSal=parseFloat(val);
+  if(isNaN(newSal)||newSal<0){toast('Montant invalide','err');return;}
+  PATCH('veraluz_employees',eid,{base_salary:newSal}).then(function(){
+    emp.base_salary=newSal;
+    renderDosSalaire();
+    toast('Salaire mis à jour ✅','ok');
+  }).catch(function(e){toast(explainSupabaseError('Salaire','veraluz_employees',e),'err');});
+}
+/* PROMPT 020D — M11/M14 : erreurs unifiées et couche adaptateurs */
+function explainSupabaseError(action,table,err){
+  var msg=String(err||'Erreur inconnue');
+  if(msg.includes('42501'))return action+' — Permission refusée (RLS).';
+  if(msg.includes('23503'))return action+' — Référence introuvable.';
+  if(msg.includes('23505'))return action+' — Enregistrement déjà existant.';
+  if(msg.includes('PGRST'))return action+' — Erreur API: '+msg.slice(0,80);
+  return action+' ('+table+'): '+msg.slice(0,100);
+}
+var RH_TABLES={EMP:'veraluz_employees',CTR:'veraluz_contracts',TSK:'veraluz_hr_tasks',DOC:'veraluz_hr_documents',BON:'veraluz_employee_bonuses',PAY:'veraluz_payroll_records',ADV:'veraluz_advances'};
+function rhGetContracts(empId){return CONTRACTS.filter(function(c){return c.employee_id===empId;});}
+function rhGetTasks(empId){return TASKS.filter(function(t){return t.employee_id===empId;});}
+function rhGetDocs(empId){return DOCS.filter(function(d){return d.employee_id===empId;});}
+function rhGetBonuses(empId,month){return BONUSES.filter(function(b){return b.employee_id===empId&&(!month||b.month===month);});}
 function openAddPay(){openMd('md-add-pay');}
 function saveContract(){
   var emp=EMPS.find(function(e){return e.id===document.getElementById('contract-emp').value;});
@@ -1294,23 +1667,23 @@ function loadPay(){
   renderPay();
 }
 function renderPay(){
+  /* PROMPT 020B — M9: libellés statuts legacy normalisés */
+  var payStatusLabel={'en_attente':'En attente','approuve':'Approuvé','paye':'Payé'};
   var list=PAYROLLS;
   var el=document.getElementById('pay-list');
   if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128176;</div>Aucune fiche de paie</div>';return;}
   el.innerHTML=list.map(function(p){
     var emp=EMPS.find(function(e){return e.id===p.employee_id;});
+    var stLbl=payStatusLabel[p.status]||esc(p.status);
     return '<div class="card" style="margin-bottom:8px;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
       +'<span style="font-weight:700;">'+esc(emp?emp.full_name:'—')+'</span>'
-      +'<span class="bdg '+(p.status==='paye'?'ok':p.status==='approuve'?'acc':'warn')+'">'+esc(p.status)+'</span>'
+      +'<span class="bdg '+(p.status==='paye'?'ok':p.status==='approuve'?'acc':'warn')+'">'+stLbl+'</span>'
       +'</div>'
       +'<div style="font-size:12px;color:var(--text3);">'+esc(payM(p)||'')+'</div>'
       +'<div style="font-size:16px;font-weight:800;color:var(--acc1);margin-top:4px;">'+fmt(netOf(p))+' FCFA</div>'
-      +'<div class="btn-row" style="margin-top:8px;margin-bottom:0;">'
-      +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="printPayslip(this.dataset.pid)">&#128438; PDF</button>'
-      +'<button class="btn btn-sec btn-sm" data-pid="'+esc(p.id)+'" onclick="sendPayslipEmail(this.dataset.pid)">&#128140; Email</button>'
-      +(p.status!=='paye'?'<button class="btn btn-primary btn-sm" data-pid="'+esc(p.id)+'" onclick="markPayPaid(this.dataset.pid)">&#9989; Payer</button>':'')
-      +'</div>'
+      /* PROMPT 020B — M6: PDF/Email/Payer désactivés — consultation uniquement */
+      +'<div style="font-size:11px;color:var(--text3);margin-top:6px;font-style:italic;">Lecture seule — utilisez l’onglet Périodes pour les actions</div>'
       +'</div>';
   }).join('');
 }
@@ -1427,7 +1800,7 @@ function exportPayCSV(){
   var month=new Date().toISOString().slice(0,7);
   var rows=PAYROLLS.filter(function(p){return payM(p)===month;}).map(function(p){
     var emp=EMPS.find(function(e){return e.id===p.employee_id;});
-    return [emp?emp.full_name:'—',emp?emp.momo_number||emp.bank_account||'—':'—',netOf(p),p.status,month].join(';');
+    return [emp?emp.full_name:'—',emp?maskMomo(emp.momo_number||emp.bank_account||''):'—',netOf(p),p.status,month].join(';');
   });
   var csv='Nom;MoMo/Compte;Montant FCFA;Statut;Mois\n'+rows.join('\n');
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='paie_'+month+'.csv';a.click();
@@ -1446,7 +1819,7 @@ function printPayslip(pid){
   var er=emp?esc(emp.role||'&#8212;'):'&#8212;';
   var eh=emp?fdate(emp.hire_date):'&#8212;';
   var es=emp?esc(emp.status||'actif'):'&#8212;';
-  var em=emp?esc(emp.momo_number||emp.bank_account||'&#8212;'):'&#8212;';
+  var em=emp?maskMomo(emp.momo_number||emp.bank_account||''):'&#8212;'; /* PROMPT 018: masqué */
   var per=esc(payM(p)||'');
   var ref2=esc((p.id||'').slice(0,8).toUpperCase());
   var stxt=p.status==='paye'?'&#9989; Pay&#233;':p.status==='approuve'?'&#8987; Approuv&#233;':'&#9208; En attente';
@@ -1557,18 +1930,46 @@ function loadAdv(){
   document.getElementById('adv-repaid').textContent=ADVANCES.filter(function(a){return a.status==='rembourse';}).length;
   var el=document.getElementById('adv-list');
   if(!ADVANCES.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128180;</div>Aucune avance</div>';return;}
+  /* PROMPT 020B — M4: libellés statuts avances + boutons approve/reject */
+  var advStatusLabel={'en_attente':'En attente','approuve':'Approuvée','rembourse':'Remboursée','rejete':'Rejetée'};
   el.innerHTML=ADVANCES.map(function(a){
     var emp=EMPS.find(function(e){return e.id===a.employee_id;});
+    var stLbl=advStatusLabel[a.status]||esc(a.status);
+    var stCls=a.status==='rembourse'||a.status==='approuve'?'ok':a.status==='rejete'?'danger':'warn';
     return '<div class="entry"><div class="entry-ico warn">&#128180;</div>'
       +'<div class="entry-body"><div class="entry-title">'+esc(emp?emp.full_name:'—')+'</div>'
-      +'<div class="entry-sub">'+fdate(a.date)+(a.reason?' · '+esc(a.reason):'')+'</div></div>'
+      /* PROMPT 020B — M8: colonne requested_at (pas date) dans veraluz_advances */
+      +'<div class="entry-sub">'+fdate(a.requested_at||a.date)+(a.reason?' · '+esc(a.reason):'')+'</div>'
+      +(a.status==='en_attente'?'<div class="btn-row" style="margin-top:4px;margin-bottom:0;">'
+        +'<button class="btn btn-primary btn-sm" data-aid="'+esc(a.id)+'" onclick="approveAdv(this.dataset.aid)">&#10003; Approuver</button>'
+        +'<button class="btn btn-sec btn-sm" data-aid="'+esc(a.id)+'" onclick="rejectAdv(this.dataset.aid)">&#10005; Rejeter</button>'
+        +'</div>':'')
+      +'</div>'
       +'<div><div class="entry-amt amt-neg">'+fmt(a.amount)+' F</div>'
-      +'<span class="bdg '+(a.status==='rembourse'?'ok':'warn')+'">'+esc(a.status)+'</span></div>'
+      +'<span class="bdg '+stCls+'">'+stLbl+'</span></div>'
       +'</div>';
   }).join('');
 }
+/* PROMPT 020B — M4: Approbation / Rejet des avances */
+function approveAdv(id){
+  if(!confirm('Approuver cette avance ? Elle sera déduite lors du prochain calcul de paie.'))return;
+  PATCH('veraluz_advances',id,{status:'approuve'}).then(function(){
+    var a=ADVANCES.find(function(x){return x.id===id;});
+    if(a)a.status='approuve';
+    loadAdv();toast('Avance approuvée ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+function rejectAdv(id){
+  if(!confirm('Rejeter cette avance ?'))return;
+  PATCH('veraluz_advances',id,{status:'rejete'}).then(function(){
+    var a=ADVANCES.find(function(x){return x.id===id;});
+    if(a)a.status='rejete';
+    loadAdv();toast('Avance rejetée','warn');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
 function saveAdv(){
-  var d={id:gid(),employee_id:document.getElementById('adv-emp').value,amount:parseFloat(document.getElementById('adv-amount').value)||0,date:document.getElementById('adv-date').value,reason:document.getElementById('adv-reason').value.trim()||null,status:'en_attente'};
+  /* PROMPT 020B — M8: colonne requested_at (pas date) dans veraluz_advances */
+  var d={id:gid(),employee_id:document.getElementById('adv-emp').value,amount:parseFloat(document.getElementById('adv-amount').value)||0,requested_at:document.getElementById('adv-date').value,reason:document.getElementById('adv-reason').value.trim()||null,status:'en_attente'};
   if(!d.employee_id||!d.amount){toast('Employ&#233; et montant requis','err');return;}
   POST('veraluz_advances',d).then(function(r){ADVANCES.unshift(r[0]||d);closeMd('md-add-adv');loadAdv();toast('Avance enregistr&#233;e &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
@@ -1578,22 +1979,22 @@ var _docFilter='all';
 function setDocFilter(f,btn){_docFilter=f;document.querySelectorAll('#pane-docs .fchip').forEach(function(b){b.classList.remove('on');});if(btn)btn.classList.add('on');filterDocs();}
 function filterDocs(){
   var q=(document.getElementById('doc-search').value||'').toLowerCase();
-  var list=DOCS.filter(function(d){return(_docFilter==='all'||d.type===_docFilter)&&(!q||(d.title||'').toLowerCase().includes(q));});
+  var list=DOCS.filter(function(d){return(_docFilter==='all'||d.type===_docFilter)&&(!q||(d.name||'').toLowerCase().includes(q));});
   var el=document.getElementById('docs-list');
   if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128196;</div>Aucun document</div>';return;}
   el.innerHTML=list.map(function(d){
     var emp=EMPS.find(function(e){return e.id===d.employee_id;});
     return '<div class="entry"><div class="entry-ico acc">&#128196;</div>'
-      +'<div class="entry-body"><div class="entry-title">'+esc(d.title||d.type)+'</div>'
-      +'<div class="entry-sub">'+esc(emp?emp.full_name:'—')+' · <span class="bdg acc">'+esc(d.type)+'</span> · '+fdate(d.date)+'</div></div>'
-      +(d.url?'<a href="'+esc(d.url)+'" target="_blank" class="btn btn-sec btn-sm">&#128279;</a>':'')
+      +'<div class="entry-body"><div class="entry-title">'+esc(d.name||d.type)+'</div>'
+      +'<div class="entry-sub">'+esc(emp?emp.full_name:'—')+' · <span class="bdg acc">'+esc(d.type)+'</span> · '+fdate(d.expires_at)+'</div></div>'
+      +(d.file_url?'<a href="'+esc(d.file_url)+'" target="_blank" class="btn btn-sec btn-sm">&#128279;</a>':'')
       +'</div>';
   }).join('');
 }
 function loadDocs(){filterDocs();}
 function saveDoc(){
-  var d={id:gid(),employee_id:document.getElementById('doc-emp').value,type:document.getElementById('doc-type').value,date:document.getElementById('doc-date').value||null,title:document.getElementById('doc-title').value.trim(),url:document.getElementById('doc-url').value.trim()||null};
-  if(!d.title||!d.employee_id){toast('Employ&#233; et titre requis','err');return;}
+  var d={id:gid(),employee_id:document.getElementById('doc-emp').value,type:document.getElementById('doc-type').value,expires_at:document.getElementById('doc-date').value||null,name:document.getElementById('doc-title').value.trim(),file_url:document.getElementById('doc-url').value.trim()||null};
+  if(!d.name||!d.employee_id){toast('Employ&#233; et nom du document requis','err');return;}
   POST('veraluz_hr_documents',d).then(function(r){DOCS.unshift(r[0]||d);closeMd('md-add-doc');filterDocs();toast('Document ajout&#233; &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 
@@ -1633,7 +2034,8 @@ function setHistFilter(f,btn){_histFilter=f;document.querySelectorAll('#pane-his
 function loadHist(){
   var all=[];
   PAYROLLS.forEach(function(p){var emp=EMPS.find(function(e){return e.id===p.employee_id;});all.push({date:p.created_at,type:'payroll',desc:'Paie '+(payM(p)||'')+(emp?' — '+emp.full_name:''),amount:netOf(p),status:p.status});});
-  ADVANCES.forEach(function(a){var emp=EMPS.find(function(e){return e.id===a.employee_id;});all.push({date:a.date+'T12:00:00Z',type:'advance',desc:'Avance'+(emp?' — '+emp.full_name:''),amount:a.amount||0,status:a.status});});
+  /* PROMPT 020B — M8: requested_at est la colonne date dans veraluz_advances */
+  ADVANCES.forEach(function(a){var emp=EMPS.find(function(e){return e.id===a.employee_id;});all.push({date:(a.requested_at||a.date||'1970-01-01')+'T12:00:00Z',type:'advance',desc:'Avance'+(emp?' — '+emp.full_name:''),amount:a.amount||0,status:a.status});});
   TASKS.forEach(function(t){var emp=EMPS.find(function(e){return e.id===t.employee_id;});all.push({date:t.created_at||t.due_date+'T12:00:00Z',type:'task',desc:t.title+(emp?' — '+emp.full_name:''),amount:0,status:t.status});});
   ATTS.forEach(function(a){var emp=EMPS.find(function(e){return e.id===a.employee_id;});all.push({date:a.date+'T08:00:00Z',type:'attendance',desc:'Pointage '+(emp?emp.full_name:''),amount:0,status:a.status});});
   all.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
@@ -1694,26 +2096,42 @@ function buildPinPad(){
   }).join('');
 }
 function pinPress(k){
-  if(_pinBuffer.length>=4)return;
+  if(_pinBuffer.length>=6)return;
   _pinBuffer+=k;updatePinDots();
-  if(_pinBuffer.length===4)setTimeout(doLogin,200);
+  if(_pinBuffer.length===4||_pinBuffer.length===6)setTimeout(doLogin,200);
 }
 function pinDel(){_pinBuffer=_pinBuffer.slice(0,-1);updatePinDots();}
 function updatePinDots(){
-  for(var i=0;i<4;i++){var d=document.getElementById('pd'+i);if(d)d.className='pin-dot'+(i<_pinBuffer.length?' filled':'');}
+  for(var i=0;i<6;i++){var d=document.getElementById('pd'+i);if(d)d.className='pin-dot'+(i<_pinBuffer.length?' filled':'');}
 }
 function doLogin(){
   var eid=document.getElementById('login-emp-sel').value;
   if(!eid){document.getElementById('login-err').textContent='Choisissez votre nom';_pinBuffer='';updatePinDots();return;}
   var emp=EMPS.find(function(e){return e.id===eid;});
   if(!emp){document.getElementById('login-err').textContent=(EMPS.length===0?'Module non chargé — cliquez Actualiser':'Employé introuvable');_pinBuffer='';updatePinDots();return;}
-  if((emp.pin_code||SETTINGS.default_pin||'1234')!==_pinBuffer){
-    document.getElementById('login-err').textContent='PIN incorrect &#10006;';
-    _pinBuffer='';updatePinDots();return;
-  }
-  LOGGED_EMP=emp;
-  document.getElementById('login-screen').classList.remove('on');
-  showClockScreen();
+  if(_pinBuffer.length===5){document.getElementById('login-err').textContent='PIN incomplet — saisissez le 6ᵉ chiffre ou ⌫';return;}
+  if(_pinBuffer.length<4){document.getElementById('login-err').textContent='PIN trop court';return;}
+  /* PROMPT 020D — M10 : vérification via Edge Function verify-employee-pin */
+  var errEl=document.getElementById('login-err');
+  errEl.textContent='Vérification…';
+  fetch(SUPA_URL+'/functions/v1/verify-employee-pin',{
+    method:'POST',mode:'cors',credentials:'omit',
+    headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
+    body:JSON.stringify({employee_id:eid,pin:_pinBuffer})
+  }).then(function(r){return r.json();}).then(function(res){
+    if(!res.ok){errEl.textContent='PIN incorrect ✗';_pinBuffer='';updatePinDots();return;}
+    LOGGED_EMP=emp;errEl.textContent='';
+    document.getElementById('login-screen').classList.remove('on');
+    showClockScreen();
+    if(res.must_change_pin){setTimeout(function(){toast('⚠️ PIN temporaire — changez votre PIN dans Mon PIN');},600);}
+  }).catch(function(){
+    /* Fallback local si Edge Function indisponible */
+    if((emp.pin_code||SETTINGS.default_pin||'1234')===_pinBuffer){
+      LOGGED_EMP=emp;errEl.textContent='';
+      document.getElementById('login-screen').classList.remove('on');
+      showClockScreen();
+    } else {errEl.textContent='PIN incorrect ✗';_pinBuffer='';updatePinDots();}
+  });
 }
 function logoutEmp(){
   LOGGED_EMP=null;
@@ -1806,7 +2224,7 @@ function renderEpProfil(){
     +'<div><div style="font-size:10px;color:var(--text3);">Email</div><div>'+esc(e.email||'—')+'</div></div>'
     +'<div><div style="font-size:10px;color:var(--text3);">&#201;quipe</div><div>'+esc(team?team.name:'—')+'</div></div>'
     +'<div><div style="font-size:10px;color:var(--text3);">Embauche</div><div>'+fdate(e.hire_date)+'</div></div>'
-    +'<div><div style="font-size:10px;color:var(--text3);">MoMo</div><div>'+esc(e.momo_number||'—')+'</div></div>'
+    +'<div><div style="font-size:10px;color:var(--text3);">MoMo</div><div>'+maskMomo(e.momo_number)+'</div></div>'
     +'<div><div style="font-size:10px;color:var(--text3);">Statut</div><div><span class="bdg ok">'+esc(e.status)+'</span></div></div>'
     +'</div></div>';
 }
@@ -1885,17 +2303,36 @@ function renderEpPointages(){
       return '<tr><td>'+fdate(a.date)+'</td><td><span class="bdg '+(a.status==='present'?'ok':a.status==='retard'?'warn':'danger')+'">'+esc(a.status)+'</span></td><td>'+((a.check_in||a.time_in)||'—')+'</td><td>'+((a.check_out||a.time_out)||'—')+'</td><td>'+dur+'</td></tr>';
     }).join('')+'</tbody></table>';
 }
+/* PROMPT 020C — M5 : changePin appelle Edge Function change-employee-pin (6 chiffres) */
 function changePin(){
-  var p1=document.getElementById('new-pin1').value;
-  var p2=document.getElementById('new-pin2').value;
-  if(p1.length!==4||!/^\d{4}$/.test(p1)){toast('PIN doit &#234;tre 4 chiffres','err');return;}
-  if(p1!==p2){toast('PINs ne correspondent pas','err');return;}
-  PATCH('veraluz_employees',LOGGED_EMP.id,{pin_code:p1}).then(function(){
-    LOGGED_EMP.pin_code=p1;
-    var e=EMPS.find(function(x){return x.id===LOGGED_EMP.id;});if(e)e.pin_code=p1;
-    toast('PIN modifi&#233; &#9989;','ok');
-    document.getElementById('new-pin1').value='';document.getElementById('new-pin2').value='';
-  }).catch(function(e){toast('Erreur: '+e,'err');});
+  if(!LOGGED_EMP){toast('Session expirée — veuillez vous reconnecter','err');return;}
+  var curPin=document.getElementById('cur-pin')&&document.getElementById('cur-pin').value||'';
+  var p1=(document.getElementById('new-pin1').value||'').trim();
+  var p2=(document.getElementById('new-pin2').value||'').trim();
+  if(!/^\d{4}$/.test(curPin)&&!/^\d{6}$/.test(curPin)){toast('PIN actuel : 4 ou 6 chiffres requis','err');return;}
+  if(!/^\d{6}$/.test(p1)){toast('Le nouveau PIN doit avoir exactement 6 chiffres','err');return;}
+  if(p1!==p2){toast('Les deux nouveaux PIN ne correspondent pas','err');return;}
+  var EDGE_CHANGE='https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/change-employee-pin';
+  var SUPA_KEY_RH='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+  fetch(EDGE_CHANGE,{
+    method:'POST',mode:'cors',credentials:'omit',
+    headers:{'Content-Type':'application/json','apikey':SUPA_KEY_RH,'Authorization':'Bearer '+SUPA_KEY_RH},
+    body:JSON.stringify({employee_id:LOGGED_EMP.id,current_pin:curPin,new_pin:p1})
+  }).then(function(r){return r.json();}).then(function(result){
+    if(!result.ok){
+      var msg=(result.error==='invalid_credentials')?'PIN actuel incorrect.'
+        :(result.error==='new_pin_must_be_6_digits')?'Le nouveau PIN doit avoir exactement 6 chiffres.'
+        :(result.error==='weak_pin')?'PIN trop simple. Choisissez une combinaison moins évidente.'
+        :(result.error==='new_pin_same_as_current')?'Le nouveau PIN doit être différent de l\'actuel.'
+        :(result.error==='temporary_pin_expired')?'PIN temporaire expiré. Contactez votre responsable.'
+        :(result.error||'Erreur lors du changement de PIN.');
+      toast(msg,'err');return;
+    }
+    toast('PIN modifié ✅','ok');
+    if(document.getElementById('cur-pin'))document.getElementById('cur-pin').value='';
+    document.getElementById('new-pin1').value='';
+    document.getElementById('new-pin2').value='';
+  }).catch(function(){toast('Service indisponible. Vérifiez la connexion.','err');});
 }
 
 /* ═══════════════ INIT ═══════════════ */
@@ -2007,40 +2444,365 @@ document.addEventListener('DOMContentLoaded',function(){
   var td=new Date().toISOString().slice(0,10);
   var tm=new Date().toISOString().slice(0,7);
   setVal('att-date',td);setVal('adv-date',td);setVal('att-md-date',td);
-  setVal('pay-month',tm);setVal('bonus-month',tm);
-  setVal('sched-date',td);setVal('emp-hire',td);setVal('doc-date',td);
-  try{loadAll();}catch(e){console.error('loadAll error:',e);}
-  try{initSignPad();}catch(e){console.warn('initSignPad error:',e);}
+  setVal('calc-month',tm);setVal('pay-month',tm);setVal('bonus-month',tm);
+  /* PROMPT 020B — M3: Fermer modal au clic sur l'overlay (en dehors du .md) */
+  document.querySelectorAll('.ov').forEach(function(ov){
+    ov.addEventListener('click',function(e){
+      if(e.target!==ov)return;
+      if(ov.id==='md-dossier'){closeDossier();}
+      else if(ov.id){closeMd(ov.id);}
+    });
+  });
+  loadAll();
 });
 
-window.onerror=function(msg,src,line,col,err){
-  console.error('RH JS Error:',msg,'at',src+':'+line);
-  var banner=document.getElementById('load-banner');
-  if(banner&&banner.style.display==='none')return;
-  if(banner){banner.style.display='block';banner.textContent='Erreur JS: '+msg;banner.style.color='var(--danger)';}
-};
+/* ══════════════════════════════════════════════════════════════
+   PROMPT 020 — PAIE FORMELLE : Périodes, Items, Validations
+   Workflow : draft → calculated → validated_manager → validated_owner → paid
+   Aucun paiement automatique. Validation humaine obligatoire.
+   Aucun PDF/export banque dans ce prompt (PROMPT 021).
+   RLS DEV permissive — à durcir dans PROMPT 023.
+══════════════════════════════════════════════════════════════ */
+
+/* ═══ Utilitaires statut ═══ */
+function perStatusLabel(s){
+  var m={draft:'&#9711; Brouillon',calculated:'&#128200; Calcul&eacute;e',
+    validated_manager:'&#10003; Valid&eacute;e manager',validated_owner:'&#10004; Valid&eacute;e propri&eacute;taire',
+    paid:'&#128181; Pay&eacute;e',archived:'&#128193; Archiv&eacute;e'};
+  return m[s]||s;
+}
+function perStatusColor(s){
+  var m={draft:'var(--text3)',calculated:'#3b82f6',validated_manager:'var(--warn)',
+    validated_owner:'var(--ok)',paid:'#166534',archived:'#6b7280'};
+  return m[s]||'var(--text3)';
+}
+
+/* ═══ Charger périodes (refresh Supabase) ═══ */
+function loadPeriodes(){
+  Promise.all([
+    safeGet('veraluz_pay_periods?select=*&order=start_date.desc&limit=50'),
+    safeGet('veraluz_payroll_items?select=*&order=created_at.asc&limit=500')
+  ]).then(function(r){
+    PAY_PERIODS=Array.isArray(r[0])?r[0]:[];
+    PAY_ITEMS=Array.isArray(r[1])?r[1]:[];
+    updatePerKPIs();
+    renderPeriodes();
+  }).catch(function(e){toast('Erreur périodes: '+(e.message||e),'err');});
+}
+
+function updatePerKPIs(){
+  var total=PAY_PERIODS.length;
+  var inprog=PAY_PERIODS.filter(function(p){return p.status==='draft'||p.status==='calculated'||p.status==='validated_manager';}).length;
+  var paid=PAY_PERIODS.filter(function(p){return p.status==='paid';}).length;
+  var el1=document.getElementById('kpi-per-total');
+  var el2=document.getElementById('kpi-per-draft');
+  var el3=document.getElementById('kpi-per-paid');
+  if(el1)el1.textContent=total;
+  if(el2)el2.textContent=inprog;
+  if(el3)el3.textContent=paid;
+}
+
+/* ═══ Afficher liste des périodes ═══ */
+function renderPeriodes(){
+  var det=document.getElementById('per-detail');
+  var listWrap=document.getElementById('per-list-wrap');
+  if(det)det.style.display='none';
+  if(listWrap)listWrap.style.display='block';
+  var el=document.getElementById('per-list');
+  if(!el)return;
+  if(!PAY_PERIODS.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">&#128197;</div>Aucune p&eacute;riode de paie. Cr&eacute;ez la premi&egrave;re p&eacute;riode ci-dessus.</div>';
+    return;
+  }
+  el.innerHTML=PAY_PERIODS.map(function(p){
+    var sc=perStatusColor(p.status);
+    var sl=perStatusLabel(p.status);
+    var canCalc=p.status==='draft'||p.status==='calculated';
+    var canMgr=p.status==='calculated';
+    var canOwner=p.status==='validated_manager';
+    var canPay=p.status==='validated_owner';
+    var isPaid=p.status==='paid';
+    return '<div class="card" style="margin-bottom:8px;">'
+      +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+      +'<div style="flex:1;min-width:150px;">'
+      +'<div style="font-weight:700;font-size:15px;">'+esc(p.period_label)+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+esc(p.start_date||'')+'&#8594;'+esc(p.end_date||'')+'</div>'
+      +'</div>'
+      +'<div style="text-align:center;min-width:90px;">'
+      +'<div style="font-size:11px;font-weight:700;color:'+sc+';">'+sl+'</div>'
+      +'<div style="font-size:11px;color:var(--text3);">'+(p.employee_count||0)+' employ&eacute;(s)</div>'
+      +'</div>'
+      +'<div style="text-align:right;min-width:110px;">'
+      +'<div style="font-size:13px;font-weight:700;color:var(--acc1);">Net '+fmt(p.total_net||0)+' F</div>'
+      +'<div style="font-size:11px;color:var(--text3);">Brut '+fmt(p.total_gross||0)+' F</div>'
+      +'</div>'
+      +'<div class="btn-row" style="margin:0;gap:4px;flex-wrap:wrap;">'
+      +'<button class="btn btn-sec btn-sm" onclick="showPeriodeDetail(\''+esc(p.id)+'\')">&#128269; D&eacute;tail</button>'
+      +(canCalc?'<button class="btn btn-primary btn-sm" onclick="calcPeriode(\''+esc(p.id)+'\')">&#128200; Calculer</button>':'')
+      +(canMgr?'<button class="btn btn-primary btn-sm" style="background:var(--warn);color:#000;" onclick="validateMgrPeriode(\''+esc(p.id)+'\')">&#10003; Manager</button>':'')
+      +(canOwner?'<button class="btn btn-primary btn-sm" style="background:var(--ok);" onclick="validateOwnerPeriode(\''+esc(p.id)+'\')">&#10003; Propri&eacute;t.</button>':'')
+      +(canPay?'<button class="btn btn-primary btn-sm" style="background:#166534;" onclick="markPeriodePaid(\''+esc(p.id)+'\')">&#128181; Pay&eacute;e</button>':'')
+      +'</div>'
+      +'</div>'
+      +(isPaid?'<div style="font-size:11px;color:#166534;margin-top:4px;">&#10004; Pay&eacute;e le '+(p.paid_at?p.paid_at.slice(0,10):'?')+(p.paid_by?' par '+esc(p.paid_by):'')+'</div>':'')
+      +(p.notes?'<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic;">'+esc(p.notes)+'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+/* ═══ Créer une période ═══ */
+function openNewPeriode(){
+  var now=new Date();
+  var y=now.getFullYear(),m=now.getMonth();
+  var pad=function(n){return('0'+n).slice(-2);};
+  var lastDay=new Date(y,m+1,0).getDate();
+  var mname=new Date(y,m,1).toLocaleString('fr-FR',{month:'long',year:'numeric'});
+  mname=mname.charAt(0).toUpperCase()+mname.slice(1);
+  var elL=document.getElementById('per-label');
+  var elS=document.getElementById('per-start');
+  var elE=document.getElementById('per-end');
+  var elN=document.getElementById('per-notes');
+  if(elL)elL.value=mname;
+  if(elS)elS.value=y+'-'+pad(m+1)+'-01';
+  if(elE)elE.value=y+'-'+pad(m+1)+'-'+pad(lastDay);
+  if(elN)elN.value='';
+  openMd('md-new-periode');
+}
+
+function createPeriode(){
+  var label=(document.getElementById('per-label').value||'').trim();
+  var start=document.getElementById('per-start').value;
+  var end=document.getElementById('per-end').value;
+  var notes=(document.getElementById('per-notes').value||'').trim();
+  if(!label){toast('Libellé obligatoire','err');return;}
+  if(!start||!end){toast('Dates de début et fin obligatoires','err');return;}
+  if(start>=end){toast('La date de fin doit être après la date de début','err');return;}
+  var dup=PAY_PERIODS.find(function(p){return p.period_label===label;});
+  if(dup){toast('Une période "'+label+'" existe déjà','err');return;}
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'DEV';
+  var d={period_label:label,start_date:start,end_date:end,status:'draft',created_by:who,notes:notes||null};
+  POST('veraluz_pay_periods',d).then(function(r){
+    var rec=(Array.isArray(r)?r[0]:r)||d;
+    PAY_PERIODS.unshift(rec);
+    updatePerKPIs();
+    closeMd('md-new-periode');
+    renderPeriodes();
+    toast('Période "'+label+'" créée ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+
+/* ═══ Détection anomalies (M9) ═══ */
+function checkAnomalies020(emp,bonusList,advList){
+  var flags=[];
+  if(!emp.base_salary||emp.base_salary<=0)
+    flags.push({code:'NO_SALARY',msg:'Salaire de base manquant ou nul'});
+  var today=new Date().toISOString().slice(0,10);
+  var hasCtr=CONTRACTS.some(function(c){
+    return c.employee_id===emp.id&&c.status==='actif'&&(!c.end_date||c.end_date>=today);
+  });
+  if(!hasCtr)flags.push({code:'NO_CONTRACT',msg:'Aucun contrat actif'});
+  var pendAdv=advList.filter(function(a){return a.status==='en_attente';});
+  if(pendAdv.length>0)flags.push({code:'PENDING_ADV',msg:pendAdv.length+' avance(s) en attente non validée(s)'});
+  var negDed=bonusList.filter(function(b){return b.type!=='prime'&&(b.amount||0)<0;});
+  if(negDed.length>0)flags.push({code:'NEG_DED',msg:'Retenue négative suspecte'});
+  if(!Object.keys(SETTINGS).length)flags.push({code:'NO_SETTINGS',msg:'Paramètres CNPS/IRPP non configurés'});
+  return flags;
+}
+
+/* ═══ Calculer une période (M8) ═══ */
+function calcPeriode(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  if(period.status==='validated_owner'||period.status==='paid'){
+    toast('Impossible de recalculer : période validée propriétaire ou payée. Créez une correction.','err');return;
+  }
+  /* PROMPT 020B — M5: confirmation si validée manager (recalcul efface la validation) */
+  if(period.status==='validated_manager'){
+    if(!confirm('Attention : cette période est déjà validée par le manager.\nRecalculer effacera la validation et remettra la période à l\'état Calculée.\n\nContinuer ?'))return;
+  }
+  var month=period.start_date?period.start_date.slice(0,7):'';
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'DEV';
+  var items=[];
+  EMPS.filter(function(e){return e.status==='actif';}).forEach(function(emp){
+    var bList=BONUSES.filter(function(b){return b.employee_id===emp.id&&b.month===month;});
+    var bonus=bList.filter(function(b){return b.type==='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
+    var deduct=bList.filter(function(b){return b.type!=='prime';}).reduce(function(s,b){return s+(b.amount||0);},0);
+    var aList=ADVANCES.filter(function(a){return a.employee_id===emp.id;});
+    var adv=aList.filter(function(a){return a.status==='en_attente';}).reduce(function(s,a){return s+(a.amount||0);},0);
+    var t=calcTaxes(emp.base_salary||0,bonus,SETTINGS);
+    var net=Math.max(0,t.gross-deduct-adv-(t.apply_cnps?t.cnps_emp:0)-(t.apply_irpp?t.irpp:0));
+    var anom=checkAnomalies020(emp,bList,aList);
+    if(net<=0)anom.push({code:'NET_ZERO',msg:'Net à payer nul ou négatif'});
+    var team=TEAMS.find(function(tm){return tm.id===emp.team_id;});
+    items.push({pay_period_id:pid,employee_id:emp.id,
+      employee_name_snapshot:emp.full_name,role_snapshot:emp.role||null,
+      team_snapshot:team?team.name:null,base_salary:emp.base_salary||0,
+      bonus_amount:bonus,advance_amount:adv,deduction_amount:deduct,
+      gross_amount:t.gross,cnps_employee:t.apply_cnps?t.cnps_emp:0,
+      cnps_employer:t.apply_cnps?t.cnps_empr:0,irpp:t.apply_irpp?t.irpp:0,
+      taxable_income:t.taxable,net_amount:net,status:'draft',anomaly_flags:anom});
+  });
+  if(!items.length){toast('Aucun employé actif trouvé','err');return;}
+  var totGross=items.reduce(function(s,i){return s+i.gross_amount;},0);
+  var totNet=items.reduce(function(s,i){return s+i.net_amount;},0);
+  var totCE=items.reduce(function(s,i){return s+i.cnps_employee;},0);
+  var totCEr=items.reduce(function(s,i){return s+i.cnps_employer;},0);
+  var totI=items.reduce(function(s,i){return s+i.irpp;},0);
+  var existing=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var promises=items.map(function(item){
+    var ex=existing.find(function(x){return x.employee_id===item.employee_id;});
+    if(ex){
+      return PATCH('veraluz_payroll_items',ex.id,item).then(function(r){
+        var upd=(Array.isArray(r)?r[0]:r)||item;upd.id=ex.id;
+        var idx=PAY_ITEMS.findIndex(function(x){return x.id===ex.id;});
+        if(idx>=0)PAY_ITEMS[idx]=upd;
+      });
+    }else{
+      return POST('veraluz_payroll_items',item).then(function(r){
+        var rec=(Array.isArray(r)?r[0]:r)||item;PAY_ITEMS.push(rec);
+      });
+    }
+  });
+  Promise.all(promises).then(function(){
+    var pu={status:'calculated',total_gross:Math.round(totGross*100)/100,
+      total_net:Math.round(totNet*100)/100,total_cnps_employee:Math.round(totCE*100)/100,
+      total_cnps_employer:Math.round(totCEr*100)/100,total_irpp:Math.round(totI*100)/100,
+      employee_count:items.length,calculated_by:who,calculated_at:new Date().toISOString()};
+    return PATCH('veraluz_pay_periods',pid,pu).then(function(){
+      Object.assign(period,pu);
+      updatePerKPIs();renderPeriodes();
+      toast('Paie calculée pour '+items.length+' employé(s) ✅','ok');
+      showPeriodeDetail(pid);
+    });
+  }).catch(function(e){toast('Erreur calcul: '+(e.message||e),'err');});
+}
+
+/* ═══ Détail d'une période (M10) ═══ */
+function showPeriodeDetail(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  var items=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var sC=(SETTINGS.apply_cnps||'true')==='true';
+  var sI=(SETTINGS.apply_irpp||'false')==='true';
+  var det=document.getElementById('per-detail');
+  var lw=document.getElementById('per-list-wrap');
+  if(lw)lw.style.display='none';
+  if(!det)return;
+  det.style.display='block';
+  var sc=perStatusColor(period.status);
+  var sl=perStatusLabel(period.status);
+  var h='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">'
+    +'<button class="btn btn-sec btn-sm" onclick="renderPeriodes()">&#8592; Retour</button>'
+    +'<h3 style="margin:0;flex:1;">'+esc(period.period_label)+'</h3>'
+    +'<span style="font-size:12px;font-weight:700;color:'+sc+';">'+sl+'</span>'
+    +'</div>'
+    +'<div class="card-row" style="margin-bottom:10px;">'
+    +'<div class="kpi"><div class="kpi-v">'+fmt(period.total_gross||0)+' F</div><div class="kpi-l">Masse brute</div></div>'
+    +'<div class="kpi ok"><div class="kpi-v">'+fmt(period.total_net||0)+' F</div><div class="kpi-l">Masse nette</div></div>'
+    +(sC?'<div class="kpi warn"><div class="kpi-v">'+fmt(period.total_cnps_employer||0)+' F</div><div class="kpi-l">CNPS patronal</div></div>':'')
+    +(sI?'<div class="kpi danger"><div class="kpi-v">'+fmt(period.total_irpp||0)+' F</div><div class="kpi-l">IRPP total</div></div>':'')
+    +'<div class="kpi"><div class="kpi-v">'+(period.employee_count||0)+'</div><div class="kpi-l">Employ&eacute;s</div></div>'
+    +'</div>';
+  if(period.status==='validated_owner'||period.status==='paid'){
+    h+='<div style="margin-bottom:10px;padding:8px 12px;background:rgba(34,211,165,0.08);border:1px solid var(--ok);border-radius:6px;font-size:12px;">'
+      +'&#10004; Apr&egrave;s validation propri&eacute;taire, une &eacute;criture "salaires" pourra &ecirc;tre pr&eacute;par&eacute;e dans Finance dans une &eacute;tape future (PROMPT 021).'
+      +'</div>';
+  }
+  if(!items.length){
+    h+='<div class="empty"><div class="empty-ico">&#128200;</div>Aucune ligne calcul&eacute;e. Cliquez "Calculer" depuis la liste.</div>';
+  }else{
+    var hasAnom=items.some(function(i){return(i.anomaly_flags||[]).length>0;});
+    if(hasAnom){
+      var totA=items.reduce(function(s,i){return s+(i.anomaly_flags||[]).length;},0);
+      h+='<div style="background:rgba(245,158,11,0.12);border:1px solid var(--warn);border-radius:6px;padding:8px 12px;margin-bottom:10px;font-size:12px;">'
+        +'&#9888; '+totA+' anomalie(s) d&eacute;tect&eacute;e(s) &mdash; v&eacute;rifier avant validation.'+'</div>';
+    }
+    h+='<div style="overflow-x:auto;"><table class="tbl"><thead><tr>'
+      +'<th>Employ&eacute;</th><th>Brut</th><th>Primes</th><th>Ret.</th><th>Av.</th>'
+      +(sC?'<th>CNPS sal.</th><th>CNPS pat.</th>':'')
+      +(sI?'<th>IRPP</th>':'')
+      +'<th style="color:var(--acc1);">NET</th><th>Anomalies</th>'
+      +'</tr></thead><tbody>'
+      +items.map(function(item){
+        var anom=item.anomaly_flags||[];
+        var hasA=anom.length>0;
+        return '<tr style="'+(hasA?'background:rgba(245,158,11,0.06);':'')+'">'
+          +'<td style="font-weight:600;white-space:nowrap;">'+esc(item.employee_name_snapshot)
+          +(item.role_snapshot?'<br><span style="font-size:10px;color:var(--text3);">'+esc(item.role_snapshot)+'</span>':'')
+          +'</td>'
+          +'<td>'+fmt(item.gross_amount)+'</td>'
+          +'<td style="color:var(--ok);">+'+fmt(item.bonus_amount)+'</td>'
+          +'<td style="color:var(--danger);">-'+fmt(item.deduction_amount)+'</td>'
+          +'<td style="color:var(--warn);">-'+fmt(item.advance_amount)+'</td>'
+          +(sC?'<td style="color:var(--danger);">-'+fmt(item.cnps_employee)+'</td><td style="color:var(--text3);">'+fmt(item.cnps_employer)+'</td>':'')
+          +(sI?'<td style="color:var(--danger);">-'+fmt(item.irpp)+'</td>':'')
+          +'<td style="font-weight:800;color:var(--acc1);">'+fmt(item.net_amount)+'</td>'
+          +'<td style="font-size:11px;color:'+(hasA?'var(--warn)':'var(--ok)')+';">'
+          +(hasA?anom.map(function(a){return'&#9888; '+esc(a.msg||a.code);}).join('<br>'):'&#10004; OK')
+          +'</td></tr>';
+      }).join('')
+      +'</tbody></table></div>';
+  }
+  h+='<div class="btn-row" style="margin-top:12px;">';
+  if(period.status==='draft'||period.status==='calculated')
+    h+='<button class="btn btn-primary" onclick="calcPeriode(\''+esc(pid)+'\')">&#128200; Recalculer</button>';
+  if(period.status==='calculated')
+    h+='<button class="btn btn-primary" style="background:var(--warn);color:#000;" onclick="validateMgrPeriode(\''+esc(pid)+'\')">&#10003; Valider (manager)</button>';
+  if(period.status==='validated_manager')
+    h+='<button class="btn btn-primary" style="background:var(--ok);" onclick="validateOwnerPeriode(\''+esc(pid)+'\')">&#10003; Valider (propri&eacute;taire)</button>';
+  if(period.status==='validated_owner')
+    h+='<button class="btn btn-primary" style="background:#166534;" onclick="markPeriodePaid(\''+esc(pid)+'\')">&#128181; Marquer pay&eacute;e</button>';
+  h+='</div>';
+  h+='<div style="margin-top:12px;font-size:11px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px;">';
+  if(period.created_by)h+='Cr&eacute;&eacute;e par '+esc(period.created_by)+(period.created_at?' le '+period.created_at.slice(0,10):'')+'<br>';
+  if(period.calculated_at)h+='&#128200; Calcul&eacute;e le '+period.calculated_at.slice(0,10)+(period.calculated_by?' par '+esc(period.calculated_by):'')+'<br>';
+  if(period.validated_by_manager_at)h+='&#10003; Valid&eacute;e manager le '+period.validated_by_manager_at.slice(0,10)+(period.validated_by_manager?' par '+esc(period.validated_by_manager):'')+'<br>';
+  if(period.validated_by_owner_at)h+='&#10004; Valid&eacute;e propri&eacute;taire le '+period.validated_by_owner_at.slice(0,10)+(period.validated_by_owner?' par '+esc(period.validated_by_owner):'')+'<br>';
+  if(period.paid_at)h+='&#128181; Pay&eacute;e le '+period.paid_at.slice(0,10)+(period.paid_by?' par '+esc(period.paid_by):'')+'<br>';
+  h+='</div>';
+  det.innerHTML=h;
+}
+
+/* ═══ Validation manager (M11) ═══ */
+function validateMgrPeriode(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  if(period.status!=='calculated'){
+    toast('Impossible : la période doit être à l\'état Calculée','err');return;
+  }
+  var msg='Validation manager\n\n"'+period.period_label+'"\n\nCette validation confirme que le manager a vérifié les lignes de paie. Aucun paiement n\'est effectué.\n\nConfirmer ?';
+  if(!confirm(msg))return;
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'Manager DEV';
+  var now=new Date().toISOString();
+  var updates={status:'validated_manager',validated_by_manager:who,validated_by_manager_at:now};
+  var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var proms=its.map(function(item){
+    return PATCH('veraluz_payroll_items',item.d,{status:'paid'}).then(function(){item.status='paid';});
+  });
+  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
+  .then(function(){
+    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
+    toast('Période marquée comme payée ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+/* FIN PROMPT 020 — PAIE FORMELLE */
 
 // ─── Auto-login depuis le Core Veraluz OS (postMessage) ─────────────────────
-// Quand l'employé se connecte via le NIP dans le Core, le Core envoie
-// l'employee_id ici via postMessage. On définit LOGGED_EMP automatiquement
-// et on affiche l'écran de pointage sans repasser par le login interne.
 window.addEventListener('message', function(ev) {
   if (!ev.data || ev.data.source !== 'veraluz-core') return;
   if (ev.data.type !== 'auth-context') return;
   var d = ev.data.data || {};
   var empId = d.employee_id || null;
   if (!empId) return;
-
-  // EMPS peut encore être en cours de chargement depuis Supabase.
-  // On réessaie jusqu'à 10 fois (toutes les 500 ms = 5 secondes max).
   function tryAutoLogin(attempts) {
     var emp = EMPS.find(function(e) { return e.id === empId; });
     if (emp) {
       LOGGED_EMP = emp;
-      // Fermer l'écran de login interne s'il est affiché
       var ls = document.getElementById('login-screen');
       if (ls) ls.classList.remove('on');
-      // Afficher directement l'écran de pointage
       showClockScreen();
     } else if ((attempts || 0) < 10) {
       setTimeout(function() { tryAutoLogin((attempts || 0) + 1); }, 500);
@@ -2052,5 +2814,135 @@ window.addEventListener('message', function(ev) {
 });
 </script>
 
+<!-- PROMPT 020 — Modal nouvelle période -->
+<div class="ov" id="md-new-periode">
+  <div class="md">
+    <div class="mdhdr"><h3>&#128197; Nouvelle p&eacute;riode de paie</h3><button class="mdc" onclick="closeMd('md-new-periode')">&#10005;</button></div>
+    <label class="fl">Libell&eacute; de la p&eacute;riode</label>
+    <input class="fi" id="per-label" type="text" placeholder="Ex : Juin 2026" />
+    <div class="fg">
+      <div><label class="fl">Date de d&eacute;but</label><input class="fi" id="per-start" type="date" style="margin-bottom:0;"></div>
+      <div><label class="fl">Date de fin</label><input class="fi" id="per-end" type="date" style="margin-bottom:0;"></div>
+    </div>
+    <label class="fl">Notes (optionnel)</label>
+    <input class="fi" id="per-notes" type="text" placeholder="Observations sur cette p&eacute;riode..." />
+    <div style="font-size:11px;color:var(--text3);margin:8px 0;padding:6px 10px;background:rgba(99,102,241,0.06);border-radius:6px;">
+      La p&eacute;riode sera cr&eacute;&eacute;e en statut <strong>Brouillon</strong>. Le calcul se fera depuis la liste.
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="createPeriode()">&#10003; Cr&eacute;er la p&eacute;riode</button>
+      <button class="btn btn-sec" onclick="closeMd('md-new-periode')">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal signature électronique -->
-<div class="ov" id="md-sign-contract
+<div class="ov" id="md-sign-contract">
+  <div class="md" style="max-width:600px;">
+    <div class="mdhdr"><h3>&#9997;&#65039; Signature &eacute;lectronique</h3><button class="mdc" onclick="closeMd('md-sign-contract')">&#10005;</button></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <span style="font-weight:600;" id="sign-emp-name">&#8212;</span>
+      <span class="bdg warn" id="sign-status">Non sign&eacute;</span>
+    </div>
+    <div style="max-height:180px;overflow-y:auto;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;font-family:monospace;white-space:pre-wrap;margin-bottom:10px;" id="sign-contract-body"></div>
+    <div style="margin-bottom:8px;font-size:12px;font-weight:700;">Signature :</div>
+    <canvas id="sign-pad" width="500" height="150" style="border:1px solid var(--border);border-radius:6px;cursor:crosshair;width:100%;background:#f8f8f8;touch-action:none;"></canvas>
+    <div class="btn-row" style="margin-top:10px;">
+      <button class="btn btn-primary" onclick="signContract()">&#9989; Valider la signature</button>
+      <button class="btn btn-sec" onclick="clearSignPad()">&#128465; Effacer</button>
+      <button class="btn btn-sec" onclick="closeMd('md-sign-contract')">Fermer</button>
+    </div>
+  </div>
+</div>
+<script>
+/* ═══ Validation manager (M11-B — reconstruit PROMPT 036C) ═══ */
+function validateManagerPeriode(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  if(period.status!=='calculated'){
+    toast('Impossible : la période doit être à l\'état Calculée','err');return;
+  }
+  var msg='Validation manager\n\n"+period.period_label+"\n\nCette action confirme la vérification manager. Aucun paiement n\'est effectué.\n\nConfirmer ?';
+  if(!confirm(msg))return;
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}')
+  var who=sess.username||sess.email||'DEV';
+  var now=new Date().toISOString();
+  var updates={status:'validated_manager',validated_by_manager:who,validated_by_manager_at:now};
+  var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var proms=its.map(function(item){
+    return PATCH('veraluz_payroll_items',item.id,{status:'validated_manager'}).then(function(){item.status='validated_manager';});
+
+  });
+  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
+  .then(function(){
+    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
+    toast('Période validée par le manager ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+
+/* ═══ Validation propriétaire (M12) ═══ */
+function validateOwnerPeriode(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  if(period.status!=='validated_manager'){
+    toast('Impossible : la période doit être validée par le manager en premier','err');return;
+  }
+  var msg='Validation propriétaire\n\n"'+period.period_label+'"\n\nCette validation autorise la préparation future des bulletins et du fichier banque. Aucun paiement n\'est effectué.\n\nConfirmer ?';
+  if(!confirm(msg))return;
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'Propriétaire DEV';
+  var now=new Date().toISOString();
+  var updates={status:'validated_owner',validated_by_owner:who,validated_by_owner_at:now};
+  var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var proms=its.map(function(item){
+    return PATCH('veraluz_payroll_items',item.id,{status:'validated_owner'}).then(function(){item.status='validated_owner';});
+  });
+  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
+  .then(function(){
+    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
+    toast('Période validée par le propriétaire ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+
+/* ═══ Marquer payée (M13) ═══ */
+function markPeriodePaid(pid){
+  var period=PAY_PERIODS.find(function(p){return p.id===pid;});
+  if(!period){toast('Période introuvable','err');return;}
+  if(period.status!=='validated_owner'){
+    toast('Impossible : la période doit être validée par le propriétaire','err');return;
+  }
+  var msg='Marquer comme payée\n\n"'+period.period_label+'"\n\nConfirmez uniquement si le paiement externe a réellement été effectué par la banque ou le moyen choisi.\n\nLE SYSTÈME NE PAIE JAMAIS AUTOMATIQUEMENT.\n\nConfirmer ?';
+  if(!confirm(msg))return;
+  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
+  var who=sess.username||sess.email||'DEV';
+  var now=new Date().toISOString();
+  var updates={status:'paid',paid_by:who,paid_at:now};
+  var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
+  var proms=its.map(function(item){
+    return PATCH('veraluz_payroll_items',item.id,{status:'paid',paid_by:who,paid_at:now});
+  });
+  Promise.all(proms).then(function(){return PATCH('veraluz_pay_periods',pid,updates);})
+  .then(function(){
+    Object.assign(period,updates);updatePerKPIs();renderPeriodes();
+    toast('Période marquée payée ✅','ok');
+  }).catch(function(e){toast('Erreur: '+(e.message||e),'err');});
+}
+</script>
+<script>
+/* ── Veraluz Theme toggle — PROMPT 036C ─────────────────────── */
+function applyVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';document.documentElement.classList.toggle('vl-dark',dark);var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';}
+function toggleVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';localStorage.setItem('vl_theme',dark?'light':'dark');applyVlTheme();try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}}
+document.addEventListener('DOMContentLoaded',applyVlTheme);
+window.addEventListener('message',function(e){if(e.data&&e.data.type==='vl-theme')applyVlTheme();});
+</script>
+
+<script>
+/* ── Veraluz Theme toggle — PROMPT 036C ─────────────────────── */
+function applyVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';document.documentElement.classList.toggle('vl-dark',dark);var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';}
+function toggleVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';localStorage.setItem('vl_theme',dark?'light':'dark');applyVlTheme();try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}}
+document.addEventListener('DOMContentLoaded',applyVlTheme);
+window.addEventListener('message',function(e){if(e.data&&e.data.type==='vl-theme')applyVlTheme();});
+</script>
+
+</body>
+</html>

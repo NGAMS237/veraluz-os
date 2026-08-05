@@ -1665,6 +1665,11 @@ function toggleVlTheme(){
   var dark = localStorage.getItem('vl_theme') === 'dark';
   localStorage.setItem('vl_theme', dark ? 'light' : 'dark');
   applyVlTheme();
+  /* Propager au module iframe actif — PROMPT 036C */
+  try{
+    var fr=document.getElementById('module-frame');
+    if(fr&&fr.contentWindow)fr.contentWindow.postMessage({type:'vl-theme'},'*');
+  }catch(e){}
 }
 
 /* ── Sidebar mobile ───────────────────────────────────────── */

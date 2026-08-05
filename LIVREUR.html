@@ -16,6 +16,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="./assets/pwa/icon-livreur-512.png">
 <!-- ─────────────────────────────────────────────────────────── -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>if(localStorage.getItem('vl_theme')==='dark')document.documentElement.classList.add('vl-dark');</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -359,8 +360,45 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
 .act-btn.act-maps{background:rgba(59,130,246,.08);color:var(--blue);border-color:rgba(59,130,246,.3);}
 .act-btn.act-orange{background:rgba(249,115,22,.08);color:#c2410c;border-color:rgba(249,115,22,.3);}
 </style>
+<style id="veraluz-theme">
+/* ═══ VERALUZ THEME PROMPT 036E ══════════════════════════════════════════════
+   Light : bg #e8ecf0 · surfaces #fff · neumorphic shadows 3px
+   Dark  : bg #131722 · surfaces #1e2538 · sombre shadows
+   Toggle: html.vl-dark / localStorage('vl_theme')
+══════════════════════════════════════════════════════════════════════════════ */
+:root{--bg:#e8ecf0;--bg2:#fff;--bg3:#eef1f5;--bg4:#e0e4e8;--tx:#1e293b;--tx2:#475569;--tx3:#94a3b8;--border:rgba(0,0,0,.07);--border2:rgba(0,0,0,.10);--vl-sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;--vl-sh-in:inset 2px 2px 6px #c8cdd4,inset -1px -1px 4px #fff;--vl-r:3px;--sh:var(--vl-sh);--sh-lg:0 8px 32px rgba(0,0,0,.10);}
+html,body{background:var(--bg)!important;color:var(--tx)!important;}
+html.vl-dark{--bg:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;--tx:#e2e8f0;--tx2:#94a3b8;--tx3:#64748b;--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.10);--vl-sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;--vl-sh-in:inset 2px 2px 6px #0d1118,inset -1px -1px 4px #242b3e;--sh:var(--vl-sh);}
+html.vl-dark body{background:var(--bg)!important;color:var(--tx)!important;}
+/* ── Tabs / Nav ───────────────────────────────────────────────────────────── */
+.tabs,.tab-bar,.nav-tabs,.bottom-nav,.bottom-bar{background:var(--bg3)!important;border-top:1px solid var(--border)!important;box-shadow:0 -1px 6px rgba(0,0,0,.05)!important;}
+html.vl-dark .tabs,html.vl-dark .tab-bar,html.vl-dark .bottom-nav,html.vl-dark .bottom-bar{background:#1a1f2e!important;border-top:1px solid rgba(255,255,255,.06)!important;}
+.tab,.tab-btn,.bottom-tab{border-radius:var(--vl-r)!important;}
+.tab.active,.tab-btn.active,.bottom-tab.active{color:#0891b2!important;}
+html.vl-dark .tab.active,html.vl-dark .tab-btn.active,html.vl-dark .bottom-tab.active{color:#22d3ee!important;}
+/* ── Cards ────────────────────────────────────────────────────────────────── */
+.card,.order-card,.delivery-card,.stat-card,.msg-card,.pane-card,.section-card,.checkin-card,.summary-card{background:var(--bg2)!important;border:1px solid var(--border)!important;box-shadow:var(--vl-sh)!important;}
+html.vl-dark .card,html.vl-dark .order-card,html.vl-dark .delivery-card,html.vl-dark .stat-card,html.vl-dark .msg-card,html.vl-dark .pane-card,html.vl-dark .section-card,html.vl-dark .checkin-card,html.vl-dark .summary-card{background:var(--bg3)!important;border:1px solid var(--border)!important;}
+/* ── Inputs ───────────────────────────────────────────────────────────────── */
+input:not([type=checkbox]):not([type=radio]),select,textarea{background:var(--bg3)!important;border:1px solid var(--border2)!important;border-radius:var(--vl-r)!important;color:var(--tx)!important;}
+input:not([type=checkbox]):not([type=radio]):focus,select:focus,textarea:focus{border-color:#0891b2!important;box-shadow:0 0 2px rgba(8,145,178,.12)!important;outline:none!important;}
+html.vl-dark input:not([type=checkbox]):not([type=radio]),html.vl-dark select,html.vl-dark textarea{background:var(--bg4)!important;border-color:rgba(255,255,255,.10)!important;}
+/* ── Icônes monochromes ───────────────────────────────────────────────────── */
+.icon-wrap,.action-icon,.stat-icon,.feature-icon,.order-icon{background:rgba(8,145,178,.10)!important;color:#0891b2!important;border-radius:var(--vl-r)!important;}
+html.vl-dark .icon-wrap,html.vl-dark .action-icon,html.vl-dark .stat-icon,html.vl-dark .feature-icon,html.vl-dark .order-icon{background:rgba(8,145,178,.18)!important;color:#22d3ee!important;}
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar{width:4px!important;}
+::-webkit-scrollbar-track{background:var(--bg)!important;}
+::-webkit-scrollbar-thumb{background:#c8cdd4!important;}
+html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
+/* ── Toggle FAB ───────────────────────────────────────────────────────────── */
+#vl-tm-btn{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 80px);right:14px;z-index:9990;width:36px;height:36px;border-radius:3px;border:none;background:#fff;color:#475569;cursor:pointer;font-size:15px;box-shadow:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;display:flex;align-items:center;justify-content:center;transition:box-shadow .2s,transform .15s;}
+#vl-tm-btn:hover{transform:scale(1.05);}
+html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;}
+</style>
 </head>
 <body>
+<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Thème">🌙</button>
 
 <!-- ══════════════════════════════════════════
      PIN LOGIN SCREEN
@@ -2590,5 +2628,13 @@ document.addEventListener('DOMContentLoaded',function(){
 #livreur-alert-banner.show{display:flex!important;animation:slideDownLiv .3s ease}
 @keyframes slideDownLiv{from{transform:translateY(-100%)}to{transform:translateY(0)}}
 </style>
+
+<script>
+/* ── Veraluz Theme toggle — PROMPT 036E ─────────────────────────────────── */
+function applyVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';document.documentElement.classList.toggle('vl-dark',dark);var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';}
+function toggleVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';localStorage.setItem('vl_theme',dark?'light':'dark');applyVlTheme();try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}}
+document.addEventListener('DOMContentLoaded',applyVlTheme);
+window.addEventListener('message',function(e){if(e.data&&e.data.type==='vl-theme')applyVlTheme();});
+</script>
 </body>
 </html>

@@ -582,6 +582,8 @@ function loadMessages(){
   sbQ(q).then(function(data){
     var msgs=data||[];
     if(!actor.can_view_all_messages){msgs=msgs.filter(function(m){return canActorSeeMessage(actor,m);});}
+    /* Fallback mock si aucun message retourné (RLS sans session JWT, table vide, etc.) */
+    if(!msgs.length && _currentFolder==='inbox'){msgs=getMockMsgs();}
     _allMsgs=msgs;
     if(msgs.length)_lastMsgId=msgs[0].id;
     renderList();

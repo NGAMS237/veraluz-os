@@ -544,29 +544,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .sb-btn .sb-icon{
   width:28px!important;height:28px!important;
   border-radius:var(--vl-r)!important;
-  background:linear-gradient(135deg,#667eea,#764ba2);
+  background:rgba(8,145,178,.18)!important;
   display:flex!important;align-items:center!important;justify-content:center!important;
-  font-size:13px!important;color:#fff!important;flex-shrink:0!important;
+  font-size:13px!important;color:#7dd3f0!important;flex-shrink:0!important;
 }
-.sb-btn .sb-icon svg{stroke:#fff!important;color:#fff!important;}
+.sb-btn .sb-icon svg{stroke:#7dd3f0!important;color:#7dd3f0!important;}
 
-/* Module-specific sidebar icon gradients */
-#nav-reservations .sb-icon{background:linear-gradient(135deg,#667eea,#764ba2)!important;}
-#nav-paiements .sb-icon{background:linear-gradient(135deg,#f093fb,#f5576c)!important;}
-#nav-housekeeping .sb-icon{background:linear-gradient(135deg,#43e97b,#38f9d7)!important;}
-#nav-restaurant .sb-icon{background:linear-gradient(135deg,#f7971e,#ffd200)!important;}
-#nav-finance .sb-icon{background:linear-gradient(135deg,#11998e,#38ef7d)!important;}
-#nav-rh .sb-icon{background:linear-gradient(135deg,#0acffe,#495aff)!important;}
-#nav-contacts .sb-icon{background:linear-gradient(135deg,#4facfe,#00f2fe)!important;}
-#nav-notifications .sb-icon{background:linear-gradient(135deg,#f093fb,#f5576c)!important;}
-#nav-analytics .sb-icon{background:linear-gradient(135deg,#a18cd1,#fbc2eb)!important;}
-#nav-ai_center .sb-icon{background:linear-gradient(135deg,#a18cd1,#fbc2eb)!important;}
-#nav-documents .sb-icon{background:linear-gradient(135deg,#6a85b6,#bac8e0)!important;}
-#nav-messages .sb-icon{background:linear-gradient(135deg,#4facfe,#00f2fe)!important;}
-#nav-employee_home .sb-icon{background:linear-gradient(135deg,#667eea,#764ba2)!important;}
-#nav-settings .sb-icon,#nav-auth .sb-icon,#nav-appro .sb-icon,
-#nav-integrations .sb-icon,#nav-eventbus .sb-icon,#nav-audit .sb-icon{
-  background:linear-gradient(135deg,#b0c4de,#6a85b6)!important;
+/* Monochrome sidebar icons — PROMPT 036D */
+#nav-reservations .sb-icon,#nav-paiements .sb-icon,#nav-housekeeping .sb-icon,
+#nav-restaurant .sb-icon,#nav-finance .sb-icon,#nav-rh .sb-icon,
+#nav-contacts .sb-icon,#nav-notifications .sb-icon,#nav-analytics .sb-icon,
+#nav-ai_center .sb-icon,#nav-documents .sb-icon,#nav-messages .sb-icon,
+#nav-employee_home .sb-icon,#nav-settings .sb-icon,#nav-auth .sb-icon,
+#nav-appro .sb-icon,#nav-integrations .sb-icon,#nav-eventbus .sb-icon,
+#nav-audit .sb-icon{
+  background:rgba(8,145,178,.18)!important;
 }
 
 /* PWA refresh button in dark sidebar */
@@ -693,15 +685,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   width:42px;height:42px;border-radius:var(--vl-r);
   display:flex;align-items:center;justify-content:center;
   font-size:20px;margin-bottom:10px;
-  background:linear-gradient(135deg,#667eea,#764ba2);
+  background:rgba(8,145,178,.1);color:#0891b2;
 }
-/* Cycling gradients for variety */
-.mod-card:nth-child(6n+1) .mod-icon{background:linear-gradient(135deg,#667eea,#764ba2);}
-.mod-card:nth-child(6n+2) .mod-icon{background:linear-gradient(135deg,#f7971e,#ffd200);}
-.mod-card:nth-child(6n+3) .mod-icon{background:linear-gradient(135deg,#11998e,#38ef7d);}
-.mod-card:nth-child(6n+4) .mod-icon{background:linear-gradient(135deg,#0acffe,#495aff);}
-.mod-card:nth-child(6n+5) .mod-icon{background:linear-gradient(135deg,#a18cd1,#fbc2eb);}
-.mod-card:nth-child(6n+6) .mod-icon{background:linear-gradient(135deg,#4facfe,#00f2fe);}
+/* Monochrome icons — PROMPT 036D */
+.mod-card:nth-child(6n+1) .mod-icon,
+.mod-card:nth-child(6n+2) .mod-icon,
+.mod-card:nth-child(6n+3) .mod-icon,
+.mod-card:nth-child(6n+4) .mod-icon,
+.mod-card:nth-child(6n+5) .mod-icon,
+.mod-card:nth-child(6n+6) .mod-icon{background:rgba(8,145,178,.1);color:#0891b2;}
+html.vl-dark .mod-card .mod-icon,
+html.vl-dark .mod-card:nth-child(6n+1) .mod-icon,
+html.vl-dark .mod-card:nth-child(6n+2) .mod-icon,
+html.vl-dark .mod-card:nth-child(6n+3) .mod-icon,
+html.vl-dark .mod-card:nth-child(6n+4) .mod-icon,
+html.vl-dark .mod-card:nth-child(6n+5) .mod-icon,
+html.vl-dark .mod-card:nth-child(6n+6) .mod-icon{background:rgba(8,145,178,.18);color:#22d3ee;}
 .mod-name{color:#1e293b!important;font-size:13px;font-weight:700;}
 .mod-desc{color:#94a3b8!important;font-size:11px;}
 .mod-badge{

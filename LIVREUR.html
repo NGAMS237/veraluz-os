@@ -1,0 +1,2594 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0f0f0d">
+<title>Veraluz — Dashboard Livreur</title>
+<!-- ── PWA VERALUZ LIVREUR — PROMPT 011 ───────────────────── -->
+<link rel="manifest" href="./manifest-livreur.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Livreur">
+<link rel="apple-touch-icon" href="./assets/pwa/icon-livreur-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./assets/pwa/icon-livreur-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./assets/pwa/icon-livreur-512.png">
+<!-- ─────────────────────────────────────────────────────────── -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --dk:#0f0f0d;--gold:#c9a84c;--dt:#f5f5f0;--dt2:#a0a09a;
+  --bg:#f8f8f6;--bg2:#fff;--bg3:#f0ede8;--bg4:#e8e5df;
+  --tx:#1a1a18;--tx2:#555;--tx3:#999;
+  --border:#e4e2dc;--border2:#d4d2cc;
+  --green:#16a34a;--amber:#f59e0b;--red:#dc2626;--blue:#3b82f6;--purple:#7c3aed;
+  --r8:8px;--r12:12px;--r16:16px;--r50:50px;
+  --sh:0 2px 12px rgba(0,0,0,.07);--sh-lg:0 8px 32px rgba(0,0,0,.12);
+}
+html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);overflow-x:hidden}
+body{max-width:480px;margin:0 auto;min-height:100vh}
+button{font-family:'Inter',sans-serif;cursor:pointer;border:none;outline:none;background:none}
+svg{flex-shrink:0} a{text-decoration:none;color:inherit}
+
+/* ── TOP BAR ── */
+.top-bar{position:sticky;top:0;z-index:100;background:var(--dk);border-bottom:1px solid rgba(255,255,255,.07);height:56px;padding:0 16px;display:flex;align-items:center;justify-content:space-between}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-badge{width:34px;height:34px;border-radius:10px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;color:var(--gold)}
+.tb-badge svg{width:16px;height:16px}
+.tb-title{font-size:.88rem;font-weight:700;color:var(--dt)}
+.tb-sub{font-size:.65rem;color:var(--dt2);margin-top:1px}
+.online-btn{display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:var(--r50);background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.25);font-size:.67rem;font-weight:700;color:#4ade80;cursor:pointer;transition:all .2s}
+.online-btn::before{content:'';width:6px;height:6px;border-radius:50%;background:#4ade80;box-shadow:0 0 0 2px rgba(74,222,128,.25)}
+.online-btn.off{background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:#f87171}
+.online-btn.off::before{background:#f87171;box-shadow:0 0 0 2px rgba(248,113,113,.25)}
+
+/* ── STATS STRIP ── */
+.stats-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.stat-box{background:var(--bg2);padding:12px 14px;text-align:center}
+.stat-n{font-size:1.4rem;font-weight:800;color:var(--tx);line-height:1}
+.stat-l{font-size:.62rem;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--tx3);margin-top:3px}
+
+/* ── MAIN TABS ── */
+.main-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:56px;z-index:90}
+.main-tab{flex:1;padding:10px 4px;text-align:center;font-size:.65rem;font-weight:700;color:var(--tx3);border-bottom:2px solid transparent;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:3px;position:relative}
+.main-tab.active{color:var(--tx);border-bottom-color:var(--tx)}
+.main-tab svg{width:13px;height:13px}
+/* PROMPT 027 — badge alerte tab */
+.mtab-badge{position:absolute;top:4px;right:4px;background:#ef4444;color:#fff;font-size:9px;font-weight:800;border-radius:50%;width:15px;height:15px;display:none;align-items:center;justify-content:center}
+.mtab-badge.show{display:flex}
+/* PROMPT 027 — étiquettes étapes livraison */
+.step-progress{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;margin-bottom:2px}
+.step-pill{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:var(--r50);font-size:.65rem;font-weight:700;background:var(--bg2);border:1px solid var(--border);color:var(--tx3)}
+.step-pill.done{background:rgba(34,197,94,.12);border-color:#16a34a;color:#16a34a}
+.step-pill.cur{background:rgba(249,115,22,.12);border-color:#ea580c;color:#ea580c}
+/* PROMPT 027 — historique + messages */
+.hist-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:8px}
+.hist-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.hist-date{font-size:.68rem;color:var(--muted)}
+.hist-total{font-size:.8rem;font-weight:700;color:var(--accent)}
+.msg-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;margin-bottom:6px}
+.msg-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.msg-sender{font-size:.68rem;font-weight:700}
+.msg-sender.restaurant{color:#60a5fa}
+.msg-sender.driver{color:var(--accent)}
+.msg-sender.client{color:#f59e0b} /* PROMPT 034 */
+.msg-sender.system{color:var(--muted)}
+.msg-time{font-size:.65rem;color:var(--muted)}
+.msg-text{font-size:.78rem;color:var(--tx)}
+.msg-send-row{display:flex;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+.msg-input{flex:1;padding:8px 10px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg2);color:var(--tx);font-size:.8rem;outline:none}
+.msg-input:focus{border-color:var(--accent)}
+.msg-send-btn{padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-size:.78rem;font-weight:700;cursor:pointer}
+.hist-stats-row{display:flex;gap:10px;margin-bottom:12px}
+.hist-stat-box{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center}
+.hist-stat-n{font-size:1.4rem;font-weight:800;color:var(--accent)}
+.hist-stat-l{font-size:.65rem;color:var(--muted);margin-top:2px}
+
+/* ── CONTENT PANES ── */
+.content-pane{display:none;padding:14px 12px 100px}
+.content-pane.active{display:block}
+
+/* ── ORDER CARDS ── */
+.refresh-btn{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;margin-bottom:12px;padding:11px;border-radius:var(--r12);background:var(--bg2);border:1px solid var(--border);font-size:.79rem;font-weight:600;color:var(--tx2);cursor:pointer}
+.refresh-btn svg{width:15px;height:15px;color:var(--tx3)}
+.spinning{animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.order-tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
+.order-tab{padding:6px 13px;border-radius:var(--r50);font-size:.72rem;font-weight:700;background:var(--bg2);border:1px solid var(--border);color:var(--tx3);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.order-tab.active{background:var(--tx);color:#fff;border-color:var(--tx)}
+.order-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);margin-bottom:12px;overflow:hidden;box-shadow:var(--sh)}
+.sp-bar{display:flex;align-items:center;gap:0;padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.sp-bar::-webkit-scrollbar{display:none}
+.sp-step{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;min-width:44px}
+.sp-dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:var(--bg2);display:flex;align-items:center;justify-content:center;color:var(--tx3)}
+.sp-dot svg{width:10px;height:10px}
+.sp-dot.done{background:var(--green);border-color:var(--green);color:#fff}
+.sp-dot.cur{background:var(--gold);border-color:var(--gold);color:var(--dk);box-shadow:0 0 0 3px rgba(201,168,76,.2)}
+.sp-lbl{font-size:.55rem;font-weight:600;color:var(--tx3);text-align:center;white-space:nowrap}
+.sp-lbl.done{color:var(--green)}.sp-lbl.cur{color:var(--tx);font-weight:700}
+.sp-seg{flex:1;height:2px;background:var(--border);border-radius:1px;min-width:10px}
+.sp-seg.done{background:var(--green)}
+.oc-head{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.oc-num{font-size:.7rem;font-weight:800;letter-spacing:1.5px;color:var(--tx3)}
+.oc-status{padding:4px 10px;border-radius:var(--r50);font-size:.64rem;font-weight:700}
+.s-pending{background:rgba(245,158,11,.1);color:#b45309}
+.s-preparing{background:rgba(59,130,246,.1);color:#1d4ed8}
+.s-ready{background:rgba(168,85,247,.1);color:#7c3aed}
+.s-delivering{background:rgba(249,115,22,.1);color:#c2410c}
+.s-delivered{background:rgba(22,163,74,.1);color:#15803d}
+.oc-body{padding:12px 14px}
+.oc-client{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.oc-av{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:var(--tx2);flex-shrink:0}
+.oc-cn{font-size:.82rem;font-weight:700;color:var(--tx)}
+.oc-cp{font-size:.7rem;color:var(--tx2);margin-top:1px}
+.oc-addr{display:flex;align-items:flex-start;gap:8px;background:var(--bg3);border-radius:var(--r8);padding:9px 11px;margin-bottom:10px}
+.oc-addr svg{width:13px;height:13px;color:var(--tx3);flex-shrink:0;margin-top:1px}
+.oc-addr-t{font-size:.73rem;color:var(--tx2);line-height:1.5}
+.oc-addr-z{font-size:.66rem;font-weight:600;color:var(--tx);margin-top:2px}
+.oc-items{margin-bottom:10px}
+.oc-item{display:flex;justify-content:space-between;font-size:.73rem;color:var(--tx2);padding:2px 0}
+.oc-total{display:flex;justify-content:space-between;font-size:.8rem;font-weight:800;color:var(--tx);border-top:1px solid var(--border);padding-top:7px;margin-top:4px}
+.oc-time{display:flex;align-items:center;gap:5px;font-size:.66rem;color:var(--tx3);margin-bottom:10px}
+.oc-time svg{width:11px;height:11px}
+.oc-actions{display:flex;gap:6px;flex-wrap:wrap}
+.act-btn{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:4px;padding:9px 8px;border-radius:var(--r12);font-size:.7rem;font-weight:700;border:1.5px solid var(--border);background:var(--bg3);color:var(--tx2);cursor:pointer;transition:all .15s;white-space:nowrap;text-align:center}
+.act-btn svg{width:13px;height:13px}
+.act-btn:active{opacity:.8;transform:scale(.97)}
+.act-primary{background:var(--tx);color:#fff;border-color:var(--tx)}
+.act-green{background:rgba(22,163,74,.08);color:var(--green);border-color:rgba(22,163,74,.3)}
+.act-blue{background:rgba(59,130,246,.08);color:var(--blue);border-color:rgba(59,130,246,.3)}
+
+/* ── EMPTY STATE ── */
+.empty{padding:48px 20px;text-align:center;color:var(--tx3)}
+.empty svg{width:44px;height:44px;margin:0 auto 12px;opacity:.2;display:block}
+.empty h3{font-size:.92rem;font-weight:700;color:var(--tx2);margin-bottom:5px}
+.empty p{font-size:.76rem;line-height:1.6}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;z-index:90;background:rgba(255,255,255,.97);backdrop-filter:blur(16px);border-top:1px solid var(--border);display:flex;padding-bottom:env(safe-area-inset-bottom)}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0;cursor:pointer;color:var(--tx3);font-size:.6rem;font-weight:600;transition:color .15s}
+.bnav-item svg{width:20px;height:20px}
+.bnav-item.active{color:var(--tx)}
+
+/* ── TOAST ── */
+.toast{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--tx);color:#fff;padding:9px 17px;border-radius:var(--r50);font-size:.77rem;font-weight:600;z-index:999;transition:transform .28s;white-space:nowrap;box-shadow:var(--sh-lg)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--green)}.toast.err{background:var(--red)}
+
+/* ── MODAL ── */
+.modal-ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(2px)}
+.modal-ov.open{opacity:1;pointer-events:all}
+.modal{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(106%);width:100%;max-width:480px;z-index:201;background:var(--bg2);border-radius:22px 22px 0 0;border-top:1px solid var(--border);box-shadow:var(--sh-lg);transition:transform .32s cubic-bezier(.32,0,.2,1);max-height:70vh;overflow-y:auto;padding-bottom:24px}
+.modal.open{transform:translateX(-50%) translateY(0)}
+.modal-handle{width:36px;height:3px;background:var(--border2);border-radius:2px;margin:10px auto 14px}
+.modal-title{font-size:.98rem;font-weight:700;color:var(--tx);padding:0 18px;margin-bottom:12px}
+.spick-list{display:flex;flex-direction:column;gap:7px;padding:0 14px}
+.spick-btn{padding:12px 15px;border-radius:var(--r12);background:var(--bg3);border:1.5px solid var(--border);display:flex;align-items:center;gap:10px;font-size:.81rem;font-weight:600;color:var(--tx);cursor:pointer;transition:all .15s}
+.spick-btn svg{width:18px;height:18px;flex-shrink:0}
+.spick-btn:active{transform:scale(.98)}
+.spick-btn.cur{border-color:var(--tx);background:var(--bg)}
+.spick-btn.past{opacity:.38;pointer-events:none}
+
+/* ── PHOTO MODAL ── */
+.photo-zone{margin:12px 18px;border:2px dashed var(--border2);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative}
+.photo-zone:hover{border-color:var(--gold)}
+.photo-zone.has-photo{border-style:solid;border-color:var(--green)}
+.photo-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.photo-zone-ico{color:var(--tx3);margin-bottom:8px}
+.photo-zone-lbl{font-size:.8rem;color:var(--tx2);font-weight:600}
+.photo-zone-sub{font-size:.7rem;color:var(--tx3);margin-top:3px}
+.photo-preview{width:100%;max-height:200px;object-fit:cover;border-radius:8px;display:none;margin-bottom:8px}
+.photo-preview.show{display:block}
+.photo-confirm-row{display:flex;gap:8px;margin:10px 18px 0}
+.btn-photo-ok{flex:1;padding:12px;border-radius:var(--r12);background:var(--green);color:#fff;font-weight:700;font-size:.86rem}
+.btn-photo-skip{padding:12px 16px;border-radius:var(--r12);background:var(--bg3);border:1px solid var(--border);color:var(--tx2);font-size:.82rem;font-weight:600}
+.photo-status-lbl{font-size:.72rem;color:var(--green);font-weight:700;margin-top:6px;display:none;text-align:center}
+.photo-status-lbl.show{display:block}
+/* ── Profil photo avatar — PROMPT 026 ── */
+.profil-avatar{width:72px;height:72px;border-radius:50%;background:var(--bg3);border:3px solid var(--gold);
+  overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:1.6rem;
+  font-weight:800;color:var(--gold);margin:0 auto 10px;flex-shrink:0}
+.profil-avatar img{width:100%;height:100%;object-fit:cover}
+.identity-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;
+  font-size:.68rem;font-weight:700;margin-top:4px}
+.identity-badge.ok{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25)}
+.identity-badge.warn{background:rgba(234,179,8,.1);color:#eab308;border:1px solid rgba(234,179,8,.2)}
+.identity-badge.missing{background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.2)}
+/* ── Selfie modal — PROMPT 026 ── */
+.selfie-policy{font-size:.72rem;color:var(--tx3);line-height:1.6;padding:10px 18px;
+  background:var(--bg3);border-radius:8px;margin:0 18px 12px}
+
+/* ── POINTAGE TAB ── */
+.punch-hero{background:var(--dk);border-radius:var(--r16);padding:20px;margin-bottom:14px;text-align:center}
+.punch-time{font-size:2.4rem;font-weight:900;color:var(--gold);letter-spacing:-1px;font-variant-numeric:tabular-nums;line-height:1}
+.punch-date{font-size:.75rem;color:var(--dt2);margin-top:4px}
+.punch-status{margin-top:12px;font-size:.78rem;font-weight:700;padding:6px 14px;border-radius:var(--r50);display:inline-block}
+.punch-status.in{background:rgba(22,163,74,.15);color:#4ade80}
+.punch-status.out{background:rgba(239,68,68,.12);color:#f87171}
+.punch-btns{display:flex;gap:10px;margin-top:16px}
+.punch-btn{flex:1;padding:14px;border-radius:var(--r12);font-size:.85rem;font-weight:800;cursor:pointer;border:none;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.punch-btn:active{transform:scale(.96)}
+.punch-btn.arrive{background:var(--green);color:#fff}
+.punch-btn.depart{background:var(--red);color:#fff}
+.punch-btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.punch-hist-hdr{font-size:.75rem;font-weight:700;color:var(--tx2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.punch-entry{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r12);padding:11px 13px;margin-bottom:7px;display:flex;align-items:center;gap:10px}
+.punch-entry-ico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.punch-entry-ico.in{background:rgba(22,163,74,.1);color:var(--green)}
+.punch-entry-ico.out{background:rgba(220,38,38,.1);color:var(--red)}
+.punch-entry-ico svg{width:15px;height:15px}
+.punch-entry-body{flex:1}
+.punch-entry-type{font-size:.8rem;font-weight:700;color:var(--tx)}
+.punch-entry-time{font-size:.7rem;color:var(--tx3);margin-top:1px}
+.punch-summary{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r12);padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.punch-summary-n{font-size:1.3rem;font-weight:800;color:var(--green)}
+.punch-summary-l{font-size:.68rem;color:var(--tx3);font-weight:600;margin-top:2px}
+
+/* ── PROFIL TAB ── */
+.profil-hero{background:var(--dk);border-radius:var(--r16);padding:20px;margin-bottom:14px;display:flex;align-items:center;gap:14px}
+.profil-avatar{width:56px;height:56px;border-radius:50%;background:rgba(201,168,76,.2);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;color:var(--gold);flex-shrink:0}
+.profil-name{font-size:1.1rem;font-weight:800;color:var(--dt)}
+.profil-team{font-size:.72rem;color:var(--gold);margin-top:3px;font-weight:600}
+.profil-sub{font-size:.68rem;color:var(--dt2);margin-top:2px}
+.profil-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r16);padding:14px;margin-bottom:12px}
+.profil-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:.8rem}
+.profil-row:last-child{border-bottom:none}
+.profil-row-l{color:var(--tx3);font-size:.72rem}
+.profil-row-v{font-weight:600;color:var(--tx)}
+.logout-btn{width:100%;padding:13px;border-radius:var(--r12);background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);color:var(--red);font-size:.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.logout-btn:active{opacity:.8}
+
+/* ── PIN LOGIN SCREEN ── */
+#pin-screen{position:fixed;inset:0;background:var(--dk);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:40px 20px 24px;overflow-y:auto}
+#pin-screen.hidden{display:none}
+.pin-logo{font-size:3rem;margin-bottom:4px}
+.pin-brand{font-size:1.4rem;font-weight:800;color:var(--gold);margin-bottom:2px}
+.pin-tagline{font-size:.78rem;color:var(--dt2);margin-bottom:32px}
+.pin-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:24px 20px;width:100%;max-width:340px}
+.pin-label{font-size:.72rem;color:var(--dt2);font-weight:600;margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase}
+.pin-select{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:12px;color:var(--dt);font-size:.88rem;font-weight:600;padding:11px 14px;margin-bottom:20px;font-family:'Inter',sans-serif;-webkit-appearance:none}
+.pin-select option{background:#1a1a18;color:#f5f5f0}
+.pin-dots{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.pin-dot{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.2);transition:all .15s}
+.pin-dot.filled{background:var(--gold);border-color:var(--gold)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.pin-key{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px;height:58px;font-size:1.3rem;font-weight:700;color:var(--dt);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;-webkit-tap-highlight-color:transparent}
+.pin-key:active{background:var(--gold);color:var(--dk);transform:scale(.94)}
+.pin-key.del{font-size:.9rem;color:var(--dt2)}
+.pin-err{text-align:center;color:#f87171;font-size:.77rem;font-weight:600;min-height:20px;margin-top:4px}
+.pin-loading{text-align:center;color:var(--dt2);font-size:.77rem;margin-top:8px;min-height:20px}
+
+/* ── MEDIA QUERIES MOBILE TERRAIN — PROMPT 005 ── */
+@media (max-width:480px){
+  body{max-width:100%;}
+  .content-pane{padding:12px 10px 100px;}
+  .act-btn{min-height:44px;padding:11px 8px;font-size:.73rem;}
+  .oc-actions{gap:7px;}
+  .order-card{border-radius:12px;}
+  .stat-n{font-size:1.2rem;}
+  .stat-box{padding:10px 8px;}
+  .modal{max-height:88vh;}
+}
+@media (max-width:430px){
+  #pin-screen{padding:env(safe-area-inset-top,24px) 16px env(safe-area-inset-bottom,16px);}
+  .pin-card{max-width:100%;}
+}
+@media (max-width:390px){
+  .top-bar{padding:0 12px;height:52px;}
+  .tb-title{font-size:.82rem;}
+  .tb-sub{font-size:.62rem;}
+  .main-tab{font-size:.6rem;padding:8px 2px;gap:2px;}
+  .main-tab svg{width:12px;height:12px;}
+  .content-pane{padding:10px 8px 95px;}
+  .order-tab{padding:5px 10px;font-size:.67rem;}
+  .act-btn{min-height:44px;padding:10px 6px;font-size:.68rem;}
+  .oc-cn{font-size:.78rem;}
+  .oc-cp,.oc-addr-t,.oc-item{font-size:.69rem;}
+  .punch-time{font-size:2rem;}
+  .punch-btn{font-size:.82rem;padding:13px;}
+  .pin-key{height:50px;font-size:1.15rem;}
+  .pin-card{padding:16px 14px;}
+  .pin-dot{width:11px;height:11px;}
+  .pin-dots{gap:8px;}
+  .stat-n{font-size:1.1rem;}
+}
+@media (max-width:375px){
+  .pin-logo{font-size:2.2rem;margin-bottom:2px;}
+  .pin-brand{font-size:1.2rem;}
+  .pin-tagline{font-size:.72rem;margin-bottom:20px;}
+  .pin-key{height:46px;font-size:1.1rem;}
+  .pin-pad{gap:5px;}
+  .pin-dot{width:10px;height:10px;}
+  .pin-dots{gap:7px;margin-bottom:12px;}
+  .pin-card{padding:14px 12px;}
+}
+@media (max-height:700px){
+  #pin-screen{padding-top:12px;}
+  .pin-logo{font-size:2rem;margin-bottom:0;}
+  .pin-tagline{margin-bottom:16px;}
+  .pin-card{padding:16px 16px;}
+  .pin-pad{gap:6px;}
+  .pin-key{height:48px;}
+}
+@media (orientation:landscape) and (max-height:500px){
+  #pin-screen{justify-content:flex-start;padding-top:8px;}
+  .pin-logo{font-size:1.8rem;margin-bottom:0;}
+  .pin-tagline{margin-bottom:8px;}
+  .pin-card{padding:10px 16px;}
+  .pin-pad{gap:5px;}
+  .pin-key{height:40px;font-size:1rem;}
+}
+@supports (height:100dvh){
+  body{min-height:100dvh;}
+  #pin-screen{min-height:100dvh;}
+}
+
+/* ── OFFLINE / SYNC INDICATORS — PROMPT 005 ── */
+.offline-bar{position:sticky;top:56px;z-index:88;color:#fff;font-size:.72rem;font-weight:700;text-align:center;padding:5px 14px;display:none;letter-spacing:.2px;}
+.offline-bar.show{display:block;}
+.offline-bar.err{background:rgba(220,38,38,.93);top:56px;}
+.offline-bar.warn{background:rgba(245,158,11,.93);}
+.sync-strip{background:var(--bg2);border-bottom:1px solid var(--border);padding:5px 14px;display:flex;align-items:center;gap:8px;font-size:.67rem;color:var(--tx3);min-height:30px;}
+.sync-last{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.sync-badge{background:rgba(220,38,38,.1);color:var(--red);border:1px solid rgba(220,38,38,.25);border-radius:20px;padding:2px 8px;font-weight:700;font-size:.65rem;flex-shrink:0;display:none;}
+.sync-badge.show{display:inline-flex;align-items:center;gap:3px;}
+.btn-sync-now{background:var(--tx);color:#fff;border-radius:20px;padding:4px 11px;font-size:.65rem;font-weight:700;border:none;cursor:pointer;flex-shrink:0;display:none;}
+.btn-sync-now.show{display:block;}
+
+/* ── MESSAGES RAPIDES — PROMPT 005 ── */
+.msg-list{padding:0 14px 8px;display:flex;flex-direction:column;gap:7px;}
+.msg-item{background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--r12);padding:11px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.msg-item:active{opacity:.8;}
+.msg-item .msg-ico{font-size:1.3rem;flex-shrink:0;}
+.msg-item .msg-body{flex:1;min-width:0;}
+.msg-item .msg-title{font-size:.8rem;font-weight:700;color:var(--tx);}
+.msg-item .msg-preview{font-size:.68rem;color:var(--tx3);margin-top:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.msg-item .msg-copy{flex-shrink:0;background:var(--bg4);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:.65rem;font-weight:700;color:var(--tx2);}
+.msg-wa-btn{background:rgba(37,211,102,.08);border-color:rgba(37,211,102,.3);}
+.msg-wa-btn .msg-title{color:#128C7E;}
+
+/* ── DELIVERY CONFIRM — PROMPT 005 ── */
+.delivery-confirm-box{background:rgba(22,163,74,.06);border:2px solid rgba(22,163,74,.3);border-radius:12px;padding:13px 14px;margin-bottom:10px;}
+.dc-q{font-size:.83rem;font-weight:700;color:var(--tx);margin-bottom:9px;}
+.dc-btns{display:flex;gap:8px;}
+.dc-btns .act-btn{min-height:44px;}
+
+/* ── MAPS BUTTON — PROMPT 005 ── */
+.act-btn.act-maps{background:rgba(59,130,246,.08);color:var(--blue);border-color:rgba(59,130,246,.3);}
+.act-btn.act-orange{background:rgba(249,115,22,.08);color:#c2410c;border-color:rgba(249,115,22,.3);}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     PIN LOGIN SCREEN
+══════════════════════════════════════════ -->
+<div id="pin-screen">
+  <div class="pin-logo">🛵</div>
+  <div class="pin-brand">Veraluz</div>
+  <div class="pin-tagline">Dashboard Livreur</div>
+  <div class="pin-card">
+    <div class="pin-label">Votre nom</div>
+    <select class="pin-select" id="pin-livreur-sel">
+      <option value="">Chargement…</option>
+    </select>
+    <div class="pin-label">Code PIN</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+      <div class="pin-dot" id="pd4"></div>
+      <div class="pin-dot" id="pd5"></div>
+    </div>
+    <div class="pin-pad" id="pin-pad"></div>
+    <div class="pin-err" id="pin-err"></div>
+    <div class="pin-loading" id="pin-loading"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MAIN APP (hidden until PIN auth)
+══════════════════════════════════════════ -->
+<div id="main-app" style="display:none">
+
+<header class="top-bar">
+  <div class="tb-left">
+    <div class="tb-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>
+    </div>
+    <div>
+      <div class="tb-title" id="tbName">Dashboard Livreur</div>
+      <div class="tb-sub" id="tbDate">Veraluz Food &amp; Lounge</div>
+    </div>
+  </div>
+  <button class="online-btn" id="onlineBtn" onclick="toggleOnline()">En ligne</button>
+</header>
+
+<!-- PROMPT 005: Offline banner -->
+<div class="offline-bar" id="offline-bar">📡 Connexion indisponible — données locales</div>
+
+<div class="stats-strip">
+  <div class="stat-box"><div class="stat-n" id="sTotal">0</div><div class="stat-l">Aujourd'hui</div></div>
+  <div class="stat-box"><div class="stat-n" id="sActive">0</div><div class="stat-l">En cours</div></div>
+  <div class="stat-box"><div class="stat-n" id="sDone">0</div><div class="stat-l">Livrées</div></div>
+</div>
+<!-- PROMPT 005: Sync strip -->
+<div class="sync-strip" id="sync-strip">
+  <span class="sync-last" id="sync-last">Synchronisation…</span>
+  <span class="sync-badge" id="sync-badge">⚠ <span id="sync-badge-n">0</span> action(s) en attente</span>
+  <button class="btn-sync-now" id="btn-sync-now" onclick="syncPendingActions()">🔄 Sync</button>
+</div>
+
+<!-- Main tab bar -->
+<div class="main-tabs">
+  <div class="main-tab active" id="mtab-livraisons" onclick="switchMainTab('livraisons')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>
+    Livraisons
+  </div>
+  <div class="main-tab" id="mtab-pointage" onclick="switchMainTab('pointage')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Pointage
+  </div>
+  <div class="main-tab" id="mtab-profil" onclick="switchMainTab('profil')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Profil
+  </div>
+  <!-- PROMPT 027 : Onglet Historique -->
+  <div class="main-tab" id="mtab-historique" onclick="switchMainTab('historique')">
+    <div class="mtab-badge" id="mtab-badge-historique"></div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><polyline points="12 7 12 12 16 14"/></svg>
+    Historique
+  </div>
+  <!-- PROMPT 027 : Onglet Messages -->
+  <div class="main-tab" id="mtab-messages" onclick="switchMainTab('messages')">
+    <div class="mtab-badge" id="mtab-badge-messages"></div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Messages
+  </div>
+</div>
+
+<!-- ── LIVRAISONS PANE ── -->
+<div class="content-pane active" id="pane-livraisons">
+  <div class="order-tabs">
+    <button class="order-tab active" id="otab-pickup"     onclick="switchOrderTab('pickup',this)">🟡 À récupérer</button>
+    <button class="order-tab"        id="otab-delivering" onclick="switchOrderTab('delivering',this)">🔵 En livraison</button>
+    <button class="order-tab"        id="otab-done"       onclick="switchOrderTab('done',this)">✅ Livrées</button>
+  </div>
+  <!-- PROMPT 005: Refresh button -->
+  <button class="refresh-btn" onclick="manualRefresh(this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+    Rafraîchir les livraisons
+  </button>
+  <div id="order-list"></div>
+</div>
+
+<!-- ── POINTAGE PANE ── -->
+<div class="content-pane" id="pane-pointage">
+  <div class="punch-hero">
+    <div class="punch-time" id="punch-clock">00:00:00</div>
+    <div class="punch-date" id="punch-date-lbl"></div>
+    <div id="punch-status-lbl" class="punch-status out">Hors service</div>
+    <div class="punch-btns">
+      <button class="punch-btn arrive" id="btn-arrive" onclick="doPunch('arrivee')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><polyline points="20 6 9 17 4 12"/></svg>
+        Arrivée
+      </button>
+      <button class="punch-btn depart" id="btn-depart" onclick="doPunch('depart')" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Départ
+      </button>
+    </div>
+  </div>
+  <div class="punch-summary" id="punch-summary" style="display:none">
+    <div>
+      <div class="punch-summary-n" id="punch-hrs">0h 0min</div>
+      <div class="punch-summary-l">Heures travaillées aujourd'hui</div>
+    </div>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28" style="color:#16a34a"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+  </div>
+  <div class="punch-hist-hdr">Historique du jour</div>
+  <div id="punch-hist-list"><div class="empty"><p>Aucun pointage aujourd'hui.</p></div></div>
+</div>
+
+<!-- ── PROFIL PANE ── -->
+<div class="content-pane" id="pane-profil">
+  <div id="profil-body"></div>
+</div>
+
+<!-- ── HISTORIQUE PANE — PROMPT 027 ── -->
+<div class="content-pane" id="pane-historique">
+  <div id="historique-body"><div style="padding:24px;text-align:center;color:var(--muted)">Chargement…</div></div>
+</div>
+
+<!-- ── MESSAGES PANE — PROMPT 027 ── -->
+<div class="content-pane" id="pane-messages">
+  <div id="messages-body"><div style="padding:24px;text-align:center;color:var(--muted)">Chargement…</div></div>
+</div>
+
+<nav class="bottom-nav">
+  <div class="bnav-item active" id="bnav-livraisons" onclick="switchMainTab('livraisons')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M5 17H3v-4l2-5h7l2 4 3 1 2 2v2h-2"/><path d="M12 17H9"/></svg>
+    <span>Livraisons</span>
+  </div>
+  <div class="bnav-item" id="bnav-pointage" onclick="switchMainTab('pointage')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <span>Pointage</span>
+  </div>
+  <div class="bnav-item" id="bnav-profil" onclick="switchMainTab('profil')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Profil</span>
+  </div>
+  <!-- PROMPT 027 : bnav Historique -->
+  <div class="bnav-item" id="bnav-historique" onclick="switchMainTab('historique')" style="position:relative">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><polyline points="12 7 12 12 16 14"/></svg>
+    <span>Historique</span>
+  </div>
+  <!-- PROMPT 027 : bnav Messages -->
+  <div class="bnav-item" id="bnav-messages" onclick="switchMainTab('messages')" style="position:relative">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span>Messages</span>
+  </div>
+</nav>
+
+</div><!-- /#main-app -->
+
+<!-- ── MESSAGES RAPIDES MODAL — PROMPT 005 ── -->
+<div class="modal-ov" id="msgOv" onclick="closeMsgMod()"></div>
+<div class="modal" id="msgMod" style="max-height:80vh">
+  <div class="modal-handle"></div>
+  <div class="modal-title">💬 Messages rapides — <span id="msg-client-name">Client</span></div>
+  <div class="msg-list" id="msg-list"></div>
+</div>
+
+<!-- ── STATUS MODAL ── -->
+<div class="toast" id="toast"></div>
+<div class="modal-ov" id="mOv" onclick="closeMod()"></div>
+<div class="modal" id="statusMod">
+  <div class="modal-handle"></div>
+  <div class="modal-title">Mettre à jour le statut</div>
+  <div class="spick-list" id="spickList"></div>
+</div>
+
+<!-- ── PHOTO PROOF MODAL ── -->
+<div class="modal-ov" id="photoOv" onclick="cancelPhoto()"></div>
+<div class="modal" id="photoMod" style="max-height:85vh">
+  <div class="modal-handle"></div>
+  <div class="modal-title">📸 Photo preuve de livraison</div>
+  <p style="font-size:.78rem;color:var(--tx3);padding:0 18px 10px;line-height:1.5">Prenez une photo de la commande remise au client. Cette photo servira de preuve de livraison.</p>
+  <div class="photo-zone" id="photoZone">
+    <input type="file" accept="image/*" capture="environment" id="photoInput" onchange="onPhotoSelected(this)">
+    <div class="photo-zone-ico"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+    <div class="photo-zone-lbl">Appuyer pour prendre une photo</div>
+    <div class="photo-zone-sub">Ou choisir depuis la galerie</div>
+  </div>
+  <div style="text-align:center"><img class="photo-preview" id="photoPreview" src="" alt=""></div>
+  <div class="photo-status-lbl" id="photoStatusLbl">✓ Photo sélectionnée</div>
+  <div class="photo-confirm-row">
+    <button class="btn-photo-ok" onclick="confirmDeliveryWithPhoto()">✓ Confirmer la livraison</button>
+    <button class="btn-photo-skip" onclick="confirmDeliveryNoPhoto()">Ignorer</button>
+  </div>
+</div>
+
+<script src="veraluz-core.js?v=0.3.0"></script>
+<script>
+/* ══════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════ */
+var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+/* PROMPT 009 — Edge Function PIN (clé service_role JAMAIS ici — Edge Function uniquement) */
+var EDGE_VERIFY_PIN_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
+/* ── Veraluz Core — référence globale + fallback ── */
+var VC = window.VeraluzCore || {};
+
+function sbFetch(path){
+  return fetch(SB+'/rest/v1/'+path,{mode:'cors',credentials:'omit',headers:{apikey:KEY,Authorization:'Bearer '+KEY,Accept:'application/json'}})
+    .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();});
+}
+function sbPost(table,data){
+  return fetch(SB+'/rest/v1/'+table,{method:'POST',mode:'cors',credentials:'omit',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},body:JSON.stringify(data)})
+    .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();});
+}
+/* PROMPT 027 : sbInsert helper */
+function sbInsert(table,data){
+  return fetch(SB+'/rest/v1/'+table,{
+    method:'POST',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,
+      'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify(data)
+  }).then(function(r){if(!r.ok)throw new Error('sbInsert '+r.status);});
+}
+function sbPatch(table,id,data){
+  return fetch(SB+'/rest/v1/'+table+'?id=eq.'+encodeURIComponent(id),{method:'PATCH',mode:'cors',credentials:'omit',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(data)})
+    .then(function(r){if(!r.ok)throw new Error(r.status);});
+}
+
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+var LIVREURS=[], LIVREUR_ACTIF=null;
+var LIVREUR_BUILD = 'v032-alerts-2026-07-08'; /* PROMPT 031 */
+var _orders=[], _orderTab='pickup', _online=navigator.onLine, _curId=null, _interval=null;
+var _pointages=[], _pinBuffer='';
+var _lastSync=null;  // PROMPT 005: dernière synchronisation réussie
+var _knownAssignedIds=null; /* PROMPT 033A — L2 : null = non initialisé, Set après premier chargement */
+
+/* ══════════════════════════════════════════
+   PROMPT 005 — localStorage KEYS
+══════════════════════════════════════════ */
+var LS_ORDERS   = 'veraluz_livreur_cache_orders';
+var LS_ACTIONS  = 'veraluz_livreur_pending_actions';
+var LS_LIVREUR  = 'veraluz_livreur_actif_id';
+var LS_SESSION  = 'veraluz_livreur_session';       /* PROMPT 006: session 12h sans PIN */
+
+/* ══════════════════════════════════════════
+   NORMALIZE UTILS — VERALUZ CORE v0.3.0
+   Déléguées à veraluz-core.js.
+   Fallback minimal intégré si bibliothèque non disponible.
+══════════════════════════════════════════ */
+var normalizeEmployee = VC.normalizeEmployee || function(row) {
+  /* Fallback minimal — veraluz-core.js absent */
+  /* PROMPT 009: pin_code JAMAIS dans l'objet employé côté client */
+  var p = (row.full_name || '').trim().split(' ');
+  var obj = Object.assign({
+    prenom: p[0] || '', nom: p.slice(1).join(' ') || '',
+    poste: row.role || '',
+    date_embauche: row.hire_date || ''
+  }, row);
+  /* Purger tout champ sensible si présent par erreur */
+  delete obj.pin_code; delete obj.pin_hash; delete obj.base_salary;
+  delete obj.hourly_rate; delete obj.contract_type; delete obj.notes;
+  return obj;
+};
+var normalizeOrderStatus = VC.normalizeOrderStatus || function(s) {
+  /* Fallback minimal — passe le statut tel quel */
+  return String(s || 'pending');
+};
+var isDeliveryEmployee = VC.isDeliveryEmployee || function(emp) {
+  /* Fallback minimal — vérifie uniquement le nom d'équipe */
+  var t = String((emp && emp.team && emp.team.name) || emp.team_name || '').toLowerCase();
+  var r = String((emp && (emp.role || emp.poste)) || '').toLowerCase();
+  return t.includes('livr') || r.includes('livreur');
+};
+
+/* ══════════════════════════════════════════
+   STATUSES
+══════════════════════════════════════════ */
+var STATUSES=[
+  {id:'pending',    lbl:'En attente',    cls:'s-pending',   ico:'⏳'},
+  {id:'preparing',  lbl:'En préparation',cls:'s-preparing', ico:'🍳'},
+  {id:'ready',      lbl:'Prêt à partir', cls:'s-ready',     ico:'✅'},
+  {id:'out_for_delivery', lbl:'En livraison',  cls:'s-delivering',ico:'🛵'},
+  {id:'delivered',        lbl:'Livré',         cls:'s-delivered',  ico:'🏁'}
+];
+var STEPS=[
+  {id:'pending',          lbl:'Reçue'},
+  {id:'preparing',        lbl:'Prép.'},
+  {id:'ready',            lbl:'Prêt'},
+  {id:'out_for_delivery', lbl:'Route'},
+  {id:'delivered',        lbl:'Livré'}
+];
+function stepIdx(sid){return STEPS.findIndex(function(s){return s.id===sid;});}
+
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+var _toastTimer=null;
+function toast(msg,type){
+  var t=document.getElementById('toast');
+  t.textContent=msg;
+  t.className='toast '+(type||'');
+  t.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(function(){t.classList.remove('show');},2800);
+}
+
+/* ══════════════════════════════════════════
+   PIN — LOAD LIVREURS
+══════════════════════════════════════════ */
+/* PROMPT 031 : loadLivreurs avec fallback veraluz_employees + erreurs detaillees */
+function loadLivreurs(){
+  var sel=document.getElementById('pin-livreur-sel');
+  var lbl=document.getElementById('pin-loading');
+  lbl.textContent='Chargement…';
+
+  /* Helper : peupler le select depuis un tableau de lignes */
+  function _populate(rows){
+    var livrows=rows.filter(isDeliveryEmployee);
+    LIVREURS=livrows.map(normalizeEmployee);
+    sel.innerHTML='<option value="">— Sélectionnez —</option>';
+    if(!LIVREURS.length){
+      var o=document.createElement('option');
+      o.disabled=true;
+      o.textContent='Aucun livreur actif — ajoutez-en dans RH';
+      sel.appendChild(o);
+      lbl.textContent='Aucun livreur actif trouvé.';
+      return;
+    }
+    LIVREURS.forEach(function(lv){
+      var o=document.createElement('option');
+      o.value=lv.id;
+      o.textContent=lv.full_name||(lv.prenom+' '+lv.nom).trim()||lv.id;
+      sel.appendChild(o);
+    });
+    lbl.textContent='';
+  }
+
+  /* Tentative 1 : vue veraluz_employees_public (public_display_name + identity_verified) */
+  return sbFetch('veraluz_employees_public?select=id,full_name,role,status,team_id,team_name,phone,email,hire_date,photo_url,public_display_name,identity_verified&order=full_name.asc')
+    .then(function(rows){
+      _populate(rows||[]);
+    })
+    .catch(function(e1){
+      /* Tentative 2 : fallback direct veraluz_employees */
+      console.warn('[LIVREUR] veraluz_employees_public echec:',e1&&e1.message||e1,'— fallback veraluz_employees');
+      return sbFetch('veraluz_employees?select=id,full_name,role,status,team_id,phone,photo_url,public_display_name,identity_verified&status=eq.actif&order=full_name.asc')
+        .then(function(rows2){
+          console.log('[LIVREUR] Fallback veraluz_employees OK:',rows2&&rows2.length,'lignes');
+          _populate(rows2||[]);
+        })
+        .catch(function(e2){
+          /* Tentative 3 : fallback sans colonnes optionnelles */
+          console.warn('[LIVREUR] Fallback veraluz_employees echec:',e2&&e2.message||e2,'— fallback minimal');
+          return sbFetch('veraluz_employees?select=id,full_name,role,status,team_id,phone&status=eq.actif&order=full_name.asc')
+            .then(function(rows3){
+              _populate(rows3||[]);
+            })
+            .catch(function(e3){
+              var msg='Erreur chargement livreurs';
+              var hint='';
+              if(e3&&e3.status===401||e3&&String(e3).indexOf('401')>=0){msg='Acces bloque (RLS/auth).';hint=' Contactez ladmin.';}
+              else if(e3&&e3.status===400||e3&&String(e3).indexOf('400')>=0){msg='Colonne manquante (400).';hint=' Exécutez MIGRATION_SQL.';}
+              else if(!navigator.onLine){msg='Hors ligne.';hint=' Vérifiez connexion.';}
+              console.error('[LIVREUR] Echec total chargement livreurs:',{e1:e1&&e1.message,e2:e2&&e2.message,e3:e3&&e3.message});
+              lbl.textContent=msg+hint;
+              sel.innerHTML='<option value="">'+(navigator.onLine?'Erreur chargement':'Hors ligne')+'</option>';
+            });
+        });
+    });
+}
+
+function buildPinPad(){
+  var pad=document.getElementById('pin-pad');
+  var keys=['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  pad.innerHTML='';
+  keys.forEach(function(k){
+    var btn=document.createElement('button');
+    btn.className='pin-key'+(k==='⌫'?' del':'');
+    btn.textContent=k;
+    if(k===''){btn.disabled=true;btn.style.opacity='0';return;}
+    btn.onclick=function(){onPinKey(k);};
+    pad.appendChild(btn);
+  });
+}
+
+function renderPinDots(){
+  for(var i=0;i<6;i++){
+    var d=document.getElementById('pd'+i);
+    if(d) d.className='pin-dot'+(i<_pinBuffer.length?' filled':'');
+  }
+}
+
+function onPinKey(k){
+  var err=document.getElementById('pin-err');
+  err.textContent='';
+  if(k==='⌫'){_pinBuffer=_pinBuffer.slice(0,-1);}
+  else if(_pinBuffer.length<6){_pinBuffer+=k;}
+  renderPinDots();
+  if(_pinBuffer.length===6) validatePin();
+}
+
+/* PROMPT 009 — Appel Edge Function pour vérification PIN côté serveur
+   RÈGLE : Ne jamais comparer le PIN côté client. Ne jamais stocker le PIN. */
+function verifyLivreurPin(employeeId, pin) {
+  return fetch(EDGE_VERIFY_PIN_URL, {
+    method: 'POST',
+    mode: 'cors',
+    credentials: 'omit',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': KEY,
+      'Authorization': 'Bearer ' + KEY
+    },
+    body: JSON.stringify({ employee_id: employeeId, pin: pin })
+  })
+  .then(function(r) {
+    /* Accepter 200, 401, 429 — les autres sont des erreurs réseau */
+    if (r.status === 200 || r.status === 401 || r.status === 429) {
+      return r.json();
+    }
+    throw new Error('HTTP_' + r.status);
+  })
+  .catch(function(e) {
+    console.error('[verify-pin-livreur] Erreur réseau:', e.message);
+    return { ok: false, error: 'network' };
+  });
+}
+
+function validatePin(){
+  var sel=document.getElementById('pin-livreur-sel');
+  var err=document.getElementById('pin-err');
+  var lod=document.getElementById('pin-loading');
+  var lid=sel.value;
+  if(!lid){err.textContent='Sélectionnez votre nom d\'abord.';_pinBuffer='';renderPinDots();return;}
+  var lv=LIVREURS.find(function(l){return String(l.id)===String(lid);});
+  if(!lv){err.textContent='Livreur introuvable.';_pinBuffer='';renderPinDots();return;}
+  if(_pinBuffer.length<6){err.textContent='Entrez 6 chiffres.';return;}
+
+  /* Bloquer le pad pendant la vérification */
+  err.textContent='';
+  lod.textContent='⏳ Vérification en cours…';
+  var pad=document.getElementById('pin-pad');
+  if(pad) pad.style.pointerEvents='none';
+
+  /* PROMPT 009 — Vérification PIN exclusivement côté serveur */
+  verifyLivreurPin(lid, _pinBuffer)
+  .then(function(result){
+    if(pad) pad.style.pointerEvents='';
+    lod.textContent='';
+    _pinBuffer='';
+    renderPinDots();
+
+    if(!result.ok){
+      var msg;
+      switch(result.error){
+        case 'too_many_attempts': msg='Trop de tentatives — réessayez dans 15 min.'; break;
+        case 'network':           msg='Service indisponible — vérifiez la connexion.'; break;
+        default:                  msg='Code PIN incorrect. Réessayez.';
+      }
+      err.textContent=msg;
+      return;
+    }
+
+    /* Succès : enrichir objet local avec données serveur (sans PIN) */
+    var emp=result.employee;
+    var DELIVERY_ROLES=['delivery','livreur','staff','manager','superadmin'];
+    var serverRole=String(emp.role||'').toLowerCase();
+    if(DELIVERY_ROLES.indexOf(serverRole)===-1 && !isDeliveryEmployee(lv)){
+      err.textContent='Accès livreur refusé — contactez le manager.';
+      return;
+    }
+
+    LIVREUR_ACTIF=Object.assign({},lv,{
+      allowed_modules: emp.allowed_modules||[],
+      session_expiry:  emp.session_expiry||null,
+      role:            serverRole||lv.role||'delivery'
+    });
+    /* PROMPT 006: session 12h — PIN jamais persisté */
+    saveSession(LIVREUR_ACTIF);
+    document.getElementById('pin-screen').classList.add('hidden');
+    document.getElementById('main-app').style.display='';
+    initApp();
+  });
+}
+
+/* ══════════════════════════════════════════
+   APP INIT
+══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════
+   PROMPT 032 — Alert Engine Livreur
+   WebAudio + Notification OS + Vibration
+   ══════════════════════════════════════════ */
+var _vlzLivAC=null,_vlzLivNP=false;
+function _vlzLivBeep(f,d,v){
+  try{
+    if(!_vlzLivAC)_vlzLivAC=new(window.AudioContext||window.webkitAudioContext||function(){return null;})();
+    if(!_vlzLivAC)return;
+    if(_vlzLivAC.state==='suspended')_vlzLivAC.resume();
+    var o=_vlzLivAC.createOscillator(),g=_vlzLivAC.createGain();
+    o.connect(g);g.connect(_vlzLivAC.destination);
+    o.type='sine';o.frequency.value=f||880;
+    g.gain.setValueAtTime(v||0.25,_vlzLivAC.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,_vlzLivAC.currentTime+(d||0.3));
+    o.start();o.stop(_vlzLivAC.currentTime+(d||0.3));
+  }catch(e){}
+}
+function _vlzLivAlertSound(){
+  _vlzLivBeep(1000,0.1,0.3);
+  setTimeout(function(){_vlzLivBeep(1000,0.1,0.3);},150);
+  setTimeout(function(){_vlzLivBeep(1200,0.25,0.35);},300);
+}
+function _vlzLivNotif(title,body,tag){
+  _vlzLivNP=(typeof Notification!=='undefined'&&Notification.permission==='granted');
+  if(!_vlzLivNP)return;
+  try{new Notification(title||'Veraluz',{body:body||'',tag:tag||'vlz-liv',
+    icon:'https://ngams237.github.io/mako-city_suivis_ok/icon-192.png',silent:false});}catch(e){}
+}
+function _vlzLivRequestNotif(){
+  if(!('Notification' in window)||Notification.permission!=='default')return;
+  Notification.requestPermission().then(function(p){_vlzLivNP=(p==='granted');}).catch(function(){});
+}
+var _vlzLastLivMsgId='',_vlzLivMsgInterval=null;
+function startLivreurMsgPolling(){
+  if(_vlzLivMsgInterval)return;
+  if(!LIVREUR_ACTIF||!LIVREUR_ACTIF.id)return;
+  var lid=String(LIVREUR_ACTIF.id);
+  _vlzLivMsgInterval=setInterval(function(){
+    if(!LIVREUR_ACTIF||!LIVREUR_ACTIF.id)return;
+    sbFetch('veraluz_delivery_messages?tenant_id=eq.veraluz-001'
+      +'&recipient_type=eq.driver&recipient_id=eq.'+encodeURIComponent(lid)
+      +'&order=created_at.desc&limit=5')
+    .then(function(msgs){
+      if(!msgs||!msgs.length)return;
+      var newest=msgs[0];
+      if(!newest||!newest.id)return;
+      if(_vlzLastLivMsgId===String(newest.id))return;
+      if(_vlzLastLivMsgId===''){ _vlzLastLivMsgId=String(newest.id); return; }
+      _vlzLastLivMsgId=String(newest.id);
+      var from=newest.sender_name||'Restaurant';
+      var txt=(newest.message||newest.subject||'Nouveau message').substring(0,60);
+      /* Son urgent + vibration + notif OS */
+      _vlzLivAlertSound();
+      try{if(navigator.vibrate)navigator.vibrate([150,60,150,60,200]);}catch(e){}
+      if(typeof toast==='function')toast('\uD83D\uDD14 '+from+' : '+txt,'ok');
+      _vlzLivNotif(from, txt, 'vlz-liv-msg-'+newest.id);
+      /* Rafraîchir badge messages */
+      if(typeof refreshMsgBadge==='function')refreshMsgBadge();
+      console.log('[LIV ALERT] Message:', from, txt);
+    }).catch(function(){});
+  },15000);
+}
+document.addEventListener('click',function(){_vlzLivRequestNotif();},{once:true});
+/* ══════════════════════════════════════════ */
+
+function initApp(){
+  document.getElementById('tbName').textContent=LIVREUR_ACTIF.prenom+' '+LIVREUR_ACTIF.nom;
+  document.getElementById('tbDate').textContent='Veraluz · Livreur';
+  startClock();
+  initNetworkDetection();    /* PROMPT 005: démarrer la détection réseau */
+  cleanupPendingActions();   /* PROMPT 006: expirer actions > 48h, notifier failed */
+  loadOrders();
+  loadPointageToday();
+  updateSyncStrip();
+  /* PROMPT 005: syncer les actions en attente au démarrage si online */
+  if (_online) setTimeout(syncPendingActions, 2000);
+  _interval=setInterval(function(){
+    loadOrders();
+    loadPointageToday();
+    if (_online) syncPendingActions();
+  },30000); /* PROMPT 027 — polling 30s */
+  /* PROMPT 032 — alertes messages restaurant */
+  setTimeout(function(){startLivreurMsgPolling();},3000);
+}
+
+/* ══════════════════════════════════════════
+   TABS
+══════════════════════════════════════════ */
+/* PROMPT 031B — tous les onglets incluant historique + messages */
+function switchMainTab(t){
+  ['livraisons','pointage','profil','historique','messages'].forEach(function(p){
+    var mt=document.getElementById('mtab-'+p);
+    var pn=document.getElementById('pane-'+p);
+    var bn=document.getElementById('bnav-'+p);
+    if(mt) mt.classList.toggle('active',p===t);
+    if(pn) pn.classList.toggle('active',p===t);
+    if(bn) bn.classList.toggle('active',p===t);
+  });
+  if(t==='profil') renderProfil();
+  if(t==='messages') renderMessagesTab();
+  if(t==='historique') renderHistorique && renderHistorique();
+}
+
+function switchOrderTab(t,btn){
+  _orderTab=t;
+  document.querySelectorAll('.order-tab').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderOrders();
+}
+
+/* PROMPT 005 — Réseau réel via navigator.onLine */
+function updateNetworkBadge(){
+  _online = navigator.onLine;
+  var btn = document.getElementById('onlineBtn');
+  var bar = document.getElementById('offline-bar');
+  btn.textContent = _online ? 'En ligne' : 'Hors ligne';
+  btn.classList.toggle('off', !_online);
+  if (!_online) {
+    bar.textContent = '📡 Connexion indisponible — données locales affichées';
+    bar.className = 'offline-bar show err';
+  } else {
+    bar.className = 'offline-bar';
+  }
+  updateSyncStrip();
+}
+
+/* Bouton réseau: bascule manuelle n'est plus nécessaire mais on la garde pour test terrain */
+function toggleOnline(){
+  /* Info seulement — le vrai statut vient de navigator.onLine */
+  toast(_online ? 'Connexion active' : 'Connexion indisponible — mode local', _online ? 'ok' : 'err');
+}
+
+/* PROMPT 005 — Initialisation détection réseau */
+function initNetworkDetection(){
+  updateNetworkBadge();
+  window.addEventListener('online', function(){
+    _online = true;
+    updateNetworkBadge();
+    toast('📶 Connexion rétablie', 'ok');
+    loadOrders();
+    syncPendingActions();
+  });
+  window.addEventListener('offline', function(){
+    _online = false;
+    updateNetworkBadge();
+    toast('📡 Connexion perdue — mode local activé', 'err');
+  });
+}
+
+/* PROMPT 005 — Mise à jour bande de synchronisation */
+function updateSyncStrip(){
+  var el = document.getElementById('sync-last');
+  var badge = document.getElementById('sync-badge');
+  var badgeN = document.getElementById('sync-badge-n');
+  var btnSync = document.getElementById('btn-sync-now');
+  var pending = getPendingActions();
+  var n = pending.length;
+  if (el) {
+    if (!_online) {
+      el.textContent = '📡 Hors ligne' + (_lastSync ? ' — dernier sync ' + _lastSync : '');
+    } else if (_lastSync) {
+      el.textContent = '✓ Sync ' + _lastSync;
+    } else {
+      el.textContent = 'Synchronisation…';
+    }
+  }
+  if (badge && badgeN) {
+    badgeN.textContent = n;
+    badge.classList.toggle('show', n > 0);
+  }
+  if (btnSync) btnSync.classList.toggle('show', n > 0 && _online);
+}
+
+/* ══════════════════════════════════════════
+   ORDERS
+══════════════════════════════════════════ */
+function loadOrders(){
+  var today=new Date().toISOString().slice(0,10);
+  sbFetch('veraluz_food_orders?delivery_type=eq.delivery&created_at=gte.'+today+'T00:00:00&order=created_at.desc')
+    .then(function(rows){
+      /* P0 FIX: normalise les statuts pour compatibilité anciens enregistrements */
+      _orders = rows.map(function(o){
+        var ns = normalizeOrderStatus(o.status);
+        return ns !== o.status ? Object.assign({}, o, {status: ns}) : o;
+      }).filter(function(o){
+        /* PROMPT 025: chaque livreur ne voit que ses commandes assignées
+           + les commandes non encore assignées (prêtes à récupérer) */
+        if(!LIVREUR_ACTIF) return true;
+        var lid = String(LIVREUR_ACTIF.id||'');
+        /* PROMPT 028 : le livreur voit ses commandes assignées + les commandes non assignées 'ready' */
+        var oid = String(o.livreur_id||'');
+        var isAssignedToMe = oid === lid;
+        var isUnassignedReady = !o.livreur_id && o.status === 'ready' && o.delivery_type === 'delivery';
+        return isAssignedToMe || isUnassignedReady;
+      });
+      /* PROMPT 005: sauvegarder dans localStorage */
+      try { localStorage.setItem(LS_ORDERS, JSON.stringify({saved_at: new Date().toISOString(), orders: _orders})); } catch(e){}
+      _lastSync = new Date().toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+      renderOrders();
+      updateStats();
+      updateSyncStrip();
+      detectNewAssignments(_orders); /* PROMPT 033A — L3 : après normalisation, silencieux au 1er chargement */
+    })
+    .catch(function(){
+      /* PROMPT 005: fallback cache local si Supabase inaccessible */
+      toast('📡 Données hors ligne — cache local','err');
+      var cached = loadOrdersFromCache();
+      if (cached) {
+        _orders = cached.orders || [];
+        var savedAt = cached.saved_at ? new Date(cached.saved_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : '?';
+        var bar = document.getElementById('offline-bar');
+        if (bar) { bar.textContent = '📡 Données hors ligne — dernière sync ' + savedAt; bar.className = 'offline-bar show warn'; }
+      } else {
+        _orders = [];
+      }
+      renderOrders();
+      updateStats();
+      updateSyncStrip();
+    });
+}
+
+/* PROMPT 005: cache localStorage commandes */
+function loadOrdersFromCache(){
+  try { var v = localStorage.getItem(LS_ORDERS); return v ? JSON.parse(v) : null; } catch(e){ return null; }
+}
+
+/* PROMPT 005: Refresh bouton manuel */
+function manualRefresh(btn){
+  if (btn) { var svg=btn.querySelector('svg'); if(svg) svg.classList.add('spinning'); }
+  loadOrders();
+  loadPointageToday();
+  setTimeout(function(){ if(btn){var svg=btn.querySelector('svg');if(svg)svg.classList.remove('spinning');} }, 1200);
+}
+
+function filteredOrders(){
+  if(_orderTab==='pickup')     return _orders.filter(function(o){return o.status==='ready';});
+  if(_orderTab==='delivering') return _orders.filter(function(o){return o.status==='out_for_delivery';});
+  if(_orderTab==='done')       return _orders.filter(function(o){return o.status==='delivered';});
+  return [];
+}
+
+function updateStats(){
+  document.getElementById('sTotal').textContent=_orders.length;
+  document.getElementById('sActive').textContent=_orders.filter(function(o){return o.status==='out_for_delivery';}).length;
+  document.getElementById('sDone').textContent=_orders.filter(function(o){return o.status==='delivered';}).length;
+}
+
+/* PROMPT 006: escH → wrapper VC.esc() si disponible (migration progressive vers veraluz-core.js).
+   VC.esc() échappe & < > " — comportement identique à la version locale.
+   Fallback local conservé si VC absent (offline, chargement partiel). */
+function escH(s){
+  if(VC&&typeof VC.esc==='function') return VC.esc(s);
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+/* TODO VERALUZ CORE: fmtXAF → VC.fmtMoney() dans veraluz-core.js.
+   Attention : fmtXAF affiche "XAF", fmtMoney affiche "FCFA" — valider avec UX avant migration. */
+function fmtXAF(n){return new Intl.NumberFormat('fr-FR').format(Number(n)||0)+' XAF';}
+
+/* ══════════════════════════════════════════
+   PROMPT 006 — COMPRESSION PHOTO OFFLINE
+   Compression photo offline pour limiter localStorage (~5MB)
+══════════════════════════════════════════ */
+function compressImageDataUrl(dataUrl, maxWidth, quality){
+  maxWidth = maxWidth || 1024;
+  quality  = quality  || 0.7;
+  return new Promise(function(resolve){
+    try {
+      var img = new Image();
+      img.onload = function(){
+        var w = img.width, h = img.height;
+        if (w > maxWidth){ h = Math.round(h * maxWidth / w); w = maxWidth; }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = function(){
+        console.warn('[Veraluz] Compression photo échouée — image originale conservée');
+        resolve(dataUrl);
+      };
+      img.src = dataUrl;
+    } catch(e){
+      console.warn('[Veraluz] compressImageDataUrl erreur:', e);
+      resolve(dataUrl);
+    }
+  });
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 006 — LIMITE TAILLE FILE D'ATTENTE
+══════════════════════════════════════════ */
+var QUEUE_MAX_BYTES = 4 * 1024 * 1024; /* 4MB — marge prudente sur ~5MB localStorage */
+
+function estimateStorageSize(obj){
+  try { return JSON.stringify(obj).length; } catch(e){ return 0; }
+}
+
+function canQueueAction(action){
+  /* Vérifie que la file + la nouvelle action restent sous QUEUE_MAX_BYTES */
+  var actions = getPendingActions();
+  var currentSize = estimateStorageSize(actions);
+  var actionSize  = estimateStorageSize(action);
+  return (currentSize + actionSize) < QUEUE_MAX_BYTES;
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 006 — EXPIRATION ACTIONS OFFLINE (48h)
+══════════════════════════════════════════ */
+var ACTION_EXPIRY_MS = 48 * 60 * 60 * 1000; /* 48h */
+
+function cleanupPendingActions(){
+  var actions = getPendingActions();
+  if (!actions.length) return;
+  var now = Date.now();
+  var active = [], expired = [], failedCount = 0;
+  actions.forEach(function(a){
+    if (a.status_local === 'failed'){
+      active.push(a);   /* PROMPT 006: garder les failed — pas supprimer silencieusement */
+      failedCount++;
+    } else {
+      var age = now - new Date(a.created_at || 0).getTime();
+      if (age > ACTION_EXPIRY_MS){
+        a.status_local = 'expired';
+        expired.push(a);
+        console.warn('[Veraluz] Action expirée:', a.type, 'order:', a.order_id, 'créée:', a.created_at);
+      } else {
+        active.push(a);
+      }
+    }
+  });
+  if (expired.length){
+    toast('⚠ '+expired.length+' action(s) locale(s) non synchronisée(s) ont expiré (> 48h)', 'err');
+  }
+  if (failedCount > 0){
+    toast('❌ '+failedCount+' action(s) en échec définitif — contactez le manager', 'err');
+  }
+  savePendingActions(active);
+  updateSyncStrip();
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 006 — SESSION LIVREUR (12h, sans PIN)
+   IMPORTANT SÉCURITÉ: Le PIN ne doit JAMAIS être stocké dans localStorage.
+   Seuls employee_id, nom, role et expiry sont persistés.
+   Pour une sécurisation future des PINs, voir commentaire en bas de fichier.
+══════════════════════════════════════════ */
+function saveSession(livreur){
+  var session = {
+    employee_id:     livreur.id,
+    prenom:          livreur.prenom,
+    nom:             livreur.nom,
+    role:            livreur.role || 'livreur',
+    login_time:      new Date().toISOString(),
+    session_expiry:  new Date(Date.now() + 12*60*60*1000).toISOString()
+    /* INTERDIT: ne pas ajouter pin_code ici */
+  };
+  try { localStorage.setItem(LS_SESSION, JSON.stringify(session)); } catch(e){}
+}
+
+function checkSession(){
+  /* PROMPT 006: restaurer session si < 12h, retour PIN si expirée */
+  try {
+    var v = localStorage.getItem(LS_SESSION);
+    if (!v) return false;
+    var s = JSON.parse(v);
+    if (!s || !s.session_expiry) return false;
+    if (new Date(s.session_expiry) < new Date()){
+      clearSession();
+      return false; /* toast affiché après chargement LIVREURS */
+    }
+    /* Retrouver le livreur complet pour que les infos PIN restent en mémoire */
+    var lv = LIVREURS.find(function(l){ return String(l.id) === String(s.employee_id); });
+    if (!lv) return false;
+    LIVREUR_ACTIF = lv;
+    return true;
+  } catch(e){ return false; }
+}
+
+function clearSession(){
+  try { localStorage.removeItem(LS_SESSION); } catch(e){}
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 005 — FILE D'ATTENTE ACTIONS OFFLINE
+══════════════════════════════════════════ */
+function getPendingActions(){
+  try { var v=localStorage.getItem(LS_ACTIONS); return v?JSON.parse(v):[]; } catch(e){ return []; }
+}
+function savePendingActions(arr){
+  try { localStorage.setItem(LS_ACTIONS, JSON.stringify(arr)); } catch(e){}
+}
+
+/* Ajouter une action à la file locale */
+function queueAction(type, orderId, payload){
+  var action = {
+    id_local:     Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    type:         type,        /* 'patch_order' | 'punch' */
+    order_id:     orderId,
+    payload:      payload,
+    created_at:   new Date().toISOString(),
+    retry_count:  0,
+    status_local: 'pending'
+  };
+  /* PROMPT 006: vérification taille avant ajout */
+  if (!canQueueAction(action)){
+    var hasPhoto = payload && payload.delivery_photo_b64;
+    if (hasPhoto){
+      toast('⚠ Photo trop lourde pour le mode hors ligne. Réessayez avec la connexion ou reprenez une photo.', 'err');
+    } else {
+      toast('⚠ File d\'attente locale pleine — connexion requise pour cette action.', 'err');
+    }
+    console.warn('[Veraluz] queueAction refusée — taille localStorage dépassée');
+    return;
+  }
+  var actions = getPendingActions();
+  actions.push(action);
+  savePendingActions(actions);
+  updateSyncStrip();
+  toast('📝 Action enregistrée — sync dès retour connexion', 'err');
+}
+
+/* Rejouer les actions en attente */
+function syncPendingActions(){
+  /* PROMPT 006: nettoyer avant sync */
+  cleanupPendingActions();
+  var actions = getPendingActions().filter(function(a){ return a.status_local !== 'failed'; });
+  if (!actions.length){
+    var failedOnly = getPendingActions().filter(function(a){ return a.status_local === 'failed'; });
+    if (!failedOnly.length) toast('✓ Aucune action en attente', 'ok');
+    return;
+  }
+  if (!_online) { toast('📡 Hors ligne — sync impossible', 'err'); return; }
+  var remaining = [];
+  var done = 0;
+  var total = actions.length;
+  var promises = actions.map(function(a){
+    if (a.type === 'patch_order'){
+      return sbPatch('veraluz_food_orders', a.order_id, a.payload)
+        .then(function(){
+          done++;
+          var o = _orders.find(function(x){ return x.id === a.order_id; });
+          if (o && a.payload.status) o.status = a.payload.status;
+          if (o && a.payload.delivery_photo_b64) o.delivery_photo_b64 = a.payload.delivery_photo_b64;
+        })
+        .catch(function(){
+          a.retry_count++;
+          if (a.retry_count < 5){
+            remaining.push(a);
+          } else {
+            /* PROMPT 006: max retries atteint → failed (gardé, pas supprimé) */
+            a.status_local = 'failed';
+            remaining.push(a);
+            console.error('[Veraluz] Action en échec définitif:', a.type, a.order_id);
+          }
+        });
+    } else if (a.type === 'punch'){
+      return sbPost('veraluz_pointages', a.payload)
+        .then(function(){ done++; })
+        .catch(function(){
+          a.retry_count++;
+          if (a.retry_count < 5){
+            remaining.push(a);
+          } else {
+            a.status_local = 'failed';
+            remaining.push(a);
+            console.error('[Veraluz] Pointage en échec définitif:', a.payload);
+          }
+        });
+    }
+    return Promise.resolve();
+  });
+  Promise.all(promises).then(function(){
+    /* Conserver aussi les failed du cycle précédent */
+    var prevFailed = getPendingActions().filter(function(a){ return a.status_local === 'failed'; });
+    /* Éviter les doublons (remaining peut déjà contenir les nouveaux failed) */
+    var remainingIds = remaining.map(function(a){ return a.id_local; });
+    prevFailed.forEach(function(a){
+      if (remainingIds.indexOf(a.id_local) < 0) remaining.push(a);
+    });
+    savePendingActions(remaining);
+    updateSyncStrip();
+    renderOrders();
+    updateStats();
+    var newFailed = remaining.filter(function(a){ return a.status_local === 'failed'; });
+    var retrying  = remaining.filter(function(a){ return a.status_local !== 'failed'; });
+    if (done > 0) toast('✅ '+done+'/'+total+' action(s) synchronisée(s)', 'ok');
+    if (newFailed.length) toast('❌ '+newFailed.length+' action(s) en échec définitif — contactez le manager', 'err');
+    else if (retrying.length) toast('⚠ '+retrying.length+' action(s) en cours de retry', 'err');
+  });
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 005 — MESSAGES RAPIDES CLIENT
+══════════════════════════════════════════ */
+var MSG_TEMPLATES = [
+  {id:'en_route',  ico:'🛵', title:'En route',  text:'Bonjour, votre commande Veraluz est en route. Le livreur arrive bientôt.'},
+  {id:'arrive',    ico:'📍', title:'Arrivé',    text:'Bonjour, votre commande Veraluz est arrivée. Merci de vous rapprocher du point de réception.'},
+  {id:'livre',     ico:'✅', title:'Livré',     text:'Votre commande Veraluz a bien été livrée. Merci pour votre confiance.'},
+  {id:'retard',    ico:'⏳', title:'Retard',    text:'Bonjour, votre commande Veraluz aura un léger retard. Merci pour votre patience.'},
+];
+function openMsgMod(oid){
+  var o=_orders.find(function(x){return x.id===oid;});
+  if(!o)return;
+  _currentOrderId=oid;
+  document.getElementById('msg-client-name').textContent=o.client_name||o.customer_name||'Client';
+  var phone=o.client_phone||o.customer_phone||null;
+  var list=document.getElementById('msg-list');
+  list.innerHTML=MSG_TEMPLATES.map(function(t){
+    var safe=t.text.replace(/'/g,"\\'");
+    var wa=phone
+      ?'<a href="https://wa.me/'+encodeURIComponent((phone+'').replace(/\s/g,''))+'?text='+encodeURIComponent(t.text)+'" target="_blank" rel="noopener" class="msg-wa-btn">📱 WhatsApp</a>'
+      :'<button class="msg-wa-btn msg-copy-btn" onclick="sendOrCopyMsg(\''+safe+'\',null,this)">📋 Copier</button>';
+    return '<div class="msg-item"><div class="msg-item-title">'+t.ico+' '+escH(t.title)+'</div>'
+      +'<div class="msg-item-text">'+escH(t.text)+'</div>'+wa+'</div>';
+  }).join('');
+  document.getElementById('msgOv').classList.add('open');
+  document.getElementById('msgMod').classList.add('open');
+}
+
+function closeMsgMod(){
+  var ov=document.getElementById('msgOv');
+  var md=document.getElementById('msgMod');
+  if(ov)ov.classList.remove('open');
+  if(md)md.classList.remove('open');
+}
+
+/* PROMPT 005: WA ou clipboard */
+function sendOrCopyMsg(text,phone,btnEl){
+  if(phone){
+    window.open('https://wa.me/'+encodeURIComponent((phone+'').replace(/\s/g,''))+'?text='+encodeURIComponent(text),'_blank','noopener');
+  } else {
+    fallbackCopy(text);
+    if(btnEl){var orig=btnEl.textContent;btnEl.textContent='✅ Copié!';setTimeout(function(){btnEl.textContent=orig;},1800);}
+  }
+}
+
+function fallbackCopy(text){
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).catch(function(){_execCopy(text);});
+  } else { _execCopy(text); }
+}
+function _execCopy(text){
+  var ta=document.createElement('textarea');
+  ta.value=text;ta.style.cssText='position:fixed;opacity:0';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);
+  toast('📋 Message copié','ok');
+}
+
+/* ══════════════════════════════════════════
+   RENDER ORDERS
+══════════════════════════════════════════ */
+function renderOrders(){
+  var list=document.getElementById('order-list');
+  if(!list)return;
+  var rows=filteredOrders();
+  if(!rows.length){
+    list.innerHTML='<div style="padding:24px 16px;text-align:center;color:var(--muted)">Aucune commande dans cet onglet.</div>';
+    return;
+  }
+  list.innerHTML=rows.map(buildOrderCard).join('');
+}
+
+function buildOrderCard(o){
+  var statusLabel={
+    pending:'En attente',confirmed:'Confirmée',preparing:'En préparation',
+    ready:'Prête',out_for_delivery:'En livraison',delivered:'Livrée',cancelled:'Annulée'
+  }[o.status]||escH(String(o.status||''));
+
+  /* Items */
+  var itemsStr='';
+  try{
+    var arr=typeof o.items_json==='string'?JSON.parse(o.items_json):(o.items_json||[]);
+    if(Array.isArray(arr))itemsStr=arr.map(function(it){return escH(String(it.nom||it.name||''))+(it.qty?(' ×'+it.qty):'');}).filter(Boolean).join(', ');
+  }catch(e){itemsStr=escH(String(o.items||''));}
+
+  /* PROMPT 005: Maps — GPS prioritaire, sinon adresse texte */
+  var mapsHtml='';
+  if(o.delivery_lat&&o.delivery_lng){
+    mapsHtml='<a href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(o.delivery_lat+','+o.delivery_lng)+'" target="_blank" rel="noopener" class="act-btn act-maps">📍 Maps</a>';
+  }else if(o.delivery_address){
+    mapsHtml='<a href="https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(o.delivery_address)+'" target="_blank" rel="noopener" class="act-btn act-maps">📍 Maps</a>';
+  }
+
+  /* PROMPT 005: message rapide */
+  var msgHtml='<button class="act-btn act-orange" onclick="openMsgMod('+o.id+')">💬 Message</button>';
+
+  /* PROMPT 027 : étapes intermédiaires livraison */
+  var stepsHtml='';
+  if(o.status==='ready'||o.status==='out_for_delivery'){
+    var sp=[
+      {k:'accepted_at',lbl:'Acceptée'},
+      {k:'picked_up_at',lbl:'Récupérée'},
+      {k:'out_for_delivery_at',lbl:'En route'},
+      {k:'arrived_at',lbl:'Arrivé'}
+    ];
+    var curStep=-1;
+    if(o.arrived_at)curStep=3;
+    else if(o.out_for_delivery_at||o.status==='out_for_delivery')curStep=2;
+    else if(o.picked_up_at)curStep=1;
+    else if(o.accepted_at)curStep=0;
+    stepsHtml='<div class="step-progress">';
+    sp.forEach(function(s,i){
+      var cls=i<curStep?'done':i===curStep?'cur':'';
+      stepsHtml+='<span class="step-pill '+cls+'">'+s.lbl+'</span>';
+    });
+    stepsHtml+='</div>';
+  }
+
+  /* Actions selon statut — PROMPT 027 multi-étapes */
+  var actHtml='';
+  if(o.status==='ready'){
+    if(!o.accepted_at){
+      actHtml='<button class="act-btn act-ok" data-oid="'+o.id+'" onclick="doDeliveryStep(this.dataset.oid,\'accept\',this)">✅ Accepter</button>';
+    }else if(!o.picked_up_at){
+      actHtml='<button class="act-btn" data-oid="'+o.id+'" onclick="doDeliveryStep(this.dataset.oid,\'pickup\',this)">📦 Récupérée</button>';
+    }else{
+      actHtml='<button class="act-btn" data-oid="'+o.id+'" onclick="doDeliveryStep(this.dataset.oid,\'depart\',this)">🛵 Partir</button>';
+    }
+  }else if(o.status==='out_for_delivery'){
+    if(!o.arrived_at){
+      actHtml='<button class="act-btn" data-oid="'+o.id+'" style="background:rgba(249,115,22,.12);color:#c2410c;border-color:#c2410c" onclick="doDeliveryStep(this.dataset.oid,\'arrive\',this)">📍 Arrivé</button>';
+    }
+    /* PROMPT 005: confirmation inline avant livraison */
+    actHtml+='<button class="act-btn act-ok" id="act-deliver-'+o.id+'" onclick="confirmDeliveryPrompt('+o.id+',this)">✅ Livré</button>';
+  }
+
+  /* Photo si livrée */
+  var photoHtml='';
+  if(o.status==='delivered'&&o.delivery_photo_b64){
+    photoHtml='<div style="padding:6px 0"><img src="'+o.delivery_photo_b64+'" onclick="openFullPhoto(this.src)" style="max-width:100%;max-height:120px;border-radius:6px;cursor:zoom-in"></div>';
+  }
+
+  /* PROMPT 005: XSS — escH sur toutes les données utilisateur */
+  return '<div class="order-card" id="oc-'+o.id+'">'
+    +'<div class="oc-header">'
+    +'<span class="oc-id">#'+escH(String(o.order_number||o.id||''))+'</span>'
+    +'<span class="oc-status status-'+escH(o.status||'')+'">'+escH(statusLabel)+'</span>'
+    +'</div>'
+    +'<div class="oc-client">👤 '+escH(String(o.client_name||o.customer_name||'Client'))+'</div>'
+    +(o.delivery_address?'<div class="oc-addr">📍 '+escH(String(o.delivery_address))+'</div>':'')
+    +(itemsStr?'<div class="oc-items">🍽 '+escH(itemsStr)+'</div>':'')
+    +(o.note?'<div class="oc-note">📝 '+escH(String(o.note))+'</div>':'')
+    +(o.total_price?'<div class="oc-note" style="color:var(--accent)">💰 '+fmtXAF(o.total_price)+'</div>':'')
+    +photoHtml
+    +'<div class="oc-actions">'+mapsHtml+msgHtml+actHtml+'</div>'
+    +'</div>';
+}
+
+/* PROMPT 005: confirmation inline avant livraison */
+function confirmDeliveryPrompt(oid,btnEl){
+  _currentOrderId=oid;
+  var card=document.getElementById('oc-'+oid);
+  if(!card)return;
+  var existing=card.querySelector('.delivery-confirm-box');
+  if(existing){existing.remove();return;}
+  var box=document.createElement('div');
+  box.className='delivery-confirm-box';
+  box.innerHTML='<span>Confirmer la livraison ?</span>'
+    +'<button onclick="confirmDeliveryNoPhoto()">✅ Oui</button>'
+    +'<button onclick="openPhotoMod('+oid+')">📸 Avec photo</button>'
+    +'<button onclick="this.closest(\'.delivery-confirm-box\').remove()">✗ Annuler</button>';
+  if(btnEl&&btnEl.parentNode)btnEl.parentNode.insertBefore(box,btnEl.nextSibling);
+  else card.appendChild(box);
+}
+
+function openFullPhoto(src){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  var img=document.createElement('img');
+  img.src=src;img.style.cssText='max-width:95vw;max-height:90vh;border-radius:8px';
+  ov.appendChild(img);
+  ov.onclick=function(){document.body.removeChild(ov);};
+  document.body.appendChild(ov);
+}
+
+/* ══════════════════════════════════════════
+   MODALS
+══════════════════════════════════════════ */
+function openStatusMod(oid){
+  _currentOrderId=oid;
+  var o=_orders.find(function(x){return x.id===oid;});
+  if(!o)return;
+  /* PROMPT 033A — L6 : livreur ne peut pas modifier pending/confirmed/preparing/ready/cancelled
+     Seules les transitions vers l'avant dans la livraison sont autorisées */
+  var STATUSES=['out_for_delivery','delivered'];
+  var LABELS={out_for_delivery:'En livraison',delivered:'Livrée'};
+  var ul=document.getElementById('spickList');
+  ul.innerHTML=STATUSES.map(function(s){
+    return '<li class="status-opt'+(s===o.status?' active':'')+'" onclick="pickStatus('+oid+',\''+s+'\',this)">'+escH(LABELS[s])+'</li>';
+  }).join('');
+  document.getElementById('mOv').classList.add('open');
+  document.getElementById('statusMod').classList.add('open');
+}
+
+function closeMod(){
+  document.getElementById('mOv').classList.remove('open');
+  document.getElementById('statusMod').classList.remove('open');
+  document.getElementById('photoOv').classList.remove('open');
+  document.getElementById('photoMod').classList.remove('open');
+  /* PROMPT 005 */
+  closeMsgMod();
+}
+
+function pickStatus(oid,status,elBtn){
+  if(elBtn)elBtn.disabled=true;
+  /* PROMPT 005: mise à jour optimiste immédiate */
+  var o=_orders.find(function(x){return x.id===oid;});
+  if(o){o.status=status;renderOrders();updateStats();}
+  closeMod();
+  /* PROMPT 026 : horodatage transitions livraison */
+  var tsField=null;
+  var now=new Date().toISOString();
+  if(status==='out_for_delivery') tsField={accepted_at:now,out_for_delivery_at:now};
+  if(status==='delivered') tsField={delivered_at:now};
+  var patchPayload=Object.assign({status:status},tsField||{});
+  sbPatch('veraluz_food_orders',oid,patchPayload)
+    .then(function(){
+      _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      updateSyncStrip();
+      toast('Statut → '+status,'ok');
+    })
+    .catch(function(){
+      /* PROMPT 005: file d'attente */
+      queueAction('patch_order',oid,{status:status});
+    });
+}
+
+/* ══════════════════════════════════════════
+   PHOTO PROOF MODAL
+══════════════════════════════════════════ */
+var _photoB64=null;
+var _photoFile=null;   /* PROMPT 026 : File objet pour upload Storage */
+
+function openPhotoMod(oid){
+  if(oid)_currentOrderId=oid;
+  _photoB64=null;
+  var prev=document.getElementById('photoPreview');
+  if(prev){prev.src='';prev.style.display='none';}
+  var lbl=document.getElementById('photoStatusLbl');
+  if(lbl)lbl.style.display='none';
+  var inp=document.getElementById('photoInput');
+  if(inp)inp.value='';
+  /* Fermer confirmation inline si présente */
+  var box=document.querySelector('.delivery-confirm-box');
+  if(box)box.remove();
+  document.getElementById('photoOv').classList.add('open');
+  document.getElementById('photoMod').classList.add('open');
+}
+
+function onPhotoSelected(inp){
+  if(!inp.files||!inp.files[0])return;
+  /* PROMPT 026 : stocker le File objet, pas base64 — upload Storage direct */
+  _photoFile=inp.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    _photoB64=e.target.result; /* Preview local uniquement — jamais envoyé en DB */
+    var prev=document.getElementById('photoPreview');
+    if(prev){prev.src=_photoB64;prev.style.display='block';}
+    var lbl=document.getElementById('photoStatusLbl');
+    if(lbl)lbl.style.display='block';
+  };
+  reader.readAsDataURL(_photoFile);
+}
+
+function cancelPhoto(){
+  _photoB64=null;
+  closeMod();
+}
+
+/* PROMPT 005: livraison AVEC photo — optimiste + queue */
+function confirmDeliveryWithPhoto(){
+  var oid=_currentOrderId;
+  var file=_photoFile||null;   /* PROMPT 026 : utiliser File, pas base64 */
+  closeMod();
+  var o=_orders.find(function(x){return x.id===oid;});
+  if(o){o.status='delivered';renderOrders();updateStats();}
+  var now=new Date().toISOString();
+  if(file){
+    /* Upload vers Supabase Storage delivery-proofs — pas de base64 en DB */
+    uploadToStorage(file,'delivery-proofs/'+now.slice(0,10)+'_'+oid+'.jpg')
+      .then(function(url){
+        var payload={status:'delivered',proof_photo_url:url,delivered_at:now};
+        sbPatch('veraluz_food_orders',oid,payload)
+          .then(function(){
+            _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+            updateSyncStrip();
+            toast('✅ Livraison + photo confirmées','ok');
+          })
+          .catch(function(){queueAction('patch_order',oid,payload);});
+      })
+      .catch(function(){
+        /* Storage indisponible — confirmer sans photo plutôt que stocker base64 */
+        var payload={status:'delivered',delivered_at:now};
+        sbPatch('veraluz_food_orders',oid,payload)
+          .then(function(){
+            toast('✅ Livraison confirmée (photo non envoyée — Storage indisponible)','ok');
+          })
+          .catch(function(){queueAction('patch_order',oid,payload);});
+      });
+  } else {
+    var payload={status:'delivered',delivered_at:now};
+    sbPatch('veraluz_food_orders',oid,payload)
+      .then(function(){
+        _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        updateSyncStrip();
+        toast('✅ Livraison confirmée','ok');
+      })
+      .catch(function(){queueAction('patch_order',oid,payload);});
+  }
+  _photoB64=null; _photoFile=null;
+}
+
+/* PROMPT 005: livraison SANS photo — optimiste + queue */
+/* PROMPT 033A — L10 : ajout delivery_status + delivered_at (cohérence avec confirmDeliveryWithPhoto) */
+function confirmDeliveryNoPhoto(){
+  var oid=_currentOrderId;
+  closeMod();
+  var box=document.querySelector('.delivery-confirm-box');
+  if(box)box.remove();
+  var now=new Date().toISOString();
+  var o=_orders.find(function(x){return x.id===oid;});
+  if(o){o.status='delivered';o.delivery_status='delivered';o.delivered_at=now;renderOrders();updateStats();}
+  var payload={status:'delivered',delivery_status:'delivered',delivered_at:now};
+  sbPatch('veraluz_food_orders',oid,payload)
+    .then(function(){
+      _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      updateSyncStrip();
+      toast('✅ Livraison confirmée','ok');
+    })
+    .catch(function(){queueAction('patch_order',oid,payload);});
+}
+
+/* ══════════════════════════════════════════
+   POINTAGE
+══════════════════════════════════════════ */
+var _punchInterval=null;
+
+function startClock(){
+  function tick(){
+    var now=new Date();
+    var cl=document.getElementById('punch-clock');
+    if(cl)cl.textContent=now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    var dl=document.getElementById('punch-date-lbl');
+    if(dl)dl.textContent=now.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});
+  }
+  tick();
+  if(_punchInterval)clearInterval(_punchInterval);
+  _punchInterval=setInterval(tick,1000);
+}
+
+function doPunch(type){
+  if(!LIVREUR_ACTIF)return;
+  var now=new Date();
+  var payload={
+    employee_id:LIVREUR_ACTIF.id,
+    type:type,
+    punched_at:now.toISOString(),
+    date:now.toISOString().slice(0,10),
+    note:''
+  };
+  var statusEl=document.getElementById('punch-status-lbl');
+  if(statusEl){
+    if(type==='arrivee'){statusEl.textContent='En service';statusEl.className='punch-status in';}
+    else{statusEl.textContent='Hors service';statusEl.className='punch-status out';}
+  }
+  var btnA=document.getElementById('btn-arrive');
+  var btnD=document.getElementById('btn-depart');
+  if(type==='arrivee'){if(btnA)btnA.disabled=true;if(btnD)btnD.disabled=false;}
+  else{if(btnA)btnA.disabled=false;if(btnD)btnD.disabled=true;}
+  savePunch(payload);
+  /* PROMPT 026 : proposer selfie à la prise de service (non bloquant) */
+  if(type==='arrivee'){
+    openSelfieModal(null);
+  }
+}
+
+/* PROMPT 005/006: savePunch avec file d'attente offline */
+function savePunch(payload){
+  sbPost('veraluz_pointages',payload)
+    .then(function(){
+      toast('✅ Pointage enregistré','ok');
+      loadPointageToday();
+    })
+    .catch(function(){
+      queueAction('punch',null,payload);
+      toast('📝 Pointage en attente (sync au retour connexion)','err');
+    });
+}
+
+function loadPointageToday(){
+  if(!LIVREUR_ACTIF)return;
+  var today=new Date().toISOString().slice(0,10);
+  sbFetch('veraluz_pointages?employee_id=eq.'+LIVREUR_ACTIF.id+'&date=eq.'+today+'&order=punched_at.asc')
+    .then(function(rows){_pointages=rows||[];renderPointageToday();})
+    .catch(function(){_pointages=[];renderPointageToday();});
+}
+
+function renderPointageToday(){
+  var el=document.getElementById('punch-hist-list');
+  if(!el)return;
+  if(!_pointages||!_pointages.length){
+    el.innerHTML='<div class="empty"><p>Aucun pointage aujourd\'hui.</p></div>';
+    var sumEl=document.getElementById('punch-summary');
+    if(sumEl)sumEl.style.display='none';
+    return;
+  }
+  el.innerHTML=_pointages.map(function(p){
+    var ico=p.type==='arrivee'?'🟢':p.type==='depart'?'🔴':'⏸';
+    var label=p.type==='arrivee'?'Arrivée':p.type==='depart'?'Départ':escH(String(p.type||''));
+    var time=p.punched_at?new Date(p.punched_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'--:--';
+    return '<div class="punch-item"><span>'+ico+' '+escH(label)+'</span><span>'+escH(time)+'</span></div>';
+  }).join('');
+  var arrivees=_pointages.filter(function(p){return p.type==='arrivee';});
+  var departs=_pointages.filter(function(p){return p.type==='depart';});
+  if(arrivees.length&&departs.length){
+    var diffMin=Math.floor(Math.max(0,new Date(departs[departs.length-1].punched_at)-new Date(arrivees[0].punched_at))/60000);
+    var hrsEl=document.getElementById('punch-hrs');
+    var sumEl=document.getElementById('punch-summary');
+    if(hrsEl)hrsEl.textContent=Math.floor(diffMin/60)+'h '+(diffMin%60)+'min';
+    if(sumEl)sumEl.style.display='flex';
+  }
+  var last=_pointages[_pointages.length-1];
+  var statusEl=document.getElementById('punch-status-lbl');
+  var btnA=document.getElementById('btn-arrive');
+  var btnD=document.getElementById('btn-depart');
+  if(last&&last.type==='arrivee'){
+    if(statusEl){statusEl.textContent='En service';statusEl.className='punch-status in';}
+    if(btnA)btnA.disabled=true;if(btnD)btnD.disabled=false;
+  }else{
+    if(statusEl){statusEl.textContent='Hors service';statusEl.className='punch-status out';}
+    if(btnA)btnA.disabled=false;if(btnD)btnD.disabled=true;
+  }
+}
+
+/* ══════════════════════════════════════════
+   PROFIL
+══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   PROMPT 026 — SELFIE PRISE DE SERVICE
+   Politique : aucune reconnaissance faciale auto. Aucune vidéo. Fallback si caméra refusée.
+══════════════════════════════════════════ */
+var _selfieFile=null;       /* File sélectionné avant upload */
+var _selfieCallback=null;   /* Callback après selfie ou skip */
+
+function openSelfieModal(cb){
+  _selfieCallback=cb||null;
+  _selfieFile=null;
+  var prev=document.getElementById('selfiePreview');
+  if(prev){prev.src='';prev.classList.remove('show');}
+  var lbl=document.getElementById('selfieStatusLbl');
+  if(lbl)lbl.classList.remove('show');
+  var btn=document.getElementById('selfieConfirmBtn');
+  if(btn)btn.disabled=true;
+  var inp=document.getElementById('selfieInput');
+  if(inp)inp.value='';
+  document.getElementById('selfieOv').classList.add('open');
+  document.getElementById('selfieMod').classList.add('open');
+}
+
+function closeSelfieModal(){
+  document.getElementById('selfieOv').classList.remove('open');
+  document.getElementById('selfieMod').classList.remove('open');
+  _selfieFile=null;
+}
+
+function onSelfieSelected(inp){
+  if(!inp.files||!inp.files[0])return;
+  _selfieFile=inp.files[0];
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var prev=document.getElementById('selfiePreview');
+    if(prev){prev.src=e.target.result;prev.classList.add('show');}
+    var lbl=document.getElementById('selfieStatusLbl');
+    if(lbl)lbl.classList.add('show');
+    var btn=document.getElementById('selfieConfirmBtn');
+    if(btn)btn.disabled=false;
+  };
+  reader.readAsDataURL(_selfieFile);
+}
+
+function confirmSelfie(){
+  if(!_selfieFile){skipSelfie();return;}
+  closeSelfieModal();
+  /* Upload vers Supabase Storage employee-selfies — PROMPT 026
+     Ne pas stocker en localStorage ni en base64 dans la table */
+  uploadToStorage(_selfieFile,'employee-selfies/'+Date.now()+'_'+String(LIVREUR_ACTIF&&LIVREUR_ACTIF.id||'unknown')+'.jpg')
+    .then(function(url){
+      postCheckin('shift_start', url);
+      if(_selfieCallback) _selfieCallback(url);
+      _selfieCallback=null;
+    })
+    .catch(function(){
+      /* Fallback : enregistrer le checkin sans selfie_url si Storage indisponible */
+      postCheckin('shift_start', null);
+      if(_selfieCallback) _selfieCallback(null);
+      _selfieCallback=null;
+      toast('Selfie non envoyé — Storage indisponible. Présence enregistrée sans photo.','err');
+    });
+}
+
+function skipSelfie(){
+  closeSelfieModal();
+  /* Enregistrer un checkin sans selfie */
+  postCheckin('shift_start', null);
+  if(_selfieCallback) _selfieCallback(null);
+  _selfieCallback=null;
+}
+
+/* Upload vers Supabase Storage (anon key) — le bucket doit exister avec policy INSERT public
+   Buckets recommandés : employee-selfies (privé), delivery-proofs (privé) */
+function uploadToStorage(file, path){
+  return fetch(SB+'/storage/v1/object/'+path,{
+    method:'POST',
+    headers:{
+      'apikey':KEY,
+      'Authorization':'Bearer '+KEY,
+      'Content-Type':file.type||'image/jpeg',
+      'x-upsert':'true'
+    },
+    body:file
+  }).then(function(r){
+    if(!r.ok) throw new Error('Storage '+r.status);
+    /* URL publique — à utiliser uniquement si le bucket a une politique de lecture publique */
+    return SB+'/storage/v1/object/public/'+path;
+  });
+}
+
+/* Enregistrer un checkin dans veraluz_employee_checkins — PROMPT 026 */
+function postCheckin(type, selfieUrl){
+  if(!LIVREUR_ACTIF) return;
+  var payload={
+    tenant_id:'veraluz-001',
+    employee_id:String(LIVREUR_ACTIF.id||''),
+    employee_name:(LIVREUR_ACTIF.prenom||'')+' '+(LIVREUR_ACTIF.nom||''),
+    role:LIVREUR_ACTIF.role||'livreur',
+    checkin_type:type,
+    selfie_url:selfieUrl||null,
+    device_info:navigator.userAgent?navigator.userAgent.slice(0,120):null,
+    status:'pending'
+  };
+  sbPost('veraluz_employee_checkins',payload)
+    .catch(function(){/* Non bloquant — checkin sans selfie en cas d'erreur */});
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 027 — ALERTES NOUVELLES ASSIGNATIONS
+══════════════════════════════════════════ */
+
+function detectNewAssignments(orders){
+  if(!LIVREUR_ACTIF)return;
+  var myId=String(LIVREUR_ACTIF.id||'');
+  var myOrders=orders.filter(function(o){
+    return o.livreur_id&&String(o.livreur_id)===myId&&!o.accepted_at;
+  });
+  var myIds=myOrders.map(function(o){return String(o.id);});
+  if(_knownAssignedIds===null){_knownAssignedIds=new Set(myIds);return;}
+  var newOnes=myIds.filter(function(id){return !_knownAssignedIds.has(id);});
+  newOnes.forEach(function(id){_knownAssignedIds.add(id);});
+  if(newOnes.length>0)triggerAssignmentAlert(newOnes.length);
+}
+
+function triggerAssignmentAlert(n){
+  try{if(navigator.vibrate)navigator.vibrate([300,100,300,100,300]);}catch(e){}
+  playLivreurBeep();
+  toast('🔔 '+n+' nouvelle(s) livraison(s) assignée(s) !','ok');
+  var b=document.getElementById('livreur-alert-banner');
+  if(b){
+    var t=document.getElementById('livreur-alert-txt');
+    if(t)t.textContent=n+' nouvelle(s) livraison(s) assignée(s)';
+    b.classList.add('show');
+    setTimeout(function(){b.classList.remove('show');},10000);
+  }
+}
+
+function dismissLivreurAlert(){
+  var b=document.getElementById('livreur-alert-banner');if(b)b.classList.remove('show');
+}
+
+function playLivreurBeep(){
+  try{
+    var ac=new(window.AudioContext||window.webkitAudioContext)();
+    [[660,0],[880,.15],[1100,.30]].forEach(function(p){
+      var osc=ac.createOscillator(),g=ac.createGain();
+      osc.connect(g);g.connect(ac.destination);
+      osc.frequency.value=p[0];
+      g.gain.setValueAtTime(0.35,ac.currentTime+p[1]);
+      g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+p[1]+0.22);
+      osc.start(ac.currentTime+p[1]);osc.stop(ac.currentTime+p[1]+0.22);
+    });
+  }catch(e){}
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 027 — ETAPES LIVRAISON
+══════════════════════════════════════════ */
+
+function doDeliveryStep(oid,step,btn){
+  if(btn)btn.disabled=true;
+  var now=new Date().toISOString();
+  var o=_orders.find(function(x){return String(x.id)===String(oid);});
+  var patch={};
+  if(step==='accept'){
+    patch={accepted_at:now,delivery_status:'accepted_by_driver'};
+    if(o){o.accepted_at=now;o.delivery_status='accepted_by_driver';}
+  }else if(step==='pickup'){
+    patch={picked_up_at:now,delivery_status:'picked_up'};
+    if(o){o.picked_up_at=now;o.delivery_status='picked_up';}
+  }else if(step==='depart'){
+    patch={out_for_delivery_at:now,status:'out_for_delivery',delivery_status:'out_for_delivery'};
+    if(o){o.out_for_delivery_at=now;o.status='out_for_delivery';o.delivery_status='out_for_delivery';}
+  }else if(step==='arrive'){
+    patch={arrived_at:now,delivery_status:'arrived'};
+    if(o){o.arrived_at=now;o.delivery_status='arrived';}
+  }
+  renderOrders();updateStats();
+  sbPatch('veraluz_food_orders',oid,patch)
+    .then(function(){
+      var lbl={accept:'Commande acceptee',pickup:'Commande recuperee',
+               depart:'En route !',arrive:'Vous etes arrive'};
+      toast(lbl[step]||'Etape mise a jour','ok');
+      _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+      updateSyncStrip();
+      logDeliveryEvent(oid,step);
+    })
+    .catch(function(){queueAction('patch_order',oid,patch);toast('Action en file','err');});
+}
+
+function logDeliveryEvent(orderId,step){
+  if(!LIVREUR_ACTIF)return;
+  var evtMap={accept:'accepted_by_driver',pickup:'picked_up',depart:'out_for_delivery',arrive:'arrived'};
+  sbInsert('veraluz_delivery_events',{
+    tenant_id:'veraluz-001',order_id:String(orderId),
+    event_type:evtMap[step]||step,actor_type:'driver',
+    actor_id:String(LIVREUR_ACTIF.id||''),
+    actor_name:(LIVREUR_ACTIF.prenom||'')+' '+(LIVREUR_ACTIF.nom||'')
+  }).catch(function(){});
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 027 — ONGLET HISTORIQUE
+══════════════════════════════════════════ */
+
+function renderHistorique(){
+  if(!LIVREUR_ACTIF){
+    document.getElementById('historique-body').innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Connectez-vous.</div>';
+    return;
+  }
+  var body=document.getElementById('historique-body');
+  body.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Chargement...</div>';
+  var today=new Date().toISOString().slice(0,10);
+  var weekAgo=new Date(Date.now()-7*86400000).toISOString().slice(0,10);
+  sbFetch('veraluz_food_orders?delivery_type=eq.delivery&status=eq.delivered&livreur_id=eq.'+encodeURIComponent(LIVREUR_ACTIF.id)+'&created_at=gte.'+weekAgo+'T00:00:00&order=created_at.desc')
+    .then(function(rows){
+      if(!rows||!rows.length){
+        body.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Aucune livraison cette semaine.</div>';
+        return;
+      }
+      var todayRows=rows.filter(function(r){return r.created_at&&r.created_at.startsWith(today);});
+      var statsHtml='<div class="hist-stats-row">'
+        +'<div class="hist-stat-box"><div class="hist-stat-n">'+todayRows.length+'</div><div class="hist-stat-l">Aujourd&#39;hui</div></div>'
+        +'<div class="hist-stat-box"><div class="hist-stat-n">'+rows.length+'</div><div class="hist-stat-l">Cette semaine</div></div>'
+        +'</div>';
+      var listHtml=rows.map(function(r){
+        var dt=r.created_at?new Date(r.created_at).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+        var dur='';
+        if(r.accepted_at&&r.delivered_at)dur=Math.round((new Date(r.delivered_at)-new Date(r.accepted_at))/60000)+' min';
+        var total=Number(r.total_price||r.total||0);
+        return '<div class="hist-card">'
+          +'<div class="hist-card-top"><span class="oc-id" style="font-size:.8rem">#'+escH(String(r.order_number||r.id||''))+'</span>'+(total?'<span class="hist-total">'+fmtXAF(total)+'</span>':'')+'</div>'
+          +'<div style="font-size:.75rem;color:var(--tx2)">'+escH(String(r.customer_name||r.client_name||'Client'))+'</div>'
+          +(r.delivery_address?'<div style="font-size:.72rem;color:var(--muted)">'+escH(String(r.delivery_address))+'</div>':'')
+          +'<div class="hist-date">'+dt+(dur?' - '+dur:'')+'</div>'
+          +(r.proof_photo_url?'<div style="margin-top:6px"><img src="'+escH(String(r.proof_photo_url))+'" style="max-width:80px;max-height:60px;border-radius:6px;object-fit:cover" onclick="openFullPhoto(this.src)"></div>':'')
+          +'</div>';
+      }).join('');
+      body.innerHTML=statsHtml+listHtml;
+    })
+    .catch(function(){
+      body.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Erreur de chargement.</div>';
+    });
+}
+
+/* ══════════════════════════════════════════════
+   PROMPT 027 — ONGLET MESSAGES
+   PROMPT 030 — Quick replies + vibration + badge + logLivreurMsgEvent
+══════════════════════════════════════════════ */
+
+/* PROMPT 030 — 8 quick replies livreur */
+var LIVREUR_QR=[
+  {txt:'Commande récupérée',    ev:'driver_picked_up'},
+  {txt:'Je suis en route',      ev:'driver_en_route'},
+  {txt:'Je suis arrivé',        ev:'driver_arrived'},
+  {txt:'Client absent',         ev:'incident_client_absent'},
+  {txt:'Adresse introuvable',   ev:'incident_address_issue'},
+  {txt:'Problème paiement',     ev:'incident_payment'},
+  {txt:'Embouteillage / retard',ev:'incident_delay'},
+  {txt:'Commande livrée',       ev:'delivery_completed'}
+];
+
+/* PROMPT 030 — Log incident message vers veraluz_delivery_events */
+function logLivreurMsgEvent(message, orderId){
+  var evMap={
+    'Commande récupérée':'driver_picked_up',
+    'Je suis en route':'driver_en_route',
+    'Je suis arrivé':'driver_arrived',
+    'Client absent':'incident_client_absent',
+    'Adresse introuvable':'incident_address_issue',
+    'Problème paiement':'incident_payment',
+    'Embouteillage / retard':'incident_delay',
+    'Commande livrée':'delivery_completed'
+  };
+  var evType=evMap[message];
+  if(!evType||!LIVREUR_ACTIF)return;
+  sbInsert('veraluz_delivery_events',{
+    tenant_id:'veraluz-001',
+    order_id:orderId||null,
+    event_type:evType,
+    actor_type:'driver',
+    actor_id:String(LIVREUR_ACTIF.id||''),
+    actor_name:(LIVREUR_ACTIF.prenom||'')+' '+(LIVREUR_ACTIF.nom||''),
+    note:message
+  }).catch(function(){/* non bloquant */});
+}
+
+/* PROMPT 030 — Mise à jour badge onglet Messages */
+function updateMsgTabBadge(count){
+  var el=document.getElementById('mtab-badge-messages');
+  if(!el)return;
+  if(count>0){
+    el.textContent=count>9?'9+':String(count);
+    el.style.display='flex';
+  }else{
+    el.style.display='none';
+    el.textContent='';
+  }
+}
+
+var _lastMsgCount=0; /* PROMPT 030 */
+
+/* PROMPT 031D — loadLivreurMessages : messages ciblés par livreur_id */
+function loadLivreurMessages(){
+  if(!LIVREUR_ACTIF) return Promise.resolve([]);
+  var lid=String(LIVREUR_ACTIF.id||'');
+  var today=new Date().toISOString().slice(0,10);
+  var base='veraluz_delivery_messages?tenant_id=eq.veraluz-001&order=created_at.desc&limit=60';
+  /* Requêtes ciblées : messages où le livreur est sender OU recipient OU livreur_id */
+  var q1=sbFetch(base+'&livreur_id=eq.'+encodeURIComponent(lid)).catch(function(){return[];});
+  var q2=sbFetch(base+'&recipient_id=eq.'+encodeURIComponent(lid)).catch(function(){return[];});
+  var q3=sbFetch(base+'&sender_id=eq.'+encodeURIComponent(lid)).catch(function(){return[];});
+  return Promise.all([q1,q2,q3]).then(function(r){
+    var seen={}, out=[];
+    r.forEach(function(arr){(arr||[]).forEach(function(m){if(m&&m.id&&!seen[m.id]){seen[m.id]=true;out.push(m);}});});
+    return out.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);});
+  });
+}
+
+/* PROMPT 031D — sendLivreurMessage : réponse ciblée → restaurant ou admin */
+function sendLivreurMessage(txt, orderId, targetType){
+  if(!LIVREUR_ACTIF||!txt) return Promise.resolve();
+  var lid=String(LIVREUR_ACTIF.id||'');
+  var lname=(LIVREUR_ACTIF.prenom||LIVREUR_ACTIF.full_name||'Livreur');
+  var payload={
+    tenant_id:'veraluz-001',
+    order_id:orderId||null,
+    sender_type:'driver',
+    sender_id:lid,
+    sender_name:lname,
+    recipient_type:targetType||'restaurant',
+    department:'delivery',
+    message:txt,
+    message_type:'text',
+    priority:'normal',
+    status:'sent',
+    livreur_id:lid,
+    created_at:new Date().toISOString()
+  };
+  return sbInsert('veraluz_delivery_messages',payload).then(function(){
+    console.log('[LIVREUR MSG] Envoyé → '+payload.recipient_type);
+  });
+}
+
+/* PROMPT 033A — L4 : sbFetch ignorait le 2e argument (toujours GET) — remplacé par sbPatch */
+function markLivreurMessageRead(msgId){
+  if(!msgId) return;
+  sbPatch('veraluz_delivery_messages', String(msgId), {
+    is_read: true,
+    read_at: new Date().toISOString()
+  }).catch(function(e){
+    /* Non bloquant : badge et messagerie continuent de fonctionner même si markRead échoue */
+    console.warn('[LIVREUR MSG] markRead erreur (non bloquant):', e&&e.message||e);
+  });
+}
+
+/* PROMPT 031D — updateMsgTabBadge via getMyUnreadCount */
+function refreshMsgBadge(){
+  if(!LIVREUR_ACTIF) return;
+  var lid=String(LIVREUR_ACTIF.id||'');
+  sbFetch('veraluz_delivery_messages?tenant_id=eq.veraluz-001&livreur_id=eq.'+encodeURIComponent(lid)+'&is_read=is.false&sender_type=eq.restaurant&select=id&limit=50')
+    .then(function(r){updateMsgTabBadge((r||[]).length);}).catch(function(){});
+}
+
+function renderMessagesTab(){
+  if(!LIVREUR_ACTIF){
+    document.getElementById('messages-body').innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Connectez-vous.</div>';
+    return;
+  }
+  var body=document.getElementById('messages-body');
+  body.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Chargement...</div>';
+  loadLivreurMessages()
+    .then(function(msgs){
+      /* PROMPT 030 — Quick replies row */
+      var qrRow='<div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg2);">'
+        +LIVREUR_QR.map(function(q){
+          var isInc=q.ev.indexOf('incident')===0;
+          var isDone=q.ev==='delivery_completed';
+          var col=isInc?'#ef4444':isDone?'#16a34a':'var(--accent)';
+          return '<button style="font-size:11px;padding:5px 9px;border:1px solid '+col+';color:'+col
+            +';background:none;border-radius:12px;cursor:pointer;white-space:nowrap;" '
+            +'onclick="sendLivreurQR(this.textContent)">'
+            +q.txt+'</button>';
+        }).join('')
+        +'</div>';
+
+      var sendRow='<div class="msg-send-row">'
+        +'<input class="msg-input" id="msg-input-tab" type="text" placeholder="Message au restaurant..." onkeydown="if(event.key===\'Enter\')sendDeliveryMsgFromTab()">'
+        +'<button class="msg-send-btn" onclick="sendDeliveryMsgFromTab()">Envoyer</button></div>';
+
+      if(!msgs||!msgs.length){
+        body.innerHTML=qrRow+sendRow+'<div style="padding:16px;text-align:center;color:var(--muted)">Aucun message aujourd&#39;hui.</div>';
+        return;
+      }
+
+      /* PROMPT 030 — Vibration si nouveaux messages urgents du restaurant */
+      var fromResto=msgs.filter(function(m){return m.sender_type==='restaurant';});
+      if(fromResto.length>_lastMsgCount&&fromResto.length>0){
+        var newest=fromResto[0];
+        var isUrgent=newest&&(newest.message||'').toLowerCase().indexOf('urgent')!==-1;
+        if(isUrgent){try{if(navigator.vibrate)navigator.vibrate([200,100,200,100,400]);}catch(e){}}
+      }
+      /* PROMPT 030 — Badge */
+      var unread=fromResto.filter(function(m){return !m.read_at;}).length;
+      _lastMsgCount=fromResto.length;
+      updateMsgTabBadge(unread);
+      /* PROMPT 033A — L4 : marquer les messages restaurant non lus comme lus à l'ouverture de l'onglet */
+      fromResto.forEach(function(m){
+        if(!m.is_read&&!m.read_at&&m.id){markLivreurMessageRead(m.id);}
+      });
+
+      var listHtml=msgs.map(function(m){
+        var dt=m.created_at?new Date(m.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}):'';
+        /* PROMPT 034 : client ajouté */
+        var cls=m.sender_type==='restaurant'?'restaurant':m.sender_type==='driver'?'driver':m.sender_type==='client'?'client':'system';
+        var lbl=m.sender_type==='restaurant'?'Restaurant':m.sender_type==='driver'?'Vous':m.sender_type==='client'?'Client':'Système';
+        return '<div class="msg-card">'
+          +'<div class="msg-header"><span class="msg-sender '+cls+'">'
+          +lbl+(m.sender_name&&m.sender_type!=='driver'?' · '+escH(String(m.sender_name)):'')+
+          '</span><span class="msg-time">'+dt+'</span></div>'
+          +'<div class="msg-text">'+escH(String(m.message||''))+'</div>'
+          +'</div>';
+      }).join('');
+      body.innerHTML=qrRow+sendRow+listHtml;
+    })
+    .catch(function(){
+      var sendRow='<div class="msg-send-row"><input class="msg-input" id="msg-input-tab" type="text" placeholder="Message au restaurant..." onkeydown="if(event.key===\'Enter\')sendDeliveryMsgFromTab()"><button class="msg-send-btn" onclick="sendDeliveryMsgFromTab()">Envoyer</button></div>';
+      body.innerHTML=sendRow+'<div style="padding:16px;text-align:center;color:var(--muted)">Messages non disponibles.</div>';
+    });
+}
+
+/* PROMPT 030 — Quick reply sender (livreur) */
+function sendLivreurQR(txt){
+  if(!LIVREUR_ACTIF||!txt)return;
+  var activeOrder=_orders.find(function(o){
+    return (o.status==='out_for_delivery'||o.status==='ready')&&String(o.livreur_id)===String(LIVREUR_ACTIF.id);
+  });
+  var ordId=activeOrder?String(activeOrder.id):null;
+  sbInsert('veraluz_delivery_messages',{
+    tenant_id:'veraluz-001',
+    order_id:ordId,
+    sender_type:'driver',
+    sender_id:String(LIVREUR_ACTIF.id||''),
+    sender_name:(LIVREUR_ACTIF.prenom||'')+' '+(LIVREUR_ACTIF.nom||''),
+    message:txt,message_type:'text'
+  }).then(function(){
+    logLivreurMsgEvent(txt, ordId);
+    toast(txt,'ok');
+    renderMessagesTab();
+  }).catch(function(){toast('Erreur envoi','err');});
+}
+
+function sendDeliveryMsgFromTab(){
+  /* PROMPT 031D — utilise sendLivreurMessage ciblé */
+  if(!LIVREUR_ACTIF)return;
+  var inp=document.getElementById('msg-input-tab');
+  if(!inp)return;
+  var txt=(inp.value||'').trim();
+  if(!txt)return;
+  inp.value='';
+  var activeOrder=_orders.find(function(o){
+    return o.status==='out_for_delivery'&&String(o.livreur_id)===String(LIVREUR_ACTIF.id);
+  })||_orders.find(function(o){
+    return o.status==='ready'&&String(o.livreur_id)===String(LIVREUR_ACTIF.id);
+  });
+  var ordId=activeOrder?String(activeOrder.id):null;
+  sendLivreurMessage(txt, ordId, 'restaurant').then(function(){
+    renderMessagesTab();
+  }).catch(function(e){
+    console.error('[LIVREUR] sendDeliveryMsgFromTab:', e&&e.message||e);
+  });
+}
+
+
+function renderProfil(){
+  if(!LIVREUR_ACTIF)return;
+  var el=document.getElementById('profil-body');
+  if(!el)return;
+  /* Photo avatar — PROMPT 026 */
+  var photoUrl=LIVREUR_ACTIF.photo_url||'';
+  var displayName=LIVREUR_ACTIF.public_display_name||(LIVREUR_ACTIF.prenom+' '+LIVREUR_ACTIF.nom);
+  var initials=((LIVREUR_ACTIF.prenom||'').charAt(0)+(LIVREUR_ACTIF.nom||'').charAt(0)).toUpperCase();
+  var avatarInner=photoUrl
+    ?'<img src="'+escH(photoUrl)+'" alt="Photo profil" onerror="this.style.display=\'none\'">'
+    :escH(initials||'?');
+  /* Statut identité */
+  var verified=LIVREUR_ACTIF.identity_verified;
+  var badgeHtml=photoUrl&&verified
+    ?'<span class="identity-badge ok">✓ Identité vérifiée</span>'
+    :!photoUrl
+      ?'<span class="identity-badge missing">Photo manquante</span>'
+      :'<span class="identity-badge warn">À vérifier</span>';
+  /* Stats livraisons du jour */
+  var today=_orders.filter(function(o){return o.status==='delivered';}).length;
+  var active=_orders.filter(function(o){return o.status==='out_for_delivery';}).length;
+  el.innerHTML='<div style="padding:18px;text-align:center">'
+    +'<div class="profil-avatar" id="profil-avatar-ring">'+avatarInner+'</div>'
+    +'<button onclick="document.getElementById(\'profil-photo-inp\').click()" style="margin-top:8px;padding:5px 14px;background:var(--bg2);color:var(--tx2);border:1px solid var(--border);border-radius:20px;font-size:.76rem;cursor:pointer;display:inline-flex;align-items:center;gap:5px;">📷 Changer la photo</button>'
+    +'<div style="font-size:1.2rem;font-weight:700;margin-bottom:2px;margin-top:10px">'+escH(displayName)+'</div>'
+    +'<div style="color:var(--muted);font-size:.82rem;margin-bottom:4px">'+escH(LIVREUR_ACTIF.role||'Livreur')+'</div>'
+    +badgeHtml
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 16px">'
+    +'<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center">'
+    +'<div style="font-size:1.5rem;font-weight:800;color:var(--gold)">'+today+'</div>'
+    +'<div style="font-size:.68rem;color:var(--tx3);margin-top:2px">Livrées aujourd\'hui</div></div>'
+    +'<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center">'
+    +'<div style="font-size:1.5rem;font-weight:800;color:var(--green)">'+active+'</div>'
+    +'<div style="font-size:.68rem;color:var(--tx3);margin-top:2px">En cours</div></div>'
+    +'</div>'
+    +'<div style="padding:0 16px 8px">'
+    +(LIVREUR_ACTIF.telephone?'<div style="margin-bottom:8px;font-size:.84rem">📞 '+escH(LIVREUR_ACTIF.telephone)+'</div>':'')
+    +'<button class="act-btn" style="background:var(--bg3);color:var(--tx);border:1px solid var(--border)" onclick="logout()">Déconnexion</button>'
+    +'</div>';
+}
+
+/* ══════════════════════════════════════════
+   PROMPT 035 — CHANGEMENT PHOTO DE PROFIL
+   Upload vers Storage employee-photos + PATCH veraluz_employees
+   Politique : pas de reconnaissance faciale, pas de base64 en DB.
+══════════════════════════════════════════ */
+function onProfilPhotoSelected(inp){
+  if(!inp||!inp.files||!inp.files[0]||!LIVREUR_ACTIF)return;
+  var file=inp.files[0];
+  inp.value=''; /* reset pour permettre re-sélection même fichier */
+  /* Aperçu immédiat dans l'avatar courant */
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var ring=document.getElementById('profil-avatar-ring');
+    if(ring){
+      var existing=ring.querySelector('img');
+      if(existing){ existing.src=e.target.result; }
+      else { ring.innerHTML='<img src="'+e.target.result+'" alt="Photo profil" style="width:100%;height:100%;object-fit:cover">'; }
+    }
+  };
+  reader.readAsDataURL(file);
+  toast('📤 Envoi en cours…','ok');
+  var path='employee-photos/'+String(LIVREUR_ACTIF.id||'unknown')+'_'+Date.now()+'.jpg';
+  uploadToStorage(file,path)
+    .then(function(url){
+      LIVREUR_ACTIF.photo_url=url;
+      /* Tenter PATCH sur veraluz_employees — peut échouer selon RLS */
+      sbPatch('veraluz_employees',String(LIVREUR_ACTIF.id||''),{photo_url:url})
+        .then(function(){ toast('✅ Photo de profil mise à jour','ok'); })
+        .catch(function(){ toast('📷 Photo visible pour cette session','ok'); });
+      /* Rafraîchir tout le bloc profil */
+      renderProfil();
+    })
+    .catch(function(){
+      toast('⚠ Upload échoué — vérifiez votre connexion','err');
+    });
+}
+
+/* ══════════════════════════════════════════
+   LOGOUT
+══════════════════════════════════════════ */
+function logout(){
+  clearSession();  /* PROMPT 006: supprimer session (jamais le PIN) */
+  LIVREUR_ACTIF=null;_orders=[];_pointages=[];
+  _pinBuffer='';_currentOrderId=null;_photoB64=null;_lastSync=null;
+  if(_interval){clearInterval(_interval);_interval=null;}
+  if(_punchInterval){clearInterval(_punchInterval);_punchInterval=null;}
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('pin-screen').classList.remove('hidden');
+  document.getElementById('pin-livreur-sel').value='';
+  document.getElementById('pin-err').textContent='';
+  renderPinDots();
+  updateNetworkBadge();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROMPT 012 — PWA v012 : Service Worker + Installation + Offline
+   Améliorations : iOS detect, standalone masque bouton, SW update
+══════════════════════════════════════════════════════════════ */
+
+// ── Détection plateforme ──────────────────────────────────────
+var _vlzIsIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+var _vlzIsStandalone = (window.navigator.standalone === true) ||
+  window.matchMedia('(display-mode: standalone)').matches;
+
+// ── Service Worker ───────────────────────────────────────────
+function registerVeraluzServiceWorker(){
+  if(!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(reg){
+        console.log('[VERALUZ PWA] Service worker enregistré', reg.scope);
+        reg.addEventListener('updatefound', function(){
+          var newWorker = reg.installing;
+          if(!newWorker) return;
+          newWorker.addEventListener('statechange', function(){
+            if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+              console.log('[VERALUZ PWA] Mise à jour disponible — actualiser pour appliquer');
+            }
+          });
+        });
+      })
+      .catch(function(err){
+        console.warn('[VERALUZ PWA] Service worker non enregistré', err);
+      });
+  });
+}
+
+// ── Bouton installation (Android/Chrome) ─────────────────────
+var _vlzDeferredInstall = null;
+
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  _vlzDeferredInstall = e;
+  if(_vlzIsStandalone) return;
+  var banner = document.getElementById('vlz-pwa-install-banner');
+  var btn = document.getElementById('vlz-pwa-install-btn-liv');
+  if(btn) btn.style.display = 'block';
+  if(banner){ banner.style.display = 'flex'; }
+});
+
+function vlzTriggerInstall(){
+  if(!_vlzDeferredInstall) return;
+  _vlzDeferredInstall.prompt();
+  _vlzDeferredInstall.userChoice.then(function(result){
+    console.log('[VERALUZ PWA] Choix installation:', result.outcome);
+    _vlzDeferredInstall = null;
+    var banner = document.getElementById('vlz-pwa-install-banner');
+    if(banner){ banner.style.display = 'none'; }
+  });
+}
+
+window.addEventListener('appinstalled', function(){
+  var banner = document.getElementById('vlz-pwa-install-banner');
+  if(banner){ banner.style.display = 'none'; }
+});
+
+// ── Indicateur offline ────────────────────────────────────────
+// Note : LIVREUR a déjà updateNetworkBadge(). Bannière globale sans doublon.
+function vlzUpdateOfflineBanner(){
+  var bar = document.getElementById('vlz-offline-bar');
+  if(!bar) return;
+  bar.style.display = navigator.onLine ? 'none' : 'flex';
+}
+window.addEventListener('online',  vlzUpdateOfflineBanner);
+window.addEventListener('offline', vlzUpdateOfflineBanner);
+
+// ── Lancement ─────────────────────────────────────────────────
+registerVeraluzServiceWorker();
+window.addEventListener('DOMContentLoaded', function(){
+  vlzUpdateOfflineBanner();
+  // iOS : afficher l'aide installation si pas encore en standalone
+  if(_vlzIsIOS && !_vlzIsStandalone){
+    var banner = document.getElementById('vlz-pwa-install-banner');
+    if(banner){
+      // Masquer le bouton Installer (inutile sur iOS) et garder l'aide Partager
+      var installBtn = banner.querySelector('button:first-of-type');
+      if(installBtn) installBtn.style.display = 'none';
+      banner.style.display = 'flex';
+    }
+  }
+  // Si déjà installée en standalone : masquer bannière installation
+  if(_vlzIsStandalone){
+    var b = document.getElementById('vlz-pwa-install-banner');
+    if(b) b.style.display = 'none';
+  }
+});
+
+/* ══════════════════════════════════════════
+   PROMPT 006 — SÉCURISATION PIN FUTURE (NOTE TECHNIQUE)
+   Architecture actuelle : PIN vérifié côté client depuis données Supabase (anon key).
+   Ce mode convient à un usage terrain interne avec confiance implicite.
+   Pour sécuriser réellement les PINs dans une future version :
+     - Option 1 : Supabase Auth (email/password ou magic link)
+     - Option 2 : Supabase Edge Function côté serveur (PIN haché bcrypt)
+     - Option 3 : RPC Supabase sécurisée avec Row Level Security
+     - Option 4 : Hash PIN côté client insuffisant seul (clé anon expose les hashes)
+   Recommandation PROMPT 007+ : migrer vers Supabase Auth ou Edge Function.
+   Ne pas promettre qu'un simple hash côté client sécurise totalement un PIN 4-6 chiffres.
+══════════════════════════════════════════ */
+
+/* ══════════════════════════════════════════
+   BOOT
+══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded',function(){
+  buildPinPad();
+  updateNetworkBadge();  /* PROMPT 005: badge réseau avant login */
+  loadLivreurs().then(function(){
+    /* PROMPT 006: tenter restauration session 12h après chargement des livreurs */
+    if(checkSession()){
+      document.getElementById('pin-screen').classList.add('hidden');
+      document.getElementById('main-app').style.display='';
+      initApp();
+    } else {
+      renderPinDots();
+    }
+  }).catch(function(){
+    renderPinDots();
+  });
+});
+</script>
+
+<!-- ── PWA : masquer bannière installation si standalone ──────── -->
+<style>
+@media (display-mode: standalone) {
+  #vlz-pwa-install-banner { display:none !important; }
+}
+</style>
+
+<!-- ── PWA Bannière offline ──────────────────────────────────── -->
+<div id="vlz-offline-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
+  background:#f59e0b;color:#0f0f0d;padding:8px 16px;font-size:12px;font-weight:600;
+  align-items:center;justify-content:center;gap:8px;text-align:center;">
+  ⚠ Hors ligne — mode file d'attente actif
+</div>
+
+<!-- ── PWA Bannière installation ─────────────────────────────── -->
+<div id="vlz-pwa-install-banner" style="display:none;position:fixed;bottom:80px;left:50%;
+  transform:translateX(-50%);z-index:99998;width:calc(100% - 32px);max-width:440px;
+  background:#1a1a18;border:1px solid rgba(201,168,76,.35);border-radius:14px;
+  padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.4);
+  flex-direction:column;gap:10px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;">
+    <div style="font-size:13px;font-weight:700;color:#f5f5f0;">📲 Installer Veraluz Livreur</div>
+    <button onclick="document.getElementById('vlz-pwa-install-banner').style.display='none'"
+      style="padding:3px 8px;background:rgba(255,255,255,.07);color:#a0a09a;border:none;
+      border-radius:5px;font-size:13px;cursor:pointer;">✕</button>
+  </div>
+  <div style="font-size:11px;color:#a0a09a;line-height:1.5;">
+    Installez l'application pour un accès rapide sur le terrain, même hors ligne.
+  </div>
+  <!-- Bouton Android/Chrome -->
+  <button id="vlz-pwa-install-btn-liv" onclick="vlzTriggerInstall()" style="display:none;
+    width:100%;padding:12px;background:#c9a84c;color:#0f0f0d;border:none;border-radius:10px;
+    font-size:14px;font-weight:700;cursor:pointer;">⬇ Installer l'application</button>
+  <!-- Aide iPhone -->
+  <div style="font-size:11px;color:#666;background:rgba(255,255,255,.04);
+    border-radius:8px;padding:10px 12px;line-height:1.6;">
+    📱 <strong style="color:#a0a09a;">iPhone / iPad :</strong><br>
+    Partager ⬆ → Ajouter à l'écran d'accueil
+  </div>
+</div>
+
+<!-- SELFIE PRISE DE SERVICE — PROMPT 026 -->
+<div class="modal-ov" id="selfieOv"></div>
+<div class="modal" id="selfieMod" style="max-height:85vh">
+  <div class="modal-head">
+    <span class="modal-title">Prise de service</span>
+    <button class="icon-close" onclick="skipSelfie()">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <p class="selfie-policy">Prenez une photo rapide pour confirmer votre présence. Cette photo est utilisée uniquement pour la sécurité interne et la traçabilité du service.</p>
+  <div class="photo-zone" id="selfieZone">
+    <input type="file" accept="image/*" capture="user" id="selfieInput" onchange="onSelfieSelected(this)">
+    <div class="photo-zone-ico"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+    <div class="photo-zone-lbl">Prendre une photo (selfie)</div>
+    <div class="photo-zone-sub">Caméra frontale — usage interne uniquement</div>
+  </div>
+  <img id="selfiePreview" class="photo-preview" alt="Aperçu selfie">
+  <div class="photo-status-lbl" id="selfieStatusLbl">Photo prête</div>
+  <div class="photo-confirm-row">
+    <button class="btn-photo-ok" id="selfieConfirmBtn" onclick="confirmSelfie()" disabled>Confirmer</button>
+    <button class="btn-photo-skip" onclick="skipSelfie()">Passer</button>
+  </div>
+</div>
+<!-- PROMPT 035 — Input photo de profil (caché, déclenché par le bouton Profil) -->
+<input type="file" accept="image/*" id="profil-photo-inp" style="display:none" onchange="onProfilPhotoSelected(this)">
+
+<!-- PROMPT 027 — Banniere alerte livreur -->
+<div id="livreur-alert-banner"
+  style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#ea580c;color:#fff;
+  padding:10px 14px;align-items:center;gap:8px;font-size:.82rem;font-weight:700;
+  box-shadow:0 4px 12px rgba(0,0,0,.25);display:none">
+  <span>&#128276;</span>
+  <span id="livreur-alert-txt">Nouvelle livraison assignee !</span>
+  <button style="margin-left:auto;background:rgba(255,255,255,.2);border:none;color:#fff;
+    border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.9rem;
+    display:inline-flex;align-items:center;justify-content:center"
+    onclick="dismissLivreurAlert()">&#10005;</button>
+</div>
+<style>
+#livreur-alert-banner.show{display:flex!important;animation:slideDownLiv .3s ease}
+@keyframes slideDownLiv{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+</style>
+</body>
+</html>

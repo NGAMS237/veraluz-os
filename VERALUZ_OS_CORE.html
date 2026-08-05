@@ -3,17 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0d0d1a">
+<meta name="theme-color" content="#e8ecf0">
 <title>Veraluz OS — Kribi</title>
+<!-- ── PWA VERALUZ OS — PROMPT 011 ─────────────────────────── -->
+<link rel="manifest" href="./manifest-os.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VERALUZ">
+<link rel="apple-touch-icon" href="./assets/pwa/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./assets/pwa/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./assets/pwa/icon-512.png">
+<!-- ─────────────────────────────────────────────────────────── -->
 <style>
 :root{
-  --bg:#0d0d1a;--bg2:#12121f;--bg3:#1a1a2e;--bg4:#22223a;
-  --accent:#22d3a5;--acc2:#818cf8;
-  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
-  --border:rgba(255,255,255,.07);
-  --warn:#f59e0b;--err:#f43f5e;--ok:#22d3a5;
+  /* ── Veraluz Theme — Soft Neumorphism Light — PROMPT 036 ──────── */
+  --bg:#e8ecf0;--bg2:#eef1f5;--bg3:#e0e4e8;--bg4:#d4d8de;
+  --accent:#0891b2;--acc2:#818cf8;
+  --text:#1e293b;--text2:#475569;--text3:#94a3b8;
+  --border:rgba(0,0,0,.08);
+  --warn:#f59e0b;--err:#f43f5e;--ok:#10b981;
   --sb-w:220px;--tb-h:54px;--bn-h:62px;
   --sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);
+  /* aliases auth overlay */
+  --fg:var(--text);--fg2:var(--text2);--acc:var(--accent);
+  /* Veraluz Theme Design Tokens */
+  --vl-sh:4px 4px 12px #c8cdd4,-2px -2px 8px #fff;
+  --vl-sh-in:inset 2px 2px 6px #c8cdd4,inset -1px -1px 4px #fff;
+  --vl-r:3px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow:hidden;}
@@ -61,6 +78,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 .tb-menu{display:none;width:32px;height:32px;border-radius:7px;
   border:1px solid var(--border);background:var(--bg3);color:var(--text2);
   cursor:pointer;font-size:16px;align-items:center;justify-content:center;}
+/* PROMPT 029 : sidebar cachée sur mobile — visible seulement desktop */
+@media(max-width:768px){
+  #sidebar{display:none;}
+  .tb-menu{display:flex!important;}
+  body{overflow-x:hidden;}
+}
+
+/* PROMPT 029 : sidebar cachée sur mobile */
+@media(max-width:768px){
+  #sidebar{display:none;}
+  .tb-menu{display:flex!important;}
+  body{overflow-x:hidden;}
+}
+
 .tb-title{font-size:15px;font-weight:700;flex:1;}
 .tb-sub{font-size:11px;color:var(--text3);}
 .tb-actions{display:flex;gap:8px;margin-left:auto;align-items:center;}
@@ -198,9 +229,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 
 /* PIN display */
 .auth-pin-lbl { font-size:11px; font-weight:600; color:var(--fg2);
-  text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; display:block; }
+  text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; display:block; }
+/* PROMPT 020C — sous-titre explicatif 4/6 chiffres */
+.auth-pin-sub { font-size:11px; color:var(--fg2); text-align:center;
+  margin-bottom:10px; line-height:1.4; opacity:.75; }
+/* PROMPT 020C — message d'aide contextuel par longueur */
+.auth-pin-hint { font-size:11px; text-align:center; min-height:16px;
+  margin:4px 0 8px; transition:opacity .2s; }
+.auth-pin-hint.warn { color:#f59e0b; }
+.auth-pin-hint.ok   { color:#10b981; }
+.auth-pin-hint.info { color:var(--fg2); }
 .auth-pin-display {
-  display:flex; gap:10px; justify-content:center; margin-bottom:16px;
+  display:flex; gap:10px; justify-content:center; margin-bottom:8px;
 }
 .auth-pin-dot {
   width:18px; height:18px; border-radius:50%;
@@ -276,6 +316,504 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
 .tb-logout-btn:hover { background:rgba(239,68,68,.22); }
 
+/* ── PROMPT 008A : Espace Employé ───────────────────────────── */
+#view-employee-home{padding:16px;padding-bottom:calc(var(--bn-h)+var(--sab)+16px);}
+@media(min-width:768px){#view-employee-home{padding:24px;padding-bottom:24px;}}
+.emp-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+.emp-card-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;font-weight:600;margin-bottom:12px;}
+.emp-profile-row{display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+.emp-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--acc2));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0;}
+.emp-pname{font-size:18px;font-weight:700;margin-bottom:2px;}
+.emp-prole{font-size:12px;color:var(--accent);font-weight:600;}
+.emp-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.emp-meta-item{font-size:12px;color:var(--text2);background:var(--bg3);padding:4px 10px;border-radius:20px;}
+.att-today{display:flex;gap:12px;flex-wrap:wrap;margin-top:4px;}
+.att-chip{flex:1;min-width:110px;background:var(--bg3);border-radius:10px;padding:12px;text-align:center;}
+.att-chip-lbl{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.att-chip-val{font-size:20px;font-weight:700;color:var(--accent);}
+.task-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.task-item:last-child{border:none;}
+.task-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.task-dot.pending{background:var(--warn);}.task-dot.done{background:var(--ok);}.task-dot.urgent{background:var(--err);}
+.task-text{flex:1;font-size:13px;}.task-time{font-size:11px;color:var(--text3);}
+.emp-modules-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+@media(min-width:480px){.emp-modules-grid{grid-template-columns:repeat(3,1fr);}}
+.emp-mod-btn{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;cursor:pointer;color:var(--text);transition:background .15s;}
+.emp-mod-btn:hover{background:var(--bg4);}
+.emp-mod-icon{font-size:20px;margin-bottom:4px;}.emp-mod-lbl{font-size:11px;font-weight:600;}
+.emp-empty{font-size:12px;color:var(--text3);text-align:center;padding:12px;font-style:italic;}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   PROMPT 029 — CSS RESPONSIVE GLOBAL VERALUZ OS
+   Breakpoints : 1024 / 768 / 600 / 430 / 390 / 375px + dvh + PWA
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── PWA / iOS safe-area ──────────────────────────────────────── */
+@supports (height: 100dvh) {
+  html, body { height: 100dvh; min-height: 100dvh; }
+}
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  #topbar   { padding-top: max(var(--sat), env(safe-area-inset-top,0px)); }
+  #bottom-nav { padding-bottom: max(var(--sab), env(safe-area-inset-bottom,0px)); }
+  .sb-bottom  { padding-bottom: calc(12px + max(var(--sab), env(safe-area-inset-bottom,0px))); }
+}
+
+/* ── Tablette 1024px ─────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  :root { --sb-w: 200px; }
+  .tb-title { font-size: 14px; }
+}
+
+/* ── Mobile large 768px ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  :root { --tb-h: 50px; }
+
+  /* Header */
+  #topbar { padding-left: 10px; padding-right: 10px; gap: 6px; }
+  .tb-actions { gap: 5px; }
+  .tb-btn { height: 28px; padding: 0 8px; font-size: 11px; }
+  .tb-tag { display: none; } /* masquer LIVE badge sur mobile */
+
+  /* Content frame */
+  #content-frame { width: 100% !important; }
+
+  /* Bottom nav accessible */
+  #bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: var(--bg2); border-top: 1px solid var(--border); height: var(--bn-h); }
+
+  /* Modules */
+  .module-page, .page-content, [id$="-page"] {
+    padding: 10px 8px !important; overflow-x: hidden;
+  }
+
+  /* Cards en 1 colonne */
+  .cards-grid, .stat-grid, .kpi-grid, .summary-grid,
+  [class*="grid-"]:not(.kds-grid),
+  .dash-grid { grid-template-columns: 1fr !important; gap: 8px !important; }
+
+  /* Tableaux scrollables */
+  table, .table-wrap { display: block; overflow-x: auto;
+    -webkit-overflow-scrolling: touch; max-width: 100%; }
+
+  /* Onglets scrollables */
+  .tabs, .tab-bar, [class*="tabs-"], .emp-tabs, .kds-filters,
+  .filter-bar { overflow-x: auto; -webkit-overflow-scrolling: touch;
+    display: flex; flex-wrap: nowrap; white-space: nowrap; gap: 6px;
+    padding-bottom: 4px; }
+
+  /* Boutons tactiles min 44px */
+  button, .btn, .sb-btn, .tb-btn { min-height: 36px; }
+
+  /* Modales */
+  .modal, .modal-box, .md-box, [id^="md-"] > div {
+    width: calc(100vw - 20px) !important; max-width: none !important;
+    max-height: 90dvh; overflow-y: auto; margin: 10px; border-radius: 16px;
+  }
+  .overlay { align-items: flex-end !important; padding-bottom: env(safe-area-inset-bottom,0px); }
+
+  /* Formulaires */
+  input, select, textarea { width: 100% !important; font-size: 16px !important; /* évite zoom iOS */ }
+  label { display: block; margin-bottom: 4px; }
+  .form-row, .field-row { flex-direction: column !important; gap: 8px !important; }
+
+  /* Footer module */
+  .page-footer, .module-footer { padding-bottom: calc(var(--bn-h) + env(safe-area-inset-bottom,10px)); }
+}
+
+/* ── Mobile 600px ────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .tb-title { font-size: 13px; }
+  .tb-sub { display: none; }
+  .notif-badge-btn { font-size: 14px; }
+
+  /* Restaurant KDS */
+  .kds-grid { grid-template-columns: 1fr !important; }
+  .kds-card { min-height: unset; }
+
+  /* RH / Auth liste */
+  .emp-list-item, .user-list-item, .contact-card {
+    flex-direction: column !important; align-items: flex-start !important; gap: 8px !important;
+  }
+
+  /* Housekeeping tâches */
+  .hk-task-card, .task-row { flex-direction: column !important; }
+
+  /* AI cards */
+  .agent-card, .ai-card { padding: 10px 12px; }
+
+  /* Documents liste */
+  .doc-row { flex-direction: column !important; gap: 4px; }
+
+  /* Réservations */
+  .resa-card, .booking-row { flex-direction: column !important; }
+}
+
+/* ── iPhone 430px ────────────────────────────────────────────── */
+@media (max-width: 430px) {
+  :root { --tb-h: 46px; }
+  #topbar { padding-left: 8px; padding-right: 8px; }
+  .tb-menu { width: 32px; height: 32px; font-size: 16px; }
+  .tb-title { font-size: 12px; }
+  .tb-actions > *:not(.notif-badge-btn) { display: none; } /* garder seulement notif */
+
+  button, .btn { min-height: 40px; font-size: 13px; }
+  .bn-icon { font-size: 18px; }
+  .bn-label { font-size: 9px; }
+
+  /* Sidebar drawer plus étroite */
+  #sidebar.mobile-open { width: 260px !important; }
+}
+
+/* ── iPhone SE 375px ─────────────────────────────────────────── */
+@media (max-width: 375px) {
+  .bn-label { display: none; }
+  .bn-icon { font-size: 20px; }
+  .tb-title { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* ── Écrans courts (hauteur) ─────────────────────────────────── */
+@media (max-height: 700px) {
+  .sb-section { padding: 4px 16px 2px; }
+  .sb-btn { padding: 7px 10px; }
+  .sb-logo { padding: 12px 16px 8px; }
+  .auth-box { padding: 16px; }
+}
+
+/* ── Classes utilitaires responsive ─────────────────────────── */
+.mobile-only { display: none; }
+.desktop-only { display: initial; }
+@media (max-width: 768px) {
+  .mobile-only { display: initial; }
+  .desktop-only { display: none; }
+  .w-full-mobile { width: 100% !important; }
+  .flex-col-mobile { flex-direction: column !important; }
+  .hidden-mobile { display: none !important; }
+  .scroll-x-mobile { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+/* ── Responsive table helper ─────────────────────────────────── */
+.responsive-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.responsive-table table { min-width: 480px; }
+
+/* ── Mobile card (remplacement lignes tableau) ───────────────── */
+.mobile-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+}
+.mobile-card-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; }
+.mobile-card-label { color: var(--text3); font-size: 11px; }
+
+/* ── Fix overflow horizontal global ─────────────────────────── */
+@media (max-width: 768px) {
+  * { max-width: 100%; }
+  img, iframe, video { max-width: 100%; }
+  /* exception : les éléments positionnés en fixed/absolute */
+  .overlay, #auth-overlay, #topbar, #bottom-nav, #sb-ov,
+  #sidebar.mobile-open { max-width: unset; }
+}
+/* ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   VERALUZ THEME — Soft Neumorphism Light — PROMPT 036
+   Design system : bg #e8ecf0 · sidebar #1e2a3a · radius 3px
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Sidebar — always dark navy ─────────────────────────────── */
+#sidebar{
+  background:#1e2a3a!important;
+  border-right:1px solid rgba(0,0,0,.18)!important;
+}
+.sb-logo-name{color:#e2e8f0!important;}
+.sb-logo-sub{color:#64748b!important;}
+.sb-divider{background:rgba(255,255,255,.08)!important;}
+.sb-section{color:#64748b!important;}
+.sb-future{color:#475569!important;}
+.sb-bottom{border-top:1px solid rgba(255,255,255,.08)!important;}
+.sb-uname{color:#e2e8f0!important;}
+.sb-urole{color:#22d3a5!important;}
+
+/* Sidebar nav buttons */
+.sb-btn{color:#94a3b8!important;border-radius:var(--vl-r)!important;}
+.sb-btn:hover{background:rgba(255,255,255,.06)!important;color:#e2e8f0!important;}
+.sb-btn.active{background:rgba(34,211,165,.12)!important;color:#22d3a5!important;}
+
+/* Sidebar icon badge */
+.sb-btn .sb-icon{
+  width:28px!important;height:28px!important;
+  border-radius:var(--vl-r)!important;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  font-size:13px!important;color:#fff!important;flex-shrink:0!important;
+}
+.sb-btn .sb-icon svg{stroke:#fff!important;color:#fff!important;}
+
+/* Module-specific sidebar icon gradients */
+#nav-reservations .sb-icon{background:linear-gradient(135deg,#667eea,#764ba2)!important;}
+#nav-paiements .sb-icon{background:linear-gradient(135deg,#f093fb,#f5576c)!important;}
+#nav-housekeeping .sb-icon{background:linear-gradient(135deg,#43e97b,#38f9d7)!important;}
+#nav-restaurant .sb-icon{background:linear-gradient(135deg,#f7971e,#ffd200)!important;}
+#nav-finance .sb-icon{background:linear-gradient(135deg,#11998e,#38ef7d)!important;}
+#nav-rh .sb-icon{background:linear-gradient(135deg,#0acffe,#495aff)!important;}
+#nav-contacts .sb-icon{background:linear-gradient(135deg,#4facfe,#00f2fe)!important;}
+#nav-notifications .sb-icon{background:linear-gradient(135deg,#f093fb,#f5576c)!important;}
+#nav-analytics .sb-icon{background:linear-gradient(135deg,#a18cd1,#fbc2eb)!important;}
+#nav-ai_center .sb-icon{background:linear-gradient(135deg,#a18cd1,#fbc2eb)!important;}
+#nav-documents .sb-icon{background:linear-gradient(135deg,#6a85b6,#bac8e0)!important;}
+#nav-messages .sb-icon{background:linear-gradient(135deg,#4facfe,#00f2fe)!important;}
+#nav-employee_home .sb-icon{background:linear-gradient(135deg,#667eea,#764ba2)!important;}
+#nav-settings .sb-icon,#nav-auth .sb-icon,#nav-appro .sb-icon,
+#nav-integrations .sb-icon,#nav-eventbus .sb-icon,#nav-audit .sb-icon{
+  background:linear-gradient(135deg,#b0c4de,#6a85b6)!important;
+}
+
+/* PWA refresh button in dark sidebar */
+#pwa-refresh-wrap button{
+  background:rgba(255,255,255,.06)!important;
+  color:#94a3b8!important;
+  border-radius:var(--vl-r)!important;
+}
+
+/* Sidebar user card */
+.sb-user{background:rgba(255,255,255,.04);border-radius:var(--vl-r);}
+
+/* ── Topbar — white clean ────────────────────────────────────── */
+#topbar{
+  background:#fff!important;
+  border-bottom:1px solid rgba(0,0,0,.07)!important;
+  box-shadow:0 1px 6px rgba(0,0,0,.06);
+}
+#tb-title{color:#1e293b!important;}
+.tb-sub{color:#94a3b8!important;}
+.tb-btn{
+  background:#f1f5f9!important;color:#475569!important;
+  border-radius:var(--vl-r)!important;
+}
+.tb-btn:hover{background:#e2e8f0!important;color:#1e293b!important;}
+.tb-menu{
+  background:#f1f5f9!important;border-color:rgba(0,0,0,.08)!important;
+  color:#475569!important;
+}
+.tb-tag{background:rgba(8,145,178,.1)!important;color:#0891b2!important;}
+.notif-badge-btn{
+  background:#f1f5f9!important;color:#475569!important;
+  border-radius:var(--vl-r)!important;
+}
+.notif-badge-btn:hover{background:#e2e8f0!important;}
+.tb-user-name{color:#1e293b!important;}
+.tb-user-role{
+  background:rgba(8,145,178,.1)!important;
+  color:#0891b2!important;border-radius:var(--vl-r)!important;
+}
+.tb-logout-btn{
+  background:rgba(239,68,68,.08)!important;border-color:rgba(239,68,68,.2)!important;
+  color:#ef4444!important;border-radius:var(--vl-r)!important;
+}
+.tb-logout-btn:hover{background:rgba(239,68,68,.16)!important;}
+
+/* ── Dashboard ───────────────────────────────────────────────── */
+.dash-greeting{color:#1e293b!important;font-size:22px;font-weight:800;}
+.dash-sub{color:#94a3b8!important;}
+.dash-section{color:#64748b!important;letter-spacing:.8px;}
+
+/* KPI stat cards — colored accent strip on top */
+.stat-card{
+  background:#fff!important;
+  border:none!important;
+  border-radius:var(--vl-r)!important;
+  box-shadow:var(--vl-sh)!important;
+  padding:18px 16px 14px!important;
+  position:relative;overflow:hidden;
+}
+.stat-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:4px;
+}
+.dash-stats .stat-card:nth-child(1)::before{background:linear-gradient(90deg,#667eea,#764ba2);}
+.dash-stats .stat-card:nth-child(1) .stat-val{color:#667eea!important;}
+.dash-stats .stat-card:nth-child(2)::before{background:linear-gradient(90deg,#f7971e,#ffd200);}
+.dash-stats .stat-card:nth-child(2) .stat-val{color:#f7971e!important;}
+.dash-stats .stat-card:nth-child(3)::before{background:linear-gradient(90deg,#11998e,#38ef7d);}
+.dash-stats .stat-card:nth-child(3) .stat-val{color:#11998e!important;}
+.dash-stats .stat-card:nth-child(4)::before{background:linear-gradient(90deg,#0acffe,#495aff);}
+.dash-stats .stat-card:nth-child(4) .stat-val{color:#0acffe!important;}
+.stat-label{color:#94a3b8!important;font-size:11px;margin-top:2px;}
+
+/* ── Veraluz Theme Charts Row ───────────────────────────────── */
+.vl-charts-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;
+}
+@media(max-width:640px){.vl-charts-row{grid-template-columns:1fr;}}
+.vl-chart-card{
+  background:#fff;border-radius:var(--vl-r);
+  box-shadow:var(--vl-sh);padding:16px;
+}
+.vl-ct{
+  font-size:10px;color:#94a3b8;text-transform:uppercase;
+  letter-spacing:.7px;font-weight:700;margin-bottom:12px;
+}
+/* Occupation bar */
+.vl-bar-track{
+  width:100%;height:10px;border-radius:5px;
+  background:#e8ecf0;box-shadow:var(--vl-sh-in);overflow:hidden;margin-bottom:8px;
+}
+.vl-bar-fill{
+  height:100%;border-radius:5px;
+  background:linear-gradient(90deg,#667eea,#764ba2);
+  transition:width .7s cubic-bezier(.16,1,.3,1);
+}
+.vl-bar-val{font-size:26px;font-weight:800;color:#667eea;line-height:1;}
+.vl-bar-sub{font-size:11px;color:#94a3b8;margin-top:4px;}
+/* Donut */
+.vl-donut-wrap{display:flex;align-items:center;gap:16px;}
+.vl-donut-svg{flex-shrink:0;}
+.vl-donut-info dt{font-size:10px;color:#94a3b8;text-transform:uppercase;
+  letter-spacing:.5px;margin-bottom:2px;}
+.vl-donut-info dd{font-size:18px;font-weight:700;margin:0 0 8px;}
+.vl-donut-pend{color:#f7971e;}
+.vl-donut-ok{color:#11998e;}
+
+/* ── Module cards — gradient icon ───────────────────────────── */
+.mod-card{
+  background:#fff!important;border:none!important;
+  border-radius:var(--vl-r)!important;
+  box-shadow:var(--vl-sh)!important;
+  transition:box-shadow .2s,transform .15s!important;
+}
+.mod-card:hover{
+  box-shadow:6px 6px 18px #c0c5cc,-2px -2px 8px #fff!important;
+  transform:translateY(-2px)!important;
+}
+.mod-card.dim{
+  background:#f5f7fa!important;
+  box-shadow:2px 2px 6px #d0d4da,-1px -1px 4px #fff!important;
+}
+.mod-card .mod-icon{
+  width:42px;height:42px;border-radius:var(--vl-r);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;margin-bottom:10px;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+}
+/* Cycling gradients for variety */
+.mod-card:nth-child(6n+1) .mod-icon{background:linear-gradient(135deg,#667eea,#764ba2);}
+.mod-card:nth-child(6n+2) .mod-icon{background:linear-gradient(135deg,#f7971e,#ffd200);}
+.mod-card:nth-child(6n+3) .mod-icon{background:linear-gradient(135deg,#11998e,#38ef7d);}
+.mod-card:nth-child(6n+4) .mod-icon{background:linear-gradient(135deg,#0acffe,#495aff);}
+.mod-card:nth-child(6n+5) .mod-icon{background:linear-gradient(135deg,#a18cd1,#fbc2eb);}
+.mod-card:nth-child(6n+6) .mod-icon{background:linear-gradient(135deg,#4facfe,#00f2fe);}
+.mod-name{color:#1e293b!important;font-size:13px;font-weight:700;}
+.mod-desc{color:#94a3b8!important;font-size:11px;}
+.mod-badge{
+  background:rgba(8,145,178,.1)!important;
+  color:#0891b2!important;border-radius:2px!important;font-size:9px;
+}
+.mod-badge.s{background:rgba(148,163,184,.12)!important;color:#94a3b8!important;}
+
+/* ── Recent activity list ────────────────────────────────────── */
+.rec-item{
+  background:#fff!important;border:none!important;
+  border-radius:var(--vl-r)!important;
+  box-shadow:var(--vl-sh)!important;
+}
+.rec-text{color:#1e293b!important;}
+.rec-time{color:#94a3b8!important;}
+
+/* ── Bottom nav ─────────────────────────────────────────────── */
+#bottom-nav{
+  background:#fff!important;
+  border-top:1px solid rgba(0,0,0,.06)!important;
+  box-shadow:0 -2px 10px rgba(0,0,0,.06);
+}
+.bn-btn{color:#94a3b8!important;}
+.bn-btn:hover{color:#475569!important;}
+.bn-btn.active{color:#0891b2!important;}
+
+/* ── Loader / Error ─────────────────────────────────────────── */
+#loader{background:#e8ecf0!important;}
+.ld-ring{border-color:#d1d5db!important;border-top-color:#0891b2!important;}
+.ld-text{color:#94a3b8!important;}
+#mod-error{background:#e8ecf0!important;}
+.err-ico{filter:grayscale(.3);}
+.err-title{color:#1e293b!important;}
+.err-msg{color:#94a3b8!important;}
+.err-retry{background:#0891b2!important;color:#fff!important;border-radius:var(--vl-r)!important;}
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar-thumb{background:#c8cdd4!important;}
+::-webkit-scrollbar-track{background:transparent!important;}
+
+/* ── Mobile card helpers ────────────────────────────────────── */
+.mobile-card{
+  background:#fff!important;border:none!important;
+  border-radius:var(--vl-r)!important;
+  box-shadow:var(--vl-sh)!important;
+}
+.mobile-card-label{color:#94a3b8!important;}
+
+/* ── Employee home ──────────────────────────────────────────── */
+.emp-card{
+  background:#fff!important;border:none!important;
+  border-radius:var(--vl-r)!important;
+  box-shadow:var(--vl-sh)!important;
+}
+.emp-card-title{color:#475569!important;}
+.emp-meta-item{background:#f1f5f9!important;color:#475569!important;border-radius:var(--vl-r)!important;}
+.att-chip{background:#f1f5f9!important;border-radius:var(--vl-r)!important;}
+.emp-mod-btn{
+  background:#f1f5f9!important;border:none!important;
+  border-radius:var(--vl-r)!important;
+  box-shadow:var(--vl-sh)!important;color:#475569!important;
+}
+.emp-mod-btn:hover{background:#e2e8f0!important;}
+.task-item{border-bottom-color:rgba(0,0,0,.06)!important;}
+
+/* ── Auth overlay — stays dark ──────────────────────────────── */
+#auth-overlay{
+  background:linear-gradient(160deg,#0d1117 0%,#0f1e1a 50%,#0d1117 100%)!important;
+}
+.auth-box{
+  background:#12121f!important;
+  border-color:rgba(255,255,255,.08)!important;
+}
+.al-title{color:#e2e8f0!important;}
+.al-sub{color:#94a3b8!important;}
+.auth-emp-pick label,.auth-pin-lbl{color:#94a3b8!important;}
+.auth-emp-select{
+  background-color:#0d0d1a!important;
+  border-color:rgba(255,255,255,.1)!important;
+  color:#e2e8f0!important;
+}
+.auth-emp-select option{background:#12121f;}
+.auth-pin-dot{border-color:rgba(255,255,255,.2)!important;}
+.auth-pin-dot.filled{background:#22d3a5!important;border-color:#22d3a5!important;}
+.auth-pin-sub{color:#64748b!important;}
+.auth-pin-hint{color:#64748b!important;}
+.auth-pin-hint.warn{color:#f59e0b!important;}
+.auth-pin-hint.ok{color:#10b981!important;}
+.auth-pin-hint.info{color:#64748b!important;}
+.auth-pin-btn{
+  background:#1a1a2e!important;
+  border-color:rgba(255,255,255,.08)!important;
+  color:#e2e8f0!important;border-radius:var(--vl-r)!important;
+}
+.auth-pin-btn:hover{background:#22223a!important;}
+.auth-pin-btn:active{background:#22d3a5!important;color:#000!important;}
+.auth-btn{
+  background:linear-gradient(135deg,#22d3a5,#0891b2)!important;
+  color:#fff!important;border-radius:var(--vl-r)!important;
+}
+.auth-field label{color:#94a3b8!important;}
+.auth-field input{
+  background:#0d0d1a!important;
+  border-color:rgba(255,255,255,.1)!important;
+  color:#e2e8f0!important;border-radius:var(--vl-r)!important;
+}
+.auth-field input::placeholder{color:#475569!important;}
+.auth-remember{color:#94a3b8!important;}
+.auth-mode-toggle a{color:#22d3a5!important;}
+#auth-error{background:rgba(239,68,68,.12)!important;border-color:rgba(239,68,68,.3)!important;border-radius:var(--vl-r)!important;}
+
+/* ── Dev mode banner — adapté thème light ───────────────────── */
+#dev-banner{background:linear-gradient(90deg,#7c3aed,#4f46e5)!important;}
 </style>
 </head>
 <body>
@@ -305,7 +843,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     <div class="sb-section">À venir</div>
     <div id="sb-coming"></div>
   </div>
-  <div class="sb-bottom">
+  <!-- PROMPT 029 : Bouton actualiser PWA -->
+<div id='pwa-refresh-wrap' style='display:none;padding:8px 16px 4px;'>
+  <button onclick="(function(){
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.getRegistrations().then(function(regs){
+        regs.forEach(function(r){r.update();});
+        setTimeout(function(){location.reload(true);},800);
+      });
+    } else { location.reload(true); }
+  })()" style='width:100%;padding:9px;border-radius:8px;border:none;
+    background:var(--bg3);color:var(--text2);cursor:pointer;font-size:12px;'>
+    &#8635; Actualiser l'application
+  </button>
+  <div style='font-size:10px;color:var(--text3);margin-top:4px;text-align:center;'>
+    Si la mise &agrave; jour ne s'applique pas (iPhone PWA), supprimez l'ic&ocirc;ne et r&eacute;installez.
+  </div>
+</div>
+<div class="sb-bottom">
     <div id="sb-pointage-wrap" style="display:none;padding:0 8px 10px;">
       <button class="sb-btn" id="sb-pointage-btn"
         style="background:rgba(34,211,165,.1);color:var(--accent);border:1px solid rgba(34,211,165,.2);"
@@ -314,10 +869,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
       </button>
     </div>
     <div class="sb-user">
-      <div class="sb-avatar">S</div>
+      <div class="sb-avatar" id="sb-avatar">—</div>
       <div>
-        <div class="sb-uname">Smith</div>
-        <div class="sb-urole">Super Admin</div>
+        <div class="sb-uname" id="sb-uname">—</div>
+        <div class="sb-urole" id="sb-urole">—</div>
       </div>
     </div>
   </div>
@@ -368,11 +923,57 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
         <div class="stat-card"><div class="stat-val" id="st-units">…</div><div class="stat-label">Unités disponibles</div></div>
         <div class="stat-card"><div class="stat-val w" id="st-rev">…</div><div class="stat-label">Revenus validés (FCFA)</div></div>
       </div>
+      <!-- Veraluz Theme — Charts row PROMPT 036 -->
+      <div class="dash-section">Occupation &amp; paiements</div>
+      <div class="vl-charts-row">
+        <div class="vl-chart-card">
+          <div class="vl-ct">Taux d'occupation</div>
+          <div class="vl-bar-val" id="vl-occ-pct">—</div>
+          <div class="vl-bar-sub" id="vl-occ-sub">des unités occupées</div>
+          <div class="vl-bar-track" style="margin-top:10px;">
+            <div class="vl-bar-fill" id="vl-occ-fill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="vl-chart-card">
+          <div class="vl-ct">Paiements</div>
+          <div class="vl-donut-wrap">
+            <svg class="vl-donut-svg" viewBox="0 0 80 80" width="72" height="72">
+              <circle cx="40" cy="40" r="30" fill="none" stroke="#e8ecf0" stroke-width="12"/>
+              <circle id="vl-pay-arc" cx="40" cy="40" r="30" fill="none"
+                stroke="url(#payGrad)" stroke-width="12"
+                stroke-dasharray="0 188.5" stroke-linecap="butt"
+                transform="rotate(-90 40 40)"/>
+              <defs>
+                <linearGradient id="payGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#11998e"/>
+                  <stop offset="100%" stop-color="#38ef7d"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <dl class="vl-donut-info">
+              <dt>En attente</dt>
+              <dd class="vl-donut-pend" id="vl-pay-pend">—</dd>
+              <dt>Validés</dt>
+              <dd class="vl-donut-ok" id="vl-pay-ok">—</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
       <div class="dash-section">Modules actifs</div>
       <div class="modules-grid" id="dash-grid"></div>
       <div class="dash-section">Réservations récentes</div>
       <div class="recent-list" id="recent-list">
         <div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Chargement…</div></div>
+      </div>
+    </div>
+    <div id="view-employee-home" class="view">
+      <div id="emp-home-inner" style="max-width:700px;margin:0 auto;">
+        <div id="emp-profile-card" class="emp-card"><div class="emp-card-title">👤 Mon profil</div><div class="emp-empty">Chargement...</div></div>
+        <div id="emp-pointage-card" class="emp-card"><div class="emp-card-title">⏱ Pointage du jour</div><div class="emp-empty">Chargement...</div></div>
+        <div id="emp-tasks-card" class="emp-card"><div class="emp-card-title">📋 Mes tâches</div><div class="emp-empty">Chargement...</div></div>
+        <div id="emp-paie-card" class="emp-card"><div class="emp-card-title">💰 Ma paie</div><div class="emp-empty">Chargement...</div></div>
+        <div id="emp-modules-card" class="emp-card"><div class="emp-card-title">🧩 Mes modules</div><div id="emp-modules-grid" class="emp-modules-grid"></div></div>
+        <div id="emp-notif-card" class="emp-card"><div class="emp-card-title">🔔 Notifications</div><div class="emp-empty">Aucune notification pour le moment.</div></div>
       </div>
     </div>
     <div id="view-module" class="view">
@@ -388,6 +989,90 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
     </button>
     <div id="bn-modules" style="display:contents"></div>
   </nav>
+</div>
+
+<!-- AUTH OVERLAY — PROMPT 010C (élément HTML manquant — cause racine) -->
+<div id="auth-overlay" class="hidden">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <span class="al-icon">🏖️</span>
+      <div class="al-title">Veraluz OS</div>
+      <div class="al-sub">Résidence · Kribi, Cameroun</div>
+    </div>
+
+    <!-- PROMPT 010C — Bouton DEV MODE (caché en production) -->
+    <div id="dev-mode-btn-wrap" style="display:none;margin-bottom:16px;">
+      <button onclick="enterDevMode()"
+        style="width:100%;padding:12px 16px;background:linear-gradient(135deg,#f59e0b,#d97706);
+        border:2px solid rgba(245,158,11,.3);border-radius:10px;color:#fff;font-size:14px;
+        font-weight:700;cursor:pointer;letter-spacing:.3px;font-family:inherit;">
+        🛠️ Entrer en mode développement
+      </button>
+      <div style="font-size:10px;color:var(--fg2);text-align:center;margin-top:5px;">
+        TEMP DEV ONLY — Authentification réelle désactivée
+      </div>
+    </div>
+
+    <div id="auth-error" class="auth-error"></div>
+
+    <!-- Mode Employé (PIN) -->
+    <div id="auth-emp-mode">
+      <div class="auth-emp-pick">
+        <label>Votre nom</label>
+        <select id="auth-emp-select" class="auth-emp-select">
+          <option value="">⏳ Chargement des employés...</option>
+        </select>
+      </div>
+      <span class="auth-pin-lbl">Votre NIP / PIN employé</span>
+      <!-- PROMPT 020C — sous-titre 4/6 chiffres -->
+      <div class="auth-pin-sub">Les anciens PIN ont 4 chiffres · Les nouveaux PIN ont 6 chiffres</div>
+      <div class="auth-pin-display">
+        <div class="auth-pin-dot" id="pin-dot-0"></div>
+        <div class="auth-pin-dot" id="pin-dot-1"></div>
+        <div class="auth-pin-dot" id="pin-dot-2"></div>
+        <div class="auth-pin-dot" id="pin-dot-3"></div>
+        <div class="auth-pin-dot" id="pin-dot-4"></div>
+        <div class="auth-pin-dot" id="pin-dot-5"></div>
+      </div>
+      <!-- PROMPT 020C — hint contextuel -->
+      <div id="pin-hint" class="auth-pin-hint"></div>
+      <div class="auth-pin-pad">
+        <button class="auth-pin-btn" onclick="pinKey('1')">1</button>
+        <button class="auth-pin-btn" onclick="pinKey('2')">2</button>
+        <button class="auth-pin-btn" onclick="pinKey('3')">3</button>
+        <button class="auth-pin-btn" onclick="pinKey('4')">4</button>
+        <button class="auth-pin-btn" onclick="pinKey('5')">5</button>
+        <button class="auth-pin-btn" onclick="pinKey('6')">6</button>
+        <button class="auth-pin-btn" onclick="pinKey('7')">7</button>
+        <button class="auth-pin-btn" onclick="pinKey('8')">8</button>
+        <button class="auth-pin-btn" onclick="pinKey('9')">9</button>
+        <button class="auth-pin-btn del" onclick="pinDel()">⌫</button>
+        <button class="auth-pin-btn zero" onclick="pinKey('0')">0</button>
+      </div>
+      <button class="auth-btn" onclick="doLoginPin()">✅ Se connecter</button>
+    </div>
+
+    <!-- Mode Admin (identifiant + mot de passe) -->
+    <div id="auth-admin-mode">
+      <div class="auth-field">
+        <label>Identifiant</label>
+        <input id="auth-username" type="text" placeholder="admin, manager…" autocomplete="username">
+      </div>
+      <div class="auth-field">
+        <label>Mot de passe</label>
+        <input id="auth-password" type="password" placeholder="••••••••" autocomplete="current-password"
+          onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <label class="auth-remember">
+        <input type="checkbox" id="auth-remember"> Se souvenir de moi (7 jours)
+      </label>
+      <button class="auth-btn auth-login-btn" onclick="doLogin()">Se connecter</button>
+    </div>
+
+    <div class="auth-mode-toggle">
+      <a id="auth-mode-lnk" onclick="toggleAdminMode()">🔐 Accès administrateur</a>
+    </div>
+  </div>
 </div>
 
 <div id="sb-ov" onclick="closeMobileSidebar()"
@@ -449,7 +1134,125 @@ var MODULES = [
     file:'APPRO_EMBEDDED.html',     desc:'Inventaire · Achats · Fournisseurs' },
   { id:'integrations', label:'Intégrations', icon:'🔗',
     file:'INTEGRATIONS_EMBEDDED.html', desc:'WhatsApp · CinetPay · Journal' },
+  { id:'ai_center',   label:'Intelligence IA', icon:'🧠',
+    file:'AI_CENTER_EMBEDDED.html',   desc:'Agents IA · Rapports · Recommandations' },
+  /* PROMPT 019 — Coffre Documentaire Minimal */
+  { id:'documents',   label:'Documents',      icon:'🗂️',
+    file:'DOCUMENTS_EMBEDDED.html',   desc:'Coffre · Métadonnées · Échéances · Juridique' },
+  /* PROMPT 030 — Messagerie Opérationnelle Interne */
+  { id:'messages',    label:'Messages',       icon:'💬',
+    file:'MESSAGES_EMBEDDED.html',    desc:'Messagerie interne · Commandes · Chloé · Brouillons' },
 ];
+
+/* ══════════════════════════════════════════════════════════════════
+   PLATEFORME MULTI-RÉSIDENCE — PROMPT 021
+   Chaque résidence (tenant) a son propre profil, modules et agent IA.
+   Tenant par défaut : VERALUZ Kribi (veraluz-001).
+   Toutes les fonctions sont en failsafe : si la table n'est pas encore
+   chargée, isModuleEnabled() retourne true (tous modules actifs).
+   ══════════════════════════════════════════════════════════════════ */
+
+var TENANT_ID      = 'veraluz-001';
+var _TENANT = {
+  id:             'veraluz-001',
+  name:           'Résidences Veraluz Kribi',
+  slug:           'veraluz',
+  legal_name:     'Résidences Veraluz',
+  city:           'Kribi',
+  country:        'Cameroun',
+  currency:       'XAF',
+  timezone:       'Africa/Douala',
+  primary_color:  null,
+  secondary_color:null,
+  accent_color:   null,
+  theme_mode:     'dark',
+  contact_phone:  '',
+  whatsapp_number:'',
+  email:          '',
+  logo_url:       ''
+};
+var _TENANT_MODULES = {}; /* { module_key: boolean } */
+var _TENANT_LOADED  = false; /* false = failsafe (tous modules actifs) */
+
+/* ── getCurrentTenant ─────────────────────────────────────────────── */
+function getCurrentTenant() { return _TENANT; }
+
+/* ── loadTenantSettings ───────────────────────────────────────────── */
+function loadTenantSettings() {
+  return sbGet('/rest/v1/veraluz_tenants?select=*&slug=eq.veraluz&limit=1')
+    .then(function(rows) {
+      if (!Array.isArray(rows) || !rows.length) return;
+      Object.assign(_TENANT, rows[0]);
+      TENANT_ID = _TENANT.id || TENANT_ID;
+      applyTenantBranding();
+      console.info('[Tenant] Profil chargé :', _TENANT.name);
+    })
+    .catch(function(e) { console.warn('[Tenant] loadTenantSettings — fallback silencieux', e); });
+}
+
+/* ── loadTenantModules ────────────────────────────────────────────── */
+function loadTenantModules() {
+  return sbGet('/rest/v1/veraluz_tenant_modules?select=module_key,is_enabled&tenant_id=eq.'
+      + encodeURIComponent(TENANT_ID) + '&limit=50')
+    .then(function(rows) {
+      if (!Array.isArray(rows) || !rows.length) return;
+      rows.forEach(function(r) {
+        _TENANT_MODULES[r.module_key] = (r.is_enabled === true || r.is_enabled === 'true');
+      });
+      _TENANT_LOADED = true;
+      console.info('[Tenant] Modules chargés :', Object.keys(_TENANT_MODULES).length,
+        '| messages=', _TENANT_MODULES['messages']);
+      /* PROMPT 031C — reconstruire la nav avec les modules tenant corrects */
+      try { renderSidebar(); } catch(e2){}
+    })
+    .catch(function(e) {
+      console.warn('[Tenant] loadTenantModules — failsafe (tous actifs)', e);
+      /* En failsafe : forcer rebuild pour s assurer que messages est visible */
+      try { renderSidebar(); } catch(e2){}
+    });
+}
+
+/* ── isModuleEnabled ──────────────────────────────────────────────── */
+function isModuleEnabled(moduleKey) {
+  if (!_TENANT_LOADED || !moduleKey) return true;
+  return _TENANT_MODULES[moduleKey] !== false;
+}
+
+/* ── applyTenantBranding ──────────────────────────────────────────── */
+function applyTenantBranding() {
+  var t = _TENANT;
+  if (t.primary_color)   document.documentElement.style.setProperty('--accent', t.primary_color);
+  if (t.secondary_color) document.documentElement.style.setProperty('--acc2', t.secondary_color);
+  if (t.accent_color)    document.documentElement.style.setProperty('--acc3', t.accent_color);
+  var nameEl = document.getElementById('sb-hotel-name');
+  if (nameEl && t.name) nameEl.textContent = t.name.replace(/^Résidences\s+/i,'');
+  var subEl = document.querySelector('.sb-logo-sub');
+  if (subEl && (t.city||t.country))
+    subEl.textContent = [t.city,t.country].filter(Boolean).join(' · ');
+  if (t.logo_url && !localStorage.getItem('vz_logo_url')) {
+    var li=document.getElementById('sb-logo-img');
+    var le=document.getElementById('sb-logo-emoji');
+    if (li){ li.src=t.logo_url; li.style.display='block'; }
+    if (le) le.style.display='none';
+  }
+  if (t.name) document.title = t.name + ' — OS';
+}
+
+/* ── renderNavigationByModules ────────────────────────────────────── */
+function renderNavigationByModules() {
+  if (!_TENANT_LOADED) { buildNav(); return; }
+  var saved = MODULES.slice();
+  MODULES = MODULES.filter(function(m){ return isModuleEnabled(m.id); });
+  buildNav();
+  MODULES = saved;
+}
+
+/* ── guardModuleAccess ────────────────────────────────────────────── */
+function guardModuleAccess(moduleKey) {
+  if (isModuleEnabled(moduleKey)) return true;
+  showCoreToast('Module « '+moduleKey+' » non activé pour cette résidence.','err');
+  return false;
+}
 
 /* ── Monochrome SVG icons for sidebar ─────────────────────────────── */
 var SVG_ICONS = {
@@ -472,7 +1275,10 @@ var SVG_ICONS = {
   pointage:      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
   notif_bell:    '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>',
   logout:        '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
-  refresh:       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>'
+  refresh:       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>',
+  ai_center:     '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 014 4v1h1a3 3 0 013 3v6a3 3 0 01-3 3H7a3 3 0 01-3-3v-6a3 3 0 013-3h1V6a4 4 0 014-4z"/><circle cx="9" cy="13" r="1.5" fill="currentColor" stroke="none"/><circle cx="15" cy="13" r="1.5" fill="currentColor" stroke="none"/><path d="M9 17c1 1 5 1 6 0"/></svg>',
+  /* PROMPT 030 */
+  messages:      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>'
 };
 
 
@@ -495,7 +1301,16 @@ function goTo(pageId) {
     showDashView();
     return;
   }
+  /* PROMPT 008A — Espace Employé */
+  if (pageId === 'employee_home') {
+    currentModule = null;
+    setTopbar('👤 Mon espace','Espace personnel employé');
+    showView('employee-home');
+    if (currentUser && currentUser.employee_id) { renderEmployeeHome(currentUser); }
+    return;
+  }
   if (!mod) return;
+  if (!guardModuleAccess(pageId)) return;
   currentModule = mod;
   setTopbar(mod.icon+' '+mod.label, mod.desc||'');
   loadModuleFrame(mod);
@@ -530,7 +1345,20 @@ function loadModuleFrame(mod) {
       document.getElementById('mod-error').classList.add('show');
     };
     loadTimer = setTimeout(onReady, 8000);
-    iframe.src = mod.file + "?v=" + Date.now();
+    /* Bypass GitHub Pages CDN cache — fetch with cache:'no-store' forces
+       Fastly to pass through to origin, returning the latest committed file */
+    fetch(mod.file + '?nc=' + Date.now(), {cache: 'no-store'})
+      .then(function(r){ return r.text(); })
+      .then(function(html){
+        var base = window.location.origin + window.location.pathname.replace(/[^\/]*$/, '');
+        if(html.indexOf('<base ') === -1){
+          html = html.replace('<head>', '<head>\n  <base href="' + base + '">');
+        }
+        iframe.srcdoc = html;
+      })
+      .catch(function(){
+        iframe.src = mod.file + '?v=' + Date.now();
+      });
   }, 80);
 }
 
@@ -573,9 +1401,33 @@ function buildNav(){
   var grid     = document.getElementById('dash-grid');
   sbMods.innerHTML = bnMods.innerHTML = sbComing.innerHTML = grid.innerHTML = '';
 
+  /* PROMPT 016A — DEV logs visibilité ai_center */
+  if (currentUser && currentUser.dev_mode) {
+    console.log('[VERALUZ DEV] allowed_modules', currentUser.allowed_modules);
+    console.log('[VERALUZ DEV] ai_center dans allowed_modules?',
+      currentUser.allowed_modules ? currentUser.allowed_modules.indexOf('ai_center') >= 0 : 'N/A');
+    console.log('[VERALUZ DEV] ROLES[role].modules contient ai_center?',
+      ROLES[currentUser.role] ? ROLES[currentUser.role].modules.indexOf('ai_center') >= 0 : 'N/A');
+  }
+
   var visibleModules = (currentUser && ROLES[currentUser.role])
-    ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0; })
-    : MODULES;
+    ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0 && isModuleEnabled(m.id); })
+    : MODULES.filter(function(m){ return isModuleEnabled(m.id); });
+
+  /* PROMPT 008A — Mon espace pour les employés */
+  if (currentUser && currentUser.employee_id) {
+    var sbE=document.createElement('button'); sbE.className='sb-btn'; sbE.id='nav-employee_home';
+    sbE.innerHTML='<span class="sb-icon">👤</span> Mon espace';
+    sbE.onclick=function(){ goTo('employee_home'); }; sbMods.appendChild(sbE);
+    var bnE=document.createElement('button'); bnE.className='bn-btn'; bnE.id='bn-employee_home';
+    bnE.innerHTML='<span class="bn-icon">👤</span><span class="bn-label">Mon espace</span>';
+    bnE.onclick=function(){ goTo('employee_home'); }; bnMods.appendChild(bnE);
+    var empCard=document.createElement('button'); empCard.className='mod-card';
+    empCard.innerHTML='<div class="mod-icon">👤</div><div class="mod-name">Mon espace</div>'
+      +'<div class="mod-desc">Profil · Pointage · Tâches</div><span class="mod-badge">Personnel</span>';
+    empCard.onclick=function(){ goTo('employee_home'); };
+    grid.insertBefore(empCard,grid.firstChild);
+  }
 
   visibleModules.forEach(function(m){
     var sb = document.createElement('button');
@@ -591,7 +1443,7 @@ function buildNav(){
     bnMods.appendChild(bn);
 
     var card = document.createElement('button');
-    card.className='mod-card';
+    card.className='mod-card'; card.dataset.module=m.id;
     card.innerHTML='<div class="mod-icon">'+m.icon+'</div>'
       +'<div class="mod-name">'+m.label+'</div>'
       +'<div class="mod-desc">'+m.desc+'</div>'
@@ -634,6 +1486,32 @@ function loadDashboardData(){
     document.getElementById('st-pay').textContent   = pending.length;
     document.getElementById('st-units').textContent = avail.length;
     document.getElementById('st-rev').textContent   = rev.toLocaleString('fr-FR');
+
+    /* ── Veraluz Theme Charts — PROMPT 036 ────────────────────── */
+    /* Taux occupation */
+    var totalUnits = units.length || 0;
+    var occRate = totalUnits > 0 ? Math.round((active.length / totalUnits) * 100) : 0;
+    var occFill = document.getElementById('vl-occ-fill');
+    var occPct  = document.getElementById('vl-occ-pct');
+    var occSub  = document.getElementById('vl-occ-sub');
+    if(occPct) occPct.textContent = occRate + '%';
+    if(occSub) occSub.textContent = active.length + ' / ' + totalUnits + ' unités occupées';
+    if(occFill){ setTimeout(function(){ occFill.style.width = occRate + '%'; }, 250); }
+    /* Donut paiements */
+    var payVal  = pays.filter(function(x){ return x.status === 'validated'; }).length;
+    var payAll  = pays.length || 1;
+    var arc     = document.getElementById('vl-pay-arc');
+    var payOkEl = document.getElementById('vl-pay-ok');
+    var payPdEl = document.getElementById('vl-pay-pend');
+    if(arc){
+      var perim = 2 * Math.PI * 30; /* ≈ 188.5 */
+      var dashLen = (payVal / payAll) * perim;
+      arc.setAttribute('stroke-dasharray', dashLen.toFixed(1) + ' ' + perim.toFixed(1));
+    }
+    if(payOkEl)  payOkEl.textContent  = payVal + ' validé' + (payVal > 1 ? 's' : '');
+    if(payPdEl)  payPdEl.textContent  = pending.length + ' paiement' + (pending.length !== 1 ? 's' : '');
+    /* ────────────────────────────────────────────────────────── */
+
     var list = document.getElementById('recent-list');
     if(!rezs.length){
       list.innerHTML='<div class="rec-item"><div class="rec-dot i"></div><div class="rec-text">Aucune réservation</div></div>';
@@ -642,9 +1520,10 @@ function loadDashboardData(){
     list.innerHTML=rezs.slice(0,5).map(function(r){
       var dot=r.status==='checkedin'?'ok':r.status==='confirmed'?'i':'w';
       var lbl={checkedin:'En séjour',confirmed:'Confirmée',checkedout:'Départ',cancelled:'Annulée'}[r.status]||r.status;
+      // SECURITY: r.client_name, r.unit_id viennent de Supabase — échappés avec escapeHtml()
       return '<div class="rec-item">'
         +'<div class="rec-dot '+dot+'"></div>'
-        +'<div class="rec-text"><strong>'+(r.client_name||'—')+'</strong> — Unité '+(r.unit_id||'—')+' · '+lbl+'</div>'
+        +'<div class="rec-text"><strong>'+escapeHtml(r.client_name||'—')+'</strong> — Unité '+escapeHtml(String(r.unit_id||'—'))+' · '+lbl+'</div>'
         +'<div class="rec-time">'+(r.check_in||'')+'</div>'
         +'</div>';
     }).join('');
@@ -666,17 +1545,37 @@ function initGreeting(){
 }
 
 /* ── Sidebar mobile ───────────────────────────────────────── */
+/* PROMPT 029 : sidebar drawer via classList */
 function toggleMobileSidebar(){
   var sb=document.getElementById('sidebar');
-  var ov=document.getElementById('sb-ov');
-  if(ov.style.display==='block'){ closeMobileSidebar(); return; }
-  sb.style.cssText='display:flex!important;position:fixed;top:0;left:0;bottom:0;z-index:210;width:260px;box-shadow:4px 0 20px rgba(0,0,0,.5);';
-  ov.style.display='block';
+  if(sb.classList.contains('mobile-open')) closeMobileSidebar();
+  else openMobileSidebar();
+}
+function openMobileSidebar(){
+  document.getElementById('sidebar').classList.add('mobile-open');
+  document.getElementById('sb-ov').classList.add('active');
+  document.body.style.overflow='hidden';
 }
 function closeMobileSidebar(){
-  document.getElementById('sidebar').style.cssText='';
-  document.getElementById('sb-ov').style.display='none';
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sb-ov').classList.remove('active');
+  document.body.style.overflow='';
 }
+
+/* PROMPT 029 */
+var OS_BUILD = 'v031d-message-rights-2026-06-28';
+/* Afficher build version */
+setTimeout(function(){
+  var el=document.getElementById('build-ver');
+/* PROMPT 029 : afficher bouton PWA après 2s */
+setTimeout(function(){
+  var pw=document.getElementById('pwa-refresh-wrap');
+  if(pw)pw.style.display='block';
+},2000);
+  if(el)el.textContent=OS_BUILD;
+  var el2=document.getElementById('sb-build');
+  if(el2)el2.textContent=OS_BUILD;
+},500);
 
 /* ================================================================
    INIT — DOMContentLoaded
@@ -692,113 +1591,148 @@ var SUPA_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
 /* ── Role mapping: Supabase role → Core role ──────────────────────── */
+/* PROMPT 008A Mission 4 — ROLE_MAP étendu */
 var ROLE_MAP = {
-  gerant:         'superadmin',
-  directeur:      'superadmin',
-  manager:        'manager',
-  superviseur:    'manager',
-  receptionniste: 'reception',
-  agent_accueil:  'reception',
-  comptable:      'comptable',
-  financier:      'comptable',
-  barman:         'restaurant',
-  cuisinier:      'restaurant',
-  serveur:        'restaurant',
-  femme_chambre:  'housekeeping',
-  agent_menage:   'housekeeping',
-  technicien:     'housekeeping',
-  agent_securite: 'housekeeping',
-  rh:             'rh',
-  admin:          'superadmin'
+  /* Admin */
+  gerant:'superadmin',directeur:'superadmin',admin:'superadmin',
+  administrateur:'superadmin',superadmin:'superadmin',
+  proprietaire:'superadmin',owner:'superadmin',
+  /* Manager */
+  manager:'manager',superviseur:'manager',chef_equipe:'manager',
+  /* Réception */
+  receptionniste:'reception',agent_accueil:'reception',reception:'reception',
+  receptioniste:'reception',
+  /* Comptabilité */
+  comptable:'accountant',financier:'accountant',finance:'accountant',
+  accountant:'accountant',
+  /* RH */
+  rh:'rh',ressources_humaines:'rh',hr:'rh',
+  /* Restaurant/Bar */
+  barman:'restaurant',serveur:'restaurant',restaurant:'restaurant',waiter:'restaurant',
+  /* Cuisine */
+  cuisinier:'kitchen',chef:'kitchen',kitchen:'kitchen',
+  aide_cuisine:'kitchen',cook:'kitchen',cuisine:'kitchen',
+  /* Housekeeping */
+  femme_chambre:'housekeeping',agent_menage:'housekeeping',
+  housekeeping:'housekeeping',menage:'housekeeping',
+  cleaner:'housekeeping',housekeeper:'housekeeping',
+  /* Maintenance */
+  technicien:'maintenance',maintenance:'maintenance',
+  plombier:'maintenance',electricien:'maintenance',
+  agent_securite:'maintenance',
+  /* Livraison */
+  livreur:'delivery',coursier:'delivery',driver:'delivery',
+  delivery:'delivery',chauffeur:'delivery',
+  /* Staff général */
+  staff:'staff',agent:'staff',employe:'staff'
 };
 
+/* PROMPT 008A Mission 5 — ROLES étendus */
 var ROLES = {
-  superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'rh',
+  superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
-             'notifications','analytics','audit','settings','eventbus','auth','contacts','appro','integrations'] },
-  manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'rh',
+             'notifications','analytics','audit','settings','eventbus','auth','contacts','appro','integrations','ai_center',
+             'documents','messages'] /* PROMPT 019+030 */ },
+  manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
-             'notifications','analytics','auth','contacts','appro','integrations'] },
-  reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981', primaryModule:'reservations',
-    modules:['reservations','paiements','notifications','rh','contacts'] },
-  rh:          { label:'RH',               icon:'👥',  color:'#f59e0b', primaryModule:'rh',
-    modules:['rh','notifications','analytics'] },
-  comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'finance',
-    modules:['finance','paiements','analytics','audit','notifications'] },
-  restaurant:  { label:'Restaurant',       icon:'🍽️',  color:'#f97316', primaryModule:'restaurant',
-    modules:['restaurant','notifications','rh'] },
-  housekeeping:{ label:'Housekeeping',     icon:'🧹',  color:'#84cc16', primaryModule:'housekeeping',
-    modules:['housekeeping','notifications','rh'] }
+             'notifications','analytics','contacts','appro','ai_center',
+             'documents','messages'] /* PROMPT 019+030 */ },
+  reception:   { label:'Réception',        icon:'🛎️',  color:'#10b981', primaryModule:'employee_home',
+    modules:['reservations','paiements','notifications','contacts','housekeeping','messages'] },
+  rh:          { label:'RH',               icon:'👥',  color:'#f59e0b', primaryModule:'employee_home',
+    modules:['rh','notifications','analytics','documents','messages'] /* PROMPT 019+030 */ },
+  accountant:  { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'employee_home',
+    modules:['finance','paiements','analytics','documents','messages'] /* PROMPT 019+030 */ },
+  comptable:   { label:'Comptable',        icon:'📊',  color:'#06b6d4', primaryModule:'employee_home',
+    modules:['finance','paiements','analytics','documents','messages'] /* PROMPT 019+030 */ },
+  restaurant:  { label:'Restaurant',       icon:'🍽️',  color:'#f97316', primaryModule:'employee_home',
+    modules:['restaurant','messages'] },
+  kitchen:     { label:'Cuisine',          icon:'🍳',  color:'#ec4899', primaryModule:'employee_home',
+    modules:['restaurant','messages'] },
+  housekeeping:{ label:'Housekeeping',     icon:'🧹',  color:'#84cc16', primaryModule:'employee_home',
+    modules:['housekeeping','messages'] },
+  maintenance: { label:'Maintenance',      icon:'🔧',  color:'#6366f1', primaryModule:'employee_home',
+    modules:['housekeeping','messages'] },
+  delivery:    { label:'Livreur',          icon:'🛵',  color:'#f59e0b', primaryModule:'employee_home',
+    modules:['messages'] },
+  staff:       { label:'Staff',            icon:'👤',  color:'#64748b', primaryModule:'employee_home',
+    modules:[] }
 };
 
-/* ── Admin fallback users (accès admin uniquement) ─────────────────── */
-var DEFAULT_USERS = [
-  { username:'admin',   password:'admin123',   role:'superadmin', name:'Administrateur', active:true },
-  { username:'manager', password:'manager123', role:'manager',    name:'Manager',        active:true }
-];
+/* ── Admin fallback users — SUPPRIMÉ PROMPT 010 ─────────────────────── */
+/* PROMPT 010 : DEFAULT_USERS retirés — toute authentification admin
+   passe désormais exclusivement par l'Edge Function verify-admin-login (bcrypt).
+   La procédure de récupération propriétaire est documentée dans RAPPORT_PROMPT_010.md */
+var DEFAULT_USERS = []; /* vide — ne jamais remettre d'identifiants en clair ici */
 
 /* ── Employee cache ─────────────────────────────────────────────────── */
 var _empCache = [];
 
-function getEmployeesFromSupabase(cb) {
+/* PROMPT 008A — chargement employés avec gestion d'erreur distincte */
+function getEmployeesFromSupabase(cb, onErr) {
   var cached = localStorage.getItem('vlz_emp_login_cache');
   if (cached) {
     try {
       var data = JSON.parse(cached);
-      // Cache valide 5 min ET doit contenir au moins 1 employé
-      if (data.ts && (Date.now() - data.ts) < 5 * 60 * 1000 &&
+      if (data.ts && (Date.now()-data.ts) < 5*60*1000 &&
           Array.isArray(data.employees) && data.employees.length > 0) {
-        _empCache = data.employees;
-        if (cb) cb(_empCache);
-        return;
+        _empCache = data.employees; if (cb) cb(_empCache); return;
       }
     } catch(e) {}
   }
-  fetch(SUPA_URL + '/rest/v1/veraluz_employees?select=id,full_name,role,pin_code,status&status=eq.actif&order=full_name.asc', {
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+  /* PROMPT 009 — vue publique veraluz_employees_public : exclut pin_code, salaire, contrat */
+  fetch(SUPA_URL+'/rest/v1/veraluz_employees_public?select=id,full_name,role,status,team_id,team_name,phone,email,hire_date&order=full_name.asc', {
+    headers: { apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY }
   })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    _empCache = Array.isArray(data) ? data : [];
-    localStorage.setItem('vlz_emp_login_cache', JSON.stringify({ ts: Date.now(), employees: _empCache }));
+  .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  .then(function(data){
+    if (!Array.isArray(data)) {
+      var msg = data && data.message ? data.message : 'Réponse Supabase invalide';
+      if (onErr) onErr('Erreur Supabase : '+msg); else if (cb) cb([]); return;
+    }
+    /* PROMPT 008B — sanitizer avant cache : pin_code jamais stocké */
+    _empCache = data.map(sanitizeEmployeeForClient);
+    if (_empCache.length > 0)
+      localStorage.setItem('vlz_emp_login_cache', JSON.stringify({ts:Date.now(),employees:_empCache}));
     if (cb) cb(_empCache);
   })
-  .catch(function() {
-    _empCache = [];
-    if (cb) cb([]);
+  .catch(function(e){
+    console.warn('[Auth] Erreur réseau employés:',e);
+    if (onErr) onErr('Erreur réseau : impossible de charger les employés.');
+    else if (cb) cb([]);
   });
 }
 
 var currentUser = null;
 
 function getUsers() {
-  /* Always keep DEFAULT_USERS (admin) accessible even if AUTH module
-     overwrites veraluz_users_v1 with a different employee list */
-  var base = DEFAULT_USERS.slice(); // guaranteed admin entry
+  /* PROMPT 010 : DEFAULT_USERS supprimés — toute auth admin via Edge Function.
+     Cette fonction est conservée pour compatibilité avec le code legacy
+     mais ne retourne plus d'identifiants en clair. */
   try {
     var stored = localStorage.getItem('veraluz_users_v1');
     if (stored) {
       var parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        /* Merge: add stored entries that are NOT already in base */
-        parsed.forEach(function(u) {
-          var exists = base.some(function(b){ return b.username === u.username; });
-          if (!exists) base.push(u);
-        });
-      }
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch(e){}
-  return base;
+  return [];
 }
 
 /* PIN input state */
+/* PROMPT 020C — _pinMax passe à 6 (anciens PIN 4 chiffres tolérés pour migration) */
 var _pinBuffer = '';
-var _pinMax = 4;
+var _pinMax = 6;
+
+/* PROMPT 020C — alias manquant : HTML appelle pinKey(), JS définissait pinPress() */
+function pinKey(d) { pinPress(d); }
 
 function pinPress(d) {
   if (_pinBuffer.length >= _pinMax) return;
   _pinBuffer += d;
   updatePinDisplay();
+  updatePinHint();
+  /* PROMPT 020C — auto-submit uniquement à 6 chiffres (pas à 4, l'utilisateur peut continuer) */
   if (_pinBuffer.length === _pinMax) {
     setTimeout(doLoginPin, 200);
   }
@@ -806,41 +1740,80 @@ function pinPress(d) {
 function pinDel() {
   _pinBuffer = _pinBuffer.slice(0, -1);
   updatePinDisplay();
+  updatePinHint();
 }
 function updatePinDisplay() {
-  for (var i = 0; i < _pinMax; i++) {
+  /* PROMPT 020C — boucle toujours sur 6 dots (pas _pinMax) */
+  for (var i = 0; i < 6; i++) {
     var dot = document.getElementById('pin-dot-' + i);
     if (dot) dot.className = 'auth-pin-dot' + (i < _pinBuffer.length ? ' filled' : '');
   }
 }
+/* PROMPT 020C — message d'aide contextuel selon longueur saisie */
+function updatePinHint() {
+  var hint = document.getElementById('pin-hint');
+  if (!hint) return;
+  var len = _pinBuffer.length;
+  if (len === 0) { hint.textContent = ''; hint.className = 'auth-pin-hint'; return; }
+  if (len < 4)  { hint.textContent = 'Veuillez saisir au moins 4 chiffres.'; hint.className = 'auth-pin-hint warn'; return; }
+  if (len === 4){ hint.textContent = 'Appuyez sur « Se connecter » ou continuez pour un PIN à 6 chiffres.'; hint.className = 'auth-pin-hint info'; return; }
+  if (len === 5){ hint.textContent = 'PIN incomplet — saisissez le 6ᵉ chiffre ou ⌫ pour revenir à 4.'; hint.className = 'auth-pin-hint warn'; return; }
+  hint.textContent = 'PIN à 6 chiffres saisi.'; hint.className = 'auth-pin-hint ok';
+}
 
+/* PROMPT 008A — showAuthOverlay avec messages d'erreur distincts */
+/* PROMPT 010C — Bouton DEV MODE + erreur réseau non-bloquante en mode développement */
 function showAuthOverlay() {
   _pinBuffer = '';
   updatePinDisplay();
   var ov = document.getElementById('auth-overlay');
   if (ov) ov.classList.remove('hidden');
-  // Afficher un état de chargement pendant la requête Supabase
+  var errEl = document.getElementById('auth-error');
+  if (errEl) errEl.classList.remove('show');
   var sel = document.getElementById('auth-emp-select');
   if (sel) sel.innerHTML = '<option value="">⏳ Chargement des employés...</option>';
-  // Charger la liste des employés actifs depuis Supabase
-  getEmployeesFromSupabase(function(emps) {
-    var sel2 = document.getElementById('auth-emp-select');
-    if (!sel2) return;
+
+  /* PROMPT 010C — Afficher bouton DEV si mode développement */
+  var devWrap = document.getElementById('dev-mode-btn-wrap');
+  if (devWrap) devWrap.style.display = (VERALUZ_AUTH_MODE === 'development') ? 'block' : 'none';
+
+  function onOk(emps) {
+    var s = document.getElementById('auth-emp-select'); if (!s) return;
     if (!emps || emps.length === 0) {
-      sel2.innerHTML = '<option value="">⚠ Aucun employé trouvé</option>';
+      s.innerHTML = '<option value="">⚠ Aucun employé actif — vérifiez le module RH</option>';
       return;
     }
-    sel2.innerHTML = '<option value="">— Sélectionnez votre nom —</option>';
+    s.innerHTML = '<option value="">— Sélectionnez votre nom —</option>';
     emps.forEach(function(e) {
       var opt = document.createElement('option');
       opt.value = e.id;
-      opt.setAttribute('data-pin',  e.pin_code  || '1234');
-      opt.setAttribute('data-role', e.role      || 'femme_chambre');
-      opt.setAttribute('data-name', e.full_name || '');
-      opt.textContent = e.full_name || e.id;
-      sel2.appendChild(opt);
+      /* PROMPT 008B — data-pin supprimé : PIN jamais dans le DOM */
+      opt.setAttribute('data-role', e.role      || 'staff');
+      /* Normaliser le nom : full_name → name → prenom+nom → ID court */
+      var nm = e.full_name || e.name ||
+               ((e.prenom||e.first_name||'')+' '+(e.nom||e.last_name||'')).trim() ||
+               'Employe #'+String(e.id).slice(-6);
+      opt.setAttribute('data-name',  nm);
+      opt.setAttribute('data-email', e.email    || '');
+      opt.setAttribute('data-team',  e.team_id  || '');
+      opt.textContent = nm;
+      s.appendChild(opt);
     });
-  });
+  }
+
+  function onNetErr(msg) {
+    var s = document.getElementById('auth-emp-select');
+    if (s) s.innerHTML = '<option value="">⚠ Erreur réseau — vérifiez Supabase / connexion</option>';
+    /* PROMPT 010C Mission 4 — En mode développement : ne pas bloquer l'accès sur erreur réseau */
+    if (VERALUZ_AUTH_MODE === 'development') {
+      /* En dev, l'erreur réseau est un avertissement non-bloquant (bouton DEV reste disponible) */
+      if (errEl) { errEl.textContent = '⚠ Connexion Supabase non disponible — utilisez le bouton Développement ci-dessus.'; errEl.classList.add('show'); }
+      return;
+    }
+    if (errEl) { errEl.textContent = msg || 'Erreur réseau : impossible de charger les employés.'; errEl.classList.add('show'); }
+  }
+
+  getEmployeesFromSupabase(onOk, onNetErr);
 }
 
 function checkAuth() {
@@ -852,16 +1825,26 @@ function checkAuth() {
       localStorage.removeItem('veraluz_auth_v1');
       showAuthOverlay(); return;
     }
-    currentUser = { username: session.username, name: session.name, role: session.role,
-                    employee_id: session.employee_id || null };
+    var rc = ROLES[session.role] || {};
+    currentUser = {
+      username:        session.username,
+      name:            session.name,
+      role:            session.role,
+      employee_id:     session.employee_id || null,
+      allowed_modules: session.allowed_modules || rc.modules || []
+    };
     if (!currentUser.name || !currentUser.role) { showAuthOverlay(); return; }
     hideAuthOverlay();
     updateTopbarUser();
     buildNav();
     initGreeting();
     loadDashboardData();
-    // Auto-navigate to primary module for employee roles
-    if (session.primaryModule) {
+    /* PROMPT 010C — Restaurer le bandeau DEV si session dev_mode */
+    if (session.dev_mode) { showDevBanner(); }
+    /* PROMPT 008A — Espace Employé d'abord pour les employés */
+    if (currentUser.employee_id) {
+      setTimeout(function() { goTo('employee_home'); }, 400);
+    } else if (session.primaryModule && session.primaryModule !== 'employee_home') {
       setTimeout(function() { navigateTo(session.primaryModule); }, 500);
     }
   } catch(e) {
@@ -884,41 +1867,123 @@ function doLoginPin() {
   var empId   = sel.value;
   var selOpt  = sel.options[sel.selectedIndex];
   var empName = selOpt.getAttribute('data-name') || selOpt.textContent;
-  var empRole = selOpt.getAttribute('data-role') || 'femme_chambre';
-  var empPin  = selOpt.getAttribute('data-pin')  || '1234';
+  /* PROMPT 008B — empRole lu uniquement pour affichage avant validation serveur */
+  /* data-pin supprimé — comparaison PIN JAMAIS côté client */
 
-  if (_pinBuffer !== empPin) {
-    errEl.textContent = 'NIP incorrect. Réessayez.';
+  /* PROMPT 020C — guards 4/5/6 chiffres */
+  if (_pinBuffer.length < 4) {
+    errEl.textContent = 'Veuillez saisir au moins 4 chiffres.';
     errEl.classList.add('show');
-    _pinBuffer = ''; updatePinDisplay();
+    return;
+  }
+  if (_pinBuffer.length === 5) {
+    errEl.textContent = 'PIN incomplet — saisissez le 6ᵉ chiffre ou ⌫ pour revenir à 4 chiffres.';
+    errEl.classList.add('show');
+    return;
+  }
+  if (_pinBuffer.length !== 4 && _pinBuffer.length !== 6) {
+    errEl.textContent = 'PIN invalide.';
+    errEl.classList.add('show');
     return;
   }
 
-  // Map Supabase role to Core role
-  var coreRole = ROLE_MAP[empRole] || 'housekeeping';
-  var roleConf = ROLES[coreRole] || ROLES['housekeeping'];
-  var primaryModule = roleConf.primaryModule || 'housekeeping';
+  /* Désactiver le bouton pendant la vérification */
+  var btnLogin = document.querySelector('.auth-btn');
+  if (btnLogin) { btnLogin.disabled = true; btnLogin.textContent = '⏳ Vérification...'; }
 
-  var expires = Date.now() + 8 * 60 * 60 * 1000; // 8h session
-  var session = {
-    username: empId, name: empName, role: coreRole,
-    employee_id: empId, primaryModule: primaryModule,
-    loginAt: Date.now(), expires: expires
-  };
-  localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
-  logAuthEvent('pin-login', empName, coreRole);
+  /* PROMPT 008B Mission 6 — vérification PIN côté serveur (Edge Function) */
+  verifyEmployeePin(empId, _pinBuffer)
+  .then(function(result) {
+    if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = '\u2705 Se connecter'; }
+    _pinBuffer = ''; updatePinDisplay();
 
-  currentUser = { username: empId, name: empName, role: coreRole, employee_id: empId };
-  hideAuthOverlay();
-  updateTopbarUser();
-  buildNav();
-  initGreeting();
-  loadDashboardData();
-  // Navigate to their primary module
-  setTimeout(function() { navigateTo(primaryModule); }, 400);
+    if (!result.ok) {
+      var errCode = result.error || '';
+      var msg = (errCode === 'network')
+        ? 'Service d\'authentification indisponible. Vérifiez la connexion.'
+        : (errCode === 'invalid_credentials' || errCode === 'invalid_json'
+           || errCode === 'missing_fields')
+          ? 'NIP incorrect ou accès refusé.'
+          : (errCode === 'too_many_attempts')
+          ? 'Trop de tentatives — réessayez dans 15 min.'
+          : (errCode === 'pin_expired')
+          ? 'PIN temporaire expiré. Contactez votre responsable.'
+          : (errCode === 'pin_disabled')
+          ? 'Votre accès PIN est désactivé. Contactez votre responsable.'
+          : (errCode === 'employee_inactive')
+          ? 'Ce compte employé est inactif.'
+          : (result.error || 'Erreur d\'authentification.');
+      errEl.textContent = msg;
+      errEl.classList.add('show');
+      return;
+    }
+
+    /* Succès — construire session depuis réponse serveur (sans données sensibles) */
+    var emp = result.employee;
+    var empName2 = emp.full_name || emp.employee_name || empName || 'Employé';
+    var coreRole = emp.role || 'staff';
+    var allowedMods = emp.allowed_modules || getAllowedModules(coreRole);
+    var expires = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
+
+    /* PROMPT 010 — si must_change_pin : afficher la vue de changement PIN avant connexion */
+    if (result.must_change_pin) {
+      _pinBuffer = ''; updatePinDisplay();
+      showChangePinView(empId, empName2, coreRole, allowedMods, expires);
+      return;
+    }
+
+    /* PIN JAMAIS stocké — session 12h issue du serveur */
+    var session = {
+      username:        empId,
+      name:            empName2,
+      role:            coreRole,
+      employee_id:     empId,
+      allowed_modules: allowedMods,
+      primaryModule:   'employee_home',
+      loginAt:         Date.now(),
+      expires:         expires
+    };
+    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    logAuthEvent('pin-login', empName2, coreRole);
+
+    currentUser = { username:empId, name:empName2, role:coreRole,
+                    employee_id:empId, allowed_modules:allowedMods };
+    hideAuthOverlay();
+    updateTopbarUser();
+    buildNav();
+    initGreeting();
+    loadDashboardData();
+    /* Espace Employé en premier */
+    setTimeout(function() { goTo('employee_home'); }, 300);
+  });
 }
 
 /* ── Admin Login (email + password) ──────────────────────────────── */
+/* PROMPT 009 Mission 9 — Vérification admin via Edge Function (bcrypt hash)
+   RÈGLE : jamais comparer mot de passe en clair côté client.
+   Fallback local conservé pour compatibilité terrain (PROMPT 010 : supprimer). */
+function verifyAdminLogin(username, password, rememberMe) {
+  return fetch(EDGE_VERIFY_ADMIN_URL, {
+    method: 'POST',
+    mode: 'cors',
+    credentials: 'omit',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY
+    },
+    body: JSON.stringify({ username: username, password: password, rememberMe: !!rememberMe })
+  })
+  .then(function(r) {
+    if (r.status === 200 || r.status === 401 || r.status === 429) return r.json();
+    throw new Error('HTTP_' + r.status);
+  })
+  .catch(function(e) {
+    console.warn('[verify-admin] Erreur réseau — fallback local activé:', e.message);
+    return { ok: false, error: 'network' };
+  });
+}
+
 function doLogin() {
   var username = (document.getElementById('auth-username').value || '').trim();
   var password = (document.getElementById('auth-password').value || '').trim();
@@ -931,37 +1996,807 @@ function doLogin() {
     errEl.classList.add('show'); return;
   }
 
-  var users = getUsers();
-  var user  = users.find(function(u){
-    return u.username === username && u.password === password && u.active !== false;
-  });
+  /* Désactiver le bouton pendant la vérification */
+  var btnLogin = document.querySelector('.auth-login-btn');
+  if (!btnLogin) btnLogin = document.querySelector('button[onclick*="doLogin"]');
+  if (btnLogin) { btnLogin.disabled = true; btnLogin.textContent = '⏳ Vérification…'; }
 
-  if (!user) {
-    errEl.textContent = 'Identifiants incorrects. Réessayez.';
-    errEl.classList.add('show');
-    var pw = document.getElementById('auth-password');
-    if (pw) { pw.value = ''; pw.focus(); }
-    logAuthEvent('failed', username, '?');
-    return;
+  function resetBtn() {
+    if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; }
+  }
+  function applyAdminSession(adminObj, rememberMe) {
+    var roleConf = ROLES[adminObj.role] || ROLES['superadmin'];
+    var expires  = rememberMe ? Date.now()+7*24*60*60*1000 : Date.now()+8*60*60*1000;
+    var mods     = adminObj.allowed_modules && adminObj.allowed_modules.length > 0
+                   ? adminObj.allowed_modules
+                   : (roleConf.modules || []).slice();
+    var session  = {
+      username:        adminObj.username,
+      role:            adminObj.role,
+      name:            adminObj.name,
+      allowed_modules: mods,
+      primaryModule:   roleConf.primaryModule || null,
+      loginAt:         Date.now(),
+      expires:         expires
+    };
+    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    logAuthEvent('admin-login', adminObj.username, adminObj.role);
+    currentUser = { username:adminObj.username, name:adminObj.name, role:adminObj.role,
+                    allowed_modules: mods };
+    hideAuthOverlay();
+    updateTopbarUser();
+    buildNav();
+    initGreeting();
+    loadDashboardData();
   }
 
-  var roleConf = ROLES[user.role] || ROLES['superadmin'];
-  var expires = remember ? Date.now() + 7*24*60*60*1000 : Date.now() + 8*60*60*1000;
-  var session = { username: user.username, role: user.role, name: user.name,
-                  primaryModule: roleConf.primaryModule || null,
-                  loginAt: Date.now(), expires: expires };
-  localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
-  logAuthEvent('admin-login', user.username, user.role);
+  /* PROMPT 009 — Tentative Edge Function d'abord */
+  verifyAdminLogin(username, password, remember)
+  .then(function(result) {
+    if (result.ok && result.admin) {
+      /* Succès Edge Function — hash bcrypt côté serveur */
+      resetBtn();
+      applyAdminSession(result.admin, remember);
+      return;
+    }
 
-  currentUser = { username: user.username, name: user.name, role: user.role };
+    if (result.error === 'too_many_attempts') {
+      resetBtn();
+      errEl.textContent = 'Trop de tentatives — réessayez dans 15 min.';
+      errEl.classList.add('show');
+      return;
+    }
+
+    /* Edge Function a répondu invalid_credentials — ne pas tenter le fallback */
+    if (result.error !== 'network') {
+      resetBtn();
+      errEl.textContent = 'Identifiants incorrects. Réessayez.';
+      errEl.classList.add('show');
+      var pw = document.getElementById('auth-password');
+      if (pw) { pw.value = ''; pw.focus(); }
+      logAuthEvent('failed', username, '?');
+      return;
+    }
+
+    /* PROMPT 010 : fallback supprimé — aucun identifiant admin en clair
+       Réseau indisponible → l'administrateur doit rétablir la connexion.
+       Procédure de récupération propriétaire : voir RAPPORT_PROMPT_010.md */
+    resetBtn();
+    errEl.textContent = 'Service d\'authentification inaccessible. Vérifiez votre connexion et réessayez.';
+    errEl.classList.add('show');
+    logAuthEvent('failed-network', username, '?');
+  });
+}
+
+function navigateTo(id) { goTo(id); }
+
+/* ================================================================
+   PROMPT 008B — Sécurisation PIN : plus de PIN côté client
+   ================================================================ */
+
+/**
+ * AUTH_MODE — contrôle le mode d'authentification employé
+ * 'edge'            : vérification via Edge Function Supabase (RECOMMANDÉ)
+ * 'legacy_disabled' : accès bloqué si Edge Function indisponible
+ *
+ * IMPORTANT : ne jamais mettre 'legacy' actif — le PIN ne doit
+ * jamais être comparé côté client.
+ */
+var AUTH_MODE = 'edge';
+
+/* ================================================================
+   PROMPT 010C — MODE DÉVELOPPEMENT CONFIGURABLE
+   TEMP DEV ONLY — VERALUZ_AUTH_MODE='development' permet de travailler
+   pendant la conception. À remettre sur 'production' avant toute
+   utilisation réelle.
+   ================================================================ */
+// TEMP DEV ONLY — VERALUZ_AUTH_MODE='development' permet de travailler pendant la conception.
+// À remettre sur 'production' avant toute utilisation réelle.
+var VERALUZ_AUTH_MODE = 'development'; /* 'development' | 'production' */
+
+/* URL Edge Functions — clé anon safe côté client (service_role JAMAIS ici) */
+var EDGE_VERIFY_PIN_URL    = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
+/* PROMPT 009 Mission 9 — Auth admin via Edge Function (hash bcrypt, jamais en clair) */
+var EDGE_VERIFY_ADMIN_URL  = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-admin-login';
+/* PROMPT 010 — Nouvelles Edge Functions PIN lifecycle */
+var EDGE_CHANGE_PIN_URL    = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/change-employee-pin';
+var EDGE_RESET_PIN_URL     = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/reset-employee-pin';
+var EDGE_CHANGE_ADMIN_PW   = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/change-admin-password';
+
+/* ================================================================
+   PROMPT 010B — MODE DEV UNLOCK TEMPORAIRE
+   TEMP DEV ONLY — À SUPPRIMER AVANT PRODUCTION
+   Ce mode permet au propriétaire de récupérer l'accès pendant le développement.
+   TODO SECURITY: supprimer DEV_UNLOCK_ENABLED, DEV_UNLOCK_EXPIRES_AT
+                  et handleDevUnlock() avant production.
+   ================================================================ */
+var DEV_UNLOCK_ENABLED    = true;
+var DEV_UNLOCK_EXPIRES_AT = '2026-06-28T23:59:59Z';
+var DEV_UNLOCK_TOKEN      = 'veraluz_dev_recovery'; /* token URL — pas un secret de prod */
+
+/**
+ * handleDevUnlock() — Vérifie le paramètre URL ?dev_unlock=veraluz_dev_recovery
+ * et crée une session propriétaire temporaire (max 2h) si les conditions sont remplies.
+ * TEMP DEV ONLY — Ne jamais laisser actif en production.
+ *
+ * Comment supprimer ce mode DEV :
+ *   1. Mettre DEV_UNLOCK_ENABLED = false (ou supprimer les 3 vars ci-dessus)
+ *   2. Supprimer cette fonction handleDevUnlock()
+ *   3. Supprimer l'appel handleDevUnlock() dans DOMContentLoaded
+ *   4. Supprimer showDevBanner() et removeDevBanner()
+ *   5. node --check + déployer sur GitHub
+ */
+function handleDevUnlock() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  if (!DEV_UNLOCK_ENABLED) return false;
+
+  /* Vérifier expiration */
+  var now = new Date();
+  var expires = new Date(DEV_UNLOCK_EXPIRES_AT);
+  if (now >= expires) {
+    /* Expiration atteinte — mode DEV refusé */
+    return false;
+  }
+
+  /* Vérifier paramètre URL */
+  var urlParams = new URLSearchParams(window.location.search);
+  var devParam  = urlParams.get('dev_unlock');
+  if (!devParam || devParam !== DEV_UNLOCK_TOKEN) return false;
+
+  /* Conditions valides — créer session DEV propriétaire */
+  console.warn('[VERALUZ DEV] Mode DEV unlock actif — à supprimer avant production');
+  console.warn('[VERALUZ DEV] Session expirée à :', new Date(Date.now() + 2*60*60*1000).toLocaleString('fr-FR'));
+
+  var devSession = {
+    username:        'dev_owner',
+    name:            'DEV OWNER',
+    role:            'superadmin',
+    employee_id:     null,
+    allowed_modules: [
+      'dashboard','employee_home','reservations','payments','housekeeping',
+      'restaurant','finance','rh','contacts','notifications','analytics',
+      'audit','settings','eventbus','auth','appro','integrations','ai_center',
+      'documents','messages' /* PROMPT 019+030 */
+    ],
+    primaryModule: 'dashboard', /* PROMPT 010C — corrigé (était 'auth') */
+    loginAt:       Date.now(),
+    expires:       Date.now() + 2 * 60 * 60 * 1000, /* max 2h */
+    dev_mode:      true /* PROMPT 010C — remplace dev_unlock */
+  };
+
+  localStorage.setItem('veraluz_auth_v1', JSON.stringify(devSession));
+  currentUser = {
+    username:        devSession.username,
+    name:            devSession.name,
+    role:            devSession.role,
+    employee_id:     null,
+    allowed_modules: devSession.allowed_modules,
+    dev_mode:        true
+  };
+
   hideAuthOverlay();
   updateTopbarUser();
   buildNav();
   initGreeting();
   loadDashboardData();
+  showDevBanner();
+  setTimeout(function() { goTo('dashboard'); }, 400);
+
+  return true;
 }
 
-function navigateTo(id) { goTo(id); }
+/**
+ * showDevBanner() — Affiche le bandeau rouge MODE DEV TEMPORAIRE
+ * TEMP DEV ONLY — supprimé avec le reste du bloc DEV
+ */
+function showDevBanner() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  if (document.getElementById('dev-banner')) return;
+
+  /* PROMPT 010C — Détecter le type de session DEV */
+  var isDevMode = false;
+  try {
+    var _s = JSON.parse(localStorage.getItem('veraluz_auth_v1') || '{}');
+    isDevMode = !!(_s.dev_mode);
+  } catch(e) {}
+
+  var bannerMsg = isDevMode
+    ? '🛠️ MODE DÉVELOPPEMENT ACTIF — Authentification réelle désactivée temporairement'
+    : '⚠️ MODE DEV TEMPORAIRE ACTIF — À SUPPRIMER AVANT PRODUCTION';
+  var bannerBg = isDevMode
+    ? 'linear-gradient(90deg,#d97706,#f59e0b)'
+    : 'linear-gradient(90deg,#dc2626,#ea580c)';
+
+  var banner = document.createElement('div');
+  banner.id = 'dev-banner';
+  banner.style.cssText = [
+    'position:fixed','top:0','left:0','right:0','z-index:99999',
+    'background:'+bannerBg,
+    'color:#fff','font-size:13px','font-weight:700',
+    'text-align:center','padding:8px 12px',
+    'display:flex','align-items:center','justify-content:space-between',
+    'gap:8px','flex-wrap:wrap','box-shadow:0 2px 8px rgba(0,0,0,.4)'
+  ].join(';');
+  banner.innerHTML = ''
+    + '<span>' + bannerMsg + '</span>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+    + '<button onclick="goTo(\'auth\')" style="background:#fff2;border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;">🔐 Auth</button>'
+    + '<button onclick="openDevChangePwModal()" style="background:#fff2;border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;">🔑 Changer mdp admin</button>'
+    + '<button onclick="openDevResetPinModal()" style="background:#fff2;border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;">📌 Reset PIN employé</button>'
+    + '<button onclick="vlzClearPwaCache()" style="background:rgba(0,0,0,.25);border:1px solid #fff4;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:12px;" title="Vider cache Service Worker">🗑 Cache PWA</button>'
+    + '<button onclick="quitDevMode()" style="background:rgba(0,0,0,.25);border:1px solid #fff4;color:#fff;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:800;">✕ Quitter mode DEV</button>'
+    + '</div>';
+  /* Décaler le topbar pour laisser la place au bandeau */
+  document.body.insertBefore(banner, document.body.firstChild);
+  var bh = banner.offsetHeight || 40;
+  var main = document.getElementById('main');
+  var sb   = document.getElementById('sidebar');
+  if (main) main.style.paddingTop = bh + 'px';
+  if (sb)   sb.style.paddingTop   = bh + 'px';
+
+  /* PROMPT 010C Mission 3 — Badge DEV MODE dans le header */
+  if (isDevMode && !document.getElementById('dev-badge')) {
+    var tbTitle = document.getElementById('tb-title');
+    if (tbTitle) {
+      var badge = document.createElement('span');
+      badge.id = 'dev-badge';
+      badge.textContent = '🛠️ DEV';
+      badge.style.cssText = 'font-size:10px;background:#f59e0b;color:#000;padding:2px 7px;border-radius:4px;margin-left:8px;font-weight:800;vertical-align:middle;letter-spacing:.3px;';
+      tbTitle.appendChild(badge);
+    }
+  }
+}
+
+function removeDevBanner() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  var banner = document.getElementById('dev-banner');
+  if (banner) banner.remove();
+  /* PROMPT 010C — Supprimer aussi le badge DEV du header */
+  var badge = document.getElementById('dev-badge');
+  if (badge) badge.remove();
+  var main = document.getElementById('main');
+  var sb   = document.getElementById('sidebar');
+  if (main) main.style.paddingTop = '';
+  if (sb)   sb.style.paddingTop   = '';
+}
+
+/**
+ * quitDevMode() — Déconnecte la session DEV et revient au login normal
+ */
+function quitDevMode() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  removeDevBanner();
+  logout();
+}
+
+/**
+ * PROMPT 010C — enterDevMode()
+ * Crée une session développement complète et accède directement au dashboard.
+ * Appelé par le bouton "Entrer en mode développement" dans l'overlay de login.
+ * Visible uniquement quand VERALUZ_AUTH_MODE === 'development'.
+ * Aucun PIN, aucun mot de passe, aucun secret stocké.
+ */
+function enterDevMode() {
+  /* PROMPT 010C Mission 7 — Aucun PIN, aucun secret, aucune clé service_role */
+  var devSession = {
+    username:        'dev_owner',
+    name:            'Blaise DEV',
+    role:            'superadmin',
+    employee_id:     null,
+    allowed_modules: [
+      'dashboard','employee_home','reservations','payments','housekeeping',
+      'restaurant','finance','rh','contacts','notifications','analytics',
+      'audit','settings','eventbus','auth','appro','integrations','ai_center',
+      'documents' /* PROMPT 019 */
+    ],
+    primaryModule: 'dashboard',
+    loginAt:       Date.now(),
+    expires:       Date.now() + 12 * 60 * 60 * 1000, /* 12h */
+    dev_mode:      true
+  };
+
+  localStorage.setItem('veraluz_auth_v1', JSON.stringify(devSession));
+  currentUser = {
+    username:        devSession.username,
+    name:            devSession.name,
+    role:            devSession.role,
+    employee_id:     null,
+    allowed_modules: devSession.allowed_modules,
+    dev_mode:        true
+  };
+
+  console.warn('[VERALUZ DEV 010C] Mode développement activé — Blaise DEV (superadmin)');
+  console.warn('[VERALUZ DEV 010C] Session expire à :', new Date(devSession.expires).toLocaleString('fr-FR'));
+
+  hideAuthOverlay();
+  updateTopbarUser();
+  buildNav();
+  initGreeting();
+  loadDashboardData();
+  showDevBanner();
+  setTimeout(function() { goTo('dashboard'); }, 300);
+}
+
+/**
+ * openDevChangePwModal() — Raccourci DEV pour changer le mot de passe admin
+ * Réutilise l'Edge Function change-admin-password (aucun secret frontend)
+ */
+function openDevChangePwModal() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  var html = '<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'
+    + 'background:var(--bg2);border:2px solid #dc2626;border-radius:12px;padding:24px;'
+    + 'z-index:99998;min-width:280px;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.5);">'
+    + '<div style="font-weight:700;font-size:16px;margin-bottom:4px;">🔑 Changer mot de passe admin</div>'
+    + '<div style="color:var(--text2);font-size:12px;margin-bottom:14px;">Identifiant admin (ex: admin ou manager)</div>'
+    + '<input id="dcp-user" class="fi" placeholder="Identifiant" style="margin-bottom:8px;">'
+    + '<input id="dcp-old" class="fi" type="password" placeholder="Ancien mot de passe actuel" style="margin-bottom:8px;">'
+    + '<input id="dcp-new" class="fi" type="password" placeholder="Nouveau mot de passe (8+, mix)" style="margin-bottom:8px;">'
+    + '<div id="dcp-err" style="color:#ef4444;font-size:12px;margin-bottom:8px;display:none;"></div>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
+    + '<button onclick="document.getElementById(\'dev-cpm\').remove()" style="background:var(--bg3);border:none;color:var(--text1);padding:6px 12px;border-radius:6px;cursor:pointer;">Annuler</button>'
+    + '<button onclick="devDoChangePw()" style="background:#dc2626;border:none;color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;">Changer</button>'
+    + '</div></div>';
+  var wrap = document.createElement('div');
+  wrap.id = 'dev-cpm';
+  wrap.style.cssText = 'position:fixed;inset:0;background:#0008;z-index:99997;';
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap);
+}
+
+function devDoChangePw() {
+  var user   = (document.getElementById('dcp-user')||{}).value||'';
+  var oldPw  = (document.getElementById('dcp-old')||{}).value||'';
+  var newPw  = (document.getElementById('dcp-new')||{}).value||'';
+  var errEl  = document.getElementById('dcp-err');
+  errEl.style.display='none';
+  if (!user || !oldPw || !newPw) { errEl.textContent='Tous les champs sont requis.'; errEl.style.display='block'; return; }
+  fetch(EDGE_CHANGE_ADMIN_PW, {
+    method:'POST', mode:'cors', credentials:'omit',
+    headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
+    body: JSON.stringify({ username: user, current_password: oldPw, new_password: newPw })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    if (res.ok) {
+      document.getElementById('dev-cpm').remove();
+      showCoreToast('✅ Mot de passe changé avec succès !', 'ok');
+    } else {
+      var msg = res.error === 'invalid_credentials' ? 'Ancien mot de passe incorrect.'
+        : res.error === 'password_too_weak' ? 'Mot de passe trop faible (8+ car., majuscule, chiffre).'
+        : (res.message || res.error || 'Erreur lors du changement.');
+      errEl.textContent = msg; errEl.style.display='block';
+    }
+  })
+  .catch(function(){ errEl.textContent='Erreur réseau.'; errEl.style.display='block'; });
+}
+
+/**
+ * openDevResetPinModal() — Raccourci DEV pour réinitialiser le PIN d'un employé
+ */
+function openDevResetPinModal() {
+  // TODO SECURITY: supprimer cette fonction avant production
+  var empOpts = (_empCache && _empCache.length > 0)
+    ? _empCache.map(function(e){
+        return '<option value="'+esc(e.id)+'">'+esc(e.full_name||e.name)+'</option>';
+      }).join('')
+    : '<option value="">Chargement…</option>';
+  var html = '<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'
+    + 'background:var(--bg2);border:2px solid #dc2626;border-radius:12px;padding:24px;'
+    + 'z-index:99998;min-width:280px;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.5);">'
+    + '<div style="font-weight:700;font-size:16px;margin-bottom:14px;">📌 Reset PIN employé</div>'
+    + '<select id="drp-emp" class="fi" style="margin-bottom:8px;"><option value="">-- Choisir employé --</option>'+empOpts+'</select>'
+    + '<div id="drp-result" style="display:none;background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:8px;text-align:center;">'
+    + '<div style="font-size:11px;color:var(--text2)">PIN temporaire (24h)</div>'
+    + '<div id="drp-pin" style="font-size:28px;font-weight:900;letter-spacing:6px;color:var(--acc1);font-family:monospace"></div>'
+    + '<div style="font-size:11px;color:#ef4444;margin-top:4px;font-weight:600">Notez ce PIN — affiché une seule fois</div>'
+    + '</div>'
+    + '<div id="drp-err" style="color:#ef4444;font-size:12px;margin-bottom:8px;display:none;"></div>'
+    + '<div style="display:flex;gap:8px;justify-content:flex-end;">'
+    + '<button onclick="document.getElementById(\'dev-rpm\').remove()" style="background:var(--bg3);border:none;color:var(--text1);padding:6px 12px;border-radius:6px;cursor:pointer;">Fermer</button>'
+    + '<button id="drp-btn" onclick="devDoResetPin()" style="background:#dc2626;border:none;color:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;">Générer PIN</button>'
+    + '</div></div>';
+  var wrap = document.createElement('div');
+  wrap.id = 'dev-rpm';
+  wrap.style.cssText = 'position:fixed;inset:0;background:#0008;z-index:99997;';
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap);
+}
+
+function devDoResetPin() {
+  var empId = (document.getElementById('drp-emp')||{}).value||'';
+  var errEl = document.getElementById('drp-err');
+  var btn   = document.getElementById('drp-btn');
+  errEl.style.display='none';
+  if (!empId) { errEl.textContent='Sélectionner un employé.'; errEl.style.display='block'; return; }
+  btn.disabled=true; btn.textContent='⏳…';
+  fetch(EDGE_RESET_PIN_URL, {
+    method:'POST', mode:'cors', credentials:'omit',
+    headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
+    body: JSON.stringify({ employee_id: empId, requested_by: 'dev_owner', requested_by_role: 'superadmin', reason: 'dev_recovery' })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(res){
+    btn.disabled=false; btn.textContent='Générer PIN';
+    if (res.ok) {
+      document.getElementById('drp-pin').textContent = res.temporary_pin;
+      document.getElementById('drp-result').style.display='block';
+    } else {
+      var _dp=['[dev] '+(res.error||'Erreur reset PIN')];if(res.detail)_dp.push('Détail: '+res.detail);if(res.code)_dp.push('Code: '+res.code);errEl.textContent=_dp.join(' | '); errEl.style.display='block';
+    }
+  })
+  .catch(function(){ btn.disabled=false; btn.textContent='Générer PIN'; errEl.textContent='Erreur réseau.'; errEl.style.display='block'; });
+}
+
+/* ── FIN BLOC DEV UNLOCK — TODO SECURITY: supprimer avant production ── */
+
+/**
+ * Mission 7 — Nettoyer un objet employé pour le stockage/rendu client
+ * Supprime systématiquement tous les champs sensibles
+ */
+function sanitizeEmployeeForClient(emp) {
+  if (!emp || typeof emp !== 'object') return emp;
+  var FORBIDDEN = ['pin','pin_code','pin_hash','password','salaire','salary',
+                   'contrat','contract','contract_data','documents','rh_notes'];
+  var safe = Object.assign({}, emp);
+  FORBIDDEN.forEach(function(k){ delete safe[k]; });
+  return safe;
+}
+
+/**
+ * Mission 7 — Purger le cache si il contient des champs PIN legacy
+ * Appelé au boot pour nettoyer les caches antérieurs au PROMPT 008B
+ */
+function purgeLegacyPinCache() {
+  try {
+    var raw = localStorage.getItem('vlz_emp_login_cache');
+    if (!raw) return;
+    var data = JSON.parse(raw);
+    if (!Array.isArray(data.employees)) { localStorage.removeItem('vlz_emp_login_cache'); return; }
+    /* Vérifier si un employé contient un champ PIN */
+    var hasPinData = data.employees.some(function(e) {
+      return e && (e.pin || e.pin_code || e.pin_hash);
+    });
+    if (hasPinData) {
+      localStorage.removeItem('vlz_emp_login_cache');
+      console.info('[Auth] Cache employés purgé : contenait des données PIN legacy');
+    }
+  } catch(e) { localStorage.removeItem('vlz_emp_login_cache'); }
+}
+
+/**
+ * Mission 6 — Vérification PIN via Edge Function serveur
+ * Ne compare JAMAIS le PIN côté client
+ *
+ * @param {string} employeeId  - ID Supabase de l'employé
+ * @param {string} pin         - PIN saisi (4 chiffres legacy OU 6 chiffres nouveau — PROMPT 020C)
+ * @returns {Promise<{ok:boolean, employee?:object, error?:string}>}
+ */
+function verifyEmployeePin(employeeId, pin) {
+  if (AUTH_MODE === 'legacy_disabled') {
+    return Promise.resolve({
+      ok: false,
+      error: 'Authentification sécurisée indisponible. Contactez l\'administrateur.'
+    });
+  }
+  return fetch(EDGE_VERIFY_PIN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPA_KEY   /* clé anon — safe côté client */
+    },
+    body: JSON.stringify({ employee_id: employeeId, pin: pin })
+  })
+  .then(function(r) {
+    if (!r.ok && r.status !== 401) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .catch(function(e) {
+    console.error('[verify-pin] Erreur réseau:', e);
+    return { ok: false, error: 'network' };
+  });
+}
+
+
+/* ================================================================
+   PROMPT 010 — Mission 8 : Vue changement PIN (must_change_pin)
+   ================================================================ */
+
+/* Données temporaires de pré-session pour le changement de PIN */
+var _pendingPinSession = null;
+
+/**
+ * showChangePinView() — affiché quand must_change_pin = true
+ * L'employé doit changer son PIN avant d'accéder à l'application.
+ */
+function showChangePinView(empId, empName, coreRole, allowedMods, expires) {
+  _pendingPinSession = { empId:empId, empName:empName, coreRole:coreRole, allowedMods:allowedMods, expires:expires };
+  var overlay = document.getElementById('auth-overlay');
+  if (!overlay) { console.error('[changePIN] auth-overlay introuvable'); return; }
+  var box = overlay.querySelector('.auth-box') || overlay;
+  box.innerHTML = '<div id="view-change-pin" style="padding:16px 0;">'
+    + '<div style="text-align:center;margin-bottom:16px;">'
+    + '<div style="font-size:28px;margin-bottom:6px;">🔐</div>'
+    + '<div style="font-weight:700;font-size:18px;color:var(--text1)">Changement de PIN requis</div>'
+    + '<div style="color:var(--text2);font-size:13px;margin-top:4px;">Bonjour ' + esc(empName) + ', vous devez définir un nouveau PIN à 6 chiffres pour continuer.</div>'
+    + '</div>'
+    + '<div id="cp-error" class="auth-error" style="display:none;margin-bottom:8px;"></div>'
+    + '<label class="auth-label">PIN temporaire actuel (4 ou 6 chiffres)</label>'
+    + '<input class="auth-input" id="cp-current" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="current-password">'
+    + '<label class="auth-label" style="margin-top:10px;">Nouveau PIN (6 chiffres)</label>'
+    + '<input class="auth-input" id="cp-new" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="new-password">'
+    + '<label class="auth-label" style="margin-top:10px;">Confirmer le nouveau PIN</label>'
+    + '<input class="auth-input" id="cp-confirm" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="new-password">'
+    + '<button class="auth-btn" style="margin-top:16px;width:100%;" onclick="doChangePin()">Enregistrer le nouveau PIN</button>'
+    + '</div>';
+}
+
+/**
+ * doChangePin() — soumet le changement de PIN via Edge Function
+ */
+function doChangePin() {
+  var ps  = _pendingPinSession;
+  if (!ps) { console.error('[changePIN] Session en attente introuvable'); return; }
+
+  var currentPin = (document.getElementById('cp-current').value || '').trim();
+  var newPin     = (document.getElementById('cp-new').value || '').trim();
+  var confirmPin = (document.getElementById('cp-confirm').value || '').trim();
+  var errEl      = document.getElementById('cp-error');
+
+  function showErr(msg) {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+  }
+  errEl.style.display = 'none';
+
+  if (!currentPin || !newPin || !confirmPin) { showErr('Veuillez remplir tous les champs.'); return; }
+  if (!/^\d{4}$/.test(currentPin) && !/^\d{6}$/.test(currentPin)) { showErr('PIN actuel : 4 ou 6 chiffres requis.'); return; }
+  if (!/^\d{6}$/.test(newPin)) { showErr('Le nouveau PIN doit comporter exactement 6 chiffres.'); return; }
+  if (newPin !== confirmPin) { showErr('Les deux nouveaux PIN ne correspondent pas.'); return; }
+
+  var btn = document.querySelector('#view-change-pin .auth-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement…'; }
+
+  fetch(EDGE_CHANGE_PIN_URL, {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+    body: JSON.stringify({ employee_id: ps.empId, current_pin: currentPin, new_pin: newPin })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(result) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer le nouveau PIN'; }
+    if (!result.ok) {
+      var msg = (result.error === 'invalid_credentials') ? 'PIN actuel incorrect.'
+        : (result.error === 'new_pin_must_be_6_digits') ? 'Le nouveau PIN doit comporter exactement 6 chiffres.'
+        : (result.error === 'weak_pin') ? 'PIN trop simple. Choisissez une combinaison moins évidente.'
+        : (result.error === 'temporary_pin_expired') ? 'PIN temporaire expiré. Contactez votre responsable.'
+        : (result.error || 'Erreur lors du changement de PIN.');
+      showErr(msg); return;
+    }
+
+    /* PIN changé — compléter la connexion */
+    _pendingPinSession = null;
+    var session = {
+      username:        ps.empId,
+      name:            ps.empName,
+      role:            ps.coreRole,
+      employee_id:     ps.empId,
+      allowed_modules: ps.allowedMods,
+      primaryModule:   'employee_home',
+      loginAt:         Date.now(),
+      expires:         ps.expires
+    };
+    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    logAuthEvent('pin-changed-and-login', ps.empName, ps.coreRole);
+    currentUser = { username:ps.empId, name:ps.empName, role:ps.coreRole,
+                    employee_id:ps.empId, allowed_modules:ps.allowedMods };
+    hideAuthOverlay();
+    updateTopbarUser();
+    buildNav();
+    initGreeting();
+    loadDashboardData();
+    setTimeout(function() { goTo('employee_home'); }, 300);
+  })
+  .catch(function(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer le nouveau PIN'; }
+    console.error('[changePIN] Erreur réseau:', e);
+    showErr('Service indisponible. Vérifiez la connexion.');
+  });
+}
+
+/* ================================================================
+   PROMPT 008A — Missions 4, 5, 7 : Rôles + Espace Employé
+   ================================================================ */
+
+/* Alias pour compatibilité */
+function loadModule(id)  { goTo(id); }
+function renderSidebar() { buildNav(); }
+
+/* Mission 4 — normalisation rôle Supabase → rôle Core */
+function normalizeRole(employee) {
+  var raw = String(
+    (employee && (employee.role || employee.poste || employee.position)) || ''
+  ).toLowerCase().trim().replace(/ /g,'_').replace(/-/g,'_');
+  return ROLE_MAP[raw] || 'staff';
+}
+
+/* Mission 5 — modules autorisés par rôle */
+function getAllowedModules(role) {
+  var r = ROLES[role];
+  return r && r.modules ? r.modules.slice() : [];
+}
+
+/* Mission 7 — Rendu Espace Employé principal */
+function renderEmployeeHome(user) {
+  if (!user) return;
+  var rd = ROLES[user.role] || {};
+  var initials = (user.name||'E').split(' ').map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,2);
+
+  /* ── Profil ── */
+  var pc = document.getElementById('emp-profile-card');
+  if (pc) {
+    pc.innerHTML = '<div class="emp-card-title">\u{1F464} Mon profil</div>'
+      +'<div class="emp-profile-row">'
+      +'<div class="emp-avatar">'+esc(initials)+'</div>'
+      +'<div><div class="emp-pname">'+esc(user.name||'Employe')+'</div>'
+      +'<div class="emp-prole">'+esc(rd.label||user.role||'Staff')+'</div></div>'
+      +'</div>'
+      +'<div id="emp-profile-extra"><span style="color:var(--text3);font-size:12px">Chargement profil...</span></div>';
+  }
+
+  /* ── Modules disponibles ── */
+  var mg = document.getElementById('emp-modules-grid');
+  if (mg) {
+    var mods = user.allowed_modules || getAllowedModules(user.role);
+    if (!mods.length) {
+      mg.innerHTML = '<div class="emp-empty">Aucun module pour ce role.</div>';
+    } else {
+      mg.innerHTML = '';
+      mods.forEach(function(mid) {
+        var mod = MODULES.find(function(m){ return m.id === mid; });
+        if (!mod) return;
+        var btn = document.createElement('button');
+        btn.className = 'emp-mod-btn';
+        btn.innerHTML = '<div class="emp-mod-icon">'+esc(mod.icon)+'</div>'
+          +'<div class="emp-mod-lbl">'+esc(mod.label)+'</div>';
+        btn.onclick = function(){ goTo(mid); };
+        mg.appendChild(btn);
+      });
+    }
+  }
+  /* Charger les données personnelles */
+  if (user.employee_id) loadEmployeePersonalData(user.employee_id);
+}
+
+/* Mission 7 — Chargement données personnelles (employee_id uniquement) */
+/* SECURITE : Ne jamais charger les donnees de tous les employes      */
+/* NOTE : securite complete necessitera RLS par employee_id Supabase  */
+function loadEmployeePersonalData(employeeId) {
+  if (!employeeId) return;
+  var today = new Date().toISOString().slice(0,10);
+
+  /* 1. Profil complet */
+  fetch(SUPA_URL+'/rest/v1/veraluz_employees?id=eq.'+encodeURIComponent(employeeId)
+    +'&select=id,full_name,role,phone,email,hire_date,status,team_id&limit=1', {
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+  })
+  .then(function(r){ return r.ok?r.json():[]; })
+  .then(function(rows){
+    var emp = Array.isArray(rows)?rows[0]:null;
+    var extra = document.getElementById('emp-profile-extra');
+    if (!extra) return;
+    if (!emp) { extra.innerHTML='<div class="emp-empty">Profil non trouve.</div>'; return; }
+    var items=[];
+    if(emp.phone)     items.push('\u{1F4DE} '+esc(emp.phone));
+    if(emp.email)     items.push('\u{2709}\uFE0F '+esc(emp.email));
+    if(emp.hire_date) items.push('\u{1F4C5} Embauche le '+esc(emp.hire_date));
+    if(emp.team_id)   items.push('\u{1F3F7}\uFE0F Equipe '+esc(emp.team_id));
+    extra.innerHTML = items.length
+      ? '<div class="emp-meta">'+items.map(function(i){return '<span class="emp-meta-item">'+i+'</span>';}).join('')+'</div>'
+      : '<div class="emp-empty">Informations complementaires non disponibles.</div>';
+  })
+  .catch(function(){
+    var extra=document.getElementById('emp-profile-extra');
+    if(extra) extra.innerHTML='<div class="emp-empty">Donnees indisponibles.</div>';
+  });
+
+  /* 2. Pointage du jour */
+  var attCard = document.getElementById('emp-pointage-card');
+  if(attCard) attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage du jour</div><div class="emp-empty">Chargement...</div>';
+  fetch(SUPA_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(employeeId)
+    +'&date=eq.'+today+'&select=*&limit=5',{
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+  })
+  .then(function(r){ return r.ok?r.json():null; })
+  .then(function(rows){
+    /* Fallback veraluz_pointages si vide */
+    if(!Array.isArray(rows)||rows.length===0){
+      return fetch(SUPA_URL+'/rest/v1/veraluz_pointages?employee_id=eq.'+encodeURIComponent(employeeId)
+        +'&date=eq.'+today+'&select=*&limit=5',{
+        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+      }).then(function(r2){ return r2.ok?r2.json():[]; });
+    }
+    return rows;
+  })
+  .then(function(rows){
+    if(!attCard) return;
+    if(!Array.isArray(rows)||rows.length===0){
+      attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage du jour</div>'
+        +'<div class="emp-empty">Aucun pointage enregistre aujourd\'hui.</div>'; return;
+    }
+    var r=rows[0];
+    var ent=esc(String(r.check_in||r.heure_entree||r.time_in||r.entry_time||'—').slice(0,5));
+    var sor=esc(String(r.check_out||r.heure_sortie||r.time_out||r.exit_time||'—').slice(0,5));
+    attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage du jour</div>'
+      +'<div class="att-today">'
+      +'<div class="att-chip"><div class="att-chip-lbl">Arrivee</div><div class="att-chip-val">'+ent+'</div></div>'
+      +'<div class="att-chip"><div class="att-chip-lbl">Depart</div><div class="att-chip-val">'+sor+'</div></div>'
+      +'</div>';
+  })
+  .catch(function(){
+    if(attCard) attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage</div>'
+      +'<div class="emp-empty">Donnees indisponibles.</div>';
+  });
+
+  /* 3. Taches assignees — filtre strict employee_id uniquement */
+  var tasksCard=document.getElementById('emp-tasks-card');
+  if(tasksCard) tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches</div><div class="emp-empty">Chargement...</div>';
+  fetch(SUPA_URL+'/rest/v1/veraluz_hr_tasks?assigned_to=eq.'+encodeURIComponent(employeeId)
+    +'&select=id,title,description,status,due_date,priority&limit=10&order=due_date.asc',{
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+  })
+  .then(function(r){ return r.ok?r.json():[]; })
+  .then(function(rows){
+    if(!tasksCard) return;
+    if(!Array.isArray(rows)||rows.length===0){
+      tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches</div>'
+        +'<div class="emp-empty">Aucune tache assignee.</div>'; return;
+    }
+    var html=rows.slice(0,8).map(function(t){
+      var st=(t.status||'').toLowerCase();
+      var dc=st==='done'||st==='completed'?'done':st==='urgent'||t.priority==='high'?'urgent':'pending';
+      return '<div class="task-item"><div class="task-dot '+dc+'"></div>'
+        +'<div class="task-text">'+esc(t.title||t.description||'Tache')+'</div>'
+        +'<div class="task-time">'+esc(String(t.due_date||'').slice(0,10))+'</div></div>';
+    }).join('');
+    tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches ('+rows.length+')</div>'+html;
+  })
+  .catch(function(){
+    if(tasksCard) tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches</div>'
+      +'<div class="emp-empty">Donnees indisponibles.</div>';
+  });
+
+  /* 4. Paie personnelle — filtre employee_id uniquement */
+  /* SECURITE : ne jamais charger toute la paie — filtrer par employee_id */
+  var paieCard=document.getElementById('emp-paie-card');
+  if(paieCard) paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie</div><div class="emp-empty">Chargement...</div>';
+  fetch(SUPA_URL+'/rest/v1/veraluz_payroll?employee_id=eq.'+encodeURIComponent(employeeId)
+    +'&select=id,period,net_salary,status,payment_date&order=period.desc&limit=3',{
+    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+  })
+  .then(function(r){ return r.ok?r.json():[]; })
+  .then(function(rows){
+    if(!paieCard) return;
+    if(!Array.isArray(rows)||rows.length===0){
+      paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie</div>'
+        +'<div class="emp-empty">Aucun bulletin disponible pour le moment.</div>'; return;
+    }
+    var html=rows.map(function(p){
+      var net=p.net_salary?Number(p.net_salary).toLocaleString('fr-FR')+' XAF':'—';
+      return '<div style="display:flex;justify-content:space-between;padding:7px 0;'
+        +'border-bottom:1px solid var(--border);font-size:13px;">'
+        +'<span>'+esc(String(p.period||'—'))+'</span>'
+        +'<span style="font-weight:700;color:var(--accent);">'+esc(net)+'</span></div>';
+    }).join('');
+    paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie (3 derniers)</div>'+html
+      +'<div style="font-size:10px;color:var(--text3);margin-top:6px;">'
+      +'\u26A0 Securite complete : RLS Supabase par employee_id recommandee.</div>';
+  })
+  .catch(function(){
+    if(paieCard) paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie</div>'
+      +'<div class="emp-empty">Donnees indisponibles.</div>';
+  });
+}
+
 
 function toggleAdminMode() {
   var emp = document.getElementById('auth-emp-mode');
@@ -1017,11 +2852,18 @@ function updateTopbarUser() {
   if (!info) return;
   if (currentUser) {
     info.style.display = 'flex';
+    var rd = ROLES[currentUser.role];
     if (nameEl) nameEl.textContent = currentUser.name || currentUser.username;
-    if (roleEl) {
-      var rd = ROLES[currentUser.role];
-      roleEl.textContent = rd ? rd.label : currentUser.role;
-    }
+    if (roleEl) roleEl.textContent = rd ? rd.label : currentUser.role;
+
+    /* PROMPT 010C — Mettre à jour les éléments de la barre latérale (étaient hardcodés) */
+    var sbAvatar = document.getElementById('sb-avatar');
+    var sbUname  = document.getElementById('sb-uname');
+    var sbUrole  = document.getElementById('sb-urole');
+    var initiale = ((currentUser.name || currentUser.username || '?')[0] || '?').toUpperCase();
+    if (sbAvatar) sbAvatar.textContent = initiale;
+    if (sbUname)  sbUname.textContent  = currentUser.name || currentUser.username || '—';
+    if (sbUrole)  sbUrole.textContent  = rd ? rd.label : (currentUser.role || '—');
   } else {
     info.style.display = 'none';
   }
@@ -1046,14 +2888,49 @@ function sendAuthContext(iframe) {
         role:        currentUser.role,
         roleLabel:   rd.label || currentUser.role,
         roleIcon:    rd.icon  || '👤',
-        modules:     rd.modules || [],
-        employee_id: currentUser.employee_id || null
+        modules:         rd.modules || [],
+        allowed_modules: currentUser.allowed_modules || rd.modules || [],
+        employee_id:     currentUser.employee_id || null
       }
     }, '*');
   } catch(e){}
 }
 
 document.addEventListener('DOMContentLoaded', function(){
+  purgeLegacyPinCache(); /* PROMPT 008B — purge cache PIN legacy */
+  /* PROMPT 021 — Charger profil résidence + modules activés (async, failsafe) */
+  try { loadTenantSettings(); } catch(e) { console.warn('[Tenant] loadTenantSettings:', e); }
+  try { loadTenantModules(); } catch(e) { console.warn('[Tenant] loadTenantModules:', e); }
+
+  /* PROMPT 016A + PROMPT 019 — Migration auto session DEV existante */
+  (function patchDevSessionModules(){
+    try {
+      var raw = localStorage.getItem('veraluz_auth_v1');
+      if (!raw) return;
+      var s = JSON.parse(raw);
+      if (!s.dev_mode) return; /* Toucher uniquement les sessions DEV */
+      if (!Array.isArray(s.allowed_modules)) return;
+      var patched = false;
+      if (s.allowed_modules.indexOf('ai_center') < 0) {
+        s.allowed_modules.push('ai_center'); patched = true;
+        console.warn('[VERALUZ 016A] Session DEV patchée — ai_center ajouté');
+      }
+      /* PROMPT 019 — ajouter documents en DEV */
+      if (s.allowed_modules.indexOf('documents') < 0) {
+        s.allowed_modules.push('documents'); patched = true;
+        console.warn('[VERALUZ 019] Session DEV patchée — documents ajouté à allowed_modules');
+      }
+      /* PROMPT 031C — ajouter messages en DEV */
+      if (s.allowed_modules.indexOf('messages') < 0) {
+        s.allowed_modules.push('messages'); patched = true;
+        console.warn('[VERALUZ 031C] Session DEV patchée — messages ajouté à allowed_modules');
+      }
+      if (patched) localStorage.setItem('veraluz_auth_v1', JSON.stringify(s));
+    } catch(e) { console.warn('[VERALUZ 016A] Patch session DEV échoué :', e); }
+  })();
+
+  /* PROMPT 010B — Mode DEV unlock (TEMP DEV ONLY — à supprimer avant production) */
+  if (handleDevUnlock()) return; /* Si mode DEV actif, court-circuit checkAuth() normal */
   checkAuth();
   /* ─── Restore logo from localStorage on boot ─── */
   (function() {
@@ -1113,6 +2990,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 /* ── Notification Badge ──────────────────────────────────── */
 var _notifCount = 0;
+var _msgCount   = 0;  /* PROMPT 030 : messages internes non lus */
 function updateNotifBadge(count) {
   _notifCount = count || 0;
   var badge = document.getElementById('notif-badge');
@@ -1122,6 +3000,26 @@ function updateNotifBadge(count) {
     badge.classList.add('visible');
   } else {
     badge.classList.remove('visible');
+  }
+}
+function updateMsgBadge(count) {
+  /* PROMPT 030 : badge messages dans la sidebar sur le bouton nav */
+  _msgCount = count || 0;
+  var navBtn = document.getElementById('nav-messages');
+  if (!navBtn) return;
+  var existing = navBtn.querySelector('.nav-msg-badge');
+  if (_msgCount > 0) {
+    if (!existing) {
+      var b = document.createElement('span');
+      b.className = 'nav-msg-badge notif-badge visible';
+      b.style.cssText = 'top:-3px;right:-3px;font-size:9px;min-width:14px;height:14px;line-height:14px;';
+      navBtn.style.position = 'relative';
+      navBtn.appendChild(b);
+      existing = b;
+    }
+    existing.textContent = _msgCount > 99 ? '99+' : String(_msgCount);
+  } else {
+    if (existing) existing.remove();
   }
 }
 function openNotifications() { loadModule('notifications'); }
@@ -1263,7 +3161,23 @@ var VZ_Email = {
   }
 };
 
-function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+/* PROMPT 007 — SÉCURITÉ XSS ────────────────────────────────
+   escapeHtml et esc délèguent à VC.esc() si disponible
+   vc = window.VeraluzCore (chargé par modules enfants si iframe)
+──────────────────────────────────────────────────────────── */
+var VC = window.VeraluzCore || {};
+function escapeHtml(s){
+  if(VC&&typeof VC.esc==='function') return VC.esc(s);
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function esc(s){ return escapeHtml(s); }
+function safeUrl(url){
+  var s=String(url||'').trim();
+  if(!s)return '#';
+  if(s.startsWith('http://')||s.startsWith('https://')||s.startsWith('mailto:')||s.startsWith('tel:')||s.startsWith('data:image/'))return s;
+  return '#';
+}
 function row(border,label,val){
   return '<tr><td style="padding:7px 0;border-bottom:1px solid '+border+';color:#7fb3c8;font-size:13px;">'+label+'</td>'
     +'<td style="padding:7px 0;border-bottom:1px solid '+border+';">'+val+'</td></tr>';
@@ -1356,6 +3270,10 @@ var EventBus = {
     /* ── Core-level side-effects ── */
     if (source === 'veraluz-notifications' && type === 'notification-count') {
       updateNotifBadge(data && data.unread ? data.unread : 0);
+    }
+    /* PROMPT 030 — badge messages internes */
+    if (source === 'veraluz-messages' && type === 'message-count') {
+      updateMsgBadge(data && data.unread ? data.unread : 0);
     }
 
     /* ── Envoi email depuis modules ── */
@@ -1464,12 +3382,13 @@ var EventBus = {
 
     /* ── Booking Engine → nouvelle réservation ── */
     if (source === 'booking-engine' && type === 'new_booking') {
-      /* déjà dans vlz_booking_sync via localStorage (même origine) */
-      /* notifier le module réservations s'il est actif */
-      var rezFrame = document.getElementById('frame-reservations');
-      if (rezFrame) {
+      /* Écrire un timestamp pour que REZ sache qu'une réservation est arrivée */
+      try{ localStorage.setItem('vlz_rez_updated', String(Date.now())); }catch(e){}
+      /* Notifier l'iframe active si c'est REZ (single iframe model) */
+      var activeFrame = document.getElementById('module-frame');
+      if (activeFrame && activeFrame.contentWindow) {
         try {
-          rezFrame.contentWindow.postMessage({
+          activeFrame.contentWindow.postMessage({
             veraluzEvent: true,
             source: 'veraluz-core',
             type: 'new_booking',
@@ -1500,75 +3419,6 @@ window.addEventListener('message', function(ev) {
 });
 
 </script>
-
-<!-- ── Auth Overlay ──────────────────────────────────────────── -->
-<div id="auth-overlay">
-  <div class="auth-box">
-    <div class="auth-logo">
-      <span class="al-icon">🏖️</span>
-      <div class="al-title">Veraluz OS</div>
-      <div class="al-sub">Residence · Kribi · Cameroun</div>
-    </div>
-    <div class="auth-error" id="auth-error"></div>
-
-    <!-- ── Mode employé (par défaut) ── -->
-    <div id="auth-emp-mode">
-      <div class="auth-emp-pick">
-        <label>Qui êtes-vous ?</label>
-        <select class="auth-emp-select" id="auth-emp-select">
-          <option value="">⏳ Chargement des employés...</option>
-        </select>
-      </div>
-      <span class="auth-pin-lbl">Votre NIP (4 chiffres)</span>
-      <div class="auth-pin-display">
-        <div class="auth-pin-dot" id="pin-dot-0"></div>
-        <div class="auth-pin-dot" id="pin-dot-1"></div>
-        <div class="auth-pin-dot" id="pin-dot-2"></div>
-        <div class="auth-pin-dot" id="pin-dot-3"></div>
-      </div>
-      <div class="auth-pin-pad">
-        <button class="auth-pin-btn" onclick="pinPress('1')">1</button>
-        <button class="auth-pin-btn" onclick="pinPress('2')">2</button>
-        <button class="auth-pin-btn" onclick="pinPress('3')">3</button>
-        <button class="auth-pin-btn" onclick="pinPress('4')">4</button>
-        <button class="auth-pin-btn" onclick="pinPress('5')">5</button>
-        <button class="auth-pin-btn" onclick="pinPress('6')">6</button>
-        <button class="auth-pin-btn" onclick="pinPress('7')">7</button>
-        <button class="auth-pin-btn" onclick="pinPress('8')">8</button>
-        <button class="auth-pin-btn" onclick="pinPress('9')">9</button>
-        <button class="auth-pin-btn del" onclick="pinDel()">⌫</button>
-        <button class="auth-pin-btn zero" onclick="pinPress('0')">0</button>
-      </div>
-      <button class="auth-btn" onclick="doLoginPin()">✅ Se connecter</button>
-    </div>
-
-    <!-- ── Mode admin (secondaire) ── -->
-    <div id="auth-admin-mode" style="display:none;">
-      <div class="auth-field">
-        <label>Identifiant admin</label>
-        <input type="text" id="auth-username" placeholder="admin"
-               autocomplete="username"
-               onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
-      </div>
-      <div class="auth-field">
-        <label>Mot de passe</label>
-        <input type="password" id="auth-password" placeholder="••••••••"
-               autocomplete="current-password"
-               onkeydown="if(event.key==='Enter')doLogin()">
-      </div>
-      <div class="auth-field" style="flex-direction:row;align-items:center;gap:8px;">
-        <input type="checkbox" id="auth-remember" style="width:auto;">
-        <label for="auth-remember" style="font-size:12px;color:var(--text2);">Se souvenir de moi (7 jours)</label>
-      </div>
-      <button class="auth-btn" onclick="doLogin()">🔐 Connexion admin</button>
-    </div>
-
-    <!-- ── Toggle mode ── -->
-    <div class="auth-mode-toggle">
-      <a id="auth-mode-lnk" onclick="toggleAdminMode()">🔐 Accès administrateur</a>
-    </div>
-  </div>
-</div>
 
 <!-- ── Panneau Pointage Rapide ──────────────────────────────── -->
 <style>
@@ -1601,7 +3451,6 @@ window.addEventListener('message', function(ev) {
   padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);}
 .att-row:last-child{border:none;}
 </style>
-
 <div id="pointage-panel" class="hidden">
   <div class="pp-box">
     <div class="pp-hdr">
@@ -1623,6 +3472,282 @@ window.addEventListener('message', function(ev) {
 </div>
 
 <script>
-// Horloge en temps réel dans le panneau pointage
+/* ── Pointage Panel (PROMPT 008A) ───────────────────────────── */
 setInterval(function(){
-  var el = docum
+  var el=document.getElementById('punch-clock');
+  if(!el)return;
+  var n=new Date();
+  el.textContent=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')+':'+String(n.getSeconds()).padStart(2,'0');
+},1000);
+
+function openPointagePanel(){
+  var pp=document.getElementById('pointage-panel');
+  if(!pp)return;
+  pp.classList.remove('hidden');
+  var dn=document.getElementById('punch-date');
+  if(dn) dn.textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  loadAttHistory();
+}
+function closePointagePanel(){
+  var pp=document.getElementById('pointage-panel');
+  if(pp) pp.classList.add('hidden');
+}
+
+function loadAttHistory(){
+  var hist=document.getElementById('att-history');
+  var stat=document.getElementById('punch-status');
+  var btnIn=document.getElementById('punch-btn-in');
+  var btnOut=document.getElementById('punch-btn-out');
+  if(!hist)return;
+  if(!currentUser||!currentUser.employee_id){
+    if(stat) stat.textContent='Connectez-vous comme employé pour utiliser le pointage.';
+    if(btnIn)  btnIn.style.display='none';
+    if(btnOut) btnOut.style.display='none';
+    hist.innerHTML='<div class="emp-empty">Non connecté comme employé.</div>';
+    return;
+  }
+  hist.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Chargement...</div>';
+  var empId=currentUser.employee_id;
+  var since=new Date(Date.now()-14*24*60*60*1000).toISOString().slice(0,10);
+  var today=new Date().toISOString().slice(0,10);
+
+  fetch(SB_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(empId)
+    +'&date=gte.'+since+'&select=*&order=date.desc&limit=20',{
+    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}
+  })
+  .then(function(r){ return r.ok?r.json():null; })
+  .then(function(rows){
+    if(!Array.isArray(rows)||rows.length===0){
+      return fetch(SB_URL+'/rest/v1/veraluz_pointages?employee_id=eq.'+encodeURIComponent(empId)
+        +'&date=gte.'+since+'&select=*&order=date.desc&limit=20',{
+        headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}
+      }).then(function(r2){ return r2.ok?r2.json():[]; });
+    }
+    return rows;
+  })
+  .then(function(rows){
+    var todayRow=Array.isArray(rows)?rows.find(function(r){return(r.date||'').slice(0,10)===today;}):null;
+    if(stat){
+      if(!todayRow) stat.textContent="Pas de pointage aujourd'hui.";
+      else {
+        var ent=todayRow.check_in||todayRow.heure_entree||todayRow.time_in||'?';
+        var sor=todayRow.check_out||todayRow.heure_sortie||todayRow.time_out;
+        stat.textContent='✅ Arrivée : '+esc(String(ent).slice(0,5))+(sor?' · Départ : '+esc(String(sor).slice(0,5)):'');
+      }
+    }
+    if(btnIn)  btnIn.style.display=(!todayRow||!todayRow.check_in)?'flex':'none';
+    if(btnOut) btnOut.style.display=(todayRow&&todayRow.check_in&&!todayRow.check_out)?'flex':'none';
+    if(!Array.isArray(rows)||rows.length===0){
+      hist.innerHTML='<div class="emp-empty">Aucune présence enregistrée.</div>'; return;
+    }
+    hist.innerHTML=rows.slice(0,14).map(function(r){
+      var d=esc(String(r.date||'').slice(0,10));
+      var ent=esc(String(r.check_in||r.heure_entree||r.time_in||'—').slice(0,5));
+      var sor=esc(String(r.check_out||r.heure_sortie||r.time_out||'—').slice(0,5));
+      return '<div class="att-row"><span>'+d+'</span><span>▶ '+ent+' / ⏹ '+sor+'</span></div>';
+    }).join('');
+  })
+  .catch(function(){
+    if(hist) hist.innerHTML='<div class="emp-empty">Erreur réseau — pointages indisponibles.</div>';
+    if(stat) stat.textContent='Erreur réseau.';
+  });
+}
+
+function doPunchIn(){
+  if(!currentUser||!currentUser.employee_id) return;
+  var now=new Date();
+  var today=now.toISOString().slice(0,10);
+  var timeStr=now.toISOString().slice(11,19);
+  fetch(SB_URL+'/rest/v1/veraluz_attendance',{
+    method:'POST',
+    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,
+             'Content-Type':'application/json',Prefer:'return=representation'},
+    body:JSON.stringify({employee_id:currentUser.employee_id,date:today,check_in:timeStr})
+  })
+  .then(function(r){ return r.ok||r.status===201; })
+  .then(function(ok){
+    if(ok){ showCoreToast('✅ Arrivée enregistrée','ok'); loadAttHistory(); }
+    else   showCoreToast('⚠ Erreur enregistrement pointage','err');
+  })
+  .catch(function(){ showCoreToast('⚠ Erreur réseau pointage','err'); });
+}
+
+function doPunchOut(){
+  if(!currentUser||!currentUser.employee_id) return;
+  var now=new Date();
+  var today=now.toISOString().slice(0,10);
+  var timeStr=now.toISOString().slice(11,19);
+  fetch(SB_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(currentUser.employee_id)+'&date=eq.'+today,{
+    method:'PATCH',
+    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({check_out:timeStr})
+  })
+  .then(function(r){ return r.ok; })
+  .then(function(ok){
+    if(ok){ showCoreToast('⏹ Départ enregistré','ok'); loadAttHistory(); }
+    else   showCoreToast('⚠ Erreur enregistrement départ','err');
+  })
+  .catch(function(){ showCoreToast('⚠ Erreur réseau pointage','err'); });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PROMPT 012 — PWA v012 : Service Worker + Installation + Offline
+   Améliorations : iOS detect, standalone masque bouton,
+                   cache clear DEV, SW update notification
+══════════════════════════════════════════════════════════════ */
+
+// ── Détection plateforme ──────────────────────────────────────
+var _vlzIsIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+var _vlzIsAndroid = !_vlzIsIOS && /android/i.test(navigator.userAgent);
+var _vlzIsDesktop = !_vlzIsIOS && !_vlzIsAndroid;
+var _vlzIsStandalone = (window.navigator.standalone === true) ||
+  window.matchMedia('(display-mode: standalone)').matches;
+
+// ── Service Worker ───────────────────────────────────────────
+function registerVeraluzServiceWorker(){
+  if(!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js')
+      .then(function(reg){
+        console.log('[VERALUZ PWA] Service worker enregistré', reg.scope);
+        // Détecter une mise à jour disponible
+        reg.addEventListener('updatefound', function(){
+          var newWorker = reg.installing;
+          if(!newWorker) return;
+          newWorker.addEventListener('statechange', function(){
+            if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+              console.log('[VERALUZ PWA] Mise à jour disponible — actualiser pour appliquer');
+              // Afficher une notification discrète de mise à jour
+              if(typeof showCoreToast === 'function'){
+                showCoreToast('🔄 Mise à jour disponible — actualisez la page', 'ok');
+              }
+            }
+          });
+        });
+      })
+      .catch(function(err){
+        console.warn('[VERALUZ PWA] Service worker non enregistré', err);
+      });
+  });
+}
+
+// ── Vider le cache PWA (dev mode uniquement) ──────────────────
+function vlzClearPwaCache(){
+  if(typeof VERALUZ_AUTH_MODE === 'undefined' || VERALUZ_AUTH_MODE !== 'development'){
+    console.warn('[VERALUZ PWA] vlzClearPwaCache() disponible en mode DEV seulement');
+    return;
+  }
+  var promises = [];
+  if('serviceWorker' in navigator){
+    promises.push(
+      navigator.serviceWorker.getRegistrations().then(function(regs){
+        return Promise.all(regs.map(function(r){ return r.unregister(); }));
+      })
+    );
+  }
+  if('caches' in window){
+    promises.push(
+      caches.keys().then(function(keys){
+        return Promise.all(keys.map(function(k){ return caches.delete(k); }));
+      })
+    );
+  }
+  Promise.all(promises).then(function(){
+    if(typeof showCoreToast === 'function'){
+      showCoreToast('🗑 Cache PWA vidé — rechargement...', 'ok');
+    }
+    setTimeout(function(){ window.location.reload(true); }, 1200);
+  }).catch(function(err){
+    console.error('[VERALUZ PWA] Erreur vidage cache:', err);
+  });
+}
+
+// ── Bouton installation (Android/Chrome) ─────────────────────
+var _vlzDeferredInstall = null;
+
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  _vlzDeferredInstall = e;
+  // Ne pas montrer si déjà en mode standalone (app installée)
+  if(_vlzIsStandalone) return;
+  var banner = document.getElementById('vlz-pwa-install-banner');
+  if(banner){ banner.style.display = 'flex'; }
+  // Afficher le vrai bouton natif (API disponible)
+  var btn = document.getElementById('vlz-pwa-install-btn');
+  if(btn){ btn.style.display = 'block'; }
+  // Masquer les instructions manuelles (le bouton suffit)
+  var inst = document.getElementById('vlz-pwa-instructions');
+  if(inst){ inst.style.display = 'none'; }
+});
+
+function vlzTriggerInstall(){
+  if(!_vlzDeferredInstall) return;
+  _vlzDeferredInstall.prompt();
+  _vlzDeferredInstall.userChoice.then(function(result){
+    console.log('[VERALUZ PWA] Choix installation:', result.outcome);
+    _vlzDeferredInstall = null;
+    var banner = document.getElementById('vlz-pwa-install-banner');
+    if(banner){ banner.style.display = 'none'; }
+  });
+}
+
+window.addEventListener('appinstalled', function(){
+  console.log('[VERALUZ PWA] Application installée !');
+  var banner = document.getElementById('vlz-pwa-install-banner');
+  if(banner){ banner.style.display = 'none'; }
+});
+
+// ── Indicateur offline ────────────────────────────────────────
+function vlzUpdateOnlineBanner(){
+  var bar = document.getElementById('vlz-offline-bar');
+  if(!bar) return;
+  bar.style.display = navigator.onLine ? 'none' : 'flex';
+}
+window.addEventListener('online',  vlzUpdateOnlineBanner);
+window.addEventListener('offline', vlzUpdateOnlineBanner);
+
+// ── Lancement ─────────────────────────────────────────────────
+registerVeraluzServiceWorker();
+window.addEventListener('DOMContentLoaded', function(){
+  vlzUpdateOnlineBanner();
+  // iOS : afficher l'aide installation si pas encore en standalone
+  if(_vlzIsIOS && !_vlzIsStandalone){
+    var banner = document.getElementById('vlz-pwa-install-banner');
+    if(banner){
+      // Masquer le bouton Installer (inutile sur iOS) et garder l'aide Partager
+      var installBtn = document.getElementById('vlz-pwa-install-btn');
+      if(installBtn) installBtn.style.display = 'none';
+      banner.style.display = 'flex';
+    }
+  }
+  // Si déjà installée en standalone : masquer toutes les bannières installation
+  if(_vlzIsStandalone){
+    var b = document.getElementById('vlz-pwa-install-banner');
+    if(b) b.style.display = 'none';
+  }
+});
+</script>
+
+<!-- ── PWA : masquer les bannières si app déjà installée (standalone) ── -->
+<style>
+@media (display-mode: standalone) {
+  #vlz-pwa-install-banner { display:none !important; }
+}
+</style>
+
+<!-- ── PWA Bannière offline ────────────────────────────────── -->
+<div id="vlz-offline-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
+  background:#f59e0b;color:#0d0d1a;padding:8px 16px;font-size:12px;font-weight:600;
+  align-items:center;justify-content:center;gap:8px;text-align:center;">
+  ⚠ Connexion faible ou hors ligne. Certaines données peuvent ne pas se synchroniser.
+</div>
+
+<!-- ── PWA Bannière installation — PROMPT 022 ─────────────────── -->
+<div id="vlz-pwa-install-banner" style="display:none;position:fixed;bottom:16px;right:16px;z-index:99998;
+  background:#1a1a2e;border:1px solid rgba(34,211,165,.40);border-radius:14px;
+  padding:14px 16px;max-width:280px;box-shadow:0 8px 32px rgba(0,0,0,.5);
+  flex-direction:column;gap:10px;">
+  <!-- Entête + bouton fermer -->
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+    <div style="font-size:13px;font-weight:700;color:#e2e8f0;">📲 Installer VERALUZ OS</div>
+    <button onclick="docum

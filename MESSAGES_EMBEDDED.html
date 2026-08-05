@@ -458,10 +458,19 @@ function getCurrentMessagingActor(){
 function canActorSeeMessage(actor,msg){
   if(!msg)return false;
   if(msg.tenant_id&&msg.tenant_id!==actor.tenant_id)return false;
+  /* Admins / direction / RH / finance voient tout */
   if(actor.can_view_all_messages)return true;
+  /* Chloé IA → administration uniquement */
+  if(msg.sender_type==='chloe')return false;
+  /* recipient_type 'admin' → administration uniquement */
+  if(msg.recipient_type==='admin')return false;
+  /* Messages envoyés par cet acteur */
   if(msg.sender_id&&msg.sender_id===actor.actor_id)return true;
+  /* Messages reçus directement par cet acteur */
   if(msg.recipient_id&&msg.recipient_id===actor.actor_id)return true;
+  /* Messages à tout le monde */
   if(msg.recipient_type==='all')return true;
+  /* Messages au département de cet acteur */
   if(msg.recipient_type==='department'&&msg.department===actor.department)return true;
   return false;
 }
@@ -515,34 +524,54 @@ function getMockMsgs(){
   var d1=new Date(Date.now()-86400000).toISOString();
   var d2=new Date(Date.now()-172800000).toISOString();
   return [
-    {id:'m1',sender_name:'Chloé IA',sender_type:'chloe',department:'direction',
+    /* ── Chloé IA → admin uniquement (recipient_type:'admin') ── */
+    {id:'m1',sender_name:'Chloé IA',sender_type:'chloe',sender_id:'chloe-ia',
+     recipient_type:'admin',department:'direction',
      subject:'⚠️ Alerte — 3 livreurs sans photo ce matin',
      body:'Bonjour,\n\nJ\'ai détecté ce matin que 3 livreurs actifs n\'ont pas effectué leur selfie de prise de service :\n\n• Jean Bello — actif depuis 08:10, aucune photo\n• Aliou Konaté — actif depuis 08:32, aucune photo\n• Paul Mbaye — actif depuis 09:05, aucune photo\n\nJe recommande de les contacter directement ou de bloquer l\'accès aux nouvelles commandes jusqu\'à régularisation.\n\n— Chloé, Assistante IA Veraluz',
      labels:['urgent','chloe'],starred:true,read:false,archived:false,is_draft:false,created_at:now},
-    {id:'m2',sender_name:'Marie Koné',sender_type:'employee',department:'rh',
+    /* ── Message RH → département RH uniquement ── */
+    {id:'m2',sender_name:'Marie Koné',sender_type:'employee',sender_id:'marie-kone',
+     recipient_type:'department',department:'rh',
      subject:'Demande de congé — 11 au 22 août 2026',
      body:'Bonjour,\n\nJe souhaite soumettre ma demande de congé du 11 au 22 août 2026 (10 jours ouvrés).\n\nMon remplaçant sera M. Diallo conformément au planning RH en vigueur.\n\nMerci de bien vouloir valider ou me contacter si des ajustements sont nécessaires.\n\nCordialement,\nMarie Koné — Assistante RH',
      labels:['rh'],starred:false,read:false,archived:false,is_draft:false,created_at:h1},
-    {id:'m3',sender_name:'Système Restaurant',sender_type:'system',department:'restaurant',
+    /* ── Alerte Restaurant → département restaurant uniquement ── */
+    {id:'m3',sender_name:'Système Restaurant',sender_type:'system',sender_id:'system',
+     recipient_type:'department',department:'restaurant',
      subject:'Commande #1042 — en attente livreur (18 min)',
      body:'La commande #1042 est prête depuis 18 minutes et aucun livreur n\'a encore été assigné.\n\nClient : Mme Nguema — Bloc B Apt 12\nTotal : 14 500 XAF\nStatut cuisine : ✅ Prête\n\nAction requise : veuillez assigner un livreur disponible.',
      labels:['restaurant','urgent'],starred:false,read:true,archived:false,is_draft:false,created_at:h3},
-    {id:'m4',sender_name:'Finance · Dept',sender_type:'employee',department:'finance',
+    /* ── Rapport Finance → admin uniquement ── */
+    {id:'m4',sender_name:'Finance · Dept',sender_type:'employee',sender_id:'finance-dept',
+     recipient_type:'admin',department:'finance',
      subject:'Rapport de paie — Juillet 2026',
      body:'Veuillez trouver ci-joint le rapport de paie pour Juillet 2026.\n\nRésumé :\n• Employés traités : 24\n• Total brut : 3 840 000 XAF\n• Retenues totales : 384 000 XAF\n• Total net versé : 3 456 000 XAF\n\nAucune anomalie détectée ce mois-ci.',
      labels:['finance'],starred:true,read:true,archived:false,is_draft:false,created_at:d1},
-    {id:'m5',sender_name:'Jean Bello',sender_type:'employee',department:'livreur',
+    /* ── Livreur signale un problème → administration ── */
+    {id:'m5',sender_name:'Jean Bello',sender_type:'employee',sender_id:'jean-bello',
+     recipient_type:'admin',department:'livreur',
      subject:'Problème livraison commande #1038',
      body:'Bonjour,\n\nJe vous contacte au sujet de la commande #1038.\n\nÀ mon arrivée à l\'adresse (Bloc C Apt 7), le client n\'était pas présent. J\'ai appelé 3 fois sans réponse.\n\nJ\'ai pris une photo du lieu de livraison et attendu 10 minutes avant de repartir.\n\nMerci de me dire comment procéder.\n\n— Jean Bello, Livreur',
      labels:['livreur'],starred:false,read:false,archived:false,is_draft:false,created_at:d1},
-    {id:'m6',sender_name:'Housekeeping · Équipe',sender_type:'employee',department:'housekeeping',
+    /* ── Housekeeping → département housekeeping uniquement ── */
+    {id:'m6',sender_name:'Housekeeping · Équipe',sender_type:'employee',sender_id:'hk-team',
+     recipient_type:'department',department:'housekeeping',
      subject:'Chambre 204 — climatiseur défectueux',
      body:'Lors du nettoyage de la chambre 204 ce matin, l\'équipe a signalé un défaut sur le climatiseur :\n\n• Bruit anormal lors du démarrage\n• Température affichée incorrecte (23° au lieu de 18°)\n\nLa chambre a été temporairement retirée de la disponibilité.\n\nIntervention maintenance estimée : demain matin.',
      labels:['housekeeping'],starred:false,read:true,archived:false,is_draft:false,created_at:d2},
-    {id:'m7',sender_name:'Paul Kamto',sender_type:'employee',department:'rh',
+    /* ── Planning RH → département RH uniquement ── */
+    {id:'m7',sender_name:'Paul Kamto',sender_type:'employee',sender_id:'paul-kamto',
+     recipient_type:'department',department:'rh',
      subject:'Re: Planning Août — modifications demandées',
      body:'Bonjour,\n\nSuite à notre réunion de lundi, voici les modifications pour le planning d\'août :\n\n- Semaine 32 : échange Jean B. ↔ Aliou K. (jeudi/vendredi)\n- Semaine 33 : pas de livreur le 15 août (férié)\n\nMerci de valider avant vendredi.\n\nPaul',
-     labels:['rh'],starred:false,read:true,archived:false,is_draft:false,created_at:d2}
+     labels:['rh'],starred:false,read:true,archived:false,is_draft:false,created_at:d2},
+    /* ── Annonce générale → tout le monde (recipient_type:'all') ── */
+    {id:'m0',sender_name:'Direction Veraluz',sender_type:'admin',sender_id:'direction',
+     recipient_type:'all',department:'direction',
+     subject:'Bienvenue sur la messagerie Veraluz OS',
+     body:'Bonjour à toute l\'équipe,\n\nLe nouveau module de messagerie interne est maintenant actif.\n\nChaque employé voit uniquement les messages qui le concernent :\n• Messages directs : destinés personnellement à vous\n• Messages département : adressés à votre équipe\n• Annonces générales : comme ce message\n\nLes alertes Chloé IA et les rapports de direction restent confidentiels.\n\nBonne utilisation !\n\n— La Direction, Résidences Veraluz Kribi',
+     labels:[],starred:false,read:false,archived:false,is_draft:false,created_at:d2}
   ];
 }
 
@@ -579,17 +608,27 @@ function loadMessages(){
   else if(_currentFolder==='chloe'){q+=recipientFilter+'&sender_type=eq.chloe&is_draft=eq.false';}
   else{q+=recipientFilter+'&archived=eq.false&is_draft=eq.false';}
 
+  /* Pour non-admins : exclure aussi Chloé IA au niveau de la requête */
+  if(!actor.can_view_all_messages){
+    q+='&sender_type=neq.chloe';
+  }
+
   sbQ(q).then(function(data){
     var msgs=data||[];
-    if(!actor.can_view_all_messages){msgs=msgs.filter(function(m){return canActorSeeMessage(actor,m);});}
-    /* Fallback mock si aucun message retourné (RLS sans session JWT, table vide, etc.) */
+    /* Fallback mock si Supabase retourne 0 (RLS sans session JWT, table vide, etc.)
+       AVANT le filtre canActorSeeMessage pour que les mock data soient aussi filtrées */
     if(!msgs.length && _currentFolder==='inbox'){msgs=getMockMsgs();}
+    /* Filtre frontend : chaque acteur ne voit que ses messages */
+    if(!actor.can_view_all_messages){msgs=msgs.filter(function(m){return canActorSeeMessage(actor,m);});}
     _allMsgs=msgs;
     if(msgs.length)_lastMsgId=msgs[0].id;
     renderList();
     updateBadges();
   }).catch(function(){
-    _allMsgs=getMockMsgs();
+    var mock=getMockMsgs();
+    /* Appliquer le filtre sur le mock aussi */
+    if(!actor.can_view_all_messages){mock=mock.filter(function(m){return canActorSeeMessage(actor,m);});}
+    _allMsgs=mock;
     renderList();
     updateBadges();
   });

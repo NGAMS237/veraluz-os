@@ -15,6 +15,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="./assets/pwa/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="./assets/pwa/icon-512.png">
 <!-- ─────────────────────────────────────────────────────────── -->
+<!-- Veraluz Theme — anti-FOUC : applique dark avant render -->
+<script>if(localStorage.getItem('vl_theme')==='dark')document.documentElement.classList.add('vl-dark');</script>
 <style>
 :root{
   /* ── Veraluz Theme — Soft Neumorphism Light — PROMPT 036 ──────── */
@@ -814,6 +816,110 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 
 /* ── Dev mode banner — adapté thème light ───────────────────── */
 #dev-banner{background:linear-gradient(90deg,#7c3aed,#4f46e5)!important;}
+
+/* ═══════════════════════════════════════════════════════════════
+   VERALUZ THEME — MODE SOMBRE — PROMPT 036B
+   Activé via : html.vl-dark (classe posée par toggleVlTheme)
+   Variables CSS héritées, overrides ciblés pour couleurs fixes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Override des variables CSS root en mode dark */
+html.vl-dark{
+  --bg:#131722;--bg2:#1a1f2e;--bg3:#1e2538;--bg4:#252d42;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --border:rgba(255,255,255,.07);
+  --vl-sh:4px 4px 12px #0d1118,-2px -2px 8px #242b3e;
+  --vl-sh-in:inset 2px 2px 6px #0d1118,inset -1px -1px 4px #242b3e;
+}
+
+/* Body */
+html.vl-dark body{background:#131722!important;color:#e2e8f0;}
+
+/* Sidebar — légèrement plus sombre en dark mode */
+html.vl-dark #sidebar{background:#0d1117!important;}
+
+/* Topbar */
+html.vl-dark #topbar{
+  background:#1a1f2e!important;
+  border-bottom-color:rgba(255,255,255,.06)!important;
+  box-shadow:0 1px 8px rgba(0,0,0,.35)!important;
+}
+html.vl-dark #tb-title{color:#e2e8f0!important;}
+html.vl-dark .tb-btn{background:#252d42!important;color:#94a3b8!important;}
+html.vl-dark .tb-btn:hover{background:#2d3654!important;color:#e2e8f0!important;}
+html.vl-dark .tb-menu{background:#252d42!important;border-color:rgba(255,255,255,.07)!important;color:#94a3b8!important;}
+html.vl-dark .tb-tag{background:rgba(8,145,178,.18)!important;color:#38bdf8!important;}
+html.vl-dark .notif-badge-btn{background:#252d42!important;color:#94a3b8!important;}
+html.vl-dark .notif-badge-btn:hover{background:#2d3654!important;}
+html.vl-dark .tb-user-name{color:#e2e8f0!important;}
+html.vl-dark .tb-user-role{background:rgba(8,145,178,.15)!important;color:#38bdf8!important;}
+
+/* KPI stat cards */
+html.vl-dark .stat-card{background:#1a1f2e!important;}
+html.vl-dark .stat-label{color:#64748b!important;}
+
+/* Charts */
+html.vl-dark .vl-chart-card{background:#1a1f2e!important;}
+html.vl-dark .vl-bar-track{background:#252d42!important;box-shadow:var(--vl-sh-in)!important;}
+html.vl-dark .vl-bar-val{color:#818cf8!important;}
+html.vl-dark .vl-bar-sub{color:#64748b!important;}
+html.vl-dark .vl-donut-svg circle:first-child{stroke:#252d42!important;}
+html.vl-dark .vl-donut-pend{color:#f7971e!important;}
+html.vl-dark .vl-donut-ok{color:#34d399!important;}
+html.vl-dark .vl-ct{color:#64748b!important;}
+
+/* Module cards */
+html.vl-dark .mod-card{background:#1a1f2e!important;}
+html.vl-dark .mod-card:hover{box-shadow:6px 6px 18px #0d1118,-2px -2px 8px #242b3e!important;}
+html.vl-dark .mod-card.dim{background:#141820!important;}
+html.vl-dark .mod-name{color:#e2e8f0!important;}
+html.vl-dark .mod-desc{color:#64748b!important;}
+html.vl-dark .mod-badge{background:rgba(8,145,178,.15)!important;color:#38bdf8!important;}
+
+/* Recent list */
+html.vl-dark .rec-item{background:#1a1f2e!important;}
+html.vl-dark .rec-text{color:#e2e8f0!important;}
+html.vl-dark .rec-time{color:#64748b!important;}
+
+/* Greeting */
+html.vl-dark .dash-greeting{color:#e2e8f0!important;}
+html.vl-dark .dash-sub{color:#64748b!important;}
+html.vl-dark .dash-section{color:#475569!important;}
+
+/* Bottom nav */
+html.vl-dark #bottom-nav{
+  background:#1a1f2e!important;
+  border-top-color:rgba(255,255,255,.06)!important;
+  box-shadow:0 -2px 12px rgba(0,0,0,.35)!important;
+}
+html.vl-dark .bn-btn{color:#64748b!important;}
+html.vl-dark .bn-btn.active{color:#38bdf8!important;}
+
+/* Loader / Error */
+html.vl-dark #loader{background:#131722!important;}
+html.vl-dark .ld-ring{border-color:#252d42!important;border-top-color:#38bdf8!important;}
+html.vl-dark .ld-text{color:#64748b!important;}
+html.vl-dark #mod-error{background:#131722!important;}
+html.vl-dark .err-title{color:#e2e8f0!important;}
+
+/* Employee home */
+html.vl-dark .emp-card{background:#1a1f2e!important;}
+html.vl-dark .emp-pname{color:#e2e8f0!important;}
+html.vl-dark .emp-meta-item{background:#252d42!important;color:#94a3b8!important;}
+html.vl-dark .att-chip{background:#252d42!important;}
+html.vl-dark .emp-mod-btn{background:#252d42!important;color:#94a3b8!important;}
+html.vl-dark .emp-mod-btn:hover{background:#2d3654!important;}
+html.vl-dark .mobile-card{background:#1a1f2e!important;}
+html.vl-dark .task-item{border-bottom-color:rgba(255,255,255,.05)!important;}
+
+/* PWA refresh — dark sidebar context */
+html.vl-dark #pwa-refresh-wrap button{background:rgba(255,255,255,.04)!important;}
+
+/* Scrollbar */
+html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
+
+/* Bouton toggle lui-même */
+#vl-theme-btn{font-size:15px;padding:0 9px;letter-spacing:0;}
 </style>
 </head>
 <body>
@@ -899,6 +1005,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
       </button>
       <button class="tb-btn" id="tb-pointage-btn" onclick="openPointagePanel()"
         style="display:none;" title="Mon Pointage"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+      <button class="tb-btn" id="vl-theme-btn" onclick="toggleVlTheme()" title="Mode sombre / clair">🌙</button>
       <button class="tb-btn" onclick="refreshCurrent()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></button>
     </div>
   </div>
@@ -1542,6 +1649,22 @@ function initGreeting(){
   document.getElementById('dash-greeting').textContent=s+', Smith 👋';
   document.getElementById('dash-date').textContent='Résidence Veraluz · '
     +new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+
+/* ── Veraluz Theme toggle — PROMPT 036B ─────────────────────── */
+function applyVlTheme(){
+  var dark = localStorage.getItem('vl_theme') === 'dark';
+  document.documentElement.classList.toggle('vl-dark', dark);
+  var btn = document.getElementById('vl-theme-btn');
+  if(btn) btn.textContent = dark ? '☀️' : '🌙';
+  /* meta theme-color PWA */
+  var mc = document.querySelector('meta[name="theme-color"]');
+  if(mc) mc.content = dark ? '#131722' : '#e8ecf0';
+}
+function toggleVlTheme(){
+  var dark = localStorage.getItem('vl_theme') === 'dark';
+  localStorage.setItem('vl_theme', dark ? 'light' : 'dark');
+  applyVlTheme();
 }
 
 /* ── Sidebar mobile ───────────────────────────────────────── */
@@ -2897,6 +3020,7 @@ function sendAuthContext(iframe) {
 }
 
 document.addEventListener('DOMContentLoaded', function(){
+  applyVlTheme(); /* PROMPT 036B — Veraluz Theme : appliquer préférence dark/light */
   purgeLegacyPinCache(); /* PROMPT 008B — purge cache PIN legacy */
   /* PROMPT 021 — Charger profil résidence + modules activés (async, failsafe) */
   try { loadTenantSettings(); } catch(e) { console.warn('[Tenant] loadTenantSettings:', e); }

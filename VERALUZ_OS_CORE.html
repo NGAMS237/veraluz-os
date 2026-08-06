@@ -1518,9 +1518,18 @@ function buildNav(){
       ROLES[currentUser.role] ? ROLES[currentUser.role].modules.indexOf('ai_center') >= 0 : 'N/A');
   }
 
+  /* EMERGENCY_001 — la sidebar lit ROLES[role].modules directement.
+     RESTRICTED_MODULES est applique ici aussi, sinon un module reserve
+     resterait visible pour un role non autorise. */
+  function _moduleAutorise(id, role) {
+    var r = (typeof RESTRICTED_MODULES !== 'undefined') && RESTRICTED_MODULES[id];
+    return r ? r.indexOf(role) !== -1 : true;
+  }
   var visibleModules = (currentUser && ROLES[currentUser.role])
-    ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0 && isModuleEnabled(m.id); })
-    : MODULES.filter(function(m){ return isModuleEnabled(m.id); });
+    ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0
+                                      && _moduleAutorise(m.id, currentUser.role)
+                                      && isModuleEnabled(m.id); })
+    : MODULES.filter(function(m){ return isModuleEnabled(m.id) && !(typeof RESTRICTED_MODULES !== 'undefined' && RESTRICTED_MODULES[m.id]); });
 
   /* PROMPT 008A — Mon espace pour les employés */
   if (currentUser && currentUser.employee_id) {
@@ -1761,7 +1770,7 @@ var ROLES = {
   superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
              'notifications','analytics','audit','settings','eventbus','auth','contacts','appro','integrations','ai_center',
-             'documents','messages'] /* PROMPT 019+030 */ },
+             'documents','messages','rapports'] /* PROMPT 019+030 ; EMERGENCY_001 : rapports */ },
   manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
              'notifications','analytics','contacts','appro','ai_center',

@@ -1230,6 +1230,8 @@ var MODULES = [
     file:'ANALYTICS_EMBEDDED.html',     desc:'KPIs · Revenus · Rapports' },
   { id:'audit',         label:'Audit',         icon:'🔍',
     file:'AUDIT_EMBEDDED.html',         desc:'Logs · Sécurité · Traçabilité' },
+  { id:'rapports',      label:'Rapports & Analyses', icon:'📑',
+    file:'RAPPORTS.html',               desc:'MODE TEST — DIRECTION UNIQUEMENT' },
   { id:'settings',      label:'Settings',      icon:'⚙️',
     file:'SETTINGS_EMBEDDED.html',      desc:'Config · Tarifs · Permissions' },
   { id:'eventbus',      label:'Event Bus',     icon:'⚡',
@@ -1690,7 +1692,7 @@ function closeMobileSidebar(){
 }
 
 /* PROMPT 029 */
-var OS_BUILD = 'v031d-message-rights-2026-06-28';
+var OS_BUILD = 'v033-emergency-recovery-2026-08-06';
 /* Afficher build version */
 setTimeout(function(){
   var el=document.getElementById('build-ver');
@@ -2048,6 +2050,7 @@ function doLoginPin() {
     }
 
     /* Succès — construire session depuis réponse serveur (sans données sensibles) */
+    setSessionToken(result.session_token, result.session_expiry);   /* EMERGENCY_001 */
     var emp = result.employee;
     var empName2 = emp.full_name || emp.employee_name || empName || 'Employé';
     var coreRole = emp.role || 'staff';
@@ -2247,7 +2250,7 @@ var AUTH_MODE = 'edge';
    ================================================================ */
 // TEMP DEV ONLY — VERALUZ_AUTH_MODE='development' permet de travailler pendant la conception.
 // À remettre sur 'production' avant toute utilisation réelle.
-var VERALUZ_AUTH_MODE = 'development'; /* 'development' | 'production' */
+var VERALUZ_AUTH_MODE = 'production'; /* EMERGENCY_001 : mode DEV désactivé */
 
 /* URL Edge Functions — clé anon safe côté client (service_role JAMAIS ici) */
 var EDGE_VERIFY_PIN_URL    = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
@@ -2265,7 +2268,7 @@ var EDGE_CHANGE_ADMIN_PW   = 'https://dfdmasejsoibxrvubegu.supabase.co/functions
    TODO SECURITY: supprimer DEV_UNLOCK_ENABLED, DEV_UNLOCK_EXPIRES_AT
                   et handleDevUnlock() avant production.
    ================================================================ */
-var DEV_UNLOCK_ENABLED    = true;
+var DEV_UNLOCK_ENABLED    = false; /* EMERGENCY_001 */
 var DEV_UNLOCK_EXPIRES_AT = '2026-06-28T23:59:59Z';
 var DEV_UNLOCK_TOKEN      = 'veraluz_dev_recovery'; /* token URL — pas un secret de prod */
 
@@ -2637,7 +2640,8 @@ function verifyEmployeePin(employeeId, pin) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': SUPA_KEY   /* clé anon — safe côté client */
+      'apikey': SUPA_KEY,                    /* clé anon — publique */
+      'Authorization': 'Bearer ' + SUPA_KEY  /* EMERGENCY_001 : verify_jwt actif */
     },
     body: JSON.stringify({ employee_id: employeeId, pin: pin })
   })
@@ -2658,6 +2662,14 @@ function verifyEmployeePin(employeeId, pin) {
 
 /* Données temporaires de pré-session pour le changement de PIN */
 var _pendingPinSession = null;
+
+/* EMERGENCY_001 — jeton de session opaque, EN MÉMOIRE UNIQUEMENT.
+   Jamais localStorage, sessionStorage, cookie ni URL. */
+var _sessionToken  = null;
+var _sessionExpiry = null;
+function setSessionToken(t, exp) { _sessionToken = t || null; _sessionExpiry = exp || null; }
+function clearSessionToken()     { _sessionToken = null; _sessionExpiry = null; }
+function getSessionToken()       { return _sessionToken; }
 
 /**
  * showChangePinView() — affiché quand must_change_pin = true
@@ -2787,9 +2799,19 @@ function normalizeRole(employee) {
 }
 
 /* Mission 5 — modules autorisés par rôle */
+/* EMERGENCY_001 — modules réservés à la direction. */
+var RESTRICTED_MODULES = { rapports: ['gerant','admin','superadmin'] };
+
 function getAllowedModules(role) {
   var r = ROLES[role];
-  return r && r.modules ? r.modules.slice() : [];
+  var mods = r && r.modules ? r.modules.slice() : [];
+  Object.keys(RESTRICTED_MODULES).forEach(function(id) {
+    var allowed = RESTRICTED_MODULES[id].indexOf(role) !== -1;
+    var pos = mods.indexOf(id);
+    if (allowed && pos === -1) mods.push(id);
+    if (!allowed && pos !== -1) mods.splice(pos, 1);
+  });
+  return mods;
 }
 
 /* Mission 7 — Rendu Espace Employé principal */
@@ -2980,6 +3002,19 @@ function toggleAdminMode() {
 
 function logout() {
   if (!confirm('Confirmer la déconnexion ?')) return;
+  /* EMERGENCY_001 — révoquer la session serveur avant l'effacement local. */
+  var _tok = getSessionToken();
+  if (_tok) {
+    try {
+      fetch(SUPA_URL + '/functions/v1/logout-employee-session', {
+        method: 'POST', keepalive: true,
+        headers: { 'Content-Type':'application/json', 'apikey': SUPA_KEY,
+                   'Authorization': 'Bearer ' + SUPA_KEY },
+        body: JSON.stringify({ session_token: _tok })
+      }).catch(function(){});
+    } catch(e) {}
+  }
+  clearSessionToken();
   logAuthEvent('logout', currentUser ? currentUser.name||currentUser.username : '?',
                          currentUser ? currentUser.role : '?');
   localStorage.removeItem('veraluz_auth_v1');

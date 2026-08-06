@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VERALUZ — Centre de Rapports</title>
+<!--
+  NON DÉPLOYÉ. Module autonome du Centre de Rapports & Analyses.
+
+  DÉCISION D'INTÉGRATION (Phase 1) — écran de connexion autonome.
+  Ce module ne réutilise PAS _sessionToken de VERALUZ_OS_CORE.html : aucun
+  mécanisme de transmission n'existe entre les deux, et le token vit uniquement
+  en mémoire JavaScript. Prétendre le partager serait faux.
+  L'employé s'authentifie donc ici, par son PIN, via verify-employee-pin.
+  Option future (non implémentée) : intégration en iframe + postMessage — voir
+  README, section 4.
+
+  SÉCURITÉ
+    • Aucune clé service_role.
+    • Aucun appel /rest/v1/ : uniquement des Edge Functions. La liste de
+      connexion passe par list-login-employees (v002 : elle interrogeait
+      directement /rest/v1/veraluz_employees_public, ce qui contredisait
+      la règle ci-dessus et exposait le rôle de chaque employé).
+    • session_token conservé en mémoire. Jamais localStorage, sessionStorage,
+      cookie ni URL. Fermeture d'onglet = reconnexion.
+-->
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a3040;
+    --txt:#e8eaf0; --txt2:#9aa3b5; --txt3:#6b7385;
+    --acc:#c9a227; --ok:#3fb950; --err:#f85149; --warn:#d29922;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       background:var(--bg);color:var(--txt);min-height:100dvh}
+  button{font:inherit;cursor:pointer}
+  input,select{font:inherit;background:var(--panel2);color:var(--txt);
+       border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+  input:focus,select:focus{outline:2px solid var(--acc);outline-offset:-1px}
+
+  .screen{display:none} .screen.on{display:block}
+
+  /* ─ Connexion ─ */
+  #login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+        padding:26px;width:100%;max-width:400px}
+  .card h1{margin:0 0 4px;font-size:19px;letter-spacing:.3px}
+  .card p.sub{margin:0 0 20px;color:var(--txt2);font-size:13px}
+  .fld{margin-bottom:14px}
+  .fld label{display:block;margin-bottom:5px;color:var(--txt2);font-size:12px;
+             text-transform:uppercase;letter-spacing:.6px}
+  .fld input,.fld select{width:100%}
+  .btn{background:var(--acc);color:#1a1300;border:0;border-radius:8px;
+       padding:11px 16px;font-weight:600;width:100%}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:transparent;color:var(--txt2);border:1px solid var(--line);width:auto}
+  .msg{margin-top:12px;padding:9px 11px;border-radius:8px;font-size:13px;display:none}
+  .msg.on{display:block}
+  .msg.err{background:rgba(248,81,73,.12);color:var(--err);border:1px solid rgba(248,81,73,.3)}
+  .msg.ok{background:rgba(63,185,80,.12);color:var(--ok);border:1px solid rgba(63,185,80,.3)}
+  .msg.warn{background:rgba(210,153,34,.12);color:var(--warn);border:1px solid rgba(210,153,34,.3)}
+
+  /* ─ Application ─ */
+  header{display:flex;align-items:center;gap:12px;padding:12px 18px;
+         background:var(--panel);border-bottom:1px solid var(--line);
+         position:sticky;top:0;z-index:10;flex-wrap:wrap}
+  header .ttl{font-weight:700;letter-spacing:.4px}
+  header .who{color:var(--txt2);font-size:12.5px;margin-left:auto}
+  main{padding:18px;max-width:1500px;margin:0 auto}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;
+           background:var(--panel);border:1px solid var(--line);
+           border-radius:12px;padding:14px;margin-bottom:14px}
+  .toolbar .fld{margin:0;min-width:150px}
+  .tblwrap{overflow:auto;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{background:var(--panel2);color:var(--txt2);font-size:11.5px;
+     text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0}
+  tbody tr:hover{background:rgba(255,255,255,.025)}
+  .pager{display:flex;gap:10px;align-items:center;margin-top:12px;
+         color:var(--txt2);font-size:13px;flex-wrap:wrap}
+  .empty{padding:34px;text-align:center;color:var(--txt3)}
+  .qbadge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;
+          background:rgba(210,153,34,.16);color:var(--warn);border:1px solid rgba(210,153,34,.3)}
+  .notes{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--warn);
+         border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:12.5px;color:var(--txt2)}
+  .notes ul{margin:6px 0 0;padding-left:18px} .notes li{margin:3px 0}
+  .toolbar.locked{opacity:.55;pointer-events:none}
+  .toolbar.locked::after{content:'Export en cours\2026';position:absolute;right:14px;top:10px;
+    font-size:12px;color:var(--acc);letter-spacing:.5px}
+  .toolbar{position:relative}
+  .hint{font-size:11.5px;color:var(--txt3);margin-top:3px}
+  @media(max-width:640px){ .toolbar .fld{min-width:100%} header .who{width:100%;margin:0} }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ CONNEXION ══════════════ -->
+<section id="login" class="screen on">
+  <form class="card" id="loginForm" autocomplete="off">
+    <h1>Centre de Rapports</h1>
+    <p class="sub">Connexion employé — VERALUZ</p>
+
+    <div class="fld">
+      <label for="empSel">Employé</label>
+      <select id="empSel" required><option value="">Chargement…</option></select>
+    </div>
+    <div class="fld">
+      <label for="pinInp">Code PIN</label>
+      <input id="pinInp" type="password" inputmode="numeric" pattern="\d{4}|\d{6}"
+             maxlength="6" placeholder="••••••" required autocomplete="off">
+    </div>
+
+    <button class="btn" id="loginBtn" type="submit">Se connecter</button>
+    <div class="msg" id="loginMsg"></div>
+  </form>
+</section>
+
+<!-- ══════════════ APPLICATION ══════════════ -->
+<section id="app" class="screen">
+  <header>
+    <span class="ttl">VERALUZ · Rapports</span>
+    <span class="who" id="whoTxt"></span>
+    <button class="btn ghost" id="logoutBtn" type="button">Déconnexion</button>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div class="fld">
+        <label for="repSel">Rapport</label>
+        <select id="repSel"></select>
+      </div>
+      <div class="fld" id="fldStart">
+        <label for="dStart">Du (inclus)</label>
+        <input id="dStart" type="date">
+      </div>
+      <div class="fld" id="fldEnd">
+        <label for="dEnd">Au (inclus)</label>
+        <input id="dEnd" type="date">
+      </div>
+      <!-- Les filtres métier sont générés depuis catalogue.filters[] — voir buildFilterControls() -->
+      <div id="filterZone" style="display:contents"></div>
+      <div class="fld">
+        <label for="psSel">Par page</label>
+        <select id="psSel">
+          <option>25</option><option selected>50</option><option>100</option><option>200</option>
+        </select>
+      </div>
+      <button class="btn" id="runBtn" style="width:auto" type="button">Exécuter</button>
+      <!-- Deux exports distincts : le libellé dit exactement ce qui est exporté.
+           Voir README section 2 pour le choix A / B / C. -->
+      <button class="btn ghost" id="csvPageBtn" type="button" style="display:none">Exporter cette page</button>
+      <button class="btn ghost" id="csvAllBtn"  type="button" style="display:none">Exporter tout (≤ 2000)</button>
+    </div>
+
+    <div class="msg" id="pinWarn"></div>
+    <div class="msg" id="appMsg"></div>
+    <div class="notes" id="notesBox" style="display:none"></div>
+
+    <div class="tblwrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+
+    <div class="pager">
+      <button class="btn ghost" id="prevBtn" type="button">‹ Précédent</button>
+      <span id="pageInfo">—</span>
+      <button class="btn ghost" id="nextBtn" type="button">Suivant ›</button>
+    </div>
+  </main>
+</section>
+
+<script>
+'use strict';
+(function () {
+
+/* ════════ Configuration ════════ */
+var SB_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
+/* Clé publique anon : sert uniquement d'en-tête apikey exigé par la passerelle
+   Supabase. Elle ne donne accès à aucune donnée du Centre — les Edge Functions
+   utilisent la session opaque. Aucune clé service_role ici. */
+var SB_ANON = 'REMPLACER_PAR_LA_CLE_ANON_PUBLIQUE';
+var FN = SB_URL + '/functions/v1/';
+
+/* Format d'un token de session : 32 octets rendus en 64 caractères hexadécimaux. */
+var SESSION_TOKEN_RE = /^[0-9a-f]{64}$/;
+
+/* Plafond strict de l'export « tout » (option C). Au-delà, l'export serveur
+   (option B) est requis — voir README section 2. */
+var CSV_ALL_MAX_ROWS  = 2000;
+var CSV_ALL_PAGE_SIZE = 200;
+var CSV_ALL_MAX_PAGES = Math.ceil(CSV_ALL_MAX_ROWS / CSV_ALL_PAGE_SIZE);
+
+/* Rapports financiers : l'export intégral doit passer par le serveur (option B),
+   non implémenté. L'export « tout » côté client leur est refusé. */
+var FINANCIAL_REPORTS = ['M-FIN-01', 'M-FIN-02', 'M-FIN-03'];
+
+/* Garde de démarrage : refuser de fonctionner avec le placeholder en place.
+   Sans ce contrôle, la page tenterait des appels avec une clé invalide et
+   afficherait des erreurs réseau incompréhensibles. */
+function configIsValid() {
+  return typeof SB_ANON === 'string'
+      && SB_ANON.indexOf('REMPLACER_PAR') === -1
+      && SB_ANON.length > 40;
+}
+
+/* ════════ État — en mémoire uniquement ════════ */
+var SESSION_TOKEN = null;   /* jamais localStorage / sessionStorage / cookie / URL */
+var EMPLOYEE      = null;
+var ACTOR         = null;
+var STATE = { page: 1, pageSize: 50, cols: [], rows: [], total: 0,
+              reportId: null, fingerprint: null };
+var LAST_GOOD_PAGE = 1;   /* page restaurée si une requête de pagination échoue */
+var MUST_CHANGE_PIN = false;
+
+/* Révocation serveur d'une session.
+   v002 : fire-and-forget suivi d'un location.reload() immédiat — le navigateur
+   annulait la requête au déchargement et la session restait ouverte 12 h.
+   v003 : keepalive:true garantit l'envoi même si la page se décharge, et l'on
+   attend la réponse (avec un délai maximal) avant de recharger. */
+var REVOKE_TIMEOUT_MS = 2500;
+
+function revokeSession(token){
+  if (!token) return Promise.resolve({ sent: false });
+
+  var opts = {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: { 'Content-Type':'application/json', apikey: SB_ANON,
+               Authorization: 'Bearer ' + SB_ANON, 'X-Veraluz-Session': token },
+    body: '{}',
+    keepalive: true          /* survit au déchargement de la page */
+  };
+
+  var call = fetch(FN + 'logout-employee-session', opts)
+    .then(function (r) { return { sent: true, status: r.status }; })
+    .catch(function ()  { return { sent: false }; });
+
+  /* Ne pas bloquer indéfiniment : keepalive a déjà remis la requête au navigateur. */
+  var timeout = new Promise(function (resolve) {
+    setTimeout(function () { resolve({ sent: true, timedOut: true }); }, REVOKE_TIMEOUT_MS);
+  });
+
+  return Promise.race([call, timeout]);
+}
+
+/* Révoque puis exécute une suite — le rechargement n'a lieu qu'après. */
+function revokeThen(token, next){
+  revokeSession(token).then(function (res) {
+    if (!res.sent) console.warn('[session] revocation non confirmee');
+    next();
+  });
+}
+
+/* ════════ Catalogue côté client (confort d'affichage).
+   Le serveur reste seul juge des autorisations : ce catalogue ne fait
+   qu'éviter de proposer un rapport qui sera refusé. ════════ */
+/* ── DÉCISIONS MÉTIER ARRÊTÉES ─────────────────────────────────────────────
+   Inscrites ici et affichées avec chaque rapport concerné. Elles ne sont plus
+   présentées comme des hypothèses ouvertes. */
+
+var DECISION_REMIS = {
+  titre: 'Statut « remis » \u2014 d\u00e9cision arr\u00eat\u00e9e',
+  points: [
+    'Une commande « remis » est une commande remise au client.',
+    'Le paiement n\u2019est pas confirm\u00e9.',
+    'Elle est EXCLUE du chiffre d\u2019affaires encaiss\u00e9.',
+    'Elle est affich\u00e9e s\u00e9par\u00e9ment, dans count_remis et amount_remis, '
+      + 'jamais additionn\u00e9e \u00e0 revenue_paye.'
+  ]
+};
+
+var DECISION_PAIEMENTS = {
+  titre: 'Paiements divergents \u2014 d\u00e9cision arr\u00eat\u00e9e',
+  points: [
+    'Aucune correction automatique n\u2019est appliqu\u00e9e.',
+    'reservations.paid et SUM(paiements valid\u00e9s) sont affich\u00e9s ensemble, '
+      + 'sous paid_snapshot et paid_computed.',
+    'Le rapprochement est manuel et rel\u00e8ve de la direction.',
+    'M-FIN-03 liste les \u00e9carts sans d\u00e9signer de valeur correcte.'
+  ]
+};
+
+/* Valeurs réelles de veraluz_units.type vérifiées en base (2026-08-05). */
+var UNIT_TYPE_OPTIONS = [['','Tous'],['chambre','Chambre'],['studio','Studio'],
+                         ['appartement','Appartement'],['suite','Suite']];
+
+var REPORTS = [
+  { id:'M-RES-01',  label:'R\u00e9servations par statut', actors:['direction','reception'], period:'required',
+    filters:[
+      { key:'status',    label:'Statut',        type:'enum',
+        options:[['','Tous'],['confirmed','Confirm\u00e9e'],['checkedin','En cours'],
+                 ['checkedout','Termin\u00e9e'],['pending','En attente']] },
+      { key:'unit_type', label:'Type d\u2019unit\u00e9', type:'enum', options:UNIT_TYPE_OPTIONS }
+    ] },
+
+  { id:'M-OCC-01',  label:'Occupation \u2014 r\u00e9sum\u00e9/jour', actors:['direction','reception'], period:'required',
+    filters:[
+      { key:'unit_type', label:'Type d\u2019unit\u00e9', type:'enum', options:UNIT_TYPE_OPTIONS }
+    ] },
+
+  { id:'M-OCC-02',  label:'Occupation \u2014 d\u00e9tail unit\u00e9', actors:['direction','reception'], period:'required',
+    filters:[
+      { key:'unit_type', label:'Type d\u2019unit\u00e9', type:'enum', options:UNIT_TYPE_OPTIONS },
+      { key:'unit_id',   label:'Chambre',       type:'unit' }
+    ] },
+
+  { id:'M-ROOM-01', label:'Historique d\u2019une chambre', actors:['direction','reception'], period:'optional',
+    filters:[
+      { key:'unit_id',   label:'Chambre',       type:'unit', required:true }
+    ] },
+
+  { id:'M-FIN-01',  label:'Paiements re\u00e7us', actors:['direction'], period:'required',
+    decision: DECISION_PAIEMENTS,
+    filters:[
+      { key:'method',    label:'M\u00e9thode',  type:'enum',
+        options:[['','Toutes'],['cash','Esp\u00e8ces'],['momo','Mobile Money'],
+                 ['orange','Orange Money'],['carte','Carte']] }
+    ] },
+
+  { id:'M-FIN-02',  label:'Cr\u00e9ances \u00e0 recouvrer',  actors:['direction'], period:'none', filters:[],
+    decision: DECISION_PAIEMENTS },
+  { id:'M-FIN-03',  label:'Anomalies de rapprochement', actors:['direction'], period:'none', filters:[],
+    decision: DECISION_PAIEMENTS },
+
+  { id:'M-REST-01', label:'CA Restaurant', actors:['direction','restauration'], period:'required',
+    decision: DECISION_REMIS,
+    filters:[
+      { key:'type',      label:'Type de commande', type:'enum',
+        options:[['','Tous'],['table','Table'],['bar','Bar'],['room','Chambre']] }
+    ] },
+
+  { id:'M-FOUR-01', label:'Commandes fournisseurs', actors:['direction'], period:'required',
+    filters:[
+      { key:'supplier_id', label:'Fournisseur', type:'supplier' },
+      { key:'status',      label:'Statut', type:'enum',
+        options:[['','Tous'],['recu','Re\u00e7u'],['envoye','Envoy\u00e9'],['brouillon','Brouillon']] }
+    ] },
+
+  { id:'M-CLI-01',  label:'Historique s\u00e9jours clients', actors:['direction','reception'], period:'optional',
+    filters:[
+      { key:'client_key', label:'Client', type:'client' }
+    ] }
+];
+
+/* Valeurs r\u00e9elles de veraluz_units.type v\u00e9rifi\u00e9es en base. */
+/* Rôle DB → acteur. Même table que côté serveur ; le serveur re-vérifie. */
+var ACTOR_MAP = { gerant:'direction', receptionniste:'reception', barman:'restauration' };
+
+/* ════════ Utilitaires ════════ */
+function $(id){ return document.getElementById(id); }
+function esc(v){
+  return String(v === null || v === undefined ? '' : v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function show(el, text, kind){
+  el.className = 'msg on ' + (kind || 'err');
+  el.textContent = text;
+}
+function hide(el){ el.className = 'msg'; el.textContent = ''; }
+
+/* Neutralise l'injection de formule dans les tableurs. */
+function csvEscape(v){
+  if (v === null || v === undefined) return '';
+  var s = String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  if (/[",\n\r;]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function api(path, opts){
+  opts = opts || {};
+  var headers = {
+    'Content-Type': 'application/json',
+    'apikey': SB_ANON,
+    'Authorization': 'Bearer ' + SB_ANON
+  };
+  if (opts.session && SESSION_TOKEN) headers['X-Veraluz-Session'] = SESSION_TOKEN;
+
+  return fetch(FN + path, {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: headers,
+    body: JSON.stringify(opts.body || {})
+  }).then(function (r) {
+    return r.json().catch(function(){ return {}; }).then(function (j) {
+      return { status: r.status, retryAfter: r.headers.get('Retry-After'), body: j };
+    });
+  });
+}
+
+/* ════════ Connexion ════════ */
+
+/* La liste de connexion provient de l'Edge Function list-login-employees.
+   Elle ne retourne que { id, display_name } pour les employés dont le rôle
+   ouvre l'accès au Centre. Le rôle n'est pas transmis au client : le publier
+   sur un écran non authentifié désignerait les comptes à privilèges. */
+function loadEmployees(){
+  var sel = $('empSel');
+  api('list-login-employees', { body: {} })
+    .then(function (res) {
+      if (res.status === 429) {
+        sel.innerHTML = '<option value="">Trop de requêtes</option>';
+        show($('loginMsg'), 'Trop de requêtes — patientez quelques minutes.', 'warn');
+        return;
+      }
+      var list = (res.body && res.body.ok && Array.isArray(res.body.employees))
+        ? res.body.employees : null;
+
+      if (!list) {
+        sel.innerHTML = '<option value="">Service indisponible</option>';
+        show($('loginMsg'), 'Liste des employés indisponible.', 'err');
+        return;
+      }
+      if (list.length === 0) {
+        /* Aucun profil autorisé : ne PAS retomber sur la liste complète.
+           Afficher tous les employés reviendrait à contourner le filtrage. */
+        sel.innerHTML = '<option value="">Aucun employé autorisé</option>';
+        show($('loginMsg'),
+          'Aucun profil habilité au Centre de Rapports n\u2019est disponible.', 'warn');
+        return;
+      }
+      sel.innerHTML = '<option value="">\u2014 S\u00e9lectionner \u2014</option>'
+        + list.map(function (e) {
+            return '<option value="' + esc(e.id) + '">' + esc(e.display_name) + '</option>';
+          }).join('');
+    })
+    .catch(function () {
+      sel.innerHTML = '<option value="">Erreur de chargement</option>';
+      show($('loginMsg'), 'Impossible de charger la liste des employés.', 'err');
+    });
+}
+
+
+$('loginForm').addEventListener('submit', function (ev) {
+  ev.preventDefault();
+  hide($('loginMsg'));
+
+  var id  = $('empSel').value;
+  var pin = $('pinInp').value.trim();
+  if (!id)  { show($('loginMsg'), 'Sélectionnez un employé.'); return; }
+  if (!/^\d{4}$|^\d{6}$/.test(pin)) { show($('loginMsg'), 'Le PIN comporte 4 ou 6 chiffres.'); return; }
+
+  $('loginBtn').disabled = true;
+  $('loginBtn').textContent = 'Connexion…';
+
+  api('verify-employee-pin', { body: { employee_id: id, pin: pin } })
+    .then(function (res) {
+      $('loginBtn').disabled = false;
+      $('loginBtn').textContent = 'Se connecter';
+      $('pinInp').value = '';
+
+      if (res.status === 429) {
+        var s = parseInt(res.retryAfter || '900', 10);
+        show($('loginMsg'), 'Trop de tentatives. Réessayez dans ' + Math.ceil(s / 60) + ' min.');
+        return;
+      }
+      if (!res.body || !res.body.ok) {
+        var e = (res.body && res.body.error) || 'invalid_credentials';
+        show($('loginMsg'),
+          e === 'pin_expired'            ? 'PIN temporaire expiré — contactez la direction.' :
+          e === 'session_creation_failed'? 'Session impossible à créer — contactez l’administrateur.' :
+          e === 'forbidden_origin'       ? 'Origine non autorisée.' :
+                                           'Identifiants incorrects.');
+        return;
+      }
+      if (!res.body.session_token) {
+        show($('loginMsg'), 'Le service d’authentification n’a pas fourni de session (v5 requise).');
+        return;
+      }
+
+      /* Le token doit avoir exactement la forme attendue avant d'être conservé. */
+      if (!SESSION_TOKEN_RE.test(res.body.session_token)) {
+        show($('loginMsg'), 'Jeton de session invalide — connexion refusée.');
+        return;
+      }
+
+      SESSION_TOKEN = res.body.session_token;   /* mémoire uniquement */
+      EMPLOYEE      = res.body.employee;
+      ACTOR         = ACTOR_MAP[EMPLOYEE.raw_role] || null;
+
+      if (!ACTOR) {
+        /* Rôle non habilité : la session a bien été créée côté serveur.
+           On la révoque AVANT d'oublier le token, sinon elle resterait
+           ouverte 12 h sans que personne puisse la fermer. */
+        var orphan = SESSION_TOKEN;
+        SESSION_TOKEN = null; EMPLOYEE = null; ACTOR = null;
+        show($('loginMsg'), 'V\u00e9rification en cours\u2026', 'warn');
+        /* Même traitement qu'une déconnexion : on attend la révocation avant
+           de rendre la main, sinon la session orpheline vit 12 h. */
+        revokeThen(orphan, function () {
+          show($('loginMsg'), 'Votre profil n\u2019a pas acc\u00e8s au Centre de Rapports.');
+        });
+        return;
+      }
+
+      /* must_change_pin s'affiche dans l'écran application : l'écran de login
+         est masqué juste après, le message y serait invisible. */
+      MUST_CHANGE_PIN = !!res.body.must_change_pin;
+      enterApp();
+    })
+    .catch(function () {
+      $('loginBtn').disabled = false;
+      $('loginBtn').textContent = 'Se connecter';
+      /* Aucun repli local : sans Edge Function, pas de session. */
+      show($('loginMsg'), 'Service d’authentification indisponible — réessayez.');
+    });
+});
+
+function enterApp(){
+  $('login').classList.remove('on');
+  $('app').classList.add('on');
+  $('whoTxt').textContent = EMPLOYEE.full_name + ' \u00b7 ' + EMPLOYEE.raw_role + ' \u00b7 profil ' + ACTOR;
+  if (MUST_CHANGE_PIN) {
+    show($('pinWarn'),
+      'PIN temporaire en cours \u2014 changez-le depuis VERALUZ OS avant expiration.', 'warn');
+  } else {
+    hide($('pinWarn'));
+  }
+  buildReportSelect();
+}
+
+$('logoutBtn').addEventListener('click', function () {
+  var t = SESSION_TOKEN;
+  SESSION_TOKEN = null; EMPLOYEE = null; ACTOR = null; MUST_CHANGE_PIN = false;
+  $('logoutBtn').disabled = true;
+  $('logoutBtn').textContent = 'D\u00e9connexion\u2026';
+  /* Le rechargement n'intervient qu'après la révocation (ou son délai). */
+  revokeThen(t, function () { location.reload(); });
+});
+
+/* ════════ Rapports ════════ */
+
+/* Caches des sélecteurs métier — rechargés une fois par session. */
+var UNITS_CACHE     = null;
+var SUPPLIERS_CACHE = null;
+var CLIENT_RESULTS  = [];
+
+/* ── Concurrence ───────────────────────────────────────────────────────────
+   Deux requêtes lancées coup sur coup peuvent revenir dans le désordre.
+   Sans compteur de séquence, une réponse ancienne écraserait un résultat
+   récent — l'utilisateur verrait la page 2 alors qu'il a demandé la page 3. */
+var REPORT_REQUEST_SEQ = 0;    /* incrémenté à chaque exécution de rapport */
+var CLIENT_SEARCH_SEQ  = 0;    /* idem pour la recherche client */
+var _cliTimer = null;          /* timer de saisie retardée — annulable */
+
+/* Propriété du verrou de requête.
+   ACTIVE_QUERY_SEQ identifie la requête qui détient actuellement le verrou.
+   Distinct de REPORT_REQUEST_SEQ : le premier dit QUI détient le verrou, le
+   second QUELLE est la requête courante. Ils divergent après une invalidation
+   sans remplaçante — il n'y a alors plus de propriétaire, mais la réponse
+   tardive reste non courante. */
+var ACTIVE_QUERY_SEQ = 0;
+
+/** Prend le verrou au nom d'une requête. */
+function acquireQuery(seq) {
+  ACTIVE_QUERY_SEQ = seq;
+  setQueryBusy(true);
+}
+
+/**
+ * Libère le verrou UNIQUEMENT si `seq` en est encore propriétaire.
+ * Une réponse tardive qui n'est plus propriétaire ne débloque rien : la requête
+ * en cours garde l'interface gelée jusqu'à sa propre réponse.
+ * @returns {boolean} true si le verrou a été libéré par cet appel
+ */
+function releaseQueryIfOwned(seq) {
+  if (seq !== ACTIVE_QUERY_SEQ) return false;
+  ACTIVE_QUERY_SEQ = 0;
+  setQueryBusy(false);
+  return true;
+}
+
+/**
+ * Invalide la requête en cours sans remplaçante (changement de rapport ou de
+ * critère). Le verrou est relâché immédiatement : sans cela, une réponse
+ * définitivement ignorée laisserait l'écran gelé pour toujours.
+ */
+function invalidateActiveQuery() {
+  REPORT_REQUEST_SEQ++;
+  ACTIVE_QUERY_SEQ = 0;
+  setQueryBusy(false);
+}
+
+function buildReportSelect(){
+  var avail = REPORTS.filter(function (r) { return r.actors.indexOf(ACTOR) !== -1; });
+  $('repSel').innerHTML = avail.map(function (r) {
+    return '<option value="' + r.id + '">' + esc(r.label) + '</option>';
+  }).join('');
+  var canExport = (ACTOR === 'direction');
+  $('csvPageBtn').style.display = canExport ? '' : 'none';
+  $('csvAllBtn').style.display  = canExport ? '' : 'none';
+  onReportChange();
+}
+
+function currentReport(){
+  var id = $('repSel').value;
+  for (var i = 0; i < REPORTS.length; i++) if (REPORTS[i].id === id) return REPORTS[i];
+  return null;
+}
+
+/* ── Contrôles de filtre générés depuis catalogue.filters[] ───────────────
+   Un champ texte générique unique ne permettait ni de valider les valeurs,
+   ni de proposer les bonnes options par rapport. */
+function buildFilterControls(){
+  var r = currentReport();
+  var zone = $('filterZone');
+  zone.innerHTML = '';
+  if (!r || !r.filters || !r.filters.length) return;
+
+  r.filters.forEach(function (f) {
+    var wrap = document.createElement('div');
+    wrap.className = 'fld';
+    wrap.id = 'fld-' + f.key;
+
+    var lbl = document.createElement('label');
+    lbl.setAttribute('for', 'flt-' + f.key);
+    lbl.textContent = f.label + (f.required ? ' *' : '');
+    wrap.appendChild(lbl);
+
+    var ctl;
+    if (f.type === 'enum') {
+      ctl = document.createElement('select');
+      f.options.forEach(function (o) {
+        var opt = document.createElement('option');
+        opt.value = o[0]; opt.textContent = o[1];
+        ctl.appendChild(opt);
+      });
+    } else if (f.type === 'unit') {
+      ctl = document.createElement('select');
+      ctl.innerHTML = '<option value="">Chargement\u2026</option>';
+      loadUnits(ctl, f.required);
+    } else if (f.type === 'supplier') {
+      ctl = document.createElement('select');
+      ctl.innerHTML = '<option value="">Chargement\u2026</option>';
+      loadSuppliers(ctl);
+    } else if (f.type === 'client') {
+      /* Deux contrôles : une saisie de recherche et la liste des résultats. */
+      var search = document.createElement('input');
+      search.type = 'search';
+      search.id = 'cliSearch';
+      search.placeholder = 'Rechercher (2 caract\u00e8res min.)';
+      search.maxLength = 60;
+      search.addEventListener('input', onClientSearchInput);
+      wrap.appendChild(search);
+
+      ctl = document.createElement('select');
+      ctl.innerHTML = '<option value="">\u2014 Tous les clients \u2014</option>';
+
+      var hint = document.createElement('div');
+      hint.className = 'hint';
+      hint.id = 'cliHint';
+      hint.textContent = ACTOR === 'reception'
+        ? 'Obligatoire, ou p\u00e9riode de 92 jours maximum.'
+        : 'Facultatif.';
+      wrap.appendChild(ctl);
+      wrap.appendChild(hint);
+      ctl.id = 'flt-' + f.key;
+      ctl.dataset.key = f.key;
+      zone.appendChild(wrap);
+      return;
+    } else {
+      ctl = document.createElement('input');
+      ctl.type = 'text';
+      ctl.maxLength = 100;
+      if (f.placeholder) ctl.placeholder = f.placeholder;
+    }
+
+    ctl.id = 'flt-' + f.key;
+    ctl.dataset.key = f.key;
+    wrap.appendChild(ctl);
+    zone.appendChild(wrap);
+  });
+}
+
+/* Valeurs de filtre actuellement saisies. */
+function readFilters(){
+  var r = currentReport();
+  var out = {};
+  if (!r || !r.filters) return out;
+  r.filters.forEach(function (f) {
+    var el = $('flt-' + f.key);
+    if (!el) return;
+    var v = String(el.value || '').trim();
+    if (v) out[f.key] = v;
+  });
+  return out;
+}
+
+/* ── Sélecteur d'unité : list-report-units (session obligatoire) ────────── */
+function loadUnits(selectEl, required){
+  function fill(units){
+    var head = required
+      ? '<option value="">\u2014 Choisir une chambre \u2014</option>'
+      : '<option value="">\u2014 Toutes \u2014</option>';
+    selectEl.innerHTML = head + units.map(function (u) {
+      var suffix = [u.type, (u.floor !== null ? 'niv. ' + u.floor : null),
+                    (u.active ? null : 'hors service')]
+                   .filter(Boolean).join(' \u00b7 ');
+      return '<option value="' + esc(u.id) + '">' + esc(u.name)
+           + (suffix ? ' (' + esc(suffix) + ')' : '') + '</option>';
+    }).join('');
+  }
+
+  if (UNITS_CACHE) { fill(UNITS_CACHE); return; }
+
+  api('list-report-units', { session: true, body: {} }).then(function (res) {
+    if (res.body && res.body.ok && Array.isArray(res.body.units)) {
+      UNITS_CACHE = res.body.units;
+      fill(UNITS_CACHE);
+    } else {
+      selectEl.innerHTML = '<option value="">Chambres indisponibles</option>';
+    }
+  }).catch(function () {
+    selectEl.innerHTML = '<option value="">Chambres indisponibles</option>';
+  });
+}
+
+/* ── Sélecteur de fournisseur : list-report-suppliers (session, direction) ─ */
+function loadSuppliers(selectEl){
+  function fill(list){
+    selectEl.innerHTML = '<option value="">\u2014 Tous \u2014</option>'
+      + list.map(function (f) {
+          return '<option value="' + esc(f.id) + '">' + esc(f.name)
+               + (f.active ? '' : ' (inactif)') + '</option>';
+        }).join('');
+  }
+  if (SUPPLIERS_CACHE) { fill(SUPPLIERS_CACHE); return; }
+
+  api('list-report-suppliers', { session: true, body: {} }).then(function (res) {
+    if (res.body && res.body.ok && Array.isArray(res.body.suppliers)) {
+      SUPPLIERS_CACHE = res.body.suppliers;
+      fill(SUPPLIERS_CACHE);
+    } else {
+      selectEl.innerHTML = '<option value="">Fournisseurs indisponibles</option>';
+    }
+  }).catch(function () {
+    selectEl.innerHTML = '<option value="">Fournisseurs indisponibles</option>';
+  });
+}
+
+/* ── Recherche client : search-report-clients (session obligatoire) ─────── */
+function onClientSearchInput(){
+  var q = String($('cliSearch').value || '').trim();
+  var sel = $('flt-client_key');
+  if (_cliTimer) clearTimeout(_cliTimer);
+
+  if (q.length < 2) {
+    sel.innerHTML = '<option value="">\u2014 Tous les clients \u2014</option>';
+    $('cliHint').textContent = '2 caract\u00e8res minimum pour lancer la recherche.';
+    return;
+  }
+
+  _cliTimer = setTimeout(function () {
+    var mySeq = ++CLIENT_SEARCH_SEQ;
+    var myQuery = q;
+    var myReport = $('repSel').value;
+
+    /* Une réponse n'est prise en compte que si RIEN n'a bougé entre-temps. */
+    function stillRelevant(){
+      if (mySeq !== CLIENT_SEARCH_SEQ) return false;              /* recherche plus récente */
+      var hint = $('cliHint'), target = $('flt-client_key');
+      if (!hint || !target) return false;                          /* contrôles disparus */
+      if ($('repSel').value !== myReport) return false;            /* rapport changé */
+      if (myReport !== 'M-CLI-01') return false;                   /* plus le bon rapport */
+      var box = $('cliSearch');
+      if (!box || String(box.value || '').trim() !== myQuery) return false;  /* saisie modifiée */
+      return true;
+    }
+
+    api('search-report-clients', { session: true, body: { q: myQuery } }).then(function (res) {
+      if (!stillRelevant()) return;    /* réponse périmée : ignorée en silence */
+
+      var hint = $('cliHint'), target = $('flt-client_key');
+      if (!res.body || !res.body.ok) {
+        hint.textContent = (res.body && res.body.error === 'query_too_short')
+          ? '2 caract\u00e8res minimum.' : 'Recherche indisponible.';
+        return;
+      }
+      CLIENT_RESULTS = res.body.results || [];
+      target.innerHTML = '<option value="">\u2014 Tous les clients \u2014</option>'
+        + CLIENT_RESULTS.map(function (c) {
+            var q2 = c.match_quality === 'exact' ? '' : ' \u2014 identit\u00e9 approch\u00e9e';
+            return '<option value="' + esc(c.client_key) + '">'
+                 + esc(c.display_name) + ' (' + c.stay_count + ' s\u00e9jour'
+                 + (c.stay_count > 1 ? 's' : '') + ')' + q2 + '</option>';
+          }).join('');
+      hint.textContent = CLIENT_RESULTS.length
+        ? (CLIENT_RESULTS.length + ' r\u00e9sultat(s)'
+           + (res.body.truncated ? ' \u2014 liste tronqu\u00e9e, affinez' : ''))
+        : 'Aucun r\u00e9sultat.';
+    }).catch(function () {
+      if (!stillRelevant()) return;
+      var hint = $('cliHint');
+      if (hint) hint.textContent = 'Recherche indisponible.';
+    });
+  }, 350);
+}
+
+/* ── Empreinte de requête ──────────────────────────────────────────────────
+   Identifie de façon stable le jeu de critères ayant produit le résultat
+   affiché. Un export de page n'est autorisé que si l'empreinte du résultat
+   correspond encore aux filtres à l'écran. */
+function computeFingerprint(reportId, params){
+  var keys = Object.keys(params).filter(function (k) { return k !== 'page'; }).sort();
+  var parts = keys.map(function (k) { return k + '=' + String(params[k]); });
+  return reportId + '|' + parts.join('&');
+}
+
+/* ── Purge de l'état affiché ─────────────────────────────────────────────── */
+function clearResultState(){
+  STATE.rows = []; STATE.cols = []; STATE.total = 0;
+  STATE.reportId = null; STATE.fingerprint = null;
+  STATE.page = 1; LAST_GOOD_PAGE = 1;
+  $('thead').innerHTML = '';
+  $('tbody').innerHTML = '';
+  $('notesBox').style.display = 'none';
+  $('notesBox').innerHTML = '';
+  $('pageInfo').textContent = '\u2014';
+  /* Pagination neutralisée : sans résultat courant, « Suivant » n'a pas de sens. */
+  $('prevBtn').disabled = true;
+  $('nextBtn').disabled = true;
+  setExportEnabled(false);
+}
+
+/* Les exports restent interdits tant qu'aucune exécution n'a réussi ET tant
+   qu'il n'y a pas au moins une ligne. Un rapport exécuté avec 0 résultat ne
+   doit pas proposer d'export : le fichier ne contiendrait qu'un en-tête. */
+function setExportEnabled(on){
+  var r = currentReport();
+  var fin = r ? FINANCIAL_REPORTS.indexOf(r.id) !== -1 : false;
+  var hasRows = Array.isArray(STATE.rows) && STATE.rows.length > 0;
+  var allow = !!on && hasRows;
+  $('csvPageBtn').disabled = !allow;
+  $('csvAllBtn').disabled  = !allow || fin;
+}
+
+function onReportChange(){
+  var r = currentReport(); if (!r) return;
+
+  /* Toute réponse encore en vol devient caduque, et l'interface est
+     immédiatement réutilisable (aucune requête remplaçante n'est lancée ici). */
+  invalidateActiveQuery();
+  CLIENT_SEARCH_SEQ++;
+  if (_cliTimer) { clearTimeout(_cliTimer); _cliTimer = null; }
+  CLIENT_RESULTS = [];
+
+  /* Purge : sans cela, les lignes du rapport précédent restaient affichées et
+     pouvaient être exportées sous le nouveau nom de rapport. */
+  clearResultState();
+  buildFilterControls();
+
+  var needPeriod = (r.period !== 'none');
+  $('fldStart').style.display = needPeriod ? '' : 'none';
+  $('fldEnd').style.display   = needPeriod ? '' : 'none';
+
+  hide($('appMsg'));
+
+  var fin = FINANCIAL_REPORTS.indexOf(r.id) !== -1;
+  $('csvAllBtn').title = fin
+    ? 'Export int\u00e9gral serveur requis pour les rapports financiers \u2014 non disponible'
+    : 'Parcourt les pages jusqu\u2019\u00e0 ' + CSV_ALL_MAX_ROWS + ' lignes maximum';
+}
+$('repSel').addEventListener('change', onReportChange);
+
+/* Changer un critère PÉRIME le résultat affiché.
+   v003 : seuls STATE.page et les boutons d'export étaient réinitialisés — le
+   tableau, les notes et la pagination restaient ceux de l'ancienne requête. On
+   pouvait donc modifier un filtre puis cliquer « Suivant » et exécuter la page 2
+   d'un jeu de critères qui n'avait jamais été lancé en page 1. */
+function onCriteriaChange(ev){
+  /* Une réponse encore en vol ne doit plus rien modifier, et l'interface est
+     remise dans un état utilisable même s'il n'y a pas de requête remplaçante. */
+  invalidateActiveQuery();
+
+  /* 004A — recherche client : une réponse encore en vol ne doit pas venir
+     remplacer la sélection que l'utilisateur vient de faire. */
+  CLIENT_SEARCH_SEQ++;
+  if (_cliTimer) { clearTimeout(_cliTimer); _cliTimer = null; }
+
+  /* Si le changement vient du sélecteur client lui-même, on fige aussi la
+     zone de recherche sur la valeur retenue : sans cela, une réponse arrivant
+     juste après écraserait la liste et donc la sélection. */
+  var fromClientSelect = ev && ev.target && ev.target.id === 'flt-client_key';
+  if (fromClientSelect) {
+    var sel = $('flt-client_key');
+    var chosen = sel ? sel.value : '';
+    var box = $('cliSearch');
+    if (box) box.blur();
+    if (chosen) {
+      var hint = $('cliHint');
+      if (hint) hint.textContent = 'Client s\u00e9lectionn\u00e9 \u2014 '
+        + 'modifiez la recherche pour en choisir un autre.';
+    }
+  }
+
+  clearResultState();
+  show($('appMsg'),
+    'Crit\u00e8res modifi\u00e9s \u2014 ex\u00e9cutez \u00e0 nouveau le rapport.', 'warn');
+}
+$('psSel').addEventListener('change', onCriteriaChange);
+$('dStart').addEventListener('change', onCriteriaChange);
+$('dEnd').addEventListener('change', onCriteriaChange);
+$('filterZone').addEventListener('change', onCriteriaChange);
+
+function buildParams(){
+  var r = currentReport();
+  var p = {};
+  var s = $('dStart').value, e = $('dEnd').value;
+
+  if (r.period === 'required') {
+    if (!s || !e) return { error: 'Renseignez les deux dates.' };
+    p.period_start = s; p.period_end = e;
+  } else if (r.period === 'optional') {
+    if (s && !e) return { error: 'Renseignez aussi la date de fin.' };
+    if (e && !s) return { error: 'Renseignez aussi la date de d\u00e9but.' };
+    if (s && e) { p.period_start = s; p.period_end = e; }
+  }
+
+  var filters = readFilters();
+  for (var k in filters) if (Object.prototype.hasOwnProperty.call(filters, k)) p[k] = filters[k];
+
+  /* Filtres obligatoires du catalogue */
+  var missing = null;
+  (r.filters || []).forEach(function (f) {
+    if (f.required && !p[f.key]) missing = f.label;
+  });
+  if (missing) return { error: missing + ' est obligatoire.' };
+
+  p.page = STATE.page;
+  p.page_size = parseInt($('psSel').value, 10) || 50;
+  return { params: p };
+}
+
+/* Requête unique. Retourne une promesse résolue avec { ok, body } — jamais rejetée,
+   pour que l'appelant puisse restaurer l'état de pagination. */
+/* v003 : plus de paramètre export — run-report le refuse désormais.
+   La journalisation de l'export passe par record-report-export. */
+function fetchPage(reportId, params){
+  return api('run-report', { session: true,
+                             body: { report_id: reportId, params: params } })
+    .then(function (res) {
+      if (res.status === 429) {
+        var s = parseInt(res.retryAfter || '600', 10);
+        return { ok:false, msg:'Trop de requ\u00eates \u2014 r\u00e9essayez dans '
+                              + Math.ceil(s / 60) + ' min.' };
+      }
+      if (!res.body || res.body.success !== true) {
+        var reason = (res.body && res.body.reason) || 'server_error';
+        if (['missing_session','invalid_session','session_expired',
+             'session_revoked','employee_inactive'].indexOf(reason) !== -1) {
+          return { ok:false, sessionLost:true };
+        }
+        return { ok:false, msg:(res.body && res.body.message) || 'Erreur serveur.' };
+      }
+      return { ok:true, body:res.body };
+    })
+    .catch(function () {
+      return { ok:false, msg:'R\u00e9seau indisponible \u2014 r\u00e9essayez.' };
+    });
+}
+
+function onSessionLost(){
+  SESSION_TOKEN = null;
+  alert('Session expir\u00e9e \u2014 veuillez vous reconnecter.');
+  location.reload();
+}
+
+/* Contrôles gelés pendant une requête de rapport. */
+/* 004A : csvPageBtn et csvAllBtn sont inclus. Sans eux, on pouvait cliquer
+   « Exécuter » (préparation de la page 1) puis exporter, pendant le chargement,
+   les lignes encore affichées de la page 3 — dans un fichier nommé page1. */
+var QUERY_CONTROLS = [
+  'repSel',
+  'dStart',
+  'dEnd',
+  'psSel',
+  'runBtn',
+  'prevBtn',
+  'nextBtn',
+  'csvPageBtn',
+  'csvAllBtn'
+];
+
+function setQueryBusy(on){
+  QUERY_CONTROLS.forEach(function (id) { var el = $(id); if (el) el.disabled = on; });
+  var zone = $('filterZone');
+  if (zone) {
+    var inputs = zone.querySelectorAll('input, select');
+    for (var i = 0; i < inputs.length; i++) inputs[i].disabled = on;
+  }
+  if (!on) {
+    /* Réactivation : état logique, pas état figé. */
+    $('prevBtn').disabled = (STATE.page <= 1) || !STATE.rows.length;
+    $('nextBtn').disabled = !(STATE.rows.length && STATE.page * STATE.pageSize < STATE.total);
+    setExportEnabled(
+      STATE.rows.length > 0 &&
+      STATE.fingerprint !== null
+    );
+  }
+}
+
+function runReport(){
+  if (EXPORT_LOCK) return;
+  var r = currentReport(); if (!r) return;
+  var built = buildParams();
+  if (built.error) { show($('appMsg'), built.error); return; }
+
+  hide($('appMsg'));
+
+  var attemptedPage = STATE.page;
+  var mySeq    = ++REPORT_REQUEST_SEQ;   /* jeton de cette requête */
+  var myReport = r.id;
+  acquireQuery(mySeq);                   /* cette requête détient le verrou */
+
+  fetchPage(myReport, built.params).then(function (out) {
+    /* Seule la réponse de la DERNIÈRE requête lancée peut modifier quoi que ce
+       soit. Une réponse plus ancienne — page 2 revenue après la page 3, ou
+       réponse d'un rapport qu'on a quitté — est ignorée en silence. */
+    if (mySeq !== REPORT_REQUEST_SEQ) { releaseQueryIfOwned(mySeq); return; }
+    if ($('repSel').value !== myReport) { releaseQueryIfOwned(mySeq); return; }
+
+    if (!out.ok) {
+      if (out.sessionLost) { releaseQueryIfOwned(mySeq); onSessionLost(); return; }
+      /* Échec : restaurer la page qui s'affichait avant, sinon les boutons
+         de pagination pointeraient vers une page jamais chargée. */
+      STATE.page = LAST_GOOD_PAGE;
+      releaseQueryIfOwned(mySeq);
+      show($('appMsg'), out.msg + ' (retour \u00e0 la page ' + LAST_GOOD_PAGE + ')');
+      return;
+    }
+
+    STATE.rows        = out.body.rows || [];
+    STATE.total       = out.body.pagination.total_count;
+    STATE.pageSize    = out.body.pagination.page_size;
+    STATE.reportId    = myReport;
+    STATE.cols        = STATE.rows.length ? Object.keys(STATE.rows[0]) : [];
+    /* Empreinte du jeu de critères ayant produit CE résultat. */
+    STATE.fingerprint = computeFingerprint(myReport, built.params);
+    LAST_GOOD_PAGE    = attemptedPage;
+
+    renderNotes(out.body.meta);
+    renderTable();
+    renderPager(out.body.pagination);
+
+    /* Libère le verrou ET réactive les exports selon l'état réel. */
+    releaseQueryIfOwned(mySeq);
+
+    if (!STATE.rows.length) {
+      show($('appMsg'), 'Aucune ligne pour ces crit\u00e8res \u2014 rien \u00e0 exporter.', 'warn');
+    }
+  }).catch(function () {
+    /* Erreur inattendue : l'interface doit redevenir utilisable quoi qu'il arrive. */
+    var released = releaseQueryIfOwned(mySeq);
+    if (mySeq !== REPORT_REQUEST_SEQ) return;
+    if (!released) setQueryBusy(false);
+    show($('appMsg'), 'Erreur inattendue \u2014 r\u00e9essayez.');
+  });
+}
+$('runBtn').addEventListener('click', function(){
+  STATE.page = 1; LAST_GOOD_PAGE = 1; runReport();
+});
+
+/* ── Export A : la page affichée, et rien d'autre ── */
+$('csvPageBtn').addEventListener('click', function(){ exportCurrentPage(); });
+
+/* ── Export C : parcours borné des pages ── */
+$('csvAllBtn').addEventListener('click', function(){ exportAllBounded(); });
+
+function renderNotes(meta){
+  var box = $('notesBox');
+  var r = currentReport();
+  var decision = r && r.decision ? r.decision : null;
+  if (!meta && !decision) { box.style.display = 'none'; return; }
+  var html = '';
+  if (decision) {
+    html += '<div style="margin-bottom:8px"><strong>' + esc(decision.titre) + '</strong>'
+          + '<ul>' + decision.points.map(function (pt) {
+              return '<li>' + esc(pt) + '</li>'; }).join('') + '</ul></div>';
+  }
+  if (!meta) { box.innerHTML = html; box.style.display = ''; return; }
+  if (meta.data_quality) {
+    html += '<span class="qbadge">Qualité : ' + esc(meta.data_quality) + '</span>';
+  }
+  if (meta.identity_warning) html += '<div style="margin-top:6px">' + esc(meta.identity_warning) + '</div>';
+  if (meta.remis_interpretation) html += '<div style="margin-top:6px">' + esc(meta.remis_interpretation) + '</div>';
+  if (meta.note) html += '<div style="margin-top:6px">' + esc(meta.note) + '</div>';
+  if (meta.date_field) html += '<div style="margin-top:6px">Date utilisée : <code>' + esc(meta.date_field) + '</code></div>';
+  if (Array.isArray(meta.limites) && meta.limites.length) {
+    html += '<ul>' + meta.limites.map(function (l) { return '<li>' + esc(l) + '</li>'; }).join('') + '</ul>';
+  }
+  box.innerHTML = html;
+  box.style.display = html ? '' : 'none';
+}
+
+function renderTable(){
+  if (!STATE.rows.length) {
+    $('thead').innerHTML = '';
+    $('tbody').innerHTML = '<tr><td class="empty">Aucune ligne pour ces critères.</td></tr>';
+    return;
+  }
+  $('thead').innerHTML = '<tr>' + STATE.cols.map(function (c) {
+    return '<th>' + esc(c) + '</th>';
+  }).join('') + '</tr>';
+
+  $('tbody').innerHTML = STATE.rows.map(function (row) {
+    return '<tr>' + STATE.cols.map(function (c) {
+      var v = row[c];
+      if (typeof v === 'boolean') v = v ? 'oui' : 'non';
+      return '<td>' + esc(v) + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+}
+
+function renderPager(pg){
+  $('pageInfo').textContent =
+    'Page ' + pg.page + ' / ' + (pg.total_pages || 1) +
+    ' · ' + pg.row_count + ' lignes affichées sur ' + pg.total_count;
+  $('prevBtn').disabled = (pg.page <= 1) || !STATE.rows.length;
+  $('nextBtn').disabled = !pg.has_next_page || !STATE.rows.length;
+}
+$('prevBtn').addEventListener('click', function(){
+  if (STATE.page > 1) { STATE.page--; runReport(); }   /* runReport restaure LAST_GOOD_PAGE en cas d'échec */
+});
+$('nextBtn').addEventListener('click', function(){
+  STATE.page++; runReport();
+});
+
+/* ════════ EXPORTS ════════ */
+
+/* Verrou global : un seul export à la fois, tous contrôles gelés pendant. */
+var EXPORT_LOCK = false;
+
+var LOCKED_CONTROLS = ['repSel','dStart','dEnd','psSel','runBtn',
+                       'csvPageBtn','csvAllBtn','prevBtn','nextBtn'];
+
+function setExportLock(on){
+  EXPORT_LOCK = on;
+  LOCKED_CONTROLS.forEach(function (id) {
+    var el = $(id); if (el) el.disabled = on;
+  });
+  /* Filtres dynamiques : ils n'existent pas au chargement, on les parcourt. */
+  var zone = $('filterZone');
+  if (zone) {
+    var inputs = zone.querySelectorAll('input, select');
+    for (var i = 0; i < inputs.length; i++) inputs[i].disabled = on;
+  }
+  document.querySelector('.toolbar').classList.toggle('locked', on);
+
+  if (!on) {
+    /* Restauration : la pagination et les exports reprennent leur état logique. */
+    setExportEnabled(STATE.rows.length > 0 && STATE.fingerprint !== null);
+    $('prevBtn').disabled = (STATE.page <= 1);
+    $('nextBtn').disabled = !(STATE.page * STATE.pageSize < STATE.total);
+  }
+}
+
+/* Paramètres transmis à la journalisation.
+   004A : pour un export COMPLET, `page` et `page_size` décrivent l'écran au
+   moment du clic, pas l'export lui-même. Les journaliser laisserait croire que
+   l'export ne portait que sur cette page. Le volume réel est déjà dans
+   row_count, total_count et page_count — colonnes dédiées. */
+function exportParamsFor(scope, params){
+  var out = {};
+  for (var k in params) if (Object.prototype.hasOwnProperty.call(params, k)) {
+    if (scope === 'full' && (k === 'page' || k === 'page_size')) continue;
+    out[k] = params[k];
+  }
+  return out;
+}
+
+/* Identifiant de lot : regroupe les pages d'un même export. */
+function newBatchId(){
+  if (crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  var b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40; b[8] = (b[8] & 0x3f) | 0x80;
+  var h = Array.from(b).map(function (x) { return x.toString(16).padStart(2, '0'); }).join('');
+  return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
+}
+
+/* Journalisation serveur d'un export réellement téléchargé.
+   Le fichier est déjà chez l'utilisateur : on n'annule rien. Mais on attend la
+   réponse avant d'annoncer quoi que ce soit — annoncer « journalisé » sans
+   confirmation serait un mensonge sur la piste d'audit. */
+function recordExport(info){
+  return api('record-report-export', { session: true, body: {
+    report_id:         info.reportId,
+    export_scope:      info.scope,          /* 'page' | 'full' */
+    export_batch_id:   info.batchId,
+    params:            info.params,
+    row_count:         info.rowCount,
+    total_count:       info.totalCount,
+    page_count:        info.pageCount,
+    truncated:         info.truncated,
+    client_started_at: info.startedAt,      /* déclaratif — le serveur le borne */
+  }}).then(function (res) {
+    if (res.body && res.body.ok) {
+      return { logged: true, duplicate: res.body.duplicate === true };
+    }
+    console.warn('[export] journalisation refusee:', res.body && res.body.error);
+    return { logged: false, reason: (res.body && res.body.error) || 'unknown' };
+  }).catch(function () {
+    return { logged: false, reason: 'network' };
+  });
+}
+
+/* Message final d'un export : la journalisation est annoncée seulement si le
+   serveur l'a confirmée. */
+function reportExportOutcome(prefix, logResult){
+  if (logResult && logResult.logged) {
+    show($('appMsg'), prefix + ' \u2014 export termin\u00e9 et journalis\u00e9.', 'ok');
+  } else {
+    show($('appMsg'),
+      prefix + ' \u2014 fichier t\u00e9l\u00e9charg\u00e9, mais la journalisation '
+      + 'n\u2019a pas \u00e9t\u00e9 confirm\u00e9e'
+      + (logResult && logResult.reason ? ' (' + esc(logResult.reason) + ')' : '') + '.',
+      'warn');
+  }
+}
+
+/* Génère et télécharge un CSV. reportId est transmis explicitement : STATE.reportId
+   peut avoir changé si l'utilisateur a manipulé l'écran pendant un export. */
+function downloadCsv(reportId, cols, rows, suffix){
+  var lines = [cols.map(csvEscape).join(',')];
+  rows.forEach(function (r) {
+    lines.push(cols.map(function (c) { return csvEscape(r[c]); }).join(','));
+  });
+  var blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'veraluz_' + (reportId || 'rapport') + '_' + suffix + '_'
+             + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+}
+
+/* ── Export A : la page affichée ─────────────────────────────────────────── */
+function exportCurrentPage(){
+  if (EXPORT_LOCK) return;
+  var r = currentReport(); if (!r) return;
+  if (!STATE.rows.length) { show($('appMsg'), 'Rien \u00e0 exporter.', 'warn'); return; }
+
+  var built = buildParams();
+  if (built.error) { show($('appMsg'), built.error); return; }
+
+  /* Le résultat affiché doit correspondre aux filtres actuels. Sans ce contrôle,
+     on exporterait d'anciennes lignes sous les critères courants. */
+  var fpNow = computeFingerprint(r.id, built.params);
+  if (STATE.fingerprint !== fpNow || STATE.reportId !== r.id) {
+    setExportEnabled(false);
+    show($('appMsg'),
+      'Les crit\u00e8res ont chang\u00e9 depuis le dernier r\u00e9sultat \u2014 '
+      + 'relancez la recherche avant d\u2019exporter.', 'warn');
+    return;
+  }
+
+  var startedAt  = new Date().toISOString();
+  var batchId    = newBatchId();
+  var reportId   = STATE.reportId;
+  var pageNo     = STATE.page;
+  var rowsCopy   = STATE.rows.slice();      /* figé : l'écran peut évoluer */
+  var colsCopy   = STATE.cols.slice();
+  var totalCopy  = STATE.total;
+
+  setExportLock(true);
+  downloadCsv(reportId, colsCopy, rowsCopy, 'page' + pageNo);
+  show($('appMsg'), 'Journalisation en cours\u2026', 'warn');
+
+  recordExport({
+    reportId: reportId, scope: 'page', batchId: batchId,
+    /* scope 'page' : page et page_size sont pertinents, ils décrivent l'export. */
+    params: exportParamsFor('page', built.params), rowCount: rowsCopy.length,
+    totalCount: totalCopy, pageCount: 1, truncated: false,
+    startedAt: startedAt,
+  }).then(function (logResult) {
+    setExportLock(false);
+    reportExportOutcome('Page ' + pageNo + ' (' + rowsCopy.length
+                      + ' lignes sur ' + totalCopy + ')', logResult);
+  });
+}
+
+/* ── Décision de fin d'export multipage — fonction pure, testable ───────────
+   truncated ne vaut true que s'il RESTE des lignes non récupérées.
+   Cas limite : exactement CSV_ALL_MAX_ROWS lignes au total → has_next_page vaut
+   false → l'export est COMPLET, pas tronqué. */
+function evaluateExportCompletion(accLength, hasNextPage, pageIndex, maxRows, maxPages){
+  if (!hasNextPage)            return { done: true,  truncated: false };
+  if (accLength >= maxRows)    return { done: true,  truncated: true  };
+  if (pageIndex >= maxPages)   return { done: true,  truncated: true  };
+  return { done: false, truncated: false };
+}
+
+/* ── Export C : parcours borné des pages, un seul lot ─────────────────────── */
+function exportAllBounded(){
+  if (EXPORT_LOCK) return;                    /* pas de second export simultané */
+  var r = currentReport(); if (!r) return;
+
+  if (FINANCIAL_REPORTS.indexOf(r.id) !== -1) {
+    show($('appMsg'),
+      'Export int\u00e9gral non disponible pour les rapports financiers \u2014 '
+      + 'utilisez \u00ab Exporter cette page \u00bb.', 'warn');
+    return;
+  }
+  var built = buildParams();
+  if (built.error) { show($('appMsg'), built.error); return; }
+
+  var reportId  = r.id;
+  var batchId   = newBatchId();
+  var startedAt = new Date().toISOString();
+
+  var acc = [], cols = null, page = 1, truncated = false;
+  var exportTotal = null;      /* total_count de l'export en cours — jamais STATE.total */
+
+  setExportLock(true);
+  /* Les pages sont lues à des instants différents : ce n'est PAS une
+     photographie transactionnelle. Une réservation créée pendant l'assemblage
+     peut apparaître, une réservation supprimée peut manquer, et un décalage de
+     pagination peut dupliquer ou omettre une ligne. Le serveur enregistre
+     export_consistency = 'client_paginated_non_transactional'. */
+  show($('appMsg'),
+    'Export en cours\u2026 les pages sont lues successivement : le fichier n\u2019est '
+    + 'pas une photographie \u00e0 un instant donn\u00e9 de la base.', 'warn');
+
+  function step(){
+    var params = {};
+    for (var k in built.params) if (Object.prototype.hasOwnProperty.call(built.params, k)) {
+      params[k] = built.params[k];
+    }
+    params.page = page;
+    params.page_size = CSV_ALL_PAGE_SIZE;
+
+    return fetchPage(reportId, params).then(function (out) {
+      if (!out.ok) {
+        setExportLock(false);
+        if (out.sessionLost) { onSessionLost(); return; }
+        /* Abandon franc : aucun fichier partiel. */
+        show($('appMsg'), 'Export interrompu \u00e0 la page ' + page + ' : ' + out.msg
+                        + ' \u2014 aucun fichier g\u00e9n\u00e9r\u00e9.');
+        return;
+      }
+
+      var rows = out.body.rows || [];
+      if (!cols && rows.length) cols = Object.keys(rows[0]);
+      acc = acc.concat(rows);
+      exportTotal = out.body.pagination.total_count;
+
+      var verdict = evaluateExportCompletion(
+        acc.length, out.body.pagination.has_next_page, page,
+        CSV_ALL_MAX_ROWS, CSV_ALL_MAX_PAGES);
+
+      if (verdict.done) { truncated = verdict.truncated; return finish(); }
+      page++;
+      return step();
+    });
+  }
+
+  function finish(){
+    if (!acc.length || !cols) {
+      setExportLock(false);
+      show($('appMsg'), 'Aucune ligne \u2014 rien \u00e0 exporter.', 'warn');
+      return;
+    }
+    if (acc.length > CSV_ALL_MAX_ROWS) acc = acc.slice(0, CSV_ALL_MAX_ROWS);
+
+    downloadCsv(reportId, cols, acc, truncated ? 'extrait-tronque' : 'complet');
+    show($('appMsg'), 'Journalisation en cours\u2026', 'warn');
+
+    /* UN seul enregistrement pour tout le lot, quel que soit le nombre de pages. */
+    recordExport({
+      reportId: reportId, scope: 'full', batchId: batchId,
+      /* scope 'full' : page et page_size retirés — voir exportParamsFor(). */
+      params: exportParamsFor('full', built.params), rowCount: acc.length,
+      totalCount: exportTotal, pageCount: page, truncated: truncated,
+      startedAt: startedAt,
+    }).then(function (logResult) {
+      /* Le verrou n'est levé qu'après la réponse de journalisation. */
+      setExportLock(false);
+      /* Le message s'appuie sur exportTotal, pas sur STATE.total : l'utilisateur
+         a pu changer d'écran ou de filtres pendant l'assemblage. */
+      var prefix = truncated
+        ? 'Export tronqu\u00e9 \u00e0 ' + acc.length + ' lignes sur ' + exportTotal
+          + ' (le fichier n\u2019est PAS complet)'
+        : 'Export complet : ' + acc.length + ' lignes sur ' + exportTotal;
+      reportExportOutcome(prefix, logResult);
+    });
+  }
+
+  step();
+}
+
+/* Bornes par défaut : mois en cours */
+(function initDates(){
+  var now = new Date();
+  var first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  $('dStart').value = first.toISOString().slice(0, 10);
+  $('dEnd').value   = now.toISOString().slice(0, 10);
+})();
+
+/* Démarrage — refuser de fonctionner si la configuration n'est pas renseignée. */
+if (!configIsValid()) {
+  $('empSel').innerHTML = '<option value="">Configuration incompl\u00e8te</option>';
+  $('loginBtn').disabled = true;
+  show($('loginMsg'),
+    'Configuration incompl\u00e8te : la cl\u00e9 anon publique n\u2019a pas \u00e9t\u00e9 renseign\u00e9e '
+    + 'dans RAPPORTS.html (variable SB_ANON).', 'err');
+} else {
+  loadEmployees();
+}
+
+})();
+</script>
+</body>
+</html>

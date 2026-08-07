@@ -176,7 +176,7 @@ var SB_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
 /* Clé publique anon : sert uniquement d'en-tête apikey exigé par la passerelle
    Supabase. Elle ne donne accès à aucune donnée du Centre — les Edge Functions
    utilisent la session opaque. Aucune clé service_role ici. */
-var SB_ANON = 'REMPLACER_PAR_LA_CLE_ANON_PUBLIQUE';
+var SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 var FN = SB_URL + '/functions/v1/';
 
 /* Format d'un token de session : 32 octets rendus en 64 caractères hexadécimaux. */
@@ -941,15 +941,42 @@ function fetchPage(reportId, params){
         return { ok:false, msg:'Trop de requ\u00eates \u2014 r\u00e9essayez dans '
                               + Math.ceil(s / 60) + ' min.' };
       }
-      if (!res.body || res.body.success !== true) {
-        var reason = (res.body && res.body.reason) || 'server_error';
-        if (['missing_session','invalid_session','session_expired',
-             'session_revoked','employee_inactive'].indexOf(reason) !== -1) {
+      /* run-report (v2, EMERGENCY_RECOVERY_001) renvoie { ok, rows, total_count,
+         meta, page, page_size } \u2014 pas { success, pagination }. Adapt\u00e9
+         ici plut\u00f4t que de toucher run-report, d\u00e9j\u00e0 en production
+         avec de vraies donn\u00e9es (14 ex\u00e9cutions r\u00e9elles au moment du
+         d\u00e9ploiement de ce module). */
+      if (!res.body || res.body.ok !== true) {
+        var reason = (res.body && res.body.error) || 'server_error';
+        if (['unauthorized','session_expired','employee_inactive'].indexOf(reason) !== -1) {
           return { ok:false, sessionLost:true };
         }
-        return { ok:false, msg:(res.body && res.body.message) || 'Erreur serveur.' };
+        var friendly = {
+          unknown_report:     'Rapport inconnu.',
+          forbidden_report:   'Votre profil n\u2019a pas acc\u00e8s \u00e0 ce rapport.',
+          report_failed:      'Le calcul du rapport a \u00e9chou\u00e9.',
+          method_not_allowed: 'Erreur serveur.',
+          invalid_json:       'Erreur serveur.'
+        };
+        return { ok:false, msg: friendly[reason]
+          || (res.body && res.body.detail) || 'Erreur serveur.' };
       }
-      return { ok:true, body:res.body };
+      var body = res.body;
+      var page = Number(body.page || (params && params.page) || 1);
+      var pageSize = Number(body.page_size || (params && params.page_size) || 50);
+      var totalCount = Number(body.total_count || 0);
+      return { ok:true, body: {
+        rows: body.rows || [],
+        meta: body.meta || null,
+        pagination: {
+          page: page,
+          page_size: pageSize,
+          total_count: totalCount,
+          total_pages: pageSize > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1,
+          row_count: (body.rows || []).length,
+          has_next_page: (page * pageSize) < totalCount
+        }
+      }};
     })
     .catch(function () {
       return { ok:false, msg:'R\u00e9seau indisponible \u2014 r\u00e9essayez.' };

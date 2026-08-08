@@ -975,7 +975,7 @@ function renderHistoriqueList(){
     convs.forEach(function(c){
       var d = new Date(c.updated_at||c.created_at);
       var key = d.toDateString();
-      var label = key===today?'Aujourd'hui':key===yesterday?'Hier':d.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+      var label = key===today?"Aujourd'hui":key===yesterday?'Hier':d.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
       if(!grouped[label])grouped[label]=[];
       grouped[label].push(c);
     });
@@ -999,9 +999,9 @@ function renderHistoriqueList(){
           +'<div style="font-size:11px;color:var(--text2);">'+esc(agent)+' · '+ts+' · '+msgs+' msg</div>'
           +'</div>'
           +'<div style="display:flex;gap:4px;flex-shrink:0;">'
-          +'<button class="vlx-btn" style="font-size:11px;padding:3px 8px;" onclick="openHistConv(''+esc(conv.id)+'',''+esc(conv.agent_key)+'')">Ouvrir</button>'
-          +'<button class="vlx-btn" style="font-size:11px;padding:3px 8px;" onclick="renameHistConv(''+esc(conv.id)+'',''+esc(title)+'')">Renommer</button>'
-          +'<button class="vlx-btn vlx-btn-danger" style="font-size:11px;padding:3px 8px;" onclick="archiveHistConv(''+esc(conv.id)+'')">Archiver</button>'
+          +'<button class="vlx-btn hist-open" data-conv-id="'+esc(conv.id)+'" data-agent-key="'+esc(conv.agent_key)+'" style="font-size:11px;padding:3px 8px;">Ouvrir</button>'
+          +'<button class="vlx-btn hist-rename" data-conv-id="'+esc(conv.id)+'" data-title="'+esc(title)+'" style="font-size:11px;padding:3px 8px;">Renommer</button>'
+          +'<button class="vlx-btn vlx-btn-danger hist-archive" data-conv-id="'+esc(conv.id)+'" style="font-size:11px;padding:3px 8px;">Archiver</button>'
           +'</div>'
           +'</div>';
       });
@@ -1009,6 +1009,18 @@ function renderHistoriqueList(){
   }
   html += '</div>';
   el.innerHTML = html;
+  /* PROMPT 010I-B — event delegation pour les boutons hist (évite les onclick inline mal quotés) */
+  if (!el._histDelegated) {
+    el._histDelegated = true;
+    el.addEventListener('click', function(e) {
+      var btn = e.target.closest('button[data-conv-id]');
+      if (!btn) return;
+      var cid = btn.getAttribute('data-conv-id');
+      if (btn.classList.contains('hist-open')) { openHistConv(cid, btn.getAttribute('data-agent-key')); }
+      else if (btn.classList.contains('hist-rename')) { renameHistConv(cid, btn.getAttribute('data-title')); }
+      else if (btn.classList.contains('hist-archive')) { archiveHistConv(cid); }
+    });
+  }
 }
 
 function openHistConv(convId, agentKey){

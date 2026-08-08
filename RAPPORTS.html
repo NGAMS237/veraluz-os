@@ -523,9 +523,11 @@ function enterApp(){
 }
 
 $('logoutBtn').addEventListener('click', function () {
-  if (SSO_MODE) {
+  if (SSO_MODE) {                              /* 010C — SSO : pas de revocation serveur */
     SESSION_TOKEN = null; EMPLOYEE = null; ACTOR = null; MUST_CHANGE_PIN = false;
-    SSO_MODE = false; location.reload(); return;
+    SSO_MODE = false;
+    location.reload();
+    return;
   }
   var t = SESSION_TOKEN;
   SESSION_TOKEN = null; EMPLOYEE = null; ACTOR = null; MUST_CHANGE_PIN = false;
@@ -1441,17 +1443,28 @@ if (!configIsValid()) {
   loadEmployees();
 }
 
-/* 010C — SSO CORE */
+/* 010C — SSO CORE : réutilise la session établie par VERALUZ_OS_CORE.html.
+   Aucun session_token ne transite vers cet iframe — le broker CORE s'en charge. */
 window.addEventListener('message', function (ev) {
   if (!ev.data || ev.data.source !== 'veraluz-core' || ev.data.type !== 'auth-context') return;
   var data = ev.data.data || {};
   var role = (data.role || '').toLowerCase();
-  if (['gerant','admin','superadmin','directeur','direction'].indexOf(role) === -1) {
-    show($('loginMsg'), 'Acc\u00e8s non autoris\u00e9 pour votre r\u00f4le.'); return;
+  var ALLOWED_SSO_ROLES = ['gerant', 'admin', 'superadmin', 'directeur', 'direction'];
+  if (ALLOWED_SSO_ROLES.indexOf(role) === -1) {
+    show($('loginMsg'), 'Acc\u00e8s non autoris\u00e9 pour votre r\u00f4le.');
+    return;
   }
-  SSO_MODE = true; SESSION_TOKEN = null;
-  EMPLOYEE = { id: data.employee_id||'', full_name: data.name||data.username||'Utilisateur', raw_role: role, role: role, status: 'actif' };
-  ACTOR = ACTOR_MAP[role] || 'direction'; MUST_CHANGE_PIN = false;
+  SSO_MODE    = true;
+  SESSION_TOKEN = null;   /* token reste dans CORE — ne jamais l'extraire */
+  EMPLOYEE    = {
+    id:        data.employee_id || '',
+    full_name: data.name || data.username || 'Utilisateur',
+    raw_role:  role,
+    role:      role,
+    status:    'actif'
+  };
+  ACTOR = ACTOR_MAP[role] || 'direction';
+  MUST_CHANGE_PIN = false;
   enterApp();
 });
 

@@ -1511,7 +1511,7 @@ function buildNav(){
       ROLES[currentUser.role] ? ROLES[currentUser.role].modules.indexOf('ai_center') >= 0 : 'N/A');
   }
 
-  /* 010C — préférer allowed_modules (gerant/superadmin voient tous leurs modules) */
+  /* 010C — préférer allowed_modules (superadmin/gerant voient Rapports, IA, etc.) */
   var _modList = currentUser
     ? ((currentUser.allowed_modules && currentUser.allowed_modules.length > 0)
         ? currentUser.allowed_modules

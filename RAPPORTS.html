@@ -203,6 +203,7 @@ function configIsValid() {
 
 /* ════════ État — en mémoire uniquement ════════ */
 var SESSION_TOKEN = null;   /* jamais localStorage / sessionStorage / cookie / URL */
+var SSO_MODE      = false;  /* 010C — true quand CORE a transmis l'auth-context */
 var EMPLOYEE      = null;
 var ACTOR         = null;
 var STATE = { page: 1, pageSize: 50, cols: [], rows: [], total: 0,
@@ -218,6 +219,7 @@ var MUST_CHANGE_PIN = false;
 var REVOKE_TIMEOUT_MS = 2500;
 
 function revokeSession(token){
+  if (SSO_MODE) return Promise.resolve({ sent: false, sso: true }); /* 010C */
   if (!token) return Promise.resolve({ sent: false });
 
   var opts = {
@@ -367,6 +369,10 @@ function csvEscape(v){
 
 function api(path, opts){
   opts = opts || {};
+  /* 010C — SSO : déléguer au broker CORE pour les appels authentifiés */
+  if (SSO_MODE && opts.session && window.parent && typeof window.parent.veraluzSecureRequest === 'function') {
+    return window.parent.veraluzSecureRequest(path, opts.body || {});
+  }
   var headers = {
     'Content-Type': 'application/json',
     'apikey': SB_ANON,
@@ -517,6 +523,10 @@ function enterApp(){
 }
 
 $('logoutBtn').addEventListener('click', function () {
+  if (SSO_MODE) {
+    SESSION_TOKEN = null; EMPLOYEE = null; ACTOR = null; MUST_CHANGE_PIN = false;
+    SSO_MODE = false; location.reload(); return;
+  }
   var t = SESSION_TOKEN;
   SESSION_TOKEN = null; EMPLOYEE = null; ACTOR = null; MUST_CHANGE_PIN = false;
   $('logoutBtn').disabled = true;
@@ -1430,6 +1440,20 @@ if (!configIsValid()) {
 } else {
   loadEmployees();
 }
+
+/* 010C — SSO CORE */
+window.addEventListener('message', function (ev) {
+  if (!ev.data || ev.data.source !== 'veraluz-core' || ev.data.type !== 'auth-context') return;
+  var data = ev.data.data || {};
+  var role = (data.role || '').toLowerCase();
+  if (['gerant','admin','superadmin','directeur','direction'].indexOf(role) === -1) {
+    show($('loginMsg'), 'Acc\u00e8s non autoris\u00e9 pour votre r\u00f4le.'); return;
+  }
+  SSO_MODE = true; SESSION_TOKEN = null;
+  EMPLOYEE = { id: data.employee_id||'', full_name: data.name||data.username||'Utilisateur', raw_role: role, role: role, status: 'actif' };
+  ACTOR = ACTOR_MAP[role] || 'direction'; MUST_CHANGE_PIN = false;
+  enterApp();
+});
 
 })();
 </script>

@@ -1511,8 +1511,14 @@ function buildNav(){
       ROLES[currentUser.role] ? ROLES[currentUser.role].modules.indexOf('ai_center') >= 0 : 'N/A');
   }
 
-  var visibleModules = (currentUser && ROLES[currentUser.role])
-    ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0 && isModuleEnabled(m.id); })
+  /* 010C — préférer allowed_modules (gerant/superadmin voient tous leurs modules) */
+  var _modList = currentUser
+    ? ((currentUser.allowed_modules && currentUser.allowed_modules.length > 0)
+        ? currentUser.allowed_modules
+        : (ROLES[currentUser.role] ? ROLES[currentUser.role].modules : []))
+    : null;
+  var visibleModules = _modList
+    ? MODULES.filter(function(m){ return _modList.indexOf(m.id) >= 0 && isModuleEnabled(m.id); })
     : MODULES.filter(function(m){ return isModuleEnabled(m.id); });
 
   /* PROMPT 008A — Mon espace pour les employés */
@@ -3248,7 +3254,20 @@ function sendAuthContext(iframe) {
 var VERALUZ_BROKER_ALLOWED_ENDPOINTS = [
   'reset-employee-pin',
   'revoke-employee-sessions',
-  'get-employee-access-status'
+  'get-employee-access-status',
+  /* 010C — SSO Rapports */
+  'run-report',
+  'logout-employee-session',
+  'list-report-units',
+  'list-report-suppliers',
+  'search-report-clients',
+  'record-report-export',
+  /* 010C — IA Center */
+  'agent-run',
+  'agent-chat',
+  'agent-foundation-read',
+  'agent-control',
+  'agent-approval'
 ];
 var VERALUZ_BROKER_EDGE_BASE = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/';
 window.veraluzSecureRequest = function (endpoint, payload) {

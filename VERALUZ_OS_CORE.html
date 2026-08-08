@@ -93,6 +93,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   .tb-menu{display:flex!important;}
   body{overflow-x:hidden;}
 }
+/* RESPONSIVE-NAV — sidebar drawer mobile (toutes tailles ≤768px) */
+@media(max-width:768px){
+  #sidebar.mobile-open{
+    display:flex!important;
+    position:fixed;
+    top:0;bottom:0;left:0;
+    z-index:300;
+    width:min(300px,85vw);
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    box-shadow:4px 0 24px rgba(0,0,0,.35);
+  }
+}
+/* Backdrop */
+#sb-ov.active{display:block!important;}
 
 .tb-title{font-size:15px;font-weight:700;flex:1;}
 .tb-sub{font-size:11px;color:var(--text3);}
@@ -1544,11 +1559,7 @@ function buildNav(){
     sb.onclick=function(){ goTo(m.id); };
     sbMods.appendChild(sb);
 
-    var bn = document.createElement('button');
-    bn.className='bn-btn'; bn.id='bn-'+m.id;
-    bn.innerHTML='<span class="bn-icon">'+m.icon+'</span><span class="bn-label">'+m.label+'</span>';
-    bn.onclick=function(){ goTo(m.id); };
-    bnMods.appendChild(bn);
+    /* bottom nav : géré séparément après la boucle */
 
     var card = document.createElement('button');
     card.className='mod-card'; card.dataset.module=m.id;
@@ -1559,6 +1570,30 @@ function buildNav(){
     card.onclick=function(){ goTo(m.id); };
     grid.appendChild(card);
   });
+
+  /* RESPONSIVE-NAV — bottom nav : 4 raccourcis prioritaires + bouton Menu */
+  (function(){
+    var BN_PINS = ['employee_home','reservations','messages','restaurant'];
+    var added = 0;
+    BN_PINS.forEach(function(pid){
+      if (added >= 3) return;
+      var found = visibleModules.filter(function(m){ return m.id === pid; })[0];
+      if (!found) return;
+      var bn = document.createElement('button');
+      bn.className='bn-btn'; bn.id='bn-'+found.id;
+      bn.innerHTML='<span class="bn-icon">'+found.icon+'</span><span class="bn-label">'+found.label+'</span>';
+      bn.onclick=(function(id){ return function(){ goTo(id); }; })(found.id);
+      bnMods.appendChild(bn);
+      added++;
+    });
+    /* Bouton Menu — ouvre le drawer avec TOUS les modules autorisés */
+    var bnMenu = document.createElement('button');
+    bnMenu.className='bn-btn'; bnMenu.id='bn-menu-drawer';
+    bnMenu.setAttribute('aria-label','Menu');
+    bnMenu.innerHTML='<span class="bn-icon">&#9776;</span><span class="bn-label">Menu</span>';
+    bnMenu.onclick=function(){ toggleMobileSidebar(); };
+    bnMods.appendChild(bnMenu);
+  })();
 
   COMING.forEach(function(c){
     var el = document.createElement('div');
@@ -1690,6 +1725,11 @@ function closeMobileSidebar(){
   document.getElementById('sb-ov').classList.remove('active');
   document.body.style.overflow='';
 }
+
+/* RESPONSIVE-NAV — Escape ferme le drawer */
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeMobileSidebar();
+});
 
 /* PROMPT 029 */
 var OS_BUILD = 'v033-emergency-recovery-2026-08-06';

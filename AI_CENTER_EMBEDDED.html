@@ -548,10 +548,10 @@ function agentAvatarOrIcon(row, cssClass, iconStyle){
 
 function agentCardHTML(row){
   var displayName = row.name;
-  var icon = (row.ui_metadata_json&&row.ui_metadata_json.icon)||row.icon||'🤖';
   var nameHTML = isFullDisplayName(displayName) ? esc(displayName) : (esc(displayName)+' <span class="vlx-warn" title="Nom incomplet">⚠</span>');
+  var avatarHTML = agentAvatarOrIcon(row, 'vlx-agent-avatar', 'font-size:28px;');
   return '<div class="vlx-agent-card" onclick="openWorkspace(\''+esc(row.agent_key)+'\')">'+
-    '<div class="vlx-agent-card-icon">'+esc(icon)+'</div>'+
+    '<div class="vlx-agent-card-icon">'+avatarHTML+'</div>'+
     '<div class="vlx-agent-card-name">'+nameHTML+'</div>'+
     '<div class="vlx-agent-card-domain">'+esc(row.category||'')+'</div>'+
     '<div class="vlx-agent-card-status"><span class="vlx-dot vlx-dot-'+esc(row.status)+'"></span>'+esc(statusLabel(row.status))+'</div>'+

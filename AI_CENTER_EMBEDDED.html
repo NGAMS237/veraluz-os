@@ -112,6 +112,26 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
   .vlx-nav{display:none;}
   .vlx-burger{display:inline-block;}
 }
+/* ── Mode opérationnel ── */
+.vlx-mode-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(245,158,11,.15);color:var(--warn);border:1px solid rgba(245,158,11,.3);}
+.vlx-mode-badge.production{background:rgba(34,197,94,.12);color:var(--good);border-color:rgba(34,197,94,.3);}
+/* ── Chat IA ── */
+.vlx-chat-thread{min-height:200px;max-height:440px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--bg3);border-radius:12px;border:1px solid var(--border);margin-bottom:10px;}
+.vlx-chat-msg{max-width:88%;}
+.vlx-chat-msg.user{align-self:flex-end;background:var(--accent2);color:#fff;border-radius:14px 14px 3px 14px;padding:10px 14px;font-size:14px;white-space:pre-wrap;}
+.vlx-chat-msg.assistant{align-self:flex-start;background:var(--bg2);border:1px solid var(--border);border-radius:3px 14px 14px 14px;padding:10px 14px;font-size:14px;white-space:pre-wrap;}
+.vlx-chat-msg.system{align-self:center;color:var(--text3);font-size:12px;font-style:italic;}
+.vlx-chat-input-row{display:flex;gap:8px;}
+.vlx-chat-input{flex:1;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;outline:none;}
+.vlx-chat-input:focus{border-color:var(--accent);}
+.vlx-chat-meta{font-size:11px;color:var(--text3);margin-top:4px;}
+.vlx-chat-feedback{display:inline-flex;gap:6px;margin-top:5px;}
+.vlx-chat-feedback button{background:none;border:1px solid var(--border);border-radius:6px;padding:1px 7px;font-size:12px;cursor:pointer;color:var(--text3);}
+.vlx-chat-feedback button:hover{border-color:var(--accent);color:var(--accent);}
+.vlx-agent-picker{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.vlx-agent-picker-btn{padding:8px 14px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;font-size:13px;}
+.vlx-agent-picker-btn.active{border-color:var(--accent);color:var(--accent);}
+.vlx-agent-picker-btn:hover:not(.active){border-color:var(--accent2);color:var(--text);}
 </style>
 </head>
 <body>
@@ -124,7 +144,9 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
 <div class="vlx-header">
   <div>
     <h1>🧠 INTELLIGENCE IA</h1>
-    <div class="vlx-sub">Assistant VERALUZ — Vos assistants opérationnels au service de la résidence.</div>
+    <div class="vlx-sub">Assistant VERALUZ — Vos assistants opérationnels au service de la résidence.
+      <span id="vlx-mode-badge" class="vlx-mode-badge" style="margin-left:10px;display:none;">⚙️ CONSTRUCTION</span>
+    </div>
   </div>
   <button class="vlx-burger" id="vlx-burger" onclick="openDrawer()">☰ Intelligence IA</button>
 </div>
@@ -138,6 +160,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
   <div class="vlx-section" id="sec-accueil"></div>
   <div class="vlx-section" id="sec-assistants"></div>
   <div class="vlx-section" id="sec-workspace"></div>
+  <div class="vlx-section" id="sec-chat"></div>
   <div class="vlx-section" id="sec-alertes"></div>
   <div class="vlx-section" id="sec-approbations"></div>
   <div class="vlx-section" id="sec-historique"></div>
@@ -158,6 +181,7 @@ try { STANDALONE = (window.parent === window); } catch (e) { STANDALONE = true; 
 var SECTIONS = [
   { id:'accueil',      label:'Accueil' },
   { id:'assistants',   label:'Assistants' },
+  { id:'chat',         label:'💬 Chat IA' },
   { id:'alertes',      label:'Alertes & recommandations' },
   { id:'approbations', label:'Approbations' },
   { id:'historique',   label:'Historique' },
@@ -172,6 +196,11 @@ var _activeWorkspaceAgentKey = null;
 var _workspaceCache = {};      // agent_key -> { lastRun, recentRuns, recommendations }
 var _busy = {};                // guards anti double-submit : key -> true
 var _alertFilter = 'all';
+var _operationalMode = 'construction_simulation';
+var _chatAgentKey = null;
+var _chatConvId = null;
+var _chatMessages = [];
+var _chatBusy = false;
 
 var STATUS_LABELS = { draft:'Brouillon', observation:'Observation', active:'Actif', paused:'En pause', disabled:'Désactivé' };
 var ENGINE_LABELS_PRIMARY = { deterministic_rules:'Analyse automatisée', llm_assisted:'Assistant IA', hybrid:'Assistant IA (analyse hybride)' };
@@ -212,20 +241,59 @@ function standaloneCanRun(role, manifest){
 /* Permissions d'un agent : SERVEUR en priorité (row.permissions),
    fallback local UNIQUEMENT en STANDALONE (§4). Ne jamais traiter ce
    fallback comme une autorisation dans un contexte réel. */
+var CHAT_PERMISSIONS_MAP = {
+  chloe_director_v1:    ['gerant','admin','superadmin'],
+  maya_restaurant_v1:   ['gerant','admin','superadmin','barman'],
+  nora_reservations_v1: ['gerant','admin','superadmin','receptionniste'],
+  techops_v1:           ['gerant','admin','superadmin','technicien'],
+  sonia_hr_v1:          ['gerant','admin','superadmin'],
+  lexa_legal_v1:        ['gerant','admin','superadmin'],
+  finance_v1:           ['gerant','admin','superadmin'],
+  commercial_v1:        ['gerant','admin','superadmin','receptionniste'],
+  maintenance_v1:       ['gerant','admin','superadmin','technicien'],
+  security_v1:          ['gerant','admin','superadmin'],
+};
 function permissionsFor(row, manifest){
   if (row && row.permissions) return row.permissions;
+  // New-style agents: permissions from CHAT_PERMISSIONS_MAP
+  if (row && row.runner_function) {
+    var role = _currentUser.role || '';
+    var allowed = CHAT_PERMISSIONS_MAP[row.agent_key] || ['gerant','admin','superadmin'];
+    var can = allowed.indexOf(role) !== -1;
+    var isDir = DIRECTION_ROLES.indexOf(role) !== -1;
+    return { can_read: can || STANDALONE, can_run: can || STANDALONE, can_chat: can || STANDALONE, can_pause: false, can_resume: false, can_disable: false, can_approve: isDir };
+  }
   if (STANDALONE) {
     return {
       can_read: standaloneCanAccess(_currentUser.role, manifest),
       can_run: standaloneCanRun(_currentUser.role, manifest),
+      can_chat: standaloneCanRun(_currentUser.role, manifest),
       can_pause: false, can_resume: false, can_disable: false, can_approve: false,
     };
   }
-  return { can_read:false, can_run:false, can_pause:false, can_resume:false, can_disable:false, can_approve:false };
+  return { can_read:false, can_run:false, can_chat:false, can_pause:false, can_resume:false, can_disable:false, can_approve:false };
 }
 
 function manifestFromRow(row){
-  if (!row || !row.manifest_version) return null;
+  if (!row) return null;
+  // New-style agents (v010): runner_function présent, manifest_version optionnel
+  if (row.runner_function) {
+    return {
+      manifest_version: row.manifest_version || '2.0',
+      agent_key: row.agent_key,
+      display_name: row.display_name || row.name,
+      category: row.category || 'operationnel',
+      engine_type: row.engine_type || 'deterministic_rules',
+      status: row.status || 'active',
+      capabilities: Array.isArray(row.capabilities_json) ? row.capabilities_json : [],
+      routing_intents: Array.isArray(row.routing_intents_json) ? row.routing_intents_json : [],
+      ui: row.ui_metadata_json || { icon: row.icon || '🤖', order: 99, visible: true },
+      runner_function: row.runner_function,
+      supervisor_agent_key: row.supervisor_agent_key || null,
+    };
+  }
+  // Legacy agents (manifest_version required)
+  if (!row.manifest_version) return null;
   return {
     manifest_version: row.manifest_version, agent_key: row.agent_key, display_name: row.name,
     category: row.category, engine_type: row.engine_type || 'deterministic_rules', status: row.status,
@@ -256,11 +324,14 @@ var INTENT_LABELS = {
 function intentLabel(k){ if (INTENT_LABELS[k]) return INTENT_LABELS[k]; var last=String(k||'').split('.').pop(); return last.charAt(0).toUpperCase()+last.slice(1).replace(/_/g,' '); }
 
 function buildQuickActionsForAgent(row, manifest){
-  // §9 — priorité à quick_actions déclarées dans ui_metadata_json,
-  // sinon dérivées des routing_intents (fallback lisible).
+  // §9 — priorité à quick_actions déclarées dans ui_metadata_json.
+  // Supporte les deux formats : [{intent_key, label, icon}] et [string]
   var ui = row.ui_metadata_json || {};
   if (Array.isArray(ui.quick_actions) && ui.quick_actions.length) {
-    return ui.quick_actions.map(function(qa){ return { intent_key: qa.intent_key, label: qa.label || intentLabel(qa.intent_key), icon: qa.icon || '' }; });
+    return ui.quick_actions.map(function(qa){
+      if (typeof qa === 'string') return { intent_key: qa, label: qa, icon: '' };
+      return { intent_key: qa.intent_key || qa.label || '', label: qa.label || intentLabel(qa.intent_key || ''), icon: qa.icon || '' };
+    });
   }
   return (manifest.routing_intents || []).map(function(ik){ return { intent_key: ik, label: intentLabel(ik), icon:'' }; });
 }
@@ -299,9 +370,16 @@ function firstNameOf(full){ if(!full) return ''; return String(full).trim().spli
 
 /* Données de démonstration — STANDALONE UNIQUEMENT, jamais de vraie donnée. */
 var DEMO_AGENT_ROWS = [
-  { agent_key:'maya_restaurant_v1', name:'Maya — Restaurant & Livraison', category:'restaurant', status:'observation', engine_type:'deterministic_rules', icon:'🍽️', description:'Suivi des commandes, livraisons et stocks.', manifest_version:'1.0', capabilities_json:['agent.maya.read','agent.maya.run'], routing_intents_json:['restaurant.orders.status'], ui_metadata_json:{icon:'🍽️',order:1,visible:true} },
-  { agent_key:'nora_reservations_v1', name:'Nora — Réservations & Séjours', category:'reservations', status:'observation', engine_type:'deterministic_rules', icon:'🛎️', description:'Arrivées, départs et suivi des séjours.', manifest_version:'1.0', capabilities_json:['agent.nora.read','agent.nora.run'], routing_intents_json:['reservations.arrivals'], ui_metadata_json:{icon:'🛎️',order:2,visible:true} },
-  { agent_key:'techops_v1', name:'TechOps — Technique & Système', category:'techops', status:'observation', engine_type:'deterministic_rules', icon:'🛠️', description:'État du système et alertes techniques.', manifest_version:'1.0', capabilities_json:['agent.techops.read','agent.techops.run'], routing_intents_json:['system.health'], ui_metadata_json:{icon:'🛠️',order:3,visible:true} },
+  { agent_key:'chloe_director_v1',    name:'Directrice Chloé',  display_name:'Directrice Chloé', category:'direction',    status:'active',       runner_function:'agent-chloe-run',        supervisor_agent_key:null,              icon:'👩‍💼', description:'Directrice IA — supervision globale, rapports, alertes.', ui_metadata_json:{icon:'👩‍💼', quick_actions:['Rapport journalier','Statut équipe','Alertes actives','Résumé financier']} },
+  { agent_key:'maya_restaurant_v1',   name:'Maya — Restaurant', display_name:'Maya',             category:'restaurant',   status:'active',       runner_function:'agent-restaurant-run',   supervisor_agent_key:'chloe_director_v1', icon:'🍽️', description:'Commandes, menus, stock cuisine.', ui_metadata_json:{icon:'🍽️', quick_actions:['Commandes du jour','Stock cuisine','Performance service']} },
+  { agent_key:'nora_reservations_v1', name:'Nora — Réservations', display_name:'Nora',           category:'reservations', status:'active',       runner_function:'agent-reservations-run', supervisor_agent_key:'chloe_director_v1', icon:'🛎️', description:'Check-in/out, occupation des unités.', ui_metadata_json:{icon:'🛎️', quick_actions:['Réservations actives','Arrivées/Départs','Taux occupation']} },
+  { agent_key:'techops_v1',           name:'TechOps',           display_name:'TechOps',          category:'techops',      status:'active',       runner_function:'agent-techops-run',      supervisor_agent_key:'chloe_director_v1', icon:'🛠️', description:'Infrastructure, incidents système.', ui_metadata_json:{icon:'🛠️', quick_actions:['Statut infra','Incidents ouverts']} },
+  { agent_key:'sonia_hr_v1',          name:'Sonia — RH',        display_name:'Sonia',            category:'rh',           status:'active',       runner_function:'agent-hr-run',           supervisor_agent_key:'chloe_director_v1', icon:'👥', description:'Employés, contrats, paie, présences.', ui_metadata_json:{icon:'👥', quick_actions:['Effectif actif','Présences du jour','Statut paie']} },
+  { agent_key:'lexa_legal_v1',        name:'Lexa — Juridique',  display_name:'Lexa',             category:'juridique',    status:'active',       runner_function:'agent-legal-run',        supervisor_agent_key:'chloe_director_v1', icon:'⚖️', description:'Contrats, documents légaux, conformité.', ui_metadata_json:{icon:'⚖️', quick_actions:['Contrats actifs','Documents en attente']} },
+  { agent_key:'finance_v1',           name:'Finance',           display_name:'Finance',          category:'finance',      status:'active',       runner_function:'agent-finance-run',      supervisor_agent_key:'chloe_director_v1', icon:'💰', description:'Revenus, dépenses, avances, caisse.', ui_metadata_json:{icon:'💰', quick_actions:['Revenus du jour','Dépenses récentes','Solde caisse']} },
+  { agent_key:'commercial_v1',        name:'Commercial',        display_name:'Commercial',       category:'commercial',   status:'active',       runner_function:'agent-commercial-run',   supervisor_agent_key:'chloe_director_v1', icon:'📊', description:'Occupation, pipeline, clients.', ui_metadata_json:{icon:'📊', quick_actions:['Taux occupation','Pipeline réservations','Clients actifs']} },
+  { agent_key:'maintenance_v1',       name:'Maintenance',       display_name:'Maintenance',      category:'maintenance',  status:'active',       runner_function:'agent-maintenance-run',  supervisor_agent_key:'chloe_director_v1', icon:'🔧', description:'Unités, ménage, incidents.', ui_metadata_json:{icon:'🔧', quick_actions:['Unités hors service','Ménage en attente']} },
+  { agent_key:'security_v1',          name:'Sécurité',          display_name:'Sécurité',         category:'securite',     status:'active',       runner_function:'agent-security-run',     supervisor_agent_key:'chloe_director_v1', icon:'🔒', description:'Accès, sessions, incidents.', ui_metadata_json:{icon:'🔒', quick_actions:['Activité 24h','Sessions actives','Comptes suspects']} },
 ];
 
 /* ══════════════════════════════════════════════════════════════
@@ -317,22 +395,55 @@ function toast(msg, kind){
 }
 
 /* ══════════════════════════════════════════════════════════════
-   Chargement des agents — TOUJOURS via agent-foundation-read.
+   Chargement des agents — agent-run (action:list_agents) v010
+   Fallback : agent-foundation-read → DEMO_AGENT_ROWS
    ══════════════════════════════════════════════════════════════ */
+function showModeBadge(mode){
+  _operationalMode = mode || 'construction_simulation';
+  var badge = document.getElementById('vlx-mode-badge');
+  if (!badge) return;
+  if (_operationalMode === 'construction_simulation') {
+    badge.style.display = 'inline-flex';
+    badge.className = 'vlx-mode-badge';
+    badge.textContent = '⚙️ SIMULATION CONSTRUCTION';
+  } else if (_operationalMode === 'production') {
+    badge.style.display = 'inline-flex';
+    badge.className = 'vlx-mode-badge production';
+    badge.textContent = '✅ PRODUCTION';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
 function loadAgents(){
   if (STANDALONE) {
     _agentRowsRaw = DEMO_AGENT_ROWS;
     _platformAgents = listPlatformAgents(_agentRowsRaw);
+    showModeBadge('construction_simulation');
     return Promise.resolve();
   }
-  return secureCall('agent-foundation-read', { op:'list_agents' }).then(function(r){
-    if (r && r.body && r.body.ok) {
-      _agentRowsRaw = r.body.rows || [];
-    } else {
-      _agentRowsRaw = [];
-      if (r && r.status === 401) toast('Votre session a expiré. Reconnectez-vous.', 'err');
+  // 1) Essayer agent-run action:list_agents (v010 — agents dynamiques)
+  return secureCall('agent-run', { action: 'list_agents' }).then(function(r){
+    if (r && r.body && r.body.ok && Array.isArray(r.body.agents) && r.body.agents.length) {
+      _agentRowsRaw = r.body.agents;
+      showModeBadge(r.body.operational_mode);
+      _platformAgents = listPlatformAgents(_agentRowsRaw);
+      return;
     }
+    // 2) Fallback : agent-foundation-read (v007 legacy)
+    return secureCall('agent-foundation-read', { op:'list_agents' }).then(function(r2){
+      if (r2 && r2.body && r2.body.ok) {
+        _agentRowsRaw = r2.body.rows || [];
+      } else {
+        _agentRowsRaw = [];
+        if (r2 && r2.status === 401) toast('Votre session a expiré. Reconnectez-vous.', 'err');
+      }
+      _platformAgents = listPlatformAgents(_agentRowsRaw);
+    });
+  }).catch(function(){
+    _agentRowsRaw = DEMO_AGENT_ROWS;
     _platformAgents = listPlatformAgents(_agentRowsRaw);
+    showModeBadge('construction_simulation');
   });
 }
 function refreshAgents(){ return loadAgents().then(function(){ renderNav(); render(_activeSection); }); }
@@ -370,13 +481,13 @@ function showSection(id){
   var el = document.getElementById(target);
   if (el) el.classList.add('active');
   render(id);
-  // §15 — chaque section de données se rafraîchit à l'ouverture (pas
-  // seulement après une mutation), sans recharger toute la page.
+  // §15 — chaque section de données se rafraîchit à l'ouverture.
   if (!STANDALONE) {
     if (id === 'alertes') refreshAlerts();
     else if (id === 'approbations') refreshApprovals();
     else if (id === 'historique') refreshHistory();
     else if (id === 'accueil' || id === 'assistants') refreshAgents();
+    // chat re-renders from memory; no server refresh needed on section change
   }
 }
 
@@ -384,6 +495,7 @@ function render(id){
   if (id === 'accueil') renderAccueil();
   else if (id === 'assistants') renderAssistants();
   else if (id === 'workspace') renderWorkspace(_activeWorkspaceAgentKey);
+  else if (id === 'chat') renderChat();
   else if (id === 'alertes') renderAlertes();
   else if (id === 'approbations') renderApprobations();
   else if (id === 'historique') renderHistorique();
@@ -561,16 +673,23 @@ function renderWorkspace(agentKey){
   }
   html += '</div>';
 
-  // Conversation shell — JAMAIS de faux chat génératif (§19).
+  // Conversation shell — câblé sur agent-chat v010
   var scoped = buildQuickActionsForAgent(row, manifest);
-  html += '<div class="vlx-card" style="margin-top:14px;"><h3 style="margin-top:0;font-size:14px;color:var(--text2);">💬 Conversation</h3>'+
-    '<div style="color:var(--text2);font-size:13px;">Posez prochainement vos questions directement à '+esc(row.name)+'.</div>'+
-    '<div style="margin-top:10px;"><input type="text" placeholder="Conversation libre bientôt disponible" disabled style="width:70%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);">'+
-    ' <span title="Commande vocale bientôt disponible" style="opacity:.5;cursor:not-allowed;">🎙️</span></div>';
-  if (scoped.length) {
-    html += '<div style="color:var(--text2);font-size:12px;margin-top:10px;">Pour l\'instant, utilisez :</div><div class="vlx-conv-quick">';
-    scoped.forEach(function(a){ html += '<button class="vlx-btn" onclick="runAnalysis(\''+esc(agentKey)+'\')">'+esc(a.label)+'</button>'; });
-    html += '</div>';
+  var canChat = perm.can_chat || perm.can_run;
+  html += '<div class="vlx-card" style="margin-top:14px;"><h3 style="margin-top:0;font-size:14px;color:var(--text2);">💬 Chat avec '+esc(manifest.display_name || row.name)+'</h3>';
+  if (!canChat) {
+    html += '<div style="color:var(--text2);font-size:13px;">Votre rôle ne permet pas d\'ouvrir le chat avec cet assistant.</div>';
+  } else if (STANDALONE) {
+    html += '<div style="color:var(--text2);font-size:13px;">Chat disponible en mode connecté uniquement.</div>';
+  } else {
+    html += '<button class="vlx-btn vlx-btn-primary" onclick="openChat(\''+esc(agentKey)+'\')">💬 Ouvrir le chat</button>';
+    if (scoped.length) {
+      html += '<div style="color:var(--text2);font-size:12px;margin-top:10px;">Suggestions :</div><div class="vlx-conv-quick">';
+      scoped.forEach(function(a){
+        html += '<button class="vlx-btn" style="font-size:12px;padding:6px 12px;" onclick="openChatWithMessage(\''+esc(agentKey)+'\',\''+esc(a.label)+'\')">'+esc(a.label)+'</button>';
+      });
+      html += '</div>';
+    }
   }
   html += '</div>';
 
@@ -800,6 +919,192 @@ function renderParametres(){
   html += '</div><div class="vlx-card" style="margin-top:14px;"><h3 style="margin-top:0;">Configuration avancée</h3>'+
     '<div class="vlx-disclaimer">Modification sécurisée du comportement non disponible dans cette version.</div></div>';
   el.innerHTML = html;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   §CHAT — Chat IA générique (agent-chat endpoint)
+   ══════════════════════════════════════════════════════════════ */
+
+function openChat(agentKey){
+  _chatAgentKey = agentKey;
+  // reset conversation (nouvelle conv par session)
+  _chatConvId = null;
+  _chatMessages = [];
+  showSection('chat');
+}
+
+function openChatWithMessage(agentKey, msg){
+  openChat(agentKey);
+  setTimeout(function(){ sendChatMessage(msg); }, 80);
+}
+
+function renderChat(){
+  var el = document.getElementById('sec-chat');
+  if (!el) return;
+
+  var accessible = _platformAgents.filter(function(a){
+    var perm = permissionsFor(a.row, a.manifest);
+    return (perm.can_chat || perm.can_run) && a.row.runner_function;
+  });
+
+  // Agent picker
+  var html = '<h2 style="font-size:18px;margin:0 0 14px;">💬 Chat IA</h2>';
+  if (!STANDALONE && _operationalMode === 'construction_simulation') {
+    html += '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:9px;padding:10px 14px;font-size:12px;color:var(--warn);margin-bottom:14px;">⚙️ Mode <b>construction</b> — les réponses sont basées sur les données de simulation. Les indicateurs seront réels en mode production.</div>';
+  }
+
+  if (!accessible.length) {
+    html += '<div class="vlx-empty">Aucun assistant disponible pour votre rôle.</div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  html += '<div class="vlx-agent-picker">';
+  accessible.forEach(function(a){
+    var icon = (a.row.ui_metadata_json && a.row.ui_metadata_json.icon) || a.row.icon || '🤖';
+    var label = a.manifest.display_name || a.row.name;
+    html += '<button class="vlx-agent-picker-btn'+(a.row.agent_key===_chatAgentKey?' active':'')+'" onclick="selectChatAgent(\''+esc(a.row.agent_key)+'\')">'+esc(icon)+' '+esc(label)+'</button>';
+  });
+  html += '</div>';
+
+  if (!_chatAgentKey) {
+    html += '<div class="vlx-empty" style="padding:40px 20px;">Sélectionnez un assistant pour commencer la conversation.</div>';
+    el.innerHTML = html;
+    return;
+  }
+
+  var found = _platformAgents.filter(function(a){ return a.row.agent_key === _chatAgentKey; })[0];
+  if (!found) { el.innerHTML = html; return; }
+
+  var agentName = found.manifest.display_name || found.row.name;
+  var icon = (found.row.ui_metadata_json && found.row.ui_metadata_json.icon) || found.row.icon || '🤖';
+
+  html += '<div class="vlx-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">'+
+    '<span style="font-size:22px;">'+esc(icon)+'</span>'+
+    '<div><div style="font-weight:600;">'+esc(agentName)+'</div>'+
+    '<div style="font-size:12px;color:var(--text2);">'+esc(found.row.description||'')+'</div></div></div>';
+
+  // Thread
+  html += '<div class="vlx-chat-thread" id="vlx-chat-thread">';
+  if (!_chatMessages.length) {
+    html += '<div class="vlx-chat-msg system">Bonjour ! Je suis '+esc(agentName)+'. Comment puis-je vous aider ?</div>';
+  } else {
+    _chatMessages.forEach(function(m, idx){
+      if (m.role === 'user') {
+        html += '<div class="vlx-chat-msg user">'+esc(m.content)+'</div>';
+      } else if (m.role === 'assistant') {
+        html += '<div class="vlx-chat-msg assistant">'+esc(m.content)+
+          '<div class="vlx-chat-feedback">'+
+          '<button onclick="submitChatFeedback('+idx+',\'helpful\')" title="Utile">👍</button>'+
+          '<button onclick="submitChatFeedback('+idx+',\'incorrect\')" title="Inexact">👎</button>'+
+          '</div>'+
+          (m.sources && m.sources.length ? '<div class="vlx-chat-meta">Sources : '+m.sources.map(esc).join(', ')+'</div>' : '')+
+          (m.operational_mode === 'construction_simulation' ? '<div class="vlx-chat-meta">⚙️ Données construction</div>' : '')+
+          '</div>';
+      }
+    });
+  }
+  if (_chatBusy) {
+    html += '<div class="vlx-chat-msg system"><span class="vlx-spin"></span>Analyse en cours…</div>';
+  }
+  html += '</div>';
+
+  // Input
+  html += '<div class="vlx-chat-input-row">'+
+    '<input class="vlx-chat-input" id="vlx-chat-input" type="text" placeholder="Posez votre question à '+esc(agentName)+'…" '+(STANDALONE||_chatBusy?'disabled':'')+
+    ' onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();submitChatInput();}" />'+
+    '<button class="vlx-btn vlx-btn-primary" '+(STANDALONE||_chatBusy?'disabled':'')+' onclick="submitChatInput()">'+
+    (_chatBusy?'<span class="vlx-spin"></span>':'Envoyer')+'</button></div>';
+
+  // Quick actions
+  var scoped = buildQuickActionsForAgent(found.row, found.manifest);
+  if (scoped.length && !_chatMessages.length) {
+    html += '<div style="margin-top:10px;"><div style="font-size:12px;color:var(--text3);margin-bottom:6px;">Suggestions :</div><div class="vlx-conv-quick">';
+    scoped.forEach(function(a){
+      html += '<button class="vlx-btn" style="font-size:12px;padding:6px 12px;" onclick="sendChatMessage(\''+esc(a.label)+'\')">'+esc(a.label)+'</button>';
+    });
+    html += '</div></div>';
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+
+  // Scroll to bottom
+  setTimeout(function(){
+    var thread = document.getElementById('vlx-chat-thread');
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  }, 30);
+}
+
+function selectChatAgent(agentKey){
+  _chatAgentKey = agentKey;
+  _chatConvId = null;
+  _chatMessages = [];
+  renderChat();
+}
+
+function submitChatInput(){
+  var inp = document.getElementById('vlx-chat-input');
+  if (!inp || !inp.value.trim()) return;
+  var msg = inp.value.trim();
+  inp.value = '';
+  sendChatMessage(msg);
+}
+
+function sendChatMessage(msg){
+  if (!msg || !_chatAgentKey || _chatBusy || STANDALONE) return;
+  _chatBusy = true;
+  _chatMessages.push({ role:'user', content: msg });
+  renderChat();
+
+  secureCall('agent-chat', {
+    agent_key: _chatAgentKey,
+    message: msg,
+    conversation_id: _chatConvId || undefined,
+    history: _chatMessages.slice(-8)
+  }).then(function(r){
+    _chatBusy = false;
+    if (r && r.body && (r.body.content || r.body.error === undefined)) {
+      var body = r.body;
+      if (_chatConvId === null && body.conversation_id) _chatConvId = body.conversation_id;
+      _chatMessages.push({
+        role: 'assistant',
+        content: body.content || 'Réponse reçue.',
+        sources: body.sources || [],
+        operational_mode: body.operational_mode,
+        message_id: body.message_id
+      });
+    } else {
+      var errCode = (r && r.body && r.body.error) || 'unknown';
+      if (errCode === 'invalid_session' || r.status === 401) {
+        toast('Session expirée. Reconnectez-vous.', 'err');
+      } else if (errCode === 'forbidden' || r.status === 403) {
+        toast('Accès refusé à cet assistant.', 'err');
+      } else {
+        _chatMessages.push({ role:'assistant', content:'Une erreur est survenue. Veuillez réessayer ('+esc(errCode)+').', sources:[], operational_mode:_operationalMode });
+      }
+    }
+    renderChat();
+  }).catch(function(e){
+    _chatBusy = false;
+    _chatMessages.push({ role:'assistant', content:'Connexion impossible. Vérifiez votre réseau et réessayez.', sources:[], operational_mode:_operationalMode });
+    renderChat();
+  });
+}
+
+function submitChatFeedback(msgIdx, feedbackType){
+  var msg = _chatMessages[msgIdx];
+  if (!msg || msg.role !== 'assistant') return;
+  var label = feedbackType === 'helpful' ? 'Merci pour votre retour positif !' : 'Merci, nous améliorerons la réponse.';
+  toast(label, 'ok');
+  if (!msg.message_id || STANDALONE) return;
+  secureCall('agent-chat', {
+    op: 'feedback',
+    message_id: msg.message_id,
+    agent_key: _chatAgentKey,
+    conversation_id: _chatConvId,
+    feedback_type: feedbackType
+  }).catch(function(){ /* silencieux */ });
 }
 
 /* ── Boot ── */

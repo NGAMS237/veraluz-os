@@ -1106,18 +1106,7 @@ html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
       <div class="al-sub">Résidence · Kribi, Cameroun</div>
     </div>
 
-    <!-- PROMPT 010C — Bouton DEV MODE (caché en production) -->
-    <div id="dev-mode-btn-wrap" style="display:none;margin-bottom:16px;">
-      <button onclick="enterDevMode()"
-        style="width:100%;padding:12px 16px;background:linear-gradient(135deg,#f59e0b,#d97706);
-        border:2px solid rgba(245,158,11,.3);border-radius:10px;color:#fff;font-size:14px;
-        font-weight:700;cursor:pointer;letter-spacing:.3px;font-family:inherit;">
-        🛠️ Entrer en mode développement
-      </button>
-      <div style="font-size:10px;color:var(--fg2);text-align:center;margin-top:5px;">
-        TEMP DEV ONLY — Authentification réelle désactivée
-      </div>
-    </div>
+    <!-- 010B SECURITY — bouton mode développement supprimé -->
 
     <div id="auth-error" class="auth-error"></div>
 
@@ -2324,8 +2313,8 @@ var DEV_UNLOCK_TOKEN      = 'veraluz_dev_recovery'; /* token URL — pas un secr
  *   5. node --check + déployer sur GitHub
  */
 function handleDevUnlock() {
-  // TODO SECURITY: supprimer cette fonction avant production
-  if (!DEV_UNLOCK_ENABLED) return false;
+  /* 010B SECURITY — bypass DEV_UNLOCK désactivé en production. */
+  return false;
 
   /* Vérifier expiration */
   var now = new Date();
@@ -2474,44 +2463,10 @@ function quitDevMode() {
  * Aucun PIN, aucun mot de passe, aucun secret stocké.
  */
 function enterDevMode() {
-  /* PROMPT 010C Mission 7 — Aucun PIN, aucun secret, aucune clé service_role */
-  var devSession = {
-    username:        'dev_owner',
-    name:            'Blaise DEV',
-    role:            'superadmin',
-    employee_id:     null,
-    allowed_modules: [
-      'dashboard','employee_home','reservations','payments','housekeeping',
-      'restaurant','finance','rh','contacts','notifications','analytics',
-      'audit','settings','eventbus','auth','appro','integrations','ai_center',
-      'documents' /* PROMPT 019 */
-    ],
-    primaryModule: 'dashboard',
-    loginAt:       Date.now(),
-    expires:       Date.now() + 12 * 60 * 60 * 1000, /* 12h */
-    dev_mode:      true
-  };
-
-  localStorage.setItem('veraluz_auth_v1', JSON.stringify(devSession));
-  currentUser = {
-    username:        devSession.username,
-    name:            devSession.name,
-    role:            devSession.role,
-    employee_id:     null,
-    allowed_modules: devSession.allowed_modules,
-    dev_mode:        true
-  };
-
-  console.warn('[VERALUZ DEV 010C] Mode développement activé — Blaise DEV (superadmin)');
-  console.warn('[VERALUZ DEV 010C] Session expire à :', new Date(devSession.expires).toLocaleString('fr-FR'));
-
-  hideAuthOverlay();
-  updateTopbarUser();
-  buildNav();
-  initGreeting();
-  loadDashboardData();
-  showDevBanner();
-  setTimeout(function() { goTo('dashboard'); }, 300);
+  /* 010B SECURITY — bypass DEV désactivé en production.
+     La connexion doit passer par : employee → PIN bcrypt → verify-employee-pin → session.
+     Aucun accès sans PIN valide. */
+  return;
 }
 
 /**
@@ -2609,7 +2564,7 @@ function devDoResetPin() {
   fetch(EDGE_RESET_PIN_URL, {
     method:'POST', mode:'cors', credentials:'omit',
     headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
-    body: JSON.stringify({ employee_id: empId, requested_by: 'dev_owner', requested_by_role: 'superadmin', reason: 'dev_recovery' })
+    body: JSON.stringify({ employee_id: empId, requested_by: currentUser && currentUser.username || 'gerant', requested_by_role: currentUser && currentUser.role || 'gerant', reason: 'admin_reset' })
   })
   .then(function(r){ return r.json(); })
   .then(function(res){

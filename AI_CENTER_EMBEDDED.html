@@ -60,6 +60,9 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
 .vlx-agent-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:transform .15s, border-color .15s;}
 .vlx-agent-card:hover{border-color:var(--accent);transform:translateY(-2px);}
 .vlx-agent-card-icon{font-size:28px;}
+.vlx-agent-avatar{width:56px;height:56px;border-radius:50%;object-fit:cover;display:block;}
+.vlx-agent-avatar-sm{width:32px;height:32px;border-radius:50%;object-fit:cover;display:inline-block;vertical-align:middle;}
+.vlx-agent-avatar-chat{width:40px;height:40px;border-radius:50%;object-fit:cover;display:inline-block;}
 .vlx-agent-card-name{font-size:16px;font-weight:600;margin-top:8px;}
 .vlx-agent-card-domain{color:var(--text2);font-size:13px;margin-top:2px;}
 .vlx-agent-card-status{font-size:12px;color:var(--text2);margin-top:10px;display:flex;align-items:center;gap:6px;}
@@ -370,16 +373,16 @@ function firstNameOf(full){ if(!full) return ''; return String(full).trim().spli
 
 /* Données de démonstration — STANDALONE UNIQUEMENT, jamais de vraie donnée. */
 var DEMO_AGENT_ROWS = [
-  { agent_key:'chloe_director_v1',    name:'Directrice Chloé',  display_name:'Directrice Chloé', category:'direction',    status:'active',       runner_function:'agent-chloe-run',        supervisor_agent_key:null,              icon:'👩‍💼', description:'Directrice IA — supervision globale, rapports, alertes.', ui_metadata_json:{icon:'👩‍💼', quick_actions:['Rapport journalier','Statut équipe','Alertes actives','Résumé financier']} },
-  { agent_key:'maya_restaurant_v1',   name:'Maya — Restaurant', display_name:'Maya',             category:'restaurant',   status:'active',       runner_function:'agent-restaurant-run',   supervisor_agent_key:'chloe_director_v1', icon:'🍽️', description:'Commandes, menus, stock cuisine.', ui_metadata_json:{icon:'🍽️', quick_actions:['Commandes du jour','Stock cuisine','Performance service']} },
-  { agent_key:'nora_reservations_v1', name:'Nora — Réservations', display_name:'Nora',           category:'reservations', status:'active',       runner_function:'agent-reservations-run', supervisor_agent_key:'chloe_director_v1', icon:'🛎️', description:'Check-in/out, occupation des unités.', ui_metadata_json:{icon:'🛎️', quick_actions:['Réservations actives','Arrivées/Départs','Taux occupation']} },
-  { agent_key:'techops_v1',           name:'TechOps',           display_name:'TechOps',          category:'techops',      status:'active',       runner_function:'agent-techops-run',      supervisor_agent_key:'chloe_director_v1', icon:'🛠️', description:'Infrastructure, incidents système.', ui_metadata_json:{icon:'🛠️', quick_actions:['Statut infra','Incidents ouverts']} },
-  { agent_key:'sonia_hr_v1',          name:'Sonia — RH',        display_name:'Sonia',            category:'rh',           status:'active',       runner_function:'agent-hr-run',           supervisor_agent_key:'chloe_director_v1', icon:'👥', description:'Employés, contrats, paie, présences.', ui_metadata_json:{icon:'👥', quick_actions:['Effectif actif','Présences du jour','Statut paie']} },
-  { agent_key:'lexa_legal_v1',        name:'Lexa — Juridique',  display_name:'Lexa',             category:'juridique',    status:'active',       runner_function:'agent-legal-run',        supervisor_agent_key:'chloe_director_v1', icon:'⚖️', description:'Contrats, documents légaux, conformité.', ui_metadata_json:{icon:'⚖️', quick_actions:['Contrats actifs','Documents en attente']} },
-  { agent_key:'finance_v1',           name:'Finance',           display_name:'Finance',          category:'finance',      status:'active',       runner_function:'agent-finance-run',      supervisor_agent_key:'chloe_director_v1', icon:'💰', description:'Revenus, dépenses, avances, caisse.', ui_metadata_json:{icon:'💰', quick_actions:['Revenus du jour','Dépenses récentes','Solde caisse']} },
-  { agent_key:'commercial_v1',        name:'Commercial',        display_name:'Commercial',       category:'commercial',   status:'active',       runner_function:'agent-commercial-run',   supervisor_agent_key:'chloe_director_v1', icon:'📊', description:'Occupation, pipeline, clients.', ui_metadata_json:{icon:'📊', quick_actions:['Taux occupation','Pipeline réservations','Clients actifs']} },
-  { agent_key:'maintenance_v1',       name:'Maintenance',       display_name:'Maintenance',      category:'maintenance',  status:'active',       runner_function:'agent-maintenance-run',  supervisor_agent_key:'chloe_director_v1', icon:'🔧', description:'Unités, ménage, incidents.', ui_metadata_json:{icon:'🔧', quick_actions:['Unités hors service','Ménage en attente']} },
-  { agent_key:'security_v1',          name:'Sécurité',          display_name:'Sécurité',         category:'securite',     status:'active',       runner_function:'agent-security-run',     supervisor_agent_key:'chloe_director_v1', icon:'🔒', description:'Accès, sessions, incidents.', ui_metadata_json:{icon:'🔒', quick_actions:['Activité 24h','Sessions actives','Comptes suspects']} },
+  { agent_key:'chloe_director_v1',    name:'Directrice Chloé',  display_name:'Directrice Chloé', category:'direction',    status:'active',       runner_function:'agent-chloe-run',        supervisor_agent_key:null,              icon:'👩‍💼', description:'Directrice IA — supervision globale, rapports, alertes.', ui_metadata_json:{icon:'👩‍💼', avatar_url:'assets/agents/chloe-direction.png', quick_actions:['Rapport journalier','Statut équipe','Alertes actives','Résumé financier']} },
+  { agent_key:'maya_restaurant_v1',   name:'Maya — Restaurant', display_name:'Maya',             category:'restaurant',   status:'active',       runner_function:'agent-restaurant-run',   supervisor_agent_key:'chloe_director_v1', icon:'🍽️', description:'Commandes, menus, stock cuisine.', ui_metadata_json:{icon:'🍽️', avatar_url:'assets/agents/maya-restaurant.png', quick_actions:['Commandes du jour','Stock cuisine','Performance service']} },
+  { agent_key:'nora_reservations_v1', name:'Nora — Réservations', display_name:'Nora',           category:'reservations', status:'active',       runner_function:'agent-reservations-run', supervisor_agent_key:'chloe_director_v1', icon:'🛎️', description:'Check-in/out, occupation des unités.', ui_metadata_json:{icon:'🛎️', avatar_url:'assets/agents/nora-reservations.png', quick_actions:['Réservations actives','Arrivées/Départs','Taux occupation']} },
+  { agent_key:'techops_v1',           name:'TechOps',           display_name:'TechOps',          category:'techops',      status:'active',       runner_function:'agent-techops-run',      supervisor_agent_key:'chloe_director_v1', icon:'🛠️', description:'Infrastructure, incidents système.', ui_metadata_json:{icon:'🛠️', avatar_url:'assets/agents/techops-technique-systeme.png', quick_actions:['Statut infra','Incidents ouverts']} },
+  { agent_key:'sonia_hr_v1',          name:'Sonia — RH',        display_name:'Sonia',            category:'rh',           status:'active',       runner_function:'agent-hr-run',           supervisor_agent_key:'chloe_director_v1', icon:'👥', description:'Employés, contrats, paie, présences.', ui_metadata_json:{icon:'👥', avatar_url:'assets/agents/sonia-rh-paie.png', quick_actions:['Effectif actif','Présences du jour','Statut paie']} },
+  { agent_key:'lexa_legal_v1',        name:'Lexa — Juridique',  display_name:'Lexa',             category:'juridique',    status:'active',       runner_function:'agent-legal-run',        supervisor_agent_key:'chloe_director_v1', icon:'⚖️', description:'Contrats, documents légaux, conformité.', ui_metadata_json:{icon:'⚖️', avatar_url:'assets/agents/lexa-documents-juridique.png', quick_actions:['Contrats actifs','Documents en attente']} },
+  { agent_key:'finance_v1',           name:'Finance',           display_name:'Finance',          category:'finance',      status:'active',       runner_function:'agent-finance-run',      supervisor_agent_key:'chloe_director_v1', icon:'💰', description:'Revenus, dépenses, avances, caisse.', ui_metadata_json:{icon:'💰', avatar_url:'assets/agents/finance-comptabilite-tresorerie.png', quick_actions:['Revenus du jour','Dépenses récentes','Solde caisse']} },
+  { agent_key:'commercial_v1',        name:'Commercial',        display_name:'Commercial',       category:'commercial',   status:'active',       runner_function:'agent-commercial-run',   supervisor_agent_key:'chloe_director_v1', icon:'📊', description:'Occupation, pipeline, clients.', ui_metadata_json:{icon:'📊', avatar_url:'assets/agents/commercial-crm-ventes.png', quick_actions:['Taux occupation','Pipeline réservations','Clients actifs']} },
+  { agent_key:'maintenance_v1',       name:'Maintenance',       display_name:'Maintenance',      category:'maintenance',  status:'active',       runner_function:'agent-maintenance-run',  supervisor_agent_key:'chloe_director_v1', icon:'🔧', description:'Unités, ménage, incidents.', ui_metadata_json:{icon:'🔧', avatar_url:'assets/agents/maintenance-batiment-equipements.png', quick_actions:['Unités hors service','Ménage en attente']} },
+  { agent_key:'security_v1',          name:'Sécurité',          display_name:'Sécurité',         category:'securite',     status:'active',       runner_function:'agent-security-run',     supervisor_agent_key:'chloe_director_v1', icon:'🔒', description:'Accès, sessions, incidents.', ui_metadata_json:{icon:'🔒', avatar_url:'assets/agents/securite-surveillance-incidents.png', quick_actions:['Activité 24h','Sessions actives','Comptes suspects']} },
 ];
 
 /* ══════════════════════════════════════════════════════════════
@@ -526,6 +529,17 @@ function renderAccueil(){
     html += '</div>';
   }
   el.innerHTML = html;
+}
+
+function getAgentAvatar(row){
+  return (row.ui_metadata_json && row.ui_metadata_json.avatar_url) ? row.ui_metadata_json.avatar_url : null;
+}
+
+function agentAvatarOrIcon(row, cssClass, iconStyle){
+  var av = getAgentAvatar(row);
+  var icon = (row.ui_metadata_json&&row.ui_metadata_json.icon)||row.icon||'🤖';
+  if (av) return '<img class="'+cssClass+'" src="'+av+'" alt="" onerror="this.style.display='none';this.nextSibling.style.display=''">'+'<span style="display:none;'+iconStyle+'">'+esc(icon)+'</span>';
+  return '<span style="'+iconStyle+'">'+esc(icon)+'</span>';
 }
 
 function agentCardHTML(row){
@@ -961,9 +975,9 @@ function renderChat(){
 
   html += '<div class="vlx-agent-picker">';
   accessible.forEach(function(a){
-    var icon = (a.row.ui_metadata_json && a.row.ui_metadata_json.icon) || a.row.icon || '🤖';
     var label = a.manifest.display_name || a.row.name;
-    html += '<button class="vlx-agent-picker-btn'+(a.row.agent_key===_chatAgentKey?' active':'')+'" onclick="selectChatAgent(\''+esc(a.row.agent_key)+'\')">'+esc(icon)+' '+esc(label)+'</button>';
+    var pickerAvatar = agentAvatarOrIcon(a.row, 'vlx-agent-avatar-sm', 'font-size:16px;margin-right:4px;');
+    html += '<button class="vlx-agent-picker-btn'+(a.row.agent_key===_chatAgentKey?' active':'')+'" onclick="selectChatAgent(\''+esc(a.row.agent_key)+'\')">'+ pickerAvatar +' '+esc(label)+'</button>';
   });
   html += '</div>';
 
@@ -977,10 +991,10 @@ function renderChat(){
   if (!found) { el.innerHTML = html; return; }
 
   var agentName = found.manifest.display_name || found.row.name;
-  var icon = (found.row.ui_metadata_json && found.row.ui_metadata_json.icon) || found.row.icon || '🤖';
+  var chatHeaderAvatar = agentAvatarOrIcon(found.row, 'vlx-agent-avatar-chat', 'font-size:22px;');
 
   html += '<div class="vlx-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">'+
-    '<span style="font-size:22px;">'+esc(icon)+'</span>'+
+    chatHeaderAvatar+
     '<div><div style="font-weight:600;">'+esc(agentName)+'</div>'+
     '<div style="font-size:12px;color:var(--text2);">'+esc(found.row.description||'')+'</div></div></div>';
 

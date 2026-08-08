@@ -3284,7 +3284,7 @@ window.veraluzSecureRequest = function (endpoint, payload) {
   reqBody.session_token = tok;
   return fetch(VERALUZ_BROKER_EDGE_BASE + endpoint, {
     method: 'POST', mode: 'cors', credentials: 'omit',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'X-Veraluz-Session': tok },
     body: JSON.stringify(reqBody)
   }).then(function (r) {
     return r.json()

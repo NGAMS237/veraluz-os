@@ -780,10 +780,10 @@ function runDirectorReport() {
   /* Charger données Supabase */
   Promise.all([
     sbGet('/rest/v1/veraluz_reservations?select=id,status,check_in,check_out,client_name,unit_id&order=created_at.desc&limit=100'),
-    sbGet('/rest/v1/veraluz_payments?select=id,status,amount,client_name&order=created_at.desc&limit=200'),
+    sbGet('/rest/v1/veraluz_payments?select=id,status,amount,guest_name&order=created_at.desc&limit=200'),
     sbGet('/rest/v1/veraluz_employees?select=id,status,full_name,role&limit=100'),
-    sbGet('/rest/v1/veraluz_housekeeping_tasks?select=id,status,unit_id&limit=200').catch(function(){ return []; }),
-    sbGet('/rest/v1/veraluz_food_orders?select=id,status,total_amount&order=created_at.desc&limit=100').catch(function(){ return []; }),
+    sbGet('/rest/v1/veraluz_housekeeping?select=id,status,priority,unit_id&limit=200').catch(function(){ return []; }),
+    sbGet('/rest/v1/veraluz_food_orders?select=id,status,total&order=created_at.desc&limit=100').catch(function(){ return []; }),
     sbGet('/rest/v1/veraluz_units?select=id,status,name&limit=50').catch(function(){ return []; })
   ]).then(function(results) {
     var reservations = Array.isArray(results[0]) ? results[0] : [];
@@ -2025,7 +2025,7 @@ function generateChloeMorningReport() {
     sbGet('/rest/v1/veraluz_reservations?check_out=eq.'+today+'&limit=50'),
     sbGet('/rest/v1/veraluz_housekeeping?status=eq.pending&order=created_at.desc&limit=20'),
     sbGet('/rest/v1/veraluz_payments?status=eq.pending&order=created_at.desc&limit=20'),
-    sbGet('/rest/v1/veraluz_employees?status=eq.active&limit=50'),
+    sbGet('/rest/v1/veraluz_employees?status=eq.actif&limit=50'),
     sbGet('/rest/v1/veraluz_chloe_approvals?tenant_id=eq.veraluz-001&status=eq.pending&limit=20'),
     sbGet('/rest/v1/veraluz_chloe_reminders?tenant_id=eq.veraluz-001&status=eq.active&due_at=lte.'+(today+'T23:59:59Z')+'&limit=20'),
     sbGet('/rest/v1/veraluz_employees?role=eq.livreur&status=eq.actif&photo_url=is.null&select=id,full_name,role&limit=20').catch(function(){return[];}),
@@ -2571,7 +2571,7 @@ function generateTechOpsReport() {
   Promise.all([
     sbGet('/rest/v1/veraluz_tenant_modules?tenant_id=eq.veraluz-001&is_enabled=eq.false'),
     sbGet('/rest/v1/veraluz_ai_agents?status=eq.active'),
-    sbGet('/rest/v1/veraluz_employees?status=eq.active&limit=5'),
+    sbGet('/rest/v1/veraluz_employees?status=eq.actif&limit=5'),
     sbGet('/rest/v1/veraluz_techops_alerts?tenant_id=eq.veraluz-001&status=eq.open')
   ]).then(function(results) {
     var disabledMods = results[0]||[];

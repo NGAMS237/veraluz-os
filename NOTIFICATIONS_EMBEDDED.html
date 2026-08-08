@@ -1303,7 +1303,12 @@ function loadNotificationsFromSupabase() {
   fetch(SUPA_URL + '/rest/v1/veraluz_notifications?select=*&order=created_at.desc&limit=50', {
     headers: sbHdr()
   })
-  .then(function(r){ return r.json(); })
+  .then(function(r){
+    /* La table veraluz_notifications n'existe pas en base : PostgREST renvoie 404.
+       Sans ce garde, r.json() produisait un objet d'erreur traite comme une ligne. */
+    if (!r.ok) { throw new Error('HTTP ' + r.status); }
+    return r.json();
+  })
   .then(function(rows) {
     if (!Array.isArray(rows) || rows.length === 0) {
       _supabaseLoaded = true;

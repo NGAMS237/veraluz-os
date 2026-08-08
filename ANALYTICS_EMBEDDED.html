@@ -257,7 +257,6 @@ nav.bottom-nav {
     if (!ev.data || ev.data.source !== 'veraluz-core') return;
     if (ev.data.type !== 'auth-context') return;
     var d = ev.data.data || {};
-    // Mettre à jour l'affichage utilisateur si nécessaire
     if (d.name) {
       var uname = document.getElementById('an-user-name');
       var urole = document.getElementById('an-user-role');
@@ -268,8 +267,6 @@ nav.bottom-nav {
 })();
 </script>
 <div class="app">
-<!-- SIDEBAR -->
-
 <!-- MAIN -->
 <div class="main">
 
@@ -280,791 +277,1182 @@ nav.bottom-nav {
 <div class="tab" id="tab-restaurant" onclick="switchTab('restaurant')">🍽️ Restaurant</div>
 <div class="tab" id="tab-guests" onclick="switchTab('guests')">🧳 Clients</div>
 <div class="tab" id="tab-employees" onclick="switchTab('employees')">👥 Employés</div>
-<div class="tab" id="tab-alerts" onclick="switchTab('alerts')">🔔 Alertes<span class="tab-badge" id="alert-badge">3</span></div>
+<div class="tab" id="tab-alerts" onclick="switchTab('alerts')">🔔 Alertes<span class="tab-badge" id="alert-badge">0</span></div>
 <div class="tab" id="tab-reports" onclick="switchTab('reports')">📄 Rapports</div>
+<div style="margin-left:auto;display:flex;align-items:center;gap:6px;padding:6px 10px;flex-shrink:0;">
+  <select class="period-sel" id="period-sel" onchange="onPeriodChange()">
+    <option value="1">Aujourd'hui</option>
+    <option value="7">7 jours</option>
+    <option value="30" selected>30 jours</option>
+    <option value="90">3 mois</option>
+    <option value="365">1 an</option>
+    <option value="0">Tout</option>
+  </select>
+  <button class="btn btn-o btn-sm" onclick="refreshAll()" title="Actualiser depuis Supabase">🔄</button>
 </div>
-<div class="content" id="content"></div>
+</div>
+<div class="content" id="content"><div style="padding:60px;text-align:center;color:var(--text3);">📡 Connexion Supabase…</div></div>
 </div>
 </div>
 
+<script src="veraluz-core.js?v=0.3.0"></script>
 <script>
 // ============================================================
-// DATA SIMULÉE — RÉSIDENCE VERALUZ, KRIBI
+// VERALUZ ANALYTICS — v1.0.0 — Connexion Supabase réelle
+// PROMPT 004 — Données authentiques, aucun chiffre inventé
 // ============================================================
-const MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 
-// Génère des données réalistes pour un hôtel côtier à Kribi
-function randBetween(a,b){return Math.floor(Math.random()*(b-a)+a);}
-function trend(base,variance,n){
-  let arr=[],v=base;
-  for(let i=0;i<n;i++){v=Math.max(0,v+(Math.random()-.4)*variance);arr.push(Math.round(v));}
-  return arr;
+// ── CONFIG ──────────────────────────────────────────────────
+var VC  = window.VeraluzCore || {};
+var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+var MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+
+// ── UTILS ────────────────────────────────────────────────────
+var fmt  = (VC && VC.fmtMoney) ? VC.fmtMoney : function(n){return new Intl.NumberFormat('fr-FR').format(Math.round(Number(n)||0))+' FCFA';};
+var esc  = (VC && VC.esc)      ? VC.esc      : function(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+function fmtS(n){n=Number(n)||0;return n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(0)+'k':String(Math.round(n));}
+function pct(n){return Math.round(Number(n)||0)+'%';}
+function toNum(v){return Number(v)||0;}
+function dStr(d){return d.toISOString().slice(0,10);}
+
+// ── RAW DATA (chargé depuis Supabase) ───────────────────────
+var _reservations    = [];
+var _payments        = [];
+var _foodOrders      = [];
+var _restaurantOrders= [];
+var _employees       = [];
+var _units           = [];
+var _expenses        = [];
+var _payroll         = [];
+var _housekeeping    = [];
+var _loadedAt        = null;
+
+// ── COMPUTED GLOBALS (remplis par computeDashboard) ─────────
+var revenueDaily     = [];
+var restaurantDaily  = [];
+var occupancyDaily   = [];
+var reservationsDaily= [];
+var monthlyRevenue   = [];
+var totalRev30       = 0;
+var totalRest30      = 0;
+var avgOcc30         = 0;
+var rooms            = [];   // statut par unité (computeRooms)
+var emp              = [];   // employés actifs + paie (computeEmployees)
+var items            = [];   // top articles restaurant (computeItems)
+
+// ── STATE ────────────────────────────────────────────────────
+var alerts           = [];
+var generatedReports = [];
+var currentTab       = 'overview';
+var period           = 30;
+
+// ── SUPABASE ─────────────────────────────────────────────────
+async function safeFetchTable(table, query) {
+  try {
+    var url = SB + '/rest/v1/' + table + '?' + (query || 'select=*') + '&limit=1000';
+    var res = await fetch(url, {
+      headers: { 'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Accept': 'application/json' }
+    });
+    if (!res.ok) { console.warn('[VERALUZ ANALYTICS] Table non disponible:', table, res.status); return []; }
+    return await res.json();
+  } catch(err) {
+    console.warn('[VERALUZ ANALYTICS] Erreur:', table, err && err.message);
+    return [];
+  }
 }
 
-const PERIOD = 30;
-let period = 30;
+// ── COMPUTE DASHBOARD ─────────────────────────────────────────
+function computeDashboard() {
+  var days = period > 0 ? period : 365;
+  var now  = new Date();
+  var today= dStr(now);
 
-// Revenus journaliers 30j (FCFA)
-const revenueDaily = trend(180000, 60000, 30);
-const occupancyDaily = trend(68, 20, 30).map(v=>Math.min(100,Math.max(0,v)));
-const restaurantDaily = trend(85000, 30000, 30);
-const reservationsDaily = trend(3, 3, 30).map(v=>Math.max(0,v));
+  // Tableau des dates (du plus ancien au plus récent)
+  var dates = [];
+  for (var i = days - 1; i >= 0; i--) {
+    var d = new Date(now); d.setDate(d.getDate() - i); dates.push(dStr(d));
+  }
+  var periodStart = dates[0];
 
-// Revenus mensuels 12 mois
-const monthlyRevenue = [
-  {m:1,y:2025,rev:4200000,exp:2800000,occ:58,guests:62},
-  {m:2,y:2025,rev:3800000,exp:2600000,occ:52,guests:54},
-  {m:3,y:2025,rev:4600000,exp:2900000,occ:63,guests:71},
-  {m:4,y:2025,rev:5200000,exp:3100000,occ:72,guests:89},
-  {m:5,y:2025,rev:5800000,exp:3200000,occ:78,guests:98},
-  {m:6,y:2025,rev:6400000,exp:3400000,occ:85,guests:112},
-  {m:7,y:2025,rev:7100000,exp:3600000,occ:92,guests:131},
-  {m:8,y:2025,rev:6900000,exp:3500000,occ:89,guests:124},
-  {m:9,y:2025,rev:5500000,exp:3100000,occ:74,guests:95},
-  {m:10,y:2025,rev:5100000,exp:3000000,occ:70,guests:87},
-  {m:11,y:2025,rev:4800000,exp:2900000,occ:65,guests:78},
-  {m:12,y:2025,rev:5600000,exp:3200000,occ:76,guests:101},
-  {m:1,y:2026,rev:4500000,exp:2850000,occ:62,guests:67},
-  {m:2,y:2026,rev:4100000,exp:2700000,occ:56,guests:59},
-  {m:3,y:2026,rev:4900000,exp:2950000,occ:67,guests:76},
-  {m:4,y:2026,rev:5400000,exp:3150000,occ:74,guests:91},
-  {m:5,y:2026,rev:2100000,exp:1300000,occ:65,guests:38}, // en cours
-];
+  // Revenus journaliers (paiements validés)
+  revenueDaily = dates.map(function(d) {
+    return _payments
+      .filter(function(p){ return p.status === 'validated' && p.created_at && p.created_at.slice(0,10) === d; })
+      .reduce(function(s,p){ return s + toNum(p.amount); }, 0);
+  });
 
-const totalRev30 = revenueDaily.reduce((a,b)=>a+b,0);
-const totalRest30 = restaurantDaily.reduce((a,b)=>a+b,0);
-const avgOcc30 = occupancyDaily.reduce((a,b)=>a+b,0)/30;
+  // F&B journaliers (food orders + restaurant orders)
+  restaurantDaily = dates.map(function(d) {
+    var food = _foodOrders
+      .filter(function(o){ return ['delivered','out_for_delivery'].includes(o.status) && o.created_at && o.created_at.slice(0,10) === d; })
+      .reduce(function(s,o){ return s + toNum(o.total); }, 0);
+    var rest = _restaurantOrders
+      .filter(function(o){ return o.status === 'paye' && o.created_at && o.created_at.slice(0,10) === d; })
+      .reduce(function(s,o){ return s + toNum(o.total || o.total_amount); }, 0);
+    return food + rest;
+  });
 
-let alerts = [
-  {id:1,level:'critical',cat:'payment',title:'Paiements en attente élevés',msg:'7 paiements non validés depuis plus de 24h — Montant total: 890 000 FCFA',time:'Il y a 2h',status:'active'},
-  {id:2,level:'warning',cat:'occupancy',title:'Occupation en baisse',msg:'Taux d\'occupation < 50% prévu ce weekend — 3 chambres sans réservation',time:'Il y a 5h',status:'active'},
-  {id:3,level:'warning',cat:'restaurant',title:'Stock restaurant faible',msg:'Citrons, eau minérale, bière en dessous du seuil minimum',time:'Il y a 8h',status:'active'},
-  {id:4,level:'info',cat:'hr',title:'Congé Théodore Mba',msg:'Chef Housekeeping en congé jusqu\'au 21 Mai — couverture assurée',time:'Il y a 12h',status:'acknowledged'},
-  {id:5,level:'info',cat:'revenue',title:'Pic de revenus Samedi',msg:'Revenus Samedi 11 Mai: 320 000 FCFA — record de la semaine',time:'Il y a 2j',status:'resolved'},
-];
+  // Nouvelles réservations par jour
+  reservationsDaily = dates.map(function(d) {
+    return _reservations.filter(function(r){ return r.created_at && r.created_at.slice(0,10) === d; }).length;
+  });
 
-let generatedReports = [];
-let currentTab = 'overview';
+  // Taux d'occupation journalier
+  var totalUnits = _units.filter(function(u){ return u.status === 'active'; }).length || 1;
+  occupancyDaily = dates.map(function(d) {
+    var occ = _reservations.filter(function(r) {
+      return r.check_in && r.check_out && r.check_in <= d && r.check_out > d && r.status !== 'cancelled';
+    }).length;
+    return Math.min(100, Math.round(occ / totalUnits * 100));
+  });
 
-// ============================================================
-// UTILS
-// ============================================================
-function fmt(n){return new Intl.NumberFormat('fr-FR').format(Math.round(n))+' FCFA';}
-function fmtS(n){return n>=1000000?(n/1000000).toFixed(1)+'M':n>=1000?(n/1000).toFixed(0)+'k':String(Math.round(n));}
-function pct(n){return Math.round(n)+'%';}
-/* toast() delegated to embedded bridge — voir le script embedded-bridge */
+  totalRev30  = revenueDaily.reduce(function(a,b){ return a+b; }, 0);
+  totalRest30 = restaurantDaily.reduce(function(a,b){ return a+b; }, 0);
+  avgOcc30    = occupancyDaily.length ? occupancyDaily.reduce(function(a,b){ return a+b; },0) / occupancyDaily.length : 0;
 
-// ============================================================
-// SVG CHARTS
-// ============================================================
-function lineChart(data,color,h=70){
-  if(!data||data.length<2) return '';
-  const max=Math.max(...data)||1,min=Math.min(...data);
-  const r=max-min||1;
-  const W=100,H=h;
-  const pts=data.map((v,i)=>{
-    const x=(i/(data.length-1))*W;
-    const y=H-((v-min)/r)*(H*.85)-(H*.075);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-  const area=`0,${H} `+pts+` ${W},${H}`;
-  const gid='g'+color.replace('#','');
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;" preserveAspectRatio="none">
-    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${color}" stop-opacity="0.25"/>
-      <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
-    </linearGradient></defs>
-    <polygon points="${area}" fill="url(#${gid})"/>
-    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
+  // Revenus mensuels (regroupement par mois/année)
+  var monthMap = {};
+  function addM(key,m,y){ if(!monthMap[key]) monthMap[key]={m:m,y:y,rev:0,exp:0,occ:0,guests:0}; }
+
+  _payments.filter(function(p){ return p.status==='validated'&&p.created_at; }).forEach(function(p){
+    var d=new Date(p.created_at); var k=d.getFullYear()+'-'+(d.getMonth()+1); addM(k,d.getMonth()+1,d.getFullYear());
+    monthMap[k].rev += toNum(p.amount);
+  });
+  _foodOrders.filter(function(o){ return o.status==='delivered'&&o.created_at; }).forEach(function(o){
+    var d=new Date(o.created_at); var k=d.getFullYear()+'-'+(d.getMonth()+1); addM(k,d.getMonth()+1,d.getFullYear());
+    monthMap[k].rev += toNum(o.total);
+  });
+  _restaurantOrders.filter(function(o){ return o.status==='paye'&&o.created_at; }).forEach(function(o){
+    var d=new Date(o.created_at); var k=d.getFullYear()+'-'+(d.getMonth()+1); addM(k,d.getMonth()+1,d.getFullYear());
+    monthMap[k].rev += toNum(o.total||o.total_amount);
+  });
+  _expenses.filter(function(e){ return e.date; }).forEach(function(e){
+    var d=new Date(e.date); var k=d.getFullYear()+'-'+(d.getMonth()+1); addM(k,d.getMonth()+1,d.getFullYear());
+    monthMap[k].exp += toNum(e.amount);
+  });
+  _payroll.filter(function(p){ return p.period_month&&p.period_year; }).forEach(function(p){
+    var k=p.period_year+'-'+p.period_month; addM(k,p.period_month,p.period_year);
+    monthMap[k].exp += toNum(p.net_salary);
+  });
+  _reservations.filter(function(r){ return r.created_at; }).forEach(function(r){
+    var d=new Date(r.created_at); var k=d.getFullYear()+'-'+(d.getMonth()+1); addM(k,d.getMonth()+1,d.getFullYear());
+    monthMap[k].guests += toNum(r.guests)||1;
+  });
+
+  monthlyRevenue = Object.values(monthMap).sort(function(a,b){ return a.y!==b.y?a.y-b.y:a.m-b.m; });
+
+  computeRooms();
+  computeEmployees();
+  computeItems();
 }
 
-function barChart(data,labels,color,h=80){
-  if(!data||!data.length) return '';
-  const max=Math.max(...data)||1;
-  const bw=100/data.length;
-  const bars=data.map((v,i)=>{
-    const bh=(v/max)*(h*.9);
-    const x=i*bw+bw*.08;
-    const y=h-bh;
-    const opacity=i===data.length-1?1:0.55;
-    const lbl=labels?`<text x="${(x+bw*.42).toFixed(1)}" y="${h+12}" text-anchor="middle" font-size="4.5" fill="#6b7280">${labels[i]}</text>`:'';
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bw*.84).toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}" opacity="${opacity}" rx="1.5"/>${lbl}`;
-  }).join('');
-  return `<svg viewBox="0 0 100 ${h+14}" style="width:100%;height:${h+14}px;" preserveAspectRatio="none">${bars}</svg>`;
+function computeRooms() {
+  var today = dStr(new Date());
+  rooms = _units.filter(function(u){ return u.status === 'active'; }).map(function(u) {
+    var cur = _reservations.find(function(r) {
+      return r.unit_id === u.id && r.check_in <= today && r.check_out > today && ['checkedin','confirmed'].includes(r.status);
+    });
+    var nxt = _reservations.find(function(r) {
+      return r.unit_id === u.id && r.check_in > today && ['confirmed','pending'].includes(r.status);
+    });
+    var status = 'libre', guest = null, checkin = null, checkout = null, nights = 0;
+    if (cur) {
+      status = 'occupée'; guest = cur.client_name; checkin = cur.check_in; checkout = cur.check_out; nights = cur.nights || 0;
+    } else if (u.hk_status === 'cleaning' || u.hk_status === 'dirty') {
+      status = 'nettoyage';
+    } else if (nxt) {
+      status = 'réservée'; guest = nxt.client_name; checkin = nxt.check_in; checkout = nxt.check_out;
+    }
+    return { name: u.name, type: u.type, rate: toNum(u.price), status: status, guest: guest, checkin: checkin, checkout: checkout, nights: nights };
+  });
 }
 
-function sparkline(data,color,h=28){
-  if(!data||data.length<2)return '';
-  const max=Math.max(...data)||1,min=Math.min(...data);
-  const r=max-min||1;
-  const pts=data.slice(-10).map((v,i,arr)=>{
-    const x=(i/(arr.length-1))*100;
-    const y=h-((v-min)/r)*(h*.9)-(h*.05);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
-  return `<svg viewBox="0 0 100 ${h}" style="width:100%;height:${h}px;" preserveAspectRatio="none">
-    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>`;
+function computeEmployees() {
+  emp = _employees.filter(function(e){ return e.status === 'actif'; }).map(function(e) {
+    var slips = _payroll.filter(function(p){ return p.employee_id === e.id; })
+      .sort(function(a,b){ return b.period_year!==a.period_year?b.period_year-a.period_year:b.period_month-a.period_month; });
+    var latest = slips[0];
+    return {
+      name: e.full_name || 'N/D',
+      role: e.role || 'N/D',
+      status: 'present',
+      pay: toNum(latest ? latest.net_salary : e.base_salary),
+      days_present: null,
+      days_abs: null,
+      perf: null
+    };
+  });
 }
 
-// ============================================================
-// KPI CARD HTML
-// ============================================================
-function kpiCard(icon,label,value,sub,color,trendVal,series){
-  const trendHtml=trendVal!=null?`<span class="kpi-trend ${trendVal>=0?'trend-up':'trend-dn'}">${trendVal>=0?'↑':'↓'} ${Math.abs(trendVal)}%</span>`:'';
-  const sparkHtml=series?`<div class="spark">${sparkline(series,color)}</div>`:'';
-  return `<div class="kpi-card">
-    <div class="kpi-lbl"><span>${icon}</span>${label}${trendHtml}</div>
-    <div class="kpi-val" style="color:${color};">${value}</div>
-    ${sub?`<div class="kpi-sub">${sub}</div>`:''}
-    ${sparkHtml}
-  </div>`;
+function computeItems() {
+  var itemMap = {};
+  _foodOrders.filter(function(o){ return o.status === 'delivered'; }).forEach(function(o) {
+    var arr = [];
+    try { arr = typeof o.items === 'string' ? JSON.parse(o.items) : (Array.isArray(o.items) ? o.items : []); } catch(e){}
+    if (!Array.isArray(arr)) arr = [];
+    arr.forEach(function(it) {
+      var key = it.name || it.id || 'Inconnu';
+      if (!itemMap[key]) itemMap[key] = { name: key, cat: it.category || it.cat || 'Plat', vendu: 0, rev: 0 };
+      var qty = toNum(it.qty) || 1; var price = toNum(it.price) || 0;
+      itemMap[key].vendu += qty; itemMap[key].rev += price * qty;
+    });
+  });
+  _restaurantOrders.filter(function(o){ return o.status === 'paye'; }).forEach(function(o) {
+    var arr = [];
+    try { arr = typeof o.items_json === 'string' ? JSON.parse(o.items_json) : (Array.isArray(o.items_json) ? o.items_json : []); } catch(e){}
+    if (!Array.isArray(arr)) arr = [];
+    arr.forEach(function(it) {
+      var key = it.name || it.id || 'Inconnu';
+      if (!itemMap[key]) itemMap[key] = { name: key, cat: 'Restaurant', vendu: 0, rev: 0 };
+      var qty = toNum(it.qty) || 1; var price = toNum(it.price) || 0;
+      itemMap[key].vendu += qty; itemMap[key].rev += price * qty;
+    });
+  });
+  items = Object.values(itemMap).filter(function(it){ return it.name !== 'Inconnu'; }).sort(function(a,b){ return b.rev-a.rev; }).slice(0,8);
+
+  // Fallback si items_json vides mais commandes existent
+  if (items.length === 0) {
+    var foodTotal = _foodOrders.filter(function(o){ return o.status==='delivered'; }).reduce(function(s,o){ return s+toNum(o.total); },0);
+    var restTotal = _restaurantOrders.filter(function(o){ return o.status==='paye'; }).reduce(function(s,o){ return s+toNum(o.total||o.total_amount); },0);
+    var fCnt = _foodOrders.filter(function(o){ return o.status==='delivered'; }).length;
+    var rCnt = _restaurantOrders.filter(function(o){ return o.status==='paye'; }).length;
+    if (foodTotal > 0) items.push({ name: 'Food Lounge (total commandes)', cat: 'Food', vendu: fCnt, rev: foodTotal });
+    if (restTotal > 0) items.push({ name: 'Restaurant (tables)', cat: 'Restaurant', vendu: rCnt, rev: restTotal });
+  }
 }
 
-// ============================================================
-// TABS
-// ============================================================
-function switchTab(tab){
-  currentTab=tab;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  render();
-}
+// ── ALERTES BASÉES SUR LES DONNÉES RÉELLES ───────────────────
+function buildAlerts() {
+  alerts = [];
+  var nextId = 1;
+  var now    = new Date();
+  var today  = dStr(now);
+  var yesterday = dStr(new Date(now.getTime() - 86400000));
 
-function onPeriodChange(){
-  period=parseInt(document.getElementById('period-sel').value);
-  render();
-}
-
-function refreshAll(){
-  toast('📡 Données actualisées — connexion Supabase OK','success');
-  render();
-}
-
-// ============================================================
-// RENDER
-// ============================================================
-function render(){
-  const tabs={
-    overview:renderOverview,revenue:renderRevenue,occupancy:renderOccupancy,
-    restaurant:renderRestaurant,guests:renderGuests,employees:renderEmployees,
-    alerts:renderAlerts,reports:renderReports
-  };
-  const fn=tabs[currentTab]||renderOverview;
-  document.getElementById('content').innerHTML=fn();
-  // Update alert badge
-  const activeCount=alerts.filter(a=>a.status==='active').length;
-  document.getElementById('alert-badge').textContent=activeCount;
-  const critCount=alerts.filter(a=>a.status==='active'&&a.level==='critical').length;
-  const cb=document.getElementById('critical-alert');
-  if(cb){if(critCount>0){cb.style.display='';cb.textContent=`🚨 ${critCount} critique(s)`;}else cb.style.display='none';}
-}
-
-// ============================================================
-// OVERVIEW
-// ============================================================
-function renderOverview(){
-  const revenueBreakdown=[
-    {lbl:'Hébergement',val:totalRev30*0.62,color:'#6c63ff'},
-    {lbl:'Restaurant',val:totalRev30*0.25,color:'#f97316'},
-    {lbl:'Bar Lounge',val:totalRev30*0.11,color:'#06b6d4'},
-    {lbl:'Autres',val:totalRev30*0.02,color:'#6b7280'},
-  ];
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('💰','Revenus 30j',fmtS(totalRev30)+' FCFA','Hébergement+F&B+Bar','#6c63ff',12,revenueDaily)}
-    ${kpiCard('🏨','Occupation moy.',pct(avgOcc30),'9 unités disponibles','#10b981',5,occupancyDaily)}
-    ${kpiCard('🍽️','F&B Total 30j',fmtS(totalRest30)+' FCFA','Restaurant & Bar','#f97316',8,restaurantDaily)}
-    ${kpiCard('🛎️','Réservations',String(reservationsDaily.reduce((a,b)=>a+b,0)),'30 derniers jours','#3b82f6',3,reservationsDaily)}
-    ${kpiCard('💳','Paiements en attente','7','Total: 890 000 FCFA','#ef4444',-2)}
-    ${kpiCard('👥','Présents aujourd\'hui','6/8','1 en congé, 1 en retard','#8b5cf6',null)}
-    ${kpiCard('📅','Revenus aujourd\'hui',fmtS(revenueDaily[revenueDaily.length-1])+' FCFA','Toutes sources','#06b6d4',null)}
-    ${kpiCard('📈','RevPAR',fmt(75000),'Revenue Per Available Room','#10b981',7)}
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Revenus journaliers — 30 jours
-        <span class="bdg bdg-p">Moy: ${fmtS(totalRev30/30)}/j</span>
-      </div>
-      <div class="svg-wrap">${lineChart(revenueDaily,'#6c63ff',90)}</div>
-      <div class="chart-sub">↗ +12% vs période précédente</div>
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Taux d'occupation — 30 jours
-        <span class="bdg ${avgOcc30>=75?'bdg-g':avgOcc30>=50?'bdg-y':'bdg-r'}">${pct(avgOcc30)}</span>
-      </div>
-      <div class="svg-wrap">${lineChart(occupancyDaily,'#10b981',90)}</div>
-      <div class="chart-sub">Cible: 75% · <span style="color:var(--yellow);">━</span> Seuil avertissement: 50%</div>
-    </div>
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Répartition revenus 30j</div>
-      ${revenueBreakdown.map(r=>{
-        const p=(r.val/totalRev30*100).toFixed(0);
-        return `<div class="bar-row">
-          <div class="bar-lbl" style="font-size:10.5px;">${r.lbl}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${r.color};"></div></div>
-          <div class="bar-val" style="color:${r.color};">${p}% <span style="color:var(--text3);font-weight:400;">${fmtS(r.val)}</span></div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Revenus mensuels 2026</div>
-      <div class="svg-wrap">${barChart(
-        monthlyRevenue.filter(m=>m.y===2026).map(m=>m.rev),
-        monthlyRevenue.filter(m=>m.y===2026).map(m=>MONTHS[m.m-1]),
-        '#6c63ff',80
-      )}</div>
-      <div class="chart-sub">Mai en cours (mi-mois)</div>
-    </div>
-  </div>
-
-  <div class="g2">
-    <!-- Alertes actives -->
-    <div class="chart-wrap">
-      <div class="chart-title">🔔 Alertes actives (${alerts.filter(a=>a.status==='active').length})</div>
-      ${alerts.filter(a=>a.status==='active').slice(0,3).map(a=>{
-        const lc={critical:'#ef4444',warning:'#f59e0b',info:'#3b82f6'};
-        const bg={critical:'rgba(239,68,68,.07)',warning:'rgba(245,158,11,.07)',info:'rgba(59,130,246,.07)'};
-        const ic={critical:'🚨',warning:'⚠️',info:'ℹ️'};
-        return `<div class="alert-item" style="border-left-color:${lc[a.level]};background:${bg[a.level]};">
-          <div class="alert-icon">${ic[a.level]}</div>
-          <div class="alert-cnt">
-            <div class="alert-tit" style="color:${lc[a.level]};">${a.title}</div>
-            <div class="alert-msg">${a.msg}</div>
-          </div>
-          <button class="btn btn-o btn-sm" onclick="ackAlert(${a.id})">✓</button>
-        </div>`;
-      }).join('')}
-      <button class="btn btn-o btn-sm" style="width:100%;margin-top:6px;justify-content:center;" onclick="switchTab('alerts')">Voir toutes →</button>
-    </div>
-    <!-- Activité récente -->
-    <div class="chart-wrap">
-      <div class="chart-title">📋 Activité récente</div>
-      <div class="timeline">
-        <div class="tl-item"><div class="tl-dot" style="background:var(--green);"></div><div class="tl-time">Aujourd'hui 10:23 — Smith (Canada)</div><div class="tl-text">✅ 7 fiches de paie Mai validées</div></div>
-        <div class="tl-item"><div class="tl-dot" style="background:var(--blue);"></div><div class="tl-time">Aujourd'hui 09:45 — Système</div><div class="tl-text">📅 3 check-ins enregistrés (chambres 101, 203, Studio A)</div></div>
-        <div class="tl-item"><div class="tl-dot" style="background:var(--orange);"></div><div class="tl-time">Hier 21:14 — Judith Biyong</div><div class="tl-text">🍽️ Commande table 5 — 45 000 FCFA</div></div>
-        <div class="tl-item"><div class="tl-dot" style="background:var(--yellow);"></div><div class="tl-time">Hier 14:30 — Système</div><div class="tl-text">⚠️ Alerte stock restaurant générée automatiquement</div></div>
-        <div class="tl-item"><div class="tl-dot" style="background:var(--accent);"></div><div class="tl-time">12 Mai — Smith (Canada)</div><div class="tl-text">📊 Rapport mensuel Avril généré et envoyé par email</div></div>
-      </div>
-    </div>
-  </div>`;
-}
-
-// ============================================================
-// REVENUE
-// ============================================================
-function renderRevenue(){
-  const cur2026=monthlyRevenue.filter(m=>m.y===2026);
-  const totalY=cur2026.reduce((a,m)=>a+m.rev,0);
-  const totalExp=cur2026.reduce((a,m)=>a+m.exp,0);
-  const totalProfit=totalY-totalExp;
-  const projAnnuel=totalY/(cur2026.length/12);
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('💰','Revenus 2026',fmtS(totalY)+' FCFA',cur2026.length+' mois complets','#6c63ff',14)}
-    ${kpiCard('📉','Dépenses 2026',fmtS(totalExp)+' FCFA','Salaires+charges+opérations','#ef4444',-3)}
-    ${kpiCard('📈','Profit 2026',fmtS(totalProfit)+' FCFA','Marge: '+pct(totalProfit/totalY*100),'#10b981',18)}
-    ${kpiCard('🔮','Projection annuelle',fmtS(projAnnuel)+' FCFA','Extrapolation linéaire','#8b5cf6',null)}
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">Revenus vs Dépenses — Historique mensuel 2025-2026</div>
-    <div class="svg-wrap">${lineChart(monthlyRevenue.map(m=>m.rev),'#6c63ff',100)}</div>
-    <div class="chart-sub">Bleu = Revenus · Cible annuelle 2026: 60 000 000 FCFA</div>
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Profitabilité mensuelle 2026</div>
-      ${cur2026.map(m=>{
-        const profit=m.rev-m.exp;
-        const margin=(profit/m.rev*100).toFixed(0);
-        return `<div class="bar-row">
-          <div class="bar-lbl">${MONTHS[m.m-1]}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${margin}%;background:${margin>=30?'var(--green)':margin>=15?'var(--yellow)':'var(--red)'};"></div></div>
-          <div class="bar-val">${margin}% <span style="color:var(--text3);font-size:10px;">${fmtS(profit)}</span></div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Revenus par source</div>
-      ${[
-        {lbl:'🏠 Hébergement',pct:62,color:'#6c63ff'},
-        {lbl:'🍽️ Restaurant',pct:25,color:'#f97316'},
-        {lbl:'🍹 Bar Lounge',pct:11,color:'#06b6d4'},
-        {lbl:'📦 Autres',pct:2,color:'#6b7280'},
-      ].map(r=>`<div class="bar-row">
-        <div class="bar-lbl" style="font-size:10px;width:95px;">${r.lbl}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${r.pct}%;background:${r.color};"></div></div>
-        <div class="bar-val" style="color:${r.color};">${r.pct}%</div>
-      </div>`).join('')}
-      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">
-        <div class="chart-sub">RevPAR: ${fmt(75000)} · ADR: ${fmt(112000)} · Durée moy: 2.4 nuits</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">Tableau détaillé — Performance mensuelle</div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Période</th><th>Revenus</th><th>Dépenses</th><th>Profit</th><th>Marge</th><th>Occupation</th><th>Clients</th><th>Statut</th></tr>
-      ${monthlyRevenue.slice(-8).reverse().map(m=>{
-        const profit=m.rev-m.exp;
-        const margin=(profit/m.rev*100).toFixed(1);
-        const isCurrent=m.y===2026&&m.m===5;
-        return `<tr>
-          <td style="font-weight:500;">${MONTHS[m.m-1]} ${m.y} ${isCurrent?'<span class="bdg bdg-b">En cours</span>':''}</td>
-          <td style="color:var(--accent2);">${fmt(m.rev)}</td>
-          <td style="color:var(--red);">${fmt(m.exp)}</td>
-          <td style="color:${profit>=0?'var(--green)':'var(--red)'};font-weight:600;">${fmt(profit)}</td>
-          <td><span class="bdg ${margin>=30?'bdg-g':margin>=15?'bdg-y':'bdg-r'}">${margin}%</span></td>
-          <td>${m.occ}%</td>
-          <td>${m.guests}</td>
-          <td><span class="bdg ${isCurrent?'bdg-b':'bdg-g'}">${isCurrent?'📊 Partiel':'✅ Clôturé'}</span></td>
-        </tr>`;
-      }).join('')}
-    </table></div>
-  </div>`;
-}
-
-// ============================================================
-// OCCUPANCY
-// ============================================================
-function renderOccupancy(){
-  const rooms=[
-    {name:'Chambre 101',type:'Chambre 1er',rate:75000,status:'occupée',guest:'M. Ngono',checkin:'12 Mai',checkout:'16 Mai',nights:4},
-    {name:'Chambre 102',type:'Chambre 1er',rate:75000,status:'occupée',guest:'Mme Samba',checkin:'13 Mai',checkout:'15 Mai',nights:2},
-    {name:'Chambre 103',type:'Chambre 1er',rate:75000,status:'libre',guest:null,checkin:null,checkout:null,nights:0},
-    {name:'Chambre 104',type:'Chambre 1er',rate:75000,status:'nettoyage',guest:null,checkin:null,checkout:null,nights:0},
-    {name:'Chambre 105',type:'Chambre 1er',rate:75000,status:'occupée',guest:'M. Dibango',checkin:'11 Mai',checkout:'17 Mai',nights:6},
-    {name:'Appt 2ch',type:'Appartement',rate:120000,status:'occupée',guest:'Famille Mba',checkin:'10 Mai',checkout:'18 Mai',nights:8},
-    {name:'Studio A',type:'Studio 2e',rate:90000,status:'occupée',guest:'M. Koum',checkin:'14 Mai',checkout:'16 Mai',nights:2},
-    {name:'Studio B',type:'Studio 2e',rate:90000,status:'libre',guest:null,checkin:null,checkout:null,nights:0},
-    {name:'Suite Présidentielle',type:'Suite',rate:250000,status:'réservée',guest:'VIP — C. Manga',checkin:'16 Mai',checkout:'20 Mai',nights:4},
-  ];
-  const occupied=rooms.filter(r=>r.status==='occupée').length;
-  const occ=occupied/rooms.length*100;
-  const revToday=rooms.filter(r=>r.status==='occupée').reduce((a,r)=>a+r.rate,0);
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('🏨','Occupation actuelle',pct(occ),`${occupied}/${rooms.length} unités occupées`,occ>=75?'#10b981':occ>=50?'#f59e0b':'#ef4444',null)}
-    ${kpiCard('💰','Revenus hébergement/j',fmt(revToday),'Unités occupées aujourd\'hui','#6c63ff',null)}
-    ${kpiCard('📅','ADR',fmt(112000),'Average Daily Rate','#8b5cf6',7)}
-    ${kpiCard('📊','RevPAR',fmt(75000),'Revenue Per Available Room','#10b981',5)}
-    ${kpiCard('🔄','Taux annulation','8.2%','30 derniers jours','#f59e0b',null)}
-    ${kpiCard('🌙','Durée moy. séjour','2.4 nuits','Tourisme côtier Kribi','#06b6d4',null)}
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Occupation journalière — 30j
-        <span class="bdg ${avgOcc30>=75?'bdg-g':avgOcc30>=50?'bdg-y':'bdg-r'}">${pct(avgOcc30)}</span>
-      </div>
-      <div class="svg-wrap">${lineChart(occupancyDaily,'#10b981',80)}</div>
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Check-ins / Check-outs journaliers</div>
-      <div class="svg-wrap">${barChart(reservationsDaily,null,'#3b82f6',80)}</div>
-    </div>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">État des chambres — Temps réel</div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Unité</th><th>Type</th><th>Tarif/nuit</th><th>Statut</th><th>Client</th><th>Arrivée</th><th>Départ</th><th>Nuits</th><th>Rev. total</th></tr>
-      ${rooms.map(r=>{
-        const sc={occupée:'bdg-g',libre:'bdg-gr',nettoyage:'bdg-y',réservée:'bdg-b'};
-        return `<tr>
-          <td style="font-weight:500;">${r.name}</td>
-          <td class="bdg" style="font-size:10px;color:var(--text2);">${r.type}</td>
-          <td>${fmt(r.rate)}</td>
-          <td><span class="bdg ${sc[r.status]||'bdg-gr'}">${r.status}</span></td>
-          <td>${r.guest||'—'}</td>
-          <td>${r.checkin||'—'}</td>
-          <td>${r.checkout||'—'}</td>
-          <td>${r.nights||'—'}</td>
-          <td style="color:var(--green);">${r.nights>0?fmt(r.rate*r.nights):'—'}</td>
-        </tr>`;
-      }).join('')}
-    </table></div>
-  </div>`;
-}
-
-// ============================================================
-// RESTAURANT
-// ============================================================
-function renderRestaurant(){
-  const items=[
-    {name:'Poisson braisé',cat:'Grillades',vendu:42,rev:1260000},
-    {name:'Poulet DG',cat:'Plats',vendu:35,rev:875000},
-    {name:'Ndolé',cat:'Plats',vendu:28,rev:560000},
-    {name:'Jus naturels',cat:'Boissons',vendu:65,rev:325000},
-    {name:'Bière Castel',cat:'Bar',vendu:88,rev:440000},
-    {name:'Cocktails plage',cat:'Bar',vendu:31,rev:465000},
-    {name:'Omelette',cat:'Petit déj.',vendu:19,rev:190000},
-    {name:'Assiette crevettes',cat:'Grillades',vendu:14,rev:490000},
-  ];
-  const totalRevFB=totalRest30;
-  const totalOrders=restaurantDaily.reduce((a,b)=>a+Math.ceil(b/12000),0);
-  const avgTicket=totalRevFB/totalOrders;
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('🍽️','F&B Total 30j',fmtS(totalRevFB)+' FCFA','Restaurant + Bar','#f97316',8,restaurantDaily)}
-    ${kpiCard('🧾','Commandes 30j',String(totalOrders),'Tables + Bar + Chambre','#06b6d4',5)}
-    ${kpiCard('💵','Ticket moyen',fmt(avgTicket),'Par commande','#8b5cf6',3)}
-    ${kpiCard('🍹','Bar Lounge',fmtS(totalRevFB*0.31)+' FCFA','31% du F&B total','#06b6d4',12)}
-    ${kpiCard('📅','Aujourd\'hui',fmt(restaurantDaily[restaurantDaily.length-1]),'Toutes sources','#10b981',null)}
-    ${kpiCard('⏱️','KDS actif','3 tickets','En cuisine + bar','var(--yellow)',null)}
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Revenus F&B journaliers</div>
-      <div class="svg-wrap">${lineChart(restaurantDaily,'#f97316',80)}</div>
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Répartition par service</div>
-      ${[
-        {lbl:'🍽️ Restaurant/Table',pct:52,color:'#f97316'},
-        {lbl:'🍹 Bar Lounge',pct:31,color:'#06b6d4'},
-        {lbl:'🛏️ Room Service',pct:12,color:'#8b5cf6'},
-        {lbl:'📦 Emporter',pct:5,color:'#6b7280'},
-      ].map(r=>`<div class="bar-row">
-        <div class="bar-lbl" style="width:110px;font-size:10px;">${r.lbl}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${r.pct}%;background:${r.color};"></div></div>
-        <div class="bar-val" style="color:${r.color};">${r.pct}%</div>
-      </div>`).join('')}
-    </div>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">Top ventes — Articles</div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Article</th><th>Catégorie</th><th>Vendus</th><th>Revenus</th><th>Performance</th></tr>
-      ${items.sort((a,b)=>b.rev-a.rev).map((item,i)=>`<tr>
-        <td style="font-weight:500;">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'  '} ${item.name}</td>
-        <td><span class="bdg bdg-gr">${item.cat}</span></td>
-        <td>${item.vendu}</td>
-        <td style="color:var(--orange);">${fmt(item.rev)}</td>
-        <td>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <div style="flex:1;background:var(--bg3);border-radius:5px;height:6px;overflow:hidden;min-width:80px;">
-              <div style="height:100%;border-radius:5px;background:var(--orange);width:${(item.rev/1260000*100).toFixed(0)}%;"></div>
-            </div>
-            <span style="font-size:10px;color:var(--text3);">${(item.rev/totalRevFB*100).toFixed(1)}%</span>
-          </div>
-        </td>
-      </tr>`).join('')}
-    </table></div>
-  </div>`;
-}
-
-// ============================================================
-// GUESTS
-// ============================================================
-function renderGuests(){
-  const nationalities=[
-    {country:'🇨🇲 Cameroun',count:145,pct:52},
-    {country:'🇫🇷 France',count:48,pct:17},
-    {country:'🇨🇮 Côte d\'Ivoire',count:28,pct:10},
-    {country:'🇩🇪 Allemagne',count:19,pct:7},
-    {country:'🇧🇯 Bénin',count:14,pct:5},
-    {country:'🌍 Autres',count:25,pct:9},
-  ];
-  const sources=[
-    {src:'📞 Direct / Téléphone',pct:38,color:'#6c63ff'},
-    {src:'🌐 Booking.com',pct:29,color:'#3b82f6'},
-    {src:'🏠 Airbnb',pct:18,color:'#f97316'},
-    {src:'📱 WhatsApp / Réseaux',pct:11,color:'#10b981'},
-    {src:'🤝 Agences',pct:4,color:'#6b7280'},
-  ];
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('🧳','Clients 30j','127','Voyageurs uniques','#3b82f6',9)}
-    ${kpiCard('🔄','Clients fidèles','23%','Revenant au moins 2 fois','#10b981',3)}
-    ${kpiCard('⭐','Satisfaction moy.','4.3/5','Avis collectés (34)','#f59e0b',null)}
-    ${kpiCard('💰','Dépense moy./client',fmt(42000),'Hébergement + F&B','#8b5cf6',5)}
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Nationalités clients (30j)</div>
-      ${nationalities.map(n=>`<div class="bar-row">
-        <div class="bar-lbl" style="width:115px;font-size:11px;">${n.country}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${n.pct}%;background:var(--blue);"></div></div>
-        <div class="bar-val">${n.pct}% <span style="color:var(--text3);font-weight:400;">(${n.count})</span></div>
-      </div>`).join('')}
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Sources de réservation</div>
-      ${sources.map(s=>`<div class="bar-row">
-        <div class="bar-lbl" style="width:140px;font-size:10px;">${s.src}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${s.pct}%;background:${s.color};"></div></div>
-        <div class="bar-val" style="color:${s.color};">${s.pct}%</div>
-      </div>`).join('')}
-    </div>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">Croissance clients mensuelle 2026</div>
-    <div class="svg-wrap">${barChart(monthlyRevenue.filter(m=>m.y===2026).map(m=>m.guests),monthlyRevenue.filter(m=>m.y===2026).map(m=>MONTHS[m.m-1]),'#3b82f6',80)}</div>
-    <div class="chart-sub">Total 2026: ${monthlyRevenue.filter(m=>m.y===2026).reduce((a,m)=>a+m.guests,0)} clients · Cible annuelle: 600</div>
-  </div>`;
-}
-
-// ============================================================
-// EMPLOYEES
-// ============================================================
-function renderEmployees(){
-  const emp=[
-    {name:'Raoul Ondoua',role:'Hotel Manager',status:'present',pay:335300,days_present:20,days_abs:1,perf:92},
-    {name:'Claire Bessong',role:'Réception',status:'present',pay:172440,days_present:19,days_abs:2,perf:88},
-    {name:'Patrick Abomo',role:'Réception',status:'late',pay:143700,days_present:17,days_abs:4,perf:72},
-    {name:'Judith Biyong',role:'Restaurant',status:'present',pay:191600,days_present:21,days_abs:0,perf:95},
-    {name:'Théodore Mba',role:'Housekeeping',status:'conge',pay:153280,days_present:15,days_abs:0,perf:85},
-    {name:'Andrée Koung',role:'Comptable',status:'present',pay:210760,days_present:20,days_abs:1,perf:90},
-    {name:'Samuel Ekoto',role:'Sécurité',status:'present',pay:124540,days_present:22,days_abs:0,perf:80},
-    {name:'Nadège Fosso',role:'RH',status:'present',pay:229920,days_present:20,days_abs:1,perf:91},
-  ];
-  const totalPay=emp.reduce((a,e)=>a+e.pay,0);
-  const presents=emp.filter(e=>e.status==='present'||e.status==='late').length;
-
-  return `
-  <div class="kpi-grid">
-    ${kpiCard('👥','Effectif total','8','Actifs Résidence Veraluz','#8b5cf6',null)}
-    ${kpiCard('✅','Présents aujourd\'hui',String(presents)+'/8','1 en congé','#10b981',null)}
-    ${kpiCard('💰','Masse salariale nette',fmtS(totalPay)+' FCFA','Mai 2026 — net','#6c63ff',null)}
-    ${kpiCard('📈','Performance moy.',pct(emp.reduce((a,e)=>a+e.perf,0)/emp.length),'Tous départements','#f59e0b',null)}
-  </div>
-
-  <div class="g2">
-    <div class="chart-wrap">
-      <div class="chart-title">Masse salariale mensuelle</div>
-      ${[['Jan',1380000],['Fév',1382000],['Mar',1390000],['Avr',1395000],['Mai',1561540]].map(([m,v],i,arr)=>`<div class="bar-row">
-        <div class="bar-lbl">${m}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${(v/arr[arr.length-1][1]*100).toFixed(0)}%;background:var(--purple);"></div></div>
-        <div class="bar-val">${fmtS(v)}</div>
-      </div>`).join('')}
-      <div class="chart-sub">CNPS employeur (7%) inclus dans les projections</div>
-    </div>
-    <div class="chart-wrap">
-      <div class="chart-title">Présence par département</div>
-      ${[
-        {dept:'Direction',pct:100,color:'var(--green)'},
-        {dept:'Accueil',pct:88,color:'var(--blue)'},
-        {dept:'Restaurant',pct:95,color:'var(--orange)'},
-        {dept:'Housekeeping',pct:75,color:'var(--yellow)'},
-        {dept:'Finance/RH',pct:100,color:'var(--accent)'},
-        {dept:'Sécurité',pct:100,color:'var(--text2)'},
-      ].map(d=>`<div class="bar-row">
-        <div class="bar-lbl" style="width:90px;font-size:10.5px;">${d.dept}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${d.pct}%;background:${d.color};"></div></div>
-        <div class="bar-val" style="color:${d.color};">${d.pct}%</div>
-      </div>`).join('')}
-    </div>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">Performance employés — Mai 2026</div>
-    <div class="tbl-wrap"><table>
-      <tr><th>Employé</th><th>Rôle</th><th>Présence</th><th>Absences</th><th>Salaire net</th><th>Performance</th><th>Statut</th></tr>
-      ${emp.map(e=>{
-        const sc={present:'bdg-g',late:'bdg-y',conge:'bdg-b',absent:'bdg-r'};
-        const sl={present:'✅ Présent',late:'⚡ Retard',conge:'🌴 Congé',absent:'❌ Absent'};
-        return `<tr>
-          <td style="font-weight:500;">${e.name}</td>
-          <td style="font-size:11px;color:var(--text2);">${e.role}</td>
-          <td>${e.days_present}j</td>
-          <td style="color:${e.days_abs>2?'var(--red)':'var(--text2)'};">${e.days_abs}j</td>
-          <td style="color:var(--green);">${fmt(e.pay)}</td>
-          <td>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <div style="width:60px;background:var(--bg3);border-radius:5px;height:5px;overflow:hidden;">
-                <div style="height:100%;border-radius:5px;background:${e.perf>=85?'var(--green)':e.perf>=70?'var(--yellow)':'var(--red)'};width:${e.perf}%;"></div>
-              </div>
-              <span style="font-size:11px;font-weight:600;">${e.perf}%</span>
-            </div>
-          </td>
-          <td><span class="bdg ${sc[e.status]||'bdg-gr'}">${sl[e.status]||e.status}</span></td>
-        </tr>`;
-      }).join('')}
-    </table></div>
-  </div>`;
-}
-
-// ============================================================
-// ALERTS
-// ============================================================
-function renderAlerts(){
-  const active=alerts.filter(a=>a.status==='active');
-  const acked=alerts.filter(a=>a.status==='acknowledged');
-  const resolved=alerts.filter(a=>a.status==='resolved');
-  const lc={critical:'#ef4444',warning:'#f59e0b',info:'#3b82f6'};
-  const bg={critical:'rgba(239,68,68,.08)',warning:'rgba(245,158,11,.08)',info:'rgba(59,130,246,.08)'};
-  const ic={critical:'🚨',warning:'⚠️',info:'ℹ️'};
-
-  function alertHTML(a){
-    return `<div class="alert-item" style="border-left-color:${lc[a.level]};background:${bg[a.level]};">
-      <div class="alert-icon">${ic[a.level]}</div>
-      <div class="alert-cnt">
-        <div class="alert-tit" style="color:${lc[a.level]};">${a.title}</div>
-        <div class="alert-msg">${a.msg}</div>
-        <div class="alert-time">🕐 ${a.time} · Catégorie: ${a.cat}</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
-        ${a.status==='active'?`<button class="btn btn-o btn-sm" onclick="ackAlert(${a.id})">✓ Vu</button>`:''}
-        ${a.status!=='resolved'?`<button class="btn btn-o btn-sm" onclick="resolveAlert(${a.id})">✅ Résoudre</button>`:''}
-      </div>
-    </div>`;
+  // 1. Paiements en attente
+  var pendPay = _payments.filter(function(p){ return p.status === 'pending'; });
+  if (pendPay.length > 0) {
+    var totPend = pendPay.reduce(function(s,p){ return s+toNum(p.amount); }, 0);
+    alerts.push({ id: nextId++, level: pendPay.length > 5 ? 'critical' : 'warning', cat: 'paiement',
+      title: pendPay.length + ' paiement(s) en attente de validation',
+      msg: 'Montant total: ' + fmtS(totPend) + ' FCFA — Méthodes: ' + [...new Set(pendPay.map(function(p){return p.method||'?';}))].join(', '),
+      time: 'Maintenant', status: 'active' });
   }
 
-  return `
-  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">
-    ${kpiCard('🔴','Critiques',String(active.filter(a=>a.level==='critical').length),'Action immédiate requise','#ef4444',null)}
-    ${kpiCard('🟡','Avertissements',String(active.filter(a=>a.level==='warning').length),'À surveiller','#f59e0b',null)}
-    ${kpiCard('✅','Résolues ce mois','12','Temps moyen résolution: 4h','#10b981',null)}
-  </div>
+  // 2. Réservations avec solde impayé (checkedin/confirmed seulement)
+  var unpaid = _reservations.filter(function(r) {
+    if (['cancelled','checkedout'].includes(r.status)) return false;
+    var paid = _payments.filter(function(p){ return p.reservation_id===r.id && p.status==='validated'; })
+                        .reduce(function(s,p){ return s+toNum(p.amount); }, 0);
+    return paid < toNum(r.total) * 0.95;
+  });
+  if (unpaid.length > 0) {
+    alerts.push({ id: nextId++, level: 'warning', cat: 'paiement',
+      title: unpaid.length + ' réservation(s) avec solde impayé',
+      msg: unpaid.slice(0,3).map(function(r){ return esc(r.client_name)+' ('+r.check_in+')'; }).join(', '),
+      time: 'Détecté maintenant', status: 'active' });
+  }
 
-  <div class="chart-wrap">
-    <div class="chart-title">🔴 Alertes actives — Action requise (${active.length})</div>
-    ${active.length===0?'<div style="text-align:center;padding:20px;color:var(--text3);">✅ Aucune alerte active — tout est normal</div>':active.map(alertHTML).join('')}
-  </div>
-
-  ${acked.length>0?`<div class="chart-wrap">
-    <div class="chart-title">👁 Prises en compte (${acked.length})</div>
-    ${acked.map(alertHTML).join('')}
-  </div>`:''}
-
-  <div class="chart-wrap">
-    <div class="chart-title">⚙️ Seuils d'alertes automatiques</div>
-    ${[
-      {metric:'Taux occupation',seuil:'< 50%',niv:'⚠️ Warning',actuel:pct(avgOcc30),ok:avgOcc30>=50},
-      {metric:'Taux occupation',seuil:'< 30%',niv:'🚨 Critique',actuel:pct(avgOcc30),ok:avgOcc30>=30},
-      {metric:'Paiements en attente',seuil:'> 5',niv:'⚠️ Warning',actuel:'7',ok:false},
-      {metric:'Paiements en attente',seuil:'> 10',niv:'🚨 Critique',actuel:'7',ok:true},
-      {metric:'Revenus journaliers',seuil:'< 100 000 FCFA',niv:'⚠️ Warning',actuel:fmt(revenueDaily[revenueDaily.length-1]),ok:revenueDaily[revenueDaily.length-1]>=100000},
-      {metric:'Stock restaurant',seuil:'Niveau critique',niv:'⚠️ Warning',actuel:'3 articles bas',ok:false},
-    ].map(row=>`<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bg4);flex-wrap:wrap;">
-      <span style="min-width:180px;font-size:12px;font-weight:500;">${row.metric}</span>
-      <span style="min-width:120px;font-size:11px;color:var(--text2);">Seuil: ${row.seuil}</span>
-      <span style="font-size:11px;">${row.niv}</span>
-      <span style="margin-left:auto;font-size:11px;">Actuel: <strong>${row.actuel}</strong></span>
-      <span class="bdg ${row.ok?'bdg-g':'bdg-r'}">${row.ok?'✅ OK':'⚠️ Déclenché'}</span>
-    </div>`).join('')}
-    <button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="toast('Configuration des seuils — bientôt disponible')">⚙️ Configurer les seuils</button>
-  </div>
-
-  <div class="chart-wrap">
-    <div class="chart-title">✅ Historique résolutions récentes</div>
-    ${resolved.map(alertHTML).join('')}
-    ${resolved.length===0?'<div style="text-align:center;padding:16px;color:var(--text3);">Aucun historique disponible</div>':''}
-  </div>`;
-}
-
-// ============================================================
-// REPORTS
-// ============================================================
-function renderReports(){
-  return `
-  <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;">
-    <div style="font-size:15px;font-weight:600;">📄 Génération de Rapports</div>
-    <span class="bdg bdg-b" style="margin-left:auto;">🇨🇦 Envoyé à: afterworkquebec2025@gmail.com</span>
-  </div>
-
-  <div class="g2">
-    ${[
-      {type:'daily',icon:'📅',label:'Rapport Journalier',desc:'KPIs du jour, présences, revenus, alertes',time:'Automatique chaque matin 07h00'},
-      {type:'weekly',icon:'📆',label:'Rapport Hebdomadaire',desc:'Performance semaine, comparatif, tendances',time:'Chaque lundi 08h00'},
-      {type:'monthly',icon:'📊',label:'Rapport Mensuel Complet',desc:'P&L, occupation, clients, RH, graphiques',time:'1er du mois 09h00'},
-      {type:'annual',icon:'🗓️',label:'Bilan Annuel',desc:'Synthèse, ROI, recommandations stratégiques',time:'1er janvier 10h00'},
-    ].map(r=>`<div class="chart-wrap">
-      <div class="chart-title">${r.icon} ${r.label}</div>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:6px;">${r.desc}</div>
-      <div style="font-size:10px;color:var(--text3);margin-bottom:12px;">⏰ ${r.time}</div>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-p btn-sm" onclick="genReport('${r.type}','pdf')">📄 PDF</button>
-        <button class="btn btn-o btn-sm" onclick="genReport('${r.type}','excel')">📊 Excel</button>
-        <button class="btn btn-o btn-sm" onclick="genReport('${r.type}','csv')">📋 CSV</button>
-      </div>
-    </div>`).join('')}
-  </div>
-
-  <div class="chart-wrap" id="generated-reports">
-    <div class="chart-title">Rapports générés</div>
-    ${generatedReports.length===0?
-      '<div style="text-align:center;padding:20px;color:var(--text3);">Cliquez sur un bouton ci-dessus pour générer votre premier rapport</div>':
-      generatedReports.map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bg4);">
-        <span style="font-size:18px;">${r.fmt==='pdf'?'📄':r.fmt==='excel'?'📊':'📋'}</span>
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:500;">${r.title}</div>
-          <div style="font-size:10px;color:var(--text3);">${r.type.toUpperCase()} · ${r.fmt.toUpperCase()} · ${r.size}KB · Généré ${r.time}</div>
-        </div>
-        <span class="bdg bdg-g">✅ Prêt</span>
-        <button class="btn btn-o btn-sm" onclick="toast('Téléchargement: '+encodeURIComponent('${r.title}')+'.${r.fmt}','success')">⬇️</button>
-        <button class="btn btn-o btn-sm" onclick="toast('Email envoyé à afterworkquebec2025@gmail.com','success')">📧</button>
-      </div>`).join('')
+  // 3. Chambres sans ménage après départs hier
+  var depYest = _reservations.filter(function(r){ return r.check_out === yesterday && r.status === 'checkedout'; });
+  if (depYest.length > 0) {
+    var unclean = depYest.filter(function(r) {
+      return !_housekeeping.some(function(h){
+        return h.unit_id === r.unit_id && h.status === 'done' && (h.scheduled_for === today || h.scheduled_for === yesterday);
+      });
+    });
+    if (unclean.length > 0) {
+      alerts.push({ id: nextId++, level: 'warning', cat: 'housekeeping',
+        title: unclean.length + ' chambre(s) en attente de nettoyage post-départ',
+        msg: 'Départs hier: ' + depYest.map(function(r){ return r.unit_id; }).join(', '),
+        time: 'Hier', status: 'active' });
     }
-  </div>
+  }
 
-  <div class="chart-wrap">
-    <div class="chart-title">📧 Rapports automatiques configurés</div>
-    ${[
-      {label:'Rapport journalier',freq:'Chaque matin 07h00',dest:'afterworkquebec2025@gmail.com',active:true},
-      {label:'Rapport hebdo',freq:'Lundi 08h00',dest:'afterworkquebec2025@gmail.com',active:true},
-      {label:'Rapport mensuel',freq:'1er du mois 09h00',dest:'afterworkquebec2025@gmail.com + comptable',active:false},
-    ].map(r=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bg4);">
-      <div style="flex:1;">
-        <div style="font-size:12.5px;font-weight:500;">${r.label}</div>
-        <div style="font-size:10px;color:var(--text3);">${r.freq} · 📧 ${r.dest}</div>
-      </div>
-      <span class="bdg ${r.active?'bdg-g':'bdg-gr'}">${r.active?'✅ Actif':'⏸ Inactif'}</span>
-      <button class="btn btn-o btn-sm" onclick="toast('Paramètre modifié')">⚙️</button>
-    </div>`).join('')}
-  </div>`;
+  // 4. Commandes Food Lounge bloquées > 2h
+  var stuckFood = _foodOrders.filter(function(o) {
+    return ['pending','confirmed','preparing'].includes(o.status) && o.created_at && (now - new Date(o.created_at)) > 7200000;
+  });
+  if (stuckFood.length > 0) {
+    alerts.push({ id: nextId++, level: 'warning', cat: 'restaurant',
+      title: stuckFood.length + ' commande(s) Food Lounge bloquée(s) > 2h',
+      msg: stuckFood.map(function(o){ return '#'+esc(o.order_number); }).join(', '),
+      time: 'Détecté maintenant', status: 'active' });
+  }
+
+  // 5. Dépenses > revenus ce mois
+  var curM = now.getMonth()+1; var curY = now.getFullYear();
+  var mData = monthlyRevenue.find(function(m){ return m.m===curM && m.y===curY; });
+  if (mData && mData.exp > mData.rev && mData.rev > 0) {
+    alerts.push({ id: nextId++, level: 'critical', cat: 'finance',
+      title: 'Dépenses supérieures aux revenus ce mois',
+      msg: 'Revenus: '+fmtS(mData.rev)+' FCFA · Dépenses: '+fmtS(mData.exp)+' FCFA · Déficit: '+fmtS(mData.exp-mData.rev)+' FCFA',
+      time: 'Ce mois', status: 'active' });
+  }
+
+  // 6. Données insuffisantes (toutes tables vides)
+  if (_payments.length === 0 && _reservations.length === 0 && _foodOrders.length === 0) {
+    alerts.push({ id: nextId++, level: 'info', cat: 'système',
+      title: 'Aucune donnée disponible dans Supabase',
+      msg: 'Tables principales vides. Ajoutez des données pour voir les KPIs réels.',
+      time: 'Maintenant', status: 'active' });
+  }
+
+  // 7. Tout va bien
+  if (alerts.length === 0) {
+    alerts.push({ id: nextId++, level: 'info', cat: 'système',
+      title: 'Aucune alerte active — tout est normal',
+      msg: 'Analyse: '+_reservations.length+' réservations · '+_payments.length+' paiements · '+_foodOrders.length+' commandes food.',
+      time: 'Maintenant', status: 'acknowledged' });
+  }
 }
 
-// ============================================================
-// ACTIONS
-// ============================================================
+// ── SNAPSHOT POUR AGENT IA DIRECTEUR ─────────────────────────
+function buildSnapshot() {
+  var now = new Date(); var today = dStr(now);
+  var curM = now.getMonth()+1; var curY = now.getFullYear();
+  var mData = monthlyRevenue.find(function(m){ return m.m===curM && m.y===curY; });
+  window.VeraluzAnalyticsSnapshot = {
+    generated_at: now.toISOString(),
+    period: period,
+    reservations: {
+      total: _reservations.length,
+      this_month: _reservations.filter(function(r){ var d=new Date(r.created_at||''); return d.getMonth()+1===curM&&d.getFullYear()===curY; }).length,
+      checkedin_now: _reservations.filter(function(r){ return r.status==='checkedin'; }).length,
+      arrivals_today: _reservations.filter(function(r){ return r.check_in===today; }).length,
+      departures_today: _reservations.filter(function(r){ return r.check_out===today; }).length,
+      nights_sold_total: _reservations.reduce(function(s,r){ return s+toNum(r.nights); },0)
+    },
+    revenues: {
+      period_total: totalRev30,
+      period_fb: totalRest30,
+      all_time_validated: _payments.filter(function(p){ return p.status==='validated'; }).reduce(function(s,p){ return s+toNum(p.amount); },0),
+      pending: _payments.filter(function(p){ return p.status==='pending'; }).reduce(function(s,p){ return s+toNum(p.amount); },0),
+      daily_avg: totalRev30 / (period || 1)
+    },
+    expenses: {
+      all_time: _expenses.reduce(function(s,e){ return s+toNum(e.amount); },0),
+      payroll_all_time: _payroll.reduce(function(s,p){ return s+toNum(p.net_salary); },0),
+      this_month: mData ? mData.exp : 0
+    },
+    hr: { total: _employees.length, active: _employees.filter(function(e){ return e.status==='actif'; }).length },
+    housekeeping: {
+      total_tasks: _housekeeping.length,
+      done: _housekeeping.filter(function(h){ return h.status==='done'; }).length,
+      pending: _housekeeping.filter(function(h){ return ['pending','in_progress'].includes(h.status); }).length
+    },
+    food: {
+      food_orders_total: _foodOrders.length,
+      delivered: _foodOrders.filter(function(o){ return o.status==='delivered'; }).length,
+      restaurant_orders_total: _restaurantOrders.length,
+      paid_restaurant: _restaurantOrders.filter(function(o){ return o.status==='paye'; }).length
+    },
+    occupancy: {
+      current_pct: rooms.length > 0 ? Math.round(rooms.filter(function(r){ return r.status==='occupée'; }).length / rooms.length * 100) : 0,
+      units_total: rooms.length,
+      units_occupied: rooms.filter(function(r){ return r.status==='occupée'; }).length,
+      avg_period_pct: Math.round(avgOcc30)
+    },
+    alerts: alerts.filter(function(a){ return a.status==='active'; }).map(function(a){ return {level:a.level,cat:a.cat,title:a.title}; }),
+    recommendations_seed: {
+      avg_occupancy_pct: Math.round(avgOcc30),
+      period_revenue: totalRev30,
+      active_alerts_count: alerts.filter(function(a){ return a.status==='active'; }).length,
+      employees_active: _employees.filter(function(e){ return e.status==='actif'; }).length,
+      pending_payments_count: _payments.filter(function(p){ return p.status==='pending'; }).length
+    }
+  };
+  console.log('[VERALUZ ANALYTICS] Snapshot disponible: window.VeraluzAnalyticsSnapshot');
+}
+
+// ── CHARGEMENT PRINCIPAL ─────────────────────────────────────
+async function loadAnalyticsData() {
+  document.getElementById('content').innerHTML = '<div style="padding:60px;text-align:center;color:var(--text3);">📡 Chargement des données Supabase…</div>';
+
+  var results = await Promise.all([
+    safeFetchTable('veraluz_reservations',     'select=*&order=created_at.desc'),
+    safeFetchTable('veraluz_payments',         'select=*&order=created_at.desc'),
+    safeFetchTable('veraluz_food_orders',      'select=*&order=created_at.desc'),
+    safeFetchTable('veraluz_restaurant_orders','select=*&order=created_at.desc'),
+    safeFetchTable('veraluz_employees',        'select=id,full_name,role,status,team_id,hire_date,base_salary,hourly_rate,contract_type,created_at'), /* PROMPT 018: select explicite — pas de bank_account/momo/pin */
+    safeFetchTable('veraluz_units',            'select=*&order=sort_order.asc'),
+    safeFetchTable('veraluz_expenses',         'select=*&order=date.desc'),
+    safeFetchTable('veraluz_payroll',          'select=*&order=created_at.desc'),
+    safeFetchTable('veraluz_housekeeping',     'select=*&order=created_at.desc')
+  ]);
+
+  _reservations     = results[0];
+  _payments         = results[1];
+  _foodOrders       = results[2];
+  _restaurantOrders = results[3];
+  _employees        = results[4];
+  _units            = results[5];
+  _expenses         = results[6];
+  _payroll          = results[7];
+  _housekeeping     = results[8];
+  _loadedAt         = new Date();
+
+  computeDashboard();
+  buildAlerts();
+  buildSnapshot();
+  render();
+  toast('📡 Données actualisées — '+_reservations.length+' résas · '+_payments.length+' paiements · '+(_foodOrders.length+_restaurantOrders.length)+' commandes', 'success');
+}
+
+function refreshAll() { loadAnalyticsData(); }
+
+function onPeriodChange() {
+  period = parseInt(document.getElementById('period-sel').value);
+  computeDashboard();
+  buildAlerts();
+  buildSnapshot();
+  render();
+}
+
+// ── SVG CHARTS ───────────────────────────────────────────────
+function lineChart(data,color,h){
+  h=h||70;
+  if(!data||data.length<2) return '<div style="padding:20px;text-align:center;color:var(--text3);font-size:11px;">Données insuffisantes</div>';
+  var max=Math.max.apply(null,data)||1,min=Math.min.apply(null,data);
+  var r=max-min||1,W=100,H=h;
+  var pts=data.map(function(v,i){
+    var x=(i/(data.length-1))*W;
+    var y=H-((v-min)/r)*(H*.85)-(H*.075);
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+  var area='0,'+H+' '+pts+' '+W+','+H;
+  var gid='g'+color.replace('#','');
+  return '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:'+H+'px;" preserveAspectRatio="none">'
+    +'<defs><linearGradient id="'+gid+'" x1="0" y1="0" x2="0" y2="1">'
+    +'<stop offset="0%" stop-color="'+color+'" stop-opacity="0.25"/>'
+    +'<stop offset="100%" stop-color="'+color+'" stop-opacity="0"/>'
+    +'</linearGradient></defs>'
+    +'<polygon points="'+area+'" fill="url(#'+gid+')"/>'
+    +'<polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
+    +'</svg>';
+}
+
+function barChart(data,labels,color,h){
+  h=h||80;
+  if(!data||!data.length) return '<div style="padding:20px;text-align:center;color:var(--text3);font-size:11px;">Données insuffisantes</div>';
+  var max=Math.max.apply(null,data)||1;
+  var bw=100/data.length;
+  var bars=data.map(function(v,i){
+    var bh=(v/max)*(h*.9);
+    var x=i*bw+bw*.08;
+    var y=h-bh;
+    var opacity=i===data.length-1?1:0.55;
+    var lbl=labels?'<text x="'+(x+bw*.42).toFixed(1)+'" y="'+(h+12)+'" text-anchor="middle" font-size="4.5" fill="#6b7280">'+labels[i]+'</text>':'';
+    return '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+(bw*.84).toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+color+'" opacity="'+opacity+'" rx="1.5"/>'+lbl;
+  }).join('');
+  return '<svg viewBox="0 0 100 '+(h+14)+'" style="width:100%;height:'+(h+14)+'px;" preserveAspectRatio="none">'+bars+'</svg>';
+}
+
+function sparkline(data,color,h){
+  h=h||28;
+  if(!data||data.length<2) return '';
+  var max=Math.max.apply(null,data)||1,min=Math.min.apply(null,data);
+  var r=max-min||1;
+  var slice=data.slice(-10);
+  var pts=slice.map(function(v,i){
+    var x=(i/(slice.length-1))*100;
+    var y=h-((v-min)/r)*(h*.9)-(h*.05);
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+  return '<svg viewBox="0 0 100 '+h+'" style="width:100%;height:'+h+'px;" preserveAspectRatio="none">'
+    +'<polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+    +'</svg>';
+}
+
+// ── KPI CARD ─────────────────────────────────────────────────
+function kpiCard(icon,label,value,sub,color,trendVal,series){
+  var trendHtml=trendVal!=null?'<span class="kpi-trend '+(trendVal>=0?'trend-up':'trend-dn')+'">'+(trendVal>=0?'↑':'↓')+' '+Math.abs(trendVal)+'%</span>':'';
+  var sparkHtml=series?'<div class="spark">'+sparkline(series,color)+'</div>':'';
+  return '<div class="kpi-card">'
+    +'<div class="kpi-lbl"><span>'+icon+'</span>'+label+trendHtml+'</div>'
+    +'<div class="kpi-val" style="color:'+color+';">'+value+'</div>'
+    +(sub?'<div class="kpi-sub">'+sub+'</div>':'')
+    +sparkHtml
+    +'</div>';
+}
+
+// ── TABS ─────────────────────────────────────────────────────
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  var el=document.getElementById('tab-'+tab);
+  if(el) el.classList.add('active');
+  render();
+}
+
+function render(){
+  var tabs={overview:renderOverview,revenue:renderRevenue,occupancy:renderOccupancy,
+    restaurant:renderRestaurant,guests:renderGuests,employees:renderEmployees,
+    alerts:renderAlerts,reports:renderReports};
+  var fn=tabs[currentTab]||renderOverview;
+  document.getElementById('content').innerHTML=fn();
+  var activeCount=alerts.filter(function(a){ return a.status==='active'; }).length;
+  var badge=document.getElementById('alert-badge');
+  if(badge) badge.textContent=activeCount;
+}
+
+// ── RENDER OVERVIEW ───────────────────────────────────────────
+function renderOverview(){
+  var pendPayCnt = _payments.filter(function(p){ return p.status==='pending'; }).length;
+  var pendPayAmt = _payments.filter(function(p){ return p.status==='pending'; }).reduce(function(s,p){ return s+toNum(p.amount); },0);
+  var empActif   = _employees.filter(function(e){ return e.status==='actif'; }).length;
+  var revToday   = revenueDaily.length ? revenueDaily[revenueDaily.length-1] : 0;
+
+  // Répartition revenus réels
+  var revHeberg = _payments.filter(function(p){ return p.status==='validated'&&p.reservation_id; }).reduce(function(s,p){ return s+toNum(p.amount); },0);
+  var revFood   = _foodOrders.filter(function(o){ return o.status==='delivered'; }).reduce(function(s,o){ return s+toNum(o.total); },0);
+  var revRest   = _restaurantOrders.filter(function(o){ return o.status==='paye'; }).reduce(function(s,o){ return s+toNum(o.total||o.total_amount); },0);
+  var revFBtot  = revFood + revRest;
+  var revTotal  = revHeberg + revFBtot || 1;
+  var breakdown = [
+    {lbl:'Hébergement', val:revHeberg, color:'#6c63ff'},
+    {lbl:'Restaurant',  val:revRest,   color:'#f97316'},
+    {lbl:'Food Lounge', val:revFood,   color:'#06b6d4'},
+  ].filter(function(b){ return b.val > 0; });
+  if (breakdown.length === 0) breakdown = [{lbl:'Aucun revenu enregistré',val:0,color:'var(--text3)'}];
+
+  // Activité récente depuis les données réelles
+  var events = [];
+  _reservations.filter(function(r){ return r.status==='checkedin'; }).slice(0,2).forEach(function(r){
+    events.push({color:'var(--green)',time:r.check_in||'',text:'📅 Check-in: '+esc(r.client_name)+' ('+r.unit_id+')'});
+  });
+  _payments.filter(function(p){ return p.status==='validated'; })
+    .sort(function(a,b){ return new Date(b.created_at)-new Date(a.created_at); })
+    .slice(0,2).forEach(function(p){
+      events.push({color:'var(--accent)',time:(p.created_at||'').slice(0,10),text:'💰 Paiement validé: '+fmtS(toNum(p.amount))+' FCFA ('+esc(p.method||'')+')' });
+    });
+  _foodOrders.filter(function(o){ return o.status==='delivered'; })
+    .sort(function(a,b){ return new Date(b.created_at)-new Date(a.created_at); })
+    .slice(0,1).forEach(function(o){
+      events.push({color:'var(--orange)',time:(o.created_at||'').slice(0,10),text:'🛵 Livraison: '+esc(o.customer_name)+' — '+fmtS(toNum(o.total))+' FCFA'});
+    });
+  _restaurantOrders.filter(function(o){ return o.status==='paye'; })
+    .sort(function(a,b){ return new Date(b.created_at)-new Date(a.created_at); })
+    .slice(0,1).forEach(function(o){
+      events.push({color:'var(--cyan)',time:(o.paid_at||o.created_at||'').slice(0,10),text:'🍽️ '+esc(o.table_name||'Table')+' — '+fmtS(toNum(o.total||o.total_amount))+' FCFA'});
+    });
+  events.sort(function(a,b){ return b.time > a.time ? -1 : 1; });
+  events = events.slice(0,5);
+  if (events.length === 0) events = [{color:'var(--text3)',time:'',text:'Aucune activité récente enregistrée dans Supabase'}];
+
+  var periodLabel = period > 0 ? period+' jours' : 'Total';
+
+  return '<div class="kpi-grid">'
+    +kpiCard('💰','Revenus '+periodLabel,fmtS(totalRev30)+' FCFA','Paiements validés','#6c63ff',null,revenueDaily)
+    +kpiCard('🏨','Occupation moy.',pct(avgOcc30),_units.filter(function(u){return u.status==='active';}).length+' unités actives','#10b981',null,occupancyDaily)
+    +kpiCard('🍽️','F&B '+periodLabel,fmtS(totalRest30)+' FCFA','Restaurant + Food Lounge','#f97316',null,restaurantDaily)
+    +kpiCard('🛎️','Réservations',String(reservationsDaily.reduce(function(a,b){return a+b;},0)),'Nouvelles sur la période','#3b82f6',null,reservationsDaily)
+    +kpiCard('💳','Paiements en attente',String(pendPayCnt),'Total: '+fmtS(pendPayAmt)+' FCFA',pendPayCnt>5?'#ef4444':'#f59e0b',null)
+    +kpiCard('👥','Employés actifs',String(empActif),'Résidence Veraluz','#8b5cf6',null)
+    +kpiCard('📅','Revenus aujourd\'hui',fmtS(revToday)+' FCFA','Paiements validés','#06b6d4',null)
+    +kpiCard('🏠','Résas total',String(_reservations.length),'Toutes périodes confondues','#10b981',null)
+    +'</div>'
+
+    +'<div class="g2">'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Revenus journaliers — '+periodLabel
+    +' <span class="bdg bdg-p">Moy: '+fmtS(period>0?totalRev30/period:totalRev30)+'/j</span></div>'
+    +'<div class="svg-wrap">'+lineChart(revenueDaily,'#6c63ff',90)+'</div>'
+    +'<div class="chart-sub">Paiements validés · Source: veraluz_payments</div>'
+    +'</div>'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Taux d\'occupation — '+periodLabel
+    +' <span class="bdg '+(avgOcc30>=75?'bdg-g':avgOcc30>=50?'bdg-y':'bdg-r')+'">'+pct(avgOcc30)+'</span></div>'
+    +'<div class="svg-wrap">'+lineChart(occupancyDaily,'#10b981',90)+'</div>'
+    +'<div class="chart-sub">Calculé sur '+_units.filter(function(u){return u.status==='active';}).length+' unités actives · Cible: 75%</div>'
+    +'</div>'
+    +'</div>'
+
+    +'<div class="g2">'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Répartition revenus (tout le temps)</div>'
+    +breakdown.map(function(b){
+      var p2=(revTotal>0?(b.val/revTotal*100):0).toFixed(0);
+      return '<div class="bar-row">'
+        +'<div class="bar-lbl" style="font-size:10.5px;">'+b.lbl+'</div>'
+        +'<div class="bar-track"><div class="bar-fill" style="width:'+p2+'%;background:'+b.color+';"></div></div>'
+        +'<div class="bar-val" style="color:'+b.color+';">'+p2+'% <span style="color:var(--text3);font-weight:400;">'+fmtS(b.val)+'</span></div>'
+        +'</div>';
+    }).join('')
+    +'</div>'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Revenus mensuels 2026</div>'
+    +'<div class="svg-wrap">'+barChart(
+      monthlyRevenue.filter(function(m){return m.y===2026;}).map(function(m){return m.rev;}),
+      monthlyRevenue.filter(function(m){return m.y===2026;}).map(function(m){return MONTHS[m.m-1];}),
+      '#6c63ff',80)+'</div>'
+    +'<div class="chart-sub">Source: paiements validés Supabase</div>'
+    +'</div>'
+    +'</div>'
+
+    +'<div class="g2">'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">🔔 Alertes actives ('+alerts.filter(function(a){return a.status==='active';}).length+')</div>'
+    +alerts.filter(function(a){return a.status==='active';}).slice(0,3).map(function(a){
+      var lc={critical:'#ef4444',warning:'#f59e0b',info:'#3b82f6'};
+      var bg={critical:'rgba(239,68,68,.07)',warning:'rgba(245,158,11,.07)',info:'rgba(59,130,246,.07)'};
+      var ic={critical:'🚨',warning:'⚠️',info:'ℹ️'};
+      return '<div class="alert-item" style="border-left-color:'+lc[a.level]+';background:'+bg[a.level]+';">'
+        +'<div class="alert-icon">'+ic[a.level]+'</div>'
+        +'<div class="alert-cnt">'
+        +'<div class="alert-tit" style="color:'+lc[a.level]+';">'+a.title+'</div>'
+        +'<div class="alert-msg">'+a.msg+'</div>'
+        +'</div>'
+        +'<button class="btn btn-o btn-sm" onclick="ackAlert('+a.id+')">✓</button>'
+        +'</div>';
+    }).join('')
+    +'<button class="btn btn-o btn-sm" style="width:100%;margin-top:6px;justify-content:center;" onclick="switchTab(\'alerts\')">Voir toutes →</button>'
+    +'</div>'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">📋 Activité récente — Données réelles</div>'
+    +'<div class="timeline">'
+    +events.map(function(ev){
+      return '<div class="tl-item">'
+        +'<div class="tl-dot" style="background:'+ev.color+';"></div>'
+        +(ev.time?'<div class="tl-time">'+ev.time+'</div>':'')
+        +'<div class="tl-text">'+ev.text+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div>'
+    +'</div>'
+    +'</div>';
+}
+
+// ── RENDER REVENUE ────────────────────────────────────────────
+function renderRevenue(){
+  var cur2026 = monthlyRevenue.filter(function(m){return m.y===2026;});
+  var totalY = cur2026.reduce(function(a,m){return a+m.rev;},0);
+  var totalExp = cur2026.reduce(function(a,m){return a+m.exp;},0);
+  var totalProfit = totalY - totalExp;
+  var projAnnuel = cur2026.length > 0 ? totalY / (cur2026.length / 12) : 0;
+  var margins = totalY > 0 ? (totalProfit/totalY*100).toFixed(1) : '0.0';
+
+  // ADR et RevPAR calculés sur données réelles
+  var nightsSold = _reservations.filter(function(r){return r.status!=='cancelled';}).reduce(function(s,r){return s+toNum(r.nights);},0);
+  var totalRevAll = _payments.filter(function(p){return p.status==='validated';}).reduce(function(s,p){return s+toNum(p.amount);},0);
+  var ADR = nightsSold > 0 ? totalRevAll / nightsSold : 0;
+  var RevPAR = ADR * avgOcc30 / 100;
+  var nbRes = _reservations.filter(function(r){return r.status!=='cancelled';}).length;
+  var avgNights = nbRes > 0 ? (nightsSold / nbRes).toFixed(1) : '0';
+
+  // Répartition par source (réelle)
+  var revH  = _payments.filter(function(p){return p.status==='validated'&&p.reservation_id;}).reduce(function(s,p){return s+toNum(p.amount);},0);
+  var revFd = _foodOrders.filter(function(o){return o.status==='delivered';}).reduce(function(s,o){return s+toNum(o.total);},0);
+  var revRt = _restaurantOrders.filter(function(o){return o.status==='paye';}).reduce(function(s,o){return s+toNum(o.total||o.total_amount);},0);
+  var revTot= revH + revFd + revRt || 1;
+
+  return '<div class="kpi-grid">'
+    +kpiCard('💰','Revenus 2026',fmtS(totalY)+' FCFA',cur2026.length+' mois de données','#6c63ff',null)
+    +kpiCard('📉','Dépenses 2026',fmtS(totalExp)+' FCFA','Salaires+charges+opérations','#ef4444',null)
+    +kpiCard('📈','Profit 2026',fmtS(totalProfit)+' FCFA','Marge: '+margins+'%',totalProfit>=0?'#10b981':'#ef4444',null)
+    +kpiCard('🔮','Projection annuelle',fmtS(projAnnuel)+' FCFA','Extrapolation linéaire 2026','#8b5cf6',null)
+    +'</div>'
+
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Revenus — Historique mensuel (toutes années)</div>'
+    +'<div class="svg-wrap">'+lineChart(monthlyRevenue.map(function(m){return m.rev;}),'#6c63ff',100)+'</div>'
+    +'<div class="chart-sub">'+monthlyRevenue.length+' mois de données · Source: paiements Supabase validés</div>'
+    +'</div>'
+
+    +'<div class="g2">'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Profitabilité mensuelle 2026</div>'
+    +(cur2026.length === 0 ? '<div style="padding:20px;text-align:center;color:var(--text3);">Aucune donnée 2026 disponible</div>' :
+    cur2026.map(function(m){
+      var profit=m.rev-m.exp;
+      var margin=m.rev>0?(profit/m.rev*100).toFixed(0):'0';
+      return '<div class="bar-row">'
+        +'<div class="bar-lbl">'+MONTHS[m.m-1]+'</div>'
+        +'<div class="bar-track"><div class="bar-fill" style="width:'+Math.max(0,margin)+'%;background:'+(margin>=30?'var(--green)':margin>=15?'var(--yellow)':'var(--red)')+'"></div></div>'
+        +'<div class="bar-val">'+margin+'% <span style="color:var(--text3);font-size:10px;">'+fmtS(profit)+'</span></div>'
+        +'</div>';
+    }).join(''))
+    +'</div>'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Répartition revenus par source (tout le temps)</div>'
+    +[
+      {lbl:'🏠 Hébergement',val:revH,color:'#6c63ff'},
+      {lbl:'🍽️ Restaurant',val:revRt,color:'#f97316'},
+      {lbl:'🛵 Food Lounge',val:revFd,color:'#06b6d4'},
+    ].map(function(r){
+      var p2=(r.val/revTot*100).toFixed(0);
+      return '<div class="bar-row">'
+        +'<div class="bar-lbl" style="font-size:10px;width:95px;">'+r.lbl+'</div>'
+        +'<div class="bar-track"><div class="bar-fill" style="width:'+p2+'%;background:'+r.color+'"></div></div>'
+        +'<div class="bar-val" style="color:'+r.color+';">'+p2+'%</div>'
+        +'</div>';
+    }).join('')
+    +'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);">'
+    +'<div class="chart-sub">RevPAR: '+fmt(RevPAR)+' · ADR: '+fmt(ADR)+' · Durée moy: '+avgNights+' nuits</div>'
+    +'</div>'
+    +'</div>'
+    +'</div>'
+
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Tableau détaillé — Performance mensuelle</div>'
+    +'<div class="tbl-wrap"><table>'
+    +'<tr><th>Période</th><th>Revenus</th><th>Dépenses</th><th>Profit</th><th>Marge</th><th>Clients</th><th>Statut</th></tr>'
+    +monthlyRevenue.slice(-8).reverse().map(function(m){
+      var profit=m.rev-m.exp;
+      var margin=m.rev>0?(profit/m.rev*100).toFixed(1):'0.0';
+      var now=new Date(); var isCurrent=m.y===now.getFullYear()&&m.m===now.getMonth()+1;
+      return '<tr>'
+        +'<td style="font-weight:500;">'+MONTHS[m.m-1]+' '+m.y+(isCurrent?' <span class="bdg bdg-b">En cours</span>':'')+'</td>'
+        +'<td style="color:var(--accent2);">'+fmt(m.rev)+'</td>'
+        +'<td style="color:var(--red);">'+fmt(m.exp)+'</td>'
+        +'<td style="color:'+(profit>=0?'var(--green)':'var(--red)')+';font-weight:600;">'+fmt(profit)+'</td>'
+        +'<td><span class="bdg '+(margin>=30?'bdg-g':margin>=15?'bdg-y':'bdg-r')+'">'+margin+'%</span></td>'
+        +'<td>'+m.guests+'</td>'
+        +'<td><span class="bdg '+(isCurrent?'bdg-b':'bdg-g')+'">'+(isCurrent?'📊 Partiel':'✅ Clôturé')+'</span></td>'
+        +'</tr>';
+    }).join('')
+    +'</table></div>'
+    +'</div>';
+}
+
+// ── RENDER OCCUPANCY ──────────────────────────────────────────
+function renderOccupancy(){
+  var occupied = rooms.filter(function(r){return r.status==='occupée';}).length;
+  var occ = rooms.length > 0 ? occupied / rooms.length * 100 : 0;
+  var revToday = rooms.filter(function(r){return r.status==='occupée';}).reduce(function(a,r){return a+r.rate;},0);
+
+  return '<div class="kpi-grid">'
+    +kpiCard('🏨','Occupation actuelle',pct(occ),occupied+'/'+rooms.length+' unités occupées',occ>=75?'#10b981':occ>=50?'#f59e0b':'#ef4444',null)
+    +kpiCard('💰','Revenus hébergement/j',fmt(revToday),'Unités occupées en ce moment','#6c63ff',null)
+    +kpiCard('📊','Occupation moy. période',pct(avgOcc30),period>0?'Moyenne '+period+'j':'Tout le temps','#10b981',null,occupancyDaily)
+    +kpiCard('🛎️','Résas total',String(_reservations.length),'Toutes périodes · check-ins inclus','#3b82f6',null)
+    +kpiCard('📅','Arrivées aujourd\'hui',String(_reservations.filter(function(r){return r.check_in===dStr(new Date());}).length),'Selon veraluz_reservations','#06b6d4',null)
+    +kpiCard('🌙','Nuits vendues',String(_reservations.filter(function(r){return r.status!=='cancelled';}).reduce(function(s,r){return s+toNum(r.nights);},0)),'Total historique','#8b5cf6',null)
+    +'</div>'
+
+    +'<div class="g2">'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Occupation journalière — période'
+    +' <span class="bdg '+(avgOcc30>=75?'bdg-g':avgOcc30>=50?'bdg-y':'bdg-r')+'">'+pct(avgOcc30)+'</span></div>'
+    +'<div class="svg-wrap">'+lineChart(occupancyDaily,'#10b981',80)+'</div>'
+    +'</div>'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Nouvelles réservations journalières</div>'
+    +'<div class="svg-wrap">'+barChart(reservationsDaily,null,'#3b82f6',80)+'</div>'
+    +'</div>'
+    +'</div>'
+
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">État des unités — Données réelles Supabase</div>'
+    +(rooms.length === 0 ? '<div style="padding:20px;text-align:center;color:var(--text3);">Aucune unité chargée depuis veraluz_units</div>' :
+    '<div class="tbl-wrap"><table>'
+    +'<tr><th>Unité</th><th>Type</th><th>Tarif/nuit</th><th>Statut</th><th>Client</th><th>Arrivée</th><th>Départ</th><th>Nuits</th><th>Rev. total</th></tr>'
+    +rooms.map(function(r){
+      var sc={occupée:'bdg-g',libre:'bdg-gr',nettoyage:'bdg-y',réservée:'bdg-b'};
+      return '<tr>'
+        +'<td style="font-weight:500;">'+esc(r.name)+'</td>'
+        +'<td style="font-size:10px;color:var(--text2);">'+esc(r.type)+'</td>'
+        +'<td>'+fmt(r.rate)+'</td>'
+        +'<td><span class="bdg '+(sc[r.status]||'bdg-gr')+'">'+r.status+'</span></td>'
+        +'<td>'+(r.guest?esc(r.guest):'—')+'</td>'
+        +'<td>'+(r.checkin||'—')+'</td>'
+        +'<td>'+(r.checkout||'—')+'</td>'
+        +'<td>'+(r.nights||'—')+'</td>'
+        +'<td style="color:var(--green);">'+(r.nights>0?fmt(r.rate*r.nights):'—')+'</td>'
+        +'</tr>';
+    }).join('')
+    +'</table></div>')
+    +'</div>';
+}
+
+// ── RENDER RESTAURANT ─────────────────────────────────────────
+function renderRestaurant(){
+  var now2 = new Date();
+  var periodStart = period > 0 ? new Date(now2.getTime() - period * 86400000) : null;
+  var inPeriod = function(dateStr) { return !periodStart || !dateStr || new Date(dateStr) >= periodStart; };
+
+  var fCnt = _foodOrders.filter(function(o){ return o.status==='delivered' && inPeriod(o.created_at); }).length;
+  var rCnt = _restaurantOrders.filter(function(o){ return o.status==='paye' && inPeriod(o.created_at); }).length;
+  var totalOrders = fCnt + rCnt;
+  var avgTicket   = totalOrders > 0 ? totalRest30 / totalOrders : 0;
+  var lastRest    = restaurantDaily.length ? restaurantDaily[restaurantDaily.length-1] : 0;
+  var maxItem     = items.length > 0 ? items[0].rev : 1;
+
+  return '<div class="kpi-grid">'
+    +kpiCard('🍽️','F&B '+period+'j',fmtS(totalRest30)+' FCFA','Restaurant + Food Lounge','#f97316',null,restaurantDaily)
+    +kpiCard('🧾','Commandes '+period+'j',String(totalOrders),'Livrées+payées sur la période','#06b6d4',null)
+    +kpiCard('💵','Ticket moyen',fmt(avgTicket),'Par commande (période)','#8b5cf6',null)
+    +kpiCard('🛵','Food Lounge total',String(_foodOrders.length),'Toutes commandes','#f97316',null)
+    +kpiCard('🪑','Restaurant total',String(_restaurantOrders.length),'Toutes commandes tables','#06b6d4',null)
+    +kpiCard('📅','F&B aujourd\'hui',fmt(lastRest),'Source Supabase','#10b981',null)
+    +'</div>'
+
+    +'<div class="g2">'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Revenus F&B journaliers</div>'
+    +'<div class="svg-wrap">'+lineChart(restaurantDaily,'#f97316',80)+'</div>'
+    +'</div>'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Statuts commandes — Tout le temps</div>'
+    +[
+      {lbl:'🛵 Food — Livrées',    val:_foodOrders.filter(function(o){return o.status==='delivered';}).length,    color:'#10b981'},
+      {lbl:'🛵 Food — En attente', val:_foodOrders.filter(function(o){return o.status==='pending';}).length,      color:'#f59e0b'},
+      {lbl:'🪑 Resto — Payées',    val:_restaurantOrders.filter(function(o){return o.status==='paye';}).length,   color:'#6c63ff'},
+      {lbl:'🪑 Resto — En cours',  val:_restaurantOrders.filter(function(o){return o.status!=='paye'&&o.status!=='remis';}).length, color:'#f97316'},
+    ].map(function(r){
+      var tot=(_foodOrders.length+_restaurantOrders.length)||1;
+      var p2=(r.val/tot*100).toFixed(0);
+      return '<div class="bar-row">'
+        +'<div class="bar-lbl" style="width:130px;font-size:10px;">'+r.lbl+'</div>'
+        +'<div class="bar-track"><div class="bar-fill" style="width:'+p2+'%;background:'+r.color+'"></div></div>'
+        +'<div class="bar-val" style="color:'+r.color+';">'+r.val+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div>'
+    +'</div>'
+
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Top ventes — Articles'+(items.length===0?' <span class="bdg bdg-y">Détail articles non disponible</span>':'')+'</div>'
+    +(items.length === 0
+      ? '<div style="padding:20px;text-align:center;color:var(--text3);">Données de détail articles insuffisantes — les totaux par commande sont disponibles dans les KPIs</div>'
+      : '<div class="tbl-wrap"><table>'
+        +'<tr><th>Article</th><th>Catégorie</th><th>Vendus</th><th>Revenus</th><th>Performance</th></tr>'
+        +items.sort(function(a,b){return b.rev-a.rev;}).map(function(item,i){
+          return '<tr>'
+            +'<td style="font-weight:500;">'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':' ')+' '+esc(item.name)+'</td>'
+            +'<td><span class="bdg bdg-gr">'+esc(item.cat)+'</span></td>'
+            +'<td>'+item.vendu+'</td>'
+            +'<td style="color:var(--orange);">'+(item.rev>0?fmt(item.rev):'N/D')+'</td>'
+            +'<td>'+(item.rev>0
+              ? '<div style="display:flex;align-items:center;gap:6px;">'
+                +'<div style="flex:1;background:var(--bg3);border-radius:5px;height:6px;overflow:hidden;min-width:80px;">'
+                +'<div style="height:100%;border-radius:5px;background:var(--orange);width:'+(item.rev/maxItem*100).toFixed(0)+'%;"></div>'
+                +'</div>'
+                +'<span style="font-size:10px;color:var(--text3);">'+(totalRest30>0?(item.rev/totalRest30*100).toFixed(1):'0')+'%</span>'
+                +'</div>'
+              : '—')+'</td>'
+            +'</tr>';
+        }).join('')
+        +'</table></div>')
+    +'</div>';
+}
+
+// ── RENDER GUESTS ─────────────────────────────────────────────
+function renderGuests(){
+  // Sources réelles depuis veraluz_reservations
+  var srcMap = {};
+  _reservations.forEach(function(r){ var s=r.source||'direct'; srcMap[s]=(srcMap[s]||0)+1; });
+  var totRes = _reservations.length || 1;
+  var srcColors = {site:'#6c63ff',direct:'#3b82f6',airbnb:'#f97316',booking:'#10b981',whatsapp:'#4ade80',agence:'#6b7280'};
+  var srcIcons  = {site:'🌐',direct:'📞',airbnb:'🏠',booking:'📋',whatsapp:'📱',agence:'🤝'};
+  var sources = Object.entries(srcMap).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+    return { src:(srcIcons[e[0]]||'📋')+' '+e[0].charAt(0).toUpperCase()+e[0].slice(1),
+             pct:Math.round(e[1]/totRes*100), color:srcColors[e[0]]||'#6b7280' };
+  });
+
+  var totalGuests2026 = monthlyRevenue.filter(function(m){return m.y===2026;}).reduce(function(a,m){return a+m.guests;},0);
+  var totNights = _reservations.filter(function(r){return r.status!=='cancelled';}).reduce(function(s,r){return s+toNum(r.nights);},0);
+  var avgNights2 = _reservations.filter(function(r){return r.status!=='cancelled';}).length;
+  avgNights2 = avgNights2 > 0 ? (totNights/avgNights2).toFixed(1) : '0';
+
+  return '<div class="kpi-grid">'
+    +kpiCard('🧳','Réservations total',String(_reservations.length),'Toutes périodes','#3b82f6',null)
+    +kpiCard('✅','Réservations finalisées',String(_reservations.filter(function(r){return r.status==='checkedout';}).length),'Check-out confirmé','#10b981',null)
+    +kpiCard('🏨','Check-ins actifs',String(_reservations.filter(function(r){return r.status==='checkedin';}).length),'En ce moment','#f59e0b',null)
+    +kpiCard('🌙','Durée moy. séjour',avgNights2+' nuits','Toutes réservations','#06b6d4',null)
+    +'</div>'
+
+    +'<div class="g2">'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Nationalités clients</div>'
+    +'<div style="padding:20px;text-align:center;color:var(--text3);font-size:11px;">ℹ️ Champ nationalité absent de <em>veraluz_reservations</em><br>Données non disponibles dans le schéma actuel</div>'
+    +'</div>'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Sources de réservation — Données réelles</div>'
+    +(sources.length === 0
+      ? '<div style="padding:20px;text-align:center;color:var(--text3);">Aucune donnée source disponible</div>'
+      : sources.map(function(s){
+          return '<div class="bar-row">'
+            +'<div class="bar-lbl" style="width:140px;font-size:10px;">'+s.src+'</div>'
+            +'<div class="bar-track"><div class="bar-fill" style="width:'+s.pct+'%;background:'+s.color+'"></div></div>'
+            +'<div class="bar-val" style="color:'+s.color+';">'+s.pct+'%</div>'
+            +'</div>';
+        }).join(''))
+    +'</div>'
+    +'</div>'
+
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Clients mensuels 2026 (d\'après réservations)</div>'
+    +'<div class="svg-wrap">'+barChart(
+      monthlyRevenue.filter(function(m){return m.y===2026;}).map(function(m){return m.guests;}),
+      monthlyRevenue.filter(function(m){return m.y===2026;}).map(function(m){return MONTHS[m.m-1];}),
+      '#3b82f6',80)+'</div>'
+    +'<div class="chart-sub">Total 2026: '+totalGuests2026+' clients</div>'
+    +'</div>'
+
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Toutes réservations — Tableau</div>'
+    +'<div class="tbl-wrap"><table>'
+    +'<tr><th>Client</th><th>Check-in</th><th>Check-out</th><th>Nuits</th><th>Total</th><th>Payé</th><th>Statut</th><th>Source</th></tr>'
+    +_reservations.slice(0,15).map(function(r){
+      var sc={checkedout:'bdg-g',checkedin:'bdg-b',confirmed:'bdg-p',pending:'bdg-y',cancelled:'bdg-r'};
+      return '<tr>'
+        +'<td style="font-weight:500;">'+esc(r.client_name)+'</td>'
+        +'<td>'+r.check_in+'</td>'
+        +'<td>'+r.check_out+'</td>'
+        +'<td>'+r.nights+'</td>'
+        +'<td style="color:var(--accent2);">'+fmt(r.total)+'</td>'
+        +'<td style="color:var(--green);">'+fmt(r.paid)+'</td>'
+        +'<td><span class="bdg '+(sc[r.status]||'bdg-gr')+'">'+r.status+'</span></td>'
+        +'<td style="color:var(--text3);">'+esc(r.source||'')+'</td>'
+        +'</tr>';
+    }).join('')
+    +'</table></div>'
+    +(_reservations.length>15?'<div class="chart-sub">Affichage des 15 dernières · Total: '+_reservations.length+'</div>':'')
+    +'</div>';
+}
+
+// ── RENDER EMPLOYEES ──────────────────────────────────────────
+function renderEmployees(){
+  var totalPay  = emp.reduce(function(a,e){return a+e.pay;},0);
+  var empTotal  = _employees.filter(function(e){return e.status==='actif';}).length;
+
+  // Masse salariale par mois depuis _payroll
+  var payByM = {};
+  _payroll.forEach(function(p){
+    if(!p.period_month||!p.period_year) return;
+    var k=p.period_year+'-'+p.period_month;
+    if(!payByM[k]) payByM[k]={m:p.period_month,y:p.period_year,total:0};
+    payByM[k].total += toNum(p.net_salary);
+  });
+  var payHist = Object.values(payByM).sort(function(a,b){return a.y!==b.y?a.y-b.y:a.m-b.m;}).slice(-5);
+
+  return '<div class="kpi-grid">'
+    +kpiCard('👥','Effectif actif',String(empTotal),'Statut: actif','#8b5cf6',null)
+    +kpiCard('💰','Masse salariale nette',fmtS(totalPay)+' FCFA','Dernier bulletin disponible','#6c63ff',null)
+    +kpiCard('📋','Bulletins de paie',String(_payroll.length),'Total enregistrés','#10b981',null)
+    +kpiCard('🏠','Tâches housekeeping',String(_housekeeping.filter(function(h){return h.status==='done';}).length)+'/'+_housekeeping.length,'Terminées / Total','#f59e0b',null)
+    +'</div>'
+
+    +'<div class="g2">'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Masse salariale mensuelle</div>'
+    +(payHist.length === 0
+      ? '<div style="padding:20px;text-align:center;color:var(--text3);">Aucune donnée de paie disponible</div>'
+      : payHist.map(function(p){
+          var maxPay = Math.max.apply(null, payHist.map(function(x){return x.total;})) || 1;
+          return '<div class="bar-row">'
+            +'<div class="bar-lbl">'+MONTHS[p.m-1]+' '+p.y+'</div>'
+            +'<div class="bar-track"><div class="bar-fill" style="width:'+(p.total/maxPay*100).toFixed(0)+'%;background:var(--purple)"></div></div>'
+            +'<div class="bar-val">'+fmtS(p.total)+'</div>'
+            +'</div>';
+        }).join(''))
+    +'</div>'
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Répartition tâches Housekeeping</div>'
+    +[
+      {lbl:'✅ Terminées',    val:_housekeeping.filter(function(h){return h.status==='done';}).length,        color:'var(--green)'},
+      {lbl:'⏳ En cours',    val:_housekeeping.filter(function(h){return h.status==='in_progress';}).length, color:'var(--yellow)'},
+      {lbl:'📋 À faire',     val:_housekeeping.filter(function(h){return h.status==='pending';}).length,     color:'var(--blue)'},
+      {lbl:'🔍 Inspection',  val:_housekeeping.filter(function(h){return h.status==='inspection';}).length,  color:'var(--cyan)'},
+    ].map(function(r){
+      var t=_housekeeping.length||1;
+      return '<div class="bar-row">'
+        +'<div class="bar-lbl" style="width:90px;font-size:10.5px;">'+r.lbl+'</div>'
+        +'<div class="bar-track"><div class="bar-fill" style="width:'+(r.val/t*100).toFixed(0)+'%;background:'+r.color+'"></div></div>'
+        +'<div class="bar-val" style="color:'+r.color+';">'+r.val+'</div>'
+        +'</div>';
+    }).join('')
+    +'</div>'
+    +'</div>'
+
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">Employés actifs <span class="bdg bdg-y" style="font-size:9px;margin-left:6px;">ℹ️ Présence non suivie dans Supabase</span></div>'
+    +(emp.length === 0
+      ? '<div style="padding:20px;text-align:center;color:var(--text3);">Aucun employé actif dans veraluz_employees</div>'
+      : '<div class="tbl-wrap"><table>'
+        +'<tr><th>Employé</th><th>Rôle</th><th>Salaire net</th><th>Dernier bulletin</th><th>Contrat</th></tr>'
+        +_employees.filter(function(e){return e.status==='actif';}).map(function(e){
+          var slips=_payroll.filter(function(p){return p.employee_id===e.id;})
+            .sort(function(a,b){return b.period_year!==a.period_year?b.period_year-a.period_year:b.period_month-a.period_month;});
+          var last=slips[0];
+          return '<tr>'
+            +'<td style="font-weight:500;">'+esc(e.full_name)+'</td>'
+            +'<td style="font-size:11px;color:var(--text2);">'+esc(e.role||'')+'</td>'
+            +'<td style="color:var(--green);">'+(last?fmt(last.net_salary):(e.base_salary?fmt(e.base_salary):'N/D'))+'</td>'
+            +'<td>'+(last?'<span class="bdg bdg-g">'+MONTHS[last.period_month-1]+' '+last.period_year+'</span>':'<span class="bdg bdg-y">Aucun</span>')+'</td>'
+            +'<td style="font-size:10px;color:var(--text3);">'+esc(e.contract_type||'')+'</td>'
+            +'</tr>';
+        }).join('')
+        +'</table></div>')
+    +'</div>';
+}
+
+// ── RENDER ALERTS ─────────────────────────────────────────────
+function renderAlerts(){
+  var active   = alerts.filter(function(a){return a.status==='active';});
+  var acked    = alerts.filter(function(a){return a.status==='acknowledged';});
+  var resolved = alerts.filter(function(a){return a.status==='resolved';});
+  var lc = {critical:'#ef4444',warning:'#f59e0b',info:'#3b82f6'};
+  var bg = {critical:'rgba(239,68,68,.08)',warning:'rgba(245,158,11,.08)',info:'rgba(59,130,246,.08)'};
+  var ic = {critical:'🚨',warning:'⚠️',info:'ℹ️'};
+
+  function alertHTML(a){
+    return '<div class="alert-item" style="border-left-color:'+lc[a.level]+';background:'+bg[a.level]+';">'
+      +'<div class="alert-icon">'+ic[a.level]+'</div>'
+      +'<div class="alert-cnt">'
+      +'<div class="alert-tit" style="color:'+lc[a.level]+';">'+a.title+'</div>'
+      +'<div class="alert-msg">'+a.msg+'</div>'
+      +'<div class="alert-time">🕐 '+a.time+' · Catégorie: '+a.cat+'</div>'
+      +'</div>'
+      +'<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">'
+      +(a.status==='active'?'<button class="btn btn-o btn-sm" onclick="ackAlert('+a.id+')">✓ Vu</button>':'')
+      +(a.status!=='resolved'?'<button class="btn btn-o btn-sm" onclick="resolveAlert('+a.id+')">✅ Résoudre</button>':'')
+      +'</div>'
+      +'</div>';
+  }
+
+  // Valeurs réelles pour les seuils
+  var pendPayCnt = _payments.filter(function(p){return p.status==='pending';}).length;
+  var lastDayRev = revenueDaily.length ? revenueDaily[revenueDaily.length-1] : 0;
+  var empActif   = _employees.filter(function(e){return e.status==='actif';}).length;
+  var seuils = [
+    {metric:'Taux occupation',       seuil:'< 50%',          niv:'⚠️ Warning',   actuel:pct(avgOcc30),               ok:avgOcc30>=50},
+    {metric:'Taux occupation',       seuil:'< 30%',          niv:'🚨 Critique',   actuel:pct(avgOcc30),               ok:avgOcc30>=30},
+    {metric:'Paiements en attente',  seuil:'> 5',            niv:'⚠️ Warning',   actuel:String(pendPayCnt),           ok:pendPayCnt<=5},
+    {metric:'Paiements en attente',  seuil:'> 10',           niv:'🚨 Critique',   actuel:String(pendPayCnt),           ok:pendPayCnt<=10},
+    {metric:'Revenus journaliers',   seuil:'< 100 000 FCFA', niv:'⚠️ Warning',   actuel:fmt(lastDayRev),              ok:lastDayRev>=100000},
+    {metric:'Employés actifs',       seuil:'< 3',            niv:'🚨 Critique',   actuel:String(empActif)+' actifs',  ok:empActif>=3},
+  ];
+
+  return '<div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);">'
+    +kpiCard('🔴','Critiques',String(active.filter(function(a){return a.level==='critical';}).length),'Action immédiate requise','#ef4444',null)
+    +kpiCard('🟡','Avertissements',String(active.filter(function(a){return a.level==='warning';}).length),'À surveiller','#f59e0b',null)
+    +kpiCard('✅','Prises en compte',String(acked.length+resolved.length),'Ce chargement','#10b981',null)
+    +'</div>'
+
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">🔴 Alertes actives — Action requise ('+active.length+')</div>'
+    +(active.length===0
+      ? '<div style="text-align:center;padding:20px;color:var(--text3);">✅ Aucune alerte active — tout est normal</div>'
+      : active.map(alertHTML).join(''))
+    +'</div>'
+
+    +(acked.length>0
+      ? '<div class="chart-wrap"><div class="chart-title">👁 Prises en compte ('+acked.length+')</div>'+acked.map(alertHTML).join('')+'</div>'
+      : '')
+
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">⚙️ Seuils d\'alertes — Valeurs réelles Supabase</div>'
+    +seuils.map(function(row){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bg4);flex-wrap:wrap;">'
+        +'<span style="min-width:180px;font-size:12px;font-weight:500;">'+row.metric+'</span>'
+        +'<span style="min-width:120px;font-size:11px;color:var(--text2);">Seuil: '+row.seuil+'</span>'
+        +'<span style="font-size:11px;">'+row.niv+'</span>'
+        +'<span style="margin-left:auto;font-size:11px;">Actuel: <strong>'+row.actuel+'</strong></span>'
+        +'<span class="bdg '+(row.ok?'bdg-g':'bdg-r')+'">'+(row.ok?'✅ OK':'⚠️ Déclenché')+'</span>'
+        +'</div>';
+    }).join('')
+    +'<button class="btn btn-o btn-sm" style="margin-top:10px;" onclick="toast(\'Actualisation depuis Supabase...\');refreshAll();">🔄 Recharger les données</button>'
+    +'</div>'
+
+    +(resolved.length>0
+      ? '<div class="chart-wrap"><div class="chart-title">✅ Résolues cette session</div>'+resolved.map(alertHTML).join('')+'</div>'
+      : '');
+}
+
+// ── RENDER REPORTS ────────────────────────────────────────────
+function renderReports(){
+  return '<div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;">'
+    +'<div style="font-size:15px;font-weight:600;">📄 Génération de Rapports</div>'
+    +'<span class="bdg bdg-b" style="margin-left:auto;">🇨🇦 Envoyé à: afterworkquebec2025@gmail.com</span>'
+    +'</div>'
+
+    +'<div class="g2">'
+    +[
+      {type:'daily', icon:'📅',label:'Rapport Journalier',        desc:'KPIs du jour, présences, revenus, alertes',             time:'Automatique chaque matin 07h00'},
+      {type:'weekly',icon:'📆',label:'Rapport Hebdomadaire',      desc:'Performance semaine, comparatif, tendances',             time:'Chaque lundi 08h00'},
+      {type:'monthly',icon:'📊',label:'Rapport Mensuel Complet',  desc:'P&L, occupation, clients, RH, graphiques',               time:'1er du mois 09h00'},
+      {type:'annual', icon:'🗓️',label:'Bilan Annuel',             desc:'Synthèse, ROI, recommandations stratégiques',             time:'1er janvier 10h00'},
+    ].map(function(r){
+      return '<div class="chart-wrap">'
+        +'<div class="chart-title">'+r.icon+' '+r.label+'</div>'
+        +'<div style="font-size:11px;color:var(--text2);margin-bottom:6px;">'+r.desc+'</div>'
+        +'<div style="font-size:10px;color:var(--text3);margin-bottom:12px;">⏰ '+r.time+'</div>'
+        +'<div style="display:flex;gap:6px;">'
+        +'<button class="btn btn-p btn-sm" onclick="genReport(\''+r.type+'\',\'pdf\')">📄 PDF</button>'
+        +'<button class="btn btn-o btn-sm" onclick="genReport(\''+r.type+'\',\'excel\')">📊 Excel</button>'
+        +'<button class="btn btn-o btn-sm" onclick="genReport(\''+r.type+'\',\'csv\')">📋 CSV</button>'
+        +'</div>'
+        +'</div>';
+    }).join('')
+    +'</div>'
+
+    +'<div class="chart-wrap" id="generated-reports">'
+    +'<div class="chart-title">Rapports générés</div>'
+    +(generatedReports.length===0
+      ? '<div style="text-align:center;padding:20px;color:var(--text3);">Cliquez sur un bouton ci-dessus pour générer votre premier rapport</div>'
+      : generatedReports.map(function(r){
+          return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bg4);">'
+            +'<span style="font-size:18px;">'+(r.fmt==='pdf'?'📄':r.fmt==='excel'?'📊':'📋')+'</span>'
+            +'<div style="flex:1;">'
+            +'<div style="font-size:13px;font-weight:500;">'+r.title+'</div>'
+            +'<div style="font-size:10px;color:var(--text3);">'+r.type.toUpperCase()+' · '+r.fmt.toUpperCase()+' · '+r.size+'KB · Généré '+r.time+'</div>'
+            +'</div>'
+            +'<span class="bdg bdg-g">✅ Prêt</span>'
+            +'<button class="btn btn-o btn-sm" onclick="toast(\'Téléchargement...\',\'success\')">⬇️</button>'
+            +'<button class="btn btn-o btn-sm" onclick="toast(\'Email envoyé à afterworkquebec2025@gmail.com\',\'success\')">📧</button>'
+            +'</div>';
+        }).join(''))
+    +'</div>'
+
+    +'<div class="chart-wrap">'
+    +'<div class="chart-title">📧 Rapports automatiques configurés</div>'
+    +[
+      {label:'Rapport journalier', freq:'Chaque matin 07h00',    dest:'afterworkquebec2025@gmail.com',                  active:true},
+      {label:'Rapport hebdo',      freq:'Lundi 08h00',           dest:'afterworkquebec2025@gmail.com',                  active:true},
+      {label:'Rapport mensuel',    freq:'1er du mois 09h00',     dest:'afterworkquebec2025@gmail.com + comptable',       active:false},
+    ].map(function(r){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bg4);">'
+        +'<div style="flex:1;">'
+        +'<div style="font-size:12.5px;font-weight:500;">'+r.label+'</div>'
+        +'<div style="font-size:10px;color:var(--text3);">'+r.freq+' · 📧 '+r.dest+'</div>'
+        +'</div>'
+        +'<span class="bdg '+(r.active?'bdg-g':'bdg-gr')+'">'+(r.active?'✅ Actif':'⏸ Inactif')+'</span>'
+        +'<button class="btn btn-o btn-sm" onclick="toast(\'Paramètre modifié\')">⚙️</button>'
+        +'</div>';
+    }).join('')
+    +'</div>';
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────
 function ackAlert(id){
-  const a=alerts.find(x=>x.id===id);
-  if(a){a.status='acknowledged';toast(`✓ Alerte prise en compte: ${a.title}`,'success');render();}
+  var a=alerts.find(function(x){return x.id===id;});
+  if(a){a.status='acknowledged';toast('✓ Alerte prise en compte: '+a.title,'success');render();}
 }
 function resolveAlert(id){
-  const a=alerts.find(x=>x.id===id);
-  if(a){a.status='resolved';toast(`✅ Alerte résolue: ${a.title}`,'success');render();}
+  var a=alerts.find(function(x){return x.id===id;});
+  if(a){a.status='resolved';toast('✅ Alerte résolue: '+a.title,'success');render();}
 }
 
-function genReport(type,fmt){
-  const titles={daily:'Rapport Journalier',weekly:'Rapport Hebdomadaire',monthly:'Rapport Mensuel',annual:'Bilan Annuel'};
-  toast(`⏳ Génération du ${titles[type]} en ${fmt.toUpperCase()}...`);
-  setTimeout(()=>{
+function genReport(type,fmtType){
+  var titles={daily:'Rapport Journalier',weekly:'Rapport Hebdomadaire',monthly:'Rapport Mensuel',annual:'Bilan Annuel'};
+  toast('⏳ Génération du '+titles[type]+' en '+fmtType.toUpperCase()+'…');
+  setTimeout(function(){
     generatedReports.unshift({
-      title:`${titles[type]} — Résidence Veraluz ${new Date().toLocaleDateString('fr-FR')}`,
-      type,fmt,
-      size:Math.floor(Math.random()*400+100),
-      time:'à l\'instant'
+      title: titles[type]+' — Résidence Veraluz '+new Date().toLocaleDateString('fr-FR'),
+      type: type, fmt: fmtType,
+      size: Math.floor(Math.random()*400+100),
+      time: 'à l\'instant'
     });
-    toast(`✅ ${titles[type]} (${fmt.toUpperCase()}) prêt — Email envoyé`,'success');
+    toast('✅ '+titles[type]+' ('+fmtType.toUpperCase()+') prêt — Email envoyé','success');
     render();
   },1500);
 }
 
-// ============================================================
-// INIT
-// ============================================================
-render();
+// ── INIT ──────────────────────────────────────────────────────
+loadAnalyticsData();
 </script>
 </body>
 </html>

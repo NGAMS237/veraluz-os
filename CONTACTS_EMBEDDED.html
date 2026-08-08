@@ -319,27 +319,33 @@ async function loadAll(){
     var cache=JSON.parse(localStorage.getItem('vlz_cache_rez')||'[]');
     var by={};
     cache.forEach(function(r){
-      var em=(r.guest_email||'').toLowerCase().trim();if(!em)return;
-      if(!by[em])by[em]={id:'cl_'+em.replace(/[^a-z0-9]/g,'_'),type:'client',name:r.guest_name||em,email:em,phone:r.guest_phone||'',count:0,total:0,lastDate:''};
-      var c=by[em];c.count++;c.total+=parseFloat(r.total_price)||0;
-      var d=r.check_in||'';if(d>c.lastDate){c.lastDate=d;if(r.guest_name)c.name=r.guest_name;}
+      /* Le cache vlz_cache_rez a deux formes selon le module qui l'a ecrit :
+         RESERVATIONS applique norm() et ajoute des alias guest_*, PAIEMENTS ecrit
+         les colonnes brutes client_*. On lit les deux. 'total_price' n'existe nulle
+         part : la vraie colonne est 'total'. */
+      var em=(r.client_email||r.guest_email||'').toLowerCase().trim();if(!em)return;
+      var rn=r.client_name||r.guest_name||'', rp=r.client_phone||r.guest_phone||'';
+      var rt=parseFloat(r.total)||0;
+      if(!by[em])by[em]={id:'cl_'+em.replace(/[^a-z0-9]/g,'_'),type:'client',name:rn||em,email:em,phone:rp,count:0,total:0,lastDate:''};
+      var c=by[em];c.count++;c.total+=rt;
+      var d=r.check_in||'';if(d>c.lastDate){c.lastDate=d;if(rn)c.name=rn;}
     });
     contacts=contacts.concat(Object.values(by));
   }catch(e){}
   // Clients from Supabase
   try{
-    var rows=await sbGet('veraluz_reservations?select=guest_name,guest_email,guest_phone,total_price,check_in&order=check_in.desc&limit=1000');
+    var rows=await sbGet('veraluz_reservations?select=client_name,client_email,client_phone,total,check_in&order=check_in.desc&limit=1000');
     var idx={};
     contacts.filter(function(c){return c.type==='client';}).forEach(function(c){idx[c.email]=c;});
     rows.forEach(function(r){
-      var em=(r.guest_email||'').toLowerCase().trim();if(!em)return;
+      var em=(r.client_email||'').toLowerCase().trim();if(!em)return;
       if(!idx[em]){
-        var nc={id:'cl_'+em.replace(/[^a-z0-9]/g,'_'),type:'client',name:r.guest_name||em,email:em,phone:r.guest_phone||'',count:1,total:parseFloat(r.total_price)||0,lastDate:r.check_in||''};
+        var nc={id:'cl_'+em.replace(/[^a-z0-9]/g,'_'),type:'client',name:r.client_name||em,email:em,phone:r.client_phone||'',count:1,total:parseFloat(r.total)||0,lastDate:r.check_in||''};
         idx[em]=nc;contacts.push(nc);
       }else{
         var ex=idx[em];if(!ex._m){ex.count=0;ex.total=0;ex._m=true;}
-        ex.count++;ex.total+=parseFloat(r.total_price)||0;
-        var d=r.check_in||'';if(d>ex.lastDate){ex.lastDate=d;if(r.guest_name)ex.name=r.guest_name;}
+        ex.count++;ex.total+=parseFloat(r.total)||0;
+        var d=r.check_in||'';if(d>ex.lastDate){ex.lastDate=d;if(r.client_name)ex.name=r.client_name;}
       }
     });
   }catch(e){}

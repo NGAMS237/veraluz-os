@@ -57,7 +57,15 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
 .section-light .room-card-body h3{color:#1a1a1a}
 .section-light .room-card-body p,.section-light .room-beds{color:#666}
 .section-light .room-price{color:var(--gd)}
-.section-sand{background:#0f1e2d}
+.section-light .loc-item h4,.section-light .ct-card h4{color:#1a1a1a}
+.section-light .loc-item p,.section-light .ct-card p{color:#555}
+.section-light .loc-dot{background:rgba(212,148,58,.15);color:var(--gd)}
+.section-light .ct-card{background:#fff;border-color:rgba(0,0,0,.08);color:#1a1a1a}
+.section-light .ct-card svg{stroke:var(--gd)}
+.section-sand{background:#f7f0e6;color:#1a1a1a}
+.section-sand h2,.section-sand .sec-tag{color:#1a1a1a}
+.section-sand .sec-lead{color:#555}
+.section-sand .gal-masonry img{box-shadow:0 4px 20px rgba(0,0,0,.15)}
 .section-cta{position:relative;background-size:cover;background-position:center}
 .sec-head{text-align:center;margin-bottom:60px}
 .sec-head.light h2,.sec-head.light .sec-lead,.sec-head.light .sec-tag{color:var(--text1)}
@@ -608,7 +616,7 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
 </section>
 
 <!-- RESTAURANT -->
-<section id="restaurant" class="section">
+<section id="restaurant" class="section section-light">
   <div class="container">
     <div class="sec-head">
       <p class="sec-tag" id="cms-resto-tag">Saveurs & Sunset Lounge</p>
@@ -837,7 +845,7 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
 </section>
 
 <!-- LOCALISATION -->
-<section id="localisation" class="section">
+<section id="localisation" class="section section-light">
   <div class="container">
     <div class="sec-head">
       <p class="sec-tag">Où Nous Trouver</p>
@@ -1122,7 +1130,8 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
    ═══════════════════════════════════════════════════════ */
 
 /* ── CONSTANTS ── */
-var SB = '', SK = '';  // Supabase URL + anon key (set by applyHotelInfo)
+var SB = 'https://dfdmasejsoibxrvubegu.supabase.co';
+var SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 var _selRoom = null;   // currently selected room object
 var _bkData  = {};     // accumulates booking data across steps
 
@@ -1930,18 +1939,21 @@ function submitBooking(){
     created_at:new Date().toISOString()
   };
 
-  // Save to sync queue for Core
-  var sync=[];
-  try{ sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]'); }catch(e){}
-  sync.push(payload);
-  localStorage.setItem('vlz_booking_sync',JSON.stringify(sync));
-
-  // Try Supabase
+  // Try Supabase — sync sauvegardé APRÈS avoir l'ID (dans doConfirm)
   var doConfirm=function(id){
-    payload.id=id||('BK-'+Date.now());
+    /* Toujours convertir en String — les IDs Supabase sont des entiers JSON mais les onclick les passent en string */
+    payload.id = String(id || ('BK-'+Date.now()));
+    /* Sauvegarder dans le sync queue avec l'ID correct */
+    try{
+      var sync=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
+      var dup=sync.some(function(s){return s.id&&String(s.id)===payload.id;});
+      if(!dup){ sync.push(payload); localStorage.setItem('vlz_booking_sync',JSON.stringify(sync)); }
+      /* Signal REZ pour qu'il sache qu'une nouvelle réservation est disponible */
+      localStorage.setItem('vlz_rez_updated', String(Date.now()));
+    }catch(e){}
     goS(5);
     showConfirmation(payload);
-    // Notify parent if in iframe
+    /* Notifier le module Réservations via postMessage */
     try{ window.parent.postMessage({veraluzEvent:true,source:'booking-engine',type:'new_booking',data:payload},'*'); }catch(e){}
   };
 

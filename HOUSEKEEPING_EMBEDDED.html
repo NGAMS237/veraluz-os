@@ -559,9 +559,16 @@ var _tasks = [], _units = [], _reservations = [], _employees = [], _activeTab = 
 var _empName = '', _selProblem = '';
 
 /* ── UTILITIES ── */
+/* PROMPT 007 — délégation VC.esc() + safeUrl() */
+var VC = window.VeraluzCore || {};
 function esc(s) {
+  if(VC&&typeof VC.esc==='function') return VC.esc(s);
   if(!s) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function safeUrl(url){
+  var s=String(url||'').trim();if(!s)return'#';
+  if(s.startsWith('http://')||s.startsWith('https://')||s.startsWith('mailto:')||s.startsWith('tel:'))return s;return'#';
 }
 function today() { return new Date().toISOString().split('T')[0]; }
 function fmtDate(d) {
@@ -601,6 +608,14 @@ function isActive(t) {
   return t.status !== 'done' && t.status !== 'completed' && t.status !== 'cancelled';
 }
 
+/* ── HK HELPERS LAYER — PROMPT 020E ─────────────────────────────────────── */
+var HK_TABLES={HK:'veraluz_housekeeping',UNITS:'veraluz_units',REZ:'veraluz_reservations',EMPS:'veraluz_employees_public'};
+function hkGetTasks(unitId){return unitId?_tasks.filter(function(t){return t.unit_id===unitId;}):_tasks.slice();}
+function hkGetActiveTasks(unitId){return hkGetTasks(unitId).filter(isActive);}
+function hkGetTasksByEmp(empId,empName){return _tasks.filter(function(t){return(!!empId&&t.employee_id===empId)||(!!empName&&(t.assigned_to||'').toLowerCase()===empName.toLowerCase());});}
+function hkIsStale(t){if(!t.created_at||!isActive(t))return false;return(Date.now()-new Date(t.created_at).getTime())>7*24*60*60*1000;}
+function hkAssignTask(tid,empName,empId,prio){return sbFetch('veraluz_housekeeping?id=eq.'+encodeURIComponent(tid),{method:'PATCH',body:JSON.stringify({assigned_to:empName||null,employee_id:empId||null,priority:prio||'normal',updated_at:new Date().toISOString()})});}
+
 /* ── SUPABASE ── */
 function sbFetch(path, opts) {
   return fetch(SB+'/rest/v1/'+path, Object.assign({
@@ -639,7 +654,7 @@ function loadAll(cb) {
     }).catch(check);
 
   // Fetch active employees for assignments
-  sbFetch('veraluz_employees?select=id,full_name,role,status,base_salary,hourly_rate,contract_type,phone,email,hire_date&status=eq.actif&order=full_name.asc')
+  sbFetch('veraluz_employees_public?select=id,full_name,role,status,team_name,phone,email,hire_date,avatar_url&order=full_name.asc') /* PROMPT 018: vue publique — pas de salaire */
     .then(function(r){return r.json();})
     .then(function(d){
       if(Array.isArray(d)){
@@ -750,6 +765,7 @@ function buildTaskCard(t, compact) {
       '<div class="tk-badges">'+
         priorityBadge(t.priority||'normal')+
         statusBadge(t.status||'pending')+
+        (hkIsStale(t)?'<span class="badge badge-orange" title="Tâche ouverte depuis plus de 7 jours">⏰ Ancienne</span>':'')+
       '</div>'+
     '</div>'+
     (t.notes ? '<div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-style:italic">'+esc(t.notes)+'</div>' : '')+
@@ -1133,16 +1149,8 @@ function renderEmpProfile() {
   if(!emp){pc.style.display='none';return;}
   var roleMap={femme_chambre:'Femme de chambre',technicien:'Technicien',receptionniste:'Réceptionniste',agent_securite:'Agent de sécurité',barman:'Barman',manager:'Manager',cuisinier:'Cuisinier',staff:'Staff'};
   var contractMap={CDI:'CDI',CDD:'CDD',contractuel:'Contractuel',vacataire:'Vacataire',stage:'Stagiaire'};
-  var salaryLabel='';
-  var ct=emp.contract_type||'CDI';
-  if(ct==='contractuel'||ct==='vacataire'){
-    salaryLabel=emp.hourly_rate&&parseFloat(emp.hourly_rate)>0
-      ? parseFloat(emp.hourly_rate).toLocaleString('fr-FR')+' FCFA/h'
-      : (emp.base_salary&&parseFloat(emp.base_salary)>0?parseFloat(emp.base_salary).toLocaleString('fr-FR')+' FCFA/mois':'—');
-  } else {
-    salaryLabel=emp.base_salary&&parseFloat(emp.base_salary)>0
-      ? parseFloat(emp.base_salary).toLocaleString('fr-FR')+' FCFA/mois':'—';
-  }
+  /* PROMPT 018 : salaire supprimé de Housekeeping (module non-RH) */
+  var salaryLabel='';  /* Données salariales accessibles uniquement via module RH */
   var hireYrs='';
   if(emp.hire_date){
     var ms=Date.now()-new Date(emp.hire_date).getTime();
@@ -1158,8 +1166,7 @@ function renderEmpProfile() {
       '<div style="font-size:11px;color:var(--text2);margin-top:1px">'+esc(roleMap[emp.role]||emp.role)+' · '+esc(contractMap[ct]||ct)+'</div>'+
     '</div>'+
     '<div style="text-align:right;flex-shrink:0">'+
-      '<div style="font-size:13px;font-weight:700;color:var(--success)">'+esc(salaryLabel)+'</div>'+
-      (hireYrs?'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+esc(hireYrs)+' ancienneté</div>':'')+
+      (hireYrs?'<div style="font-size:10px;color:var(--text3);margin-top:2px;">'+esc(hireYrs)+' ancienneté</div>':'')+
     '</div>'+
   '</div>'+
   (emp.phone?'<div style="font-size:11px;color:var(--text2);padding:0 4px 8px">📞 '+esc(emp.phone)+'</div>':'');
@@ -1168,7 +1175,7 @@ function renderEmpProfile() {
 function renderEmployeeTasks() {
   var todayStr=today();
   var myTasks=_tasks.filter(function(t){
-    var assignMatch=(t.assigned_to||'').toLowerCase()===_empName.toLowerCase();
+    var assignMatch=(t.assigned_to||'').toLowerCase()===_empName.toLowerCase()||(!!_empId&&t.employee_id===_empId);
     var todayMatch=!t.scheduled_for||(t.scheduled_for||'').startsWith(todayStr);
     return assignMatch && todayMatch;
   }).sort(function(a,b){
@@ -1517,7 +1524,7 @@ var _lastHkRezSync = 0;
 document.addEventListener('DOMContentLoaded',function(){
   goTab('dash');
   loadAll(function(){
-    syncWithReservations();
+    try{ syncWithReservations(); }catch(e){ console.warn('[HK] syncWithReservations:', e); }
     refresh();
   });
 
@@ -1528,7 +1535,7 @@ document.addEventListener('DOMContentLoaded',function(){
       if(ts > _lastHkRezSync){
         _lastHkRezSync = ts;
         loadAll(function(){
-          syncWithReservations();
+          try{ syncWithReservations(); }catch(e){}
           refresh();
         });
       }

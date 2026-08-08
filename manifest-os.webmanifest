@@ -1,0 +1,41 @@
+{
+  "id": "/mako-city_suivis_ok/VERALUZ_OS_CORE.html",
+  "name": "VERALUZ OS",
+  "short_name": "VERALUZ",
+  "description": "Plateforme de gestion intelligente VERALUZ",
+  "start_url": "./VERALUZ_OS_CORE.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#0d0d1a",
+  "background_color": "#0d0d1a",
+  "lang": "fr",
+  "prefer_related_applications": false,
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "./assets/pwa/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/pwa/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/pwa/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./assets/pwa/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

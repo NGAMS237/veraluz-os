@@ -1312,16 +1312,15 @@ function renderDosProfil(e){
 function loadDosAccessStatus(eid) {
   var body = document.getElementById('dos-access-body');
   if (!body) return;
-  if (!_rhSessionToken) {
-    body.innerHTML = '<div style="color:var(--text3);">Session Direction introuvable — reconnectez-vous.</div>';
+  /* PROMPT 009B — CORRECTION SECURITE : plus de session_token dans cette
+     iframe. Appel via le broker unique de CORE, qui ajoute lui-meme le
+     vrai session_token avant d'appeler get-employee-access-status. */
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    body.innerHTML = '<div style="color:var(--text3);">Broker de session introuvable — reconnectez-vous.</div>';
     return;
   }
-  fetch(SUPA_URL + '/functions/v1/get-employee-access-status', {
-    method: 'POST', mode: 'cors', credentials: 'omit',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
-    body: JSON.stringify({ session_token: _rhSessionToken, employee_id: eid })
-  })
-  .then(function(r) { return r.json(); })
+  window.parent.veraluzSecureRequest('get-employee-access-status', { employee_id: eid })
+  .then(function(r) { return r.body; })
   .then(function(result) {
     if (!result.ok) {
       body.innerHTML = '<div style="color:var(--text3);">Statut indisponible ('+esc(result.error||'erreur')+').</div>';
@@ -1369,17 +1368,16 @@ function openRhResetPinMd(empId, empName) {
 function doRhResetPin(btn) {
   var empId   = btn.dataset.eid;
   var empName = btn.dataset.ename;
-  if (!_rhSessionToken) { toast('Session Direction introuvable — reconnectez-vous', 'err'); return; }
+  /* PROMPT 009B — broker CORE, jamais le session_token dans cette iframe. */
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    toast('Broker de session introuvable — reconnectez-vous', 'err'); return;
+  }
 
   btn.disabled = true;
   btn.textContent = '⏳ Génération…';
 
-  fetch(SUPA_URL + '/functions/v1/reset-employee-pin', {
-    method: 'POST', mode: 'cors', credentials: 'omit',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
-    body: JSON.stringify({ session_token: _rhSessionToken, employee_id: empId })
-  })
-  .then(function(r) { return r.json(); })
+  window.parent.veraluzSecureRequest('reset-employee-pin', { employee_id: empId })
+  .then(function(r) { return r.body; })
   .then(function(result) {
     if (!result.ok) {
       toast('Erreur : ' + (result.error || 'échec du reset PIN'), 'err');
@@ -1421,14 +1419,13 @@ function _rhCopyFallback(pin) {
 }
 
 function doRhRevokeSessions(eid) {
-  if (!_rhSessionToken) { toast('Session Direction introuvable — reconnectez-vous', 'err'); return; }
+  /* PROMPT 009B — broker CORE, jamais le session_token dans cette iframe. */
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    toast('Broker de session introuvable — reconnectez-vous', 'err'); return;
+  }
   if (!confirm('Révoquer toutes les sessions actives de cet employé ? Il devra se reconnecter.')) return;
-  fetch(SUPA_URL + '/functions/v1/revoke-employee-sessions', {
-    method: 'POST', mode: 'cors', credentials: 'omit',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
-    body: JSON.stringify({ session_token: _rhSessionToken, employee_id: eid })
-  })
-  .then(function(r) { return r.json(); })
+  window.parent.veraluzSecureRequest('revoke-employee-sessions', { employee_id: eid })
+  .then(function(r) { return r.body; })
   .then(function(result) {
     if (!result.ok) { toast('Erreur : ' + (result.error || 'échec'), 'err'); return; }
     toast('✅ ' + (result.revoked_count||0) + ' session(s) révoquée(s)');
@@ -2898,7 +2895,13 @@ function validateMgrPeriode(pid){
    révocation de sessions) dans la fiche employé, au lieu d'une identité
    locale non vérifiée. Jamais persisté (localStorage/sessionStorage) —
    variables JS en mémoire uniquement, à l'image de _sessionToken dans CORE. */
-var _rhSessionToken = null;
+/* PROMPT 009B — CORRECTION SECURITE : le session_token n'est plus jamais
+   recu par cette iframe (retire de sendAuthContext cote CORE). Les actions
+   Direction (reset PIN, revocation, statut) passent desormais par le
+   broker window.parent.veraluzSecureRequest — voir loadDosAccessStatus/
+   doRhResetPin/doRhRevokeSessions ci-dessus. Role/employee_id restent
+   utiles localement pour l'affichage, jamais comme preuve d'autorisation
+   serveur (l'Edge Function revalide toujours elle-meme). */
 var _rhCallerRole   = null;
 var _rhCallerId     = null;
 var RH_DIRECTION_ROLES = ['gerant', 'admin', 'superadmin'];
@@ -2908,7 +2911,6 @@ window.addEventListener('message', function(ev) {
   if (!ev.data || ev.data.source !== 'veraluz-core') return;
   if (ev.data.type !== 'auth-context') return;
   var d = ev.data.data || {};
-  _rhSessionToken = d.session_token || null;
   _rhCallerRole   = d.role || null;
   _rhCallerId     = d.employee_id || null;
   var empId = d.employee_id || null;

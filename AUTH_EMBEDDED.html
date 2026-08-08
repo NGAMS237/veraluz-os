@@ -321,28 +321,24 @@ function doResetPin(btn) {
   var empId   = btn.dataset.eid;
   var empName = btn.dataset.ename;
 
-  /* PROMPT 009 — le rôle et l'autorisation sont désormais dérivés côté
-     serveur à partir de _authRealSessionToken (session Direction réelle),
-     jamais d'un champ client. requested_by/requested_by_role supprimés :
-     reset-employee-pin v5 les ignore et exigerait de toute façon un
-     session_token valide — c'était exactement la faille de la v3. */
-  if (!_authRealSessionToken) {
-    toast('Session Direction introuvable — reconnectez-vous depuis Veraluz OS', true);
+  /* PROMPT 009B — CORRECTION SECURITE : cette iframe ne recoit plus jamais
+     le session_token brut (retire de sendAuthContext cote CORE). L'appel
+     passe desormais par le broker unique window.parent.veraluzSecureRequest,
+     qui vit dans CORE : c'est CORE qui ajoute le vrai session_token avant
+     d'appeler reset-employee-pin, jamais cette iframe. L'autorite reste
+     entierement cote serveur (reset-employee-pin v5 revalide la session et
+     le role Direction lui-meme) — ce broker ne fait que proteger le jeton,
+     il n'accorde aucun droit. */
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    toast('Broker de session introuvable — reconnectez-vous depuis Veraluz OS', true);
     return;
   }
 
   btn.disabled = true;
   btn.textContent = '⏳ Génération…';
 
-  fetch(_EDGE_RESET_PIN, {
-    method: 'POST', mode: 'cors', credentials: 'omit',
-    headers: { 'Content-Type': 'application/json', 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + _SB_KEY },
-    body: JSON.stringify({
-      session_token: _authRealSessionToken,
-      employee_id:   empId
-    })
-  })
-  .then(function(r){ return r.json(); })
+  window.parent.veraluzSecureRequest('reset-employee-pin', { employee_id: empId })
+  .then(function(r){ return r.body; })
   .then(function(result){
     if (!result.ok) {
       var _ep=['Erreur : '+(result.error||'Échec reset PIN')];if(result.detail)_ep.push('Détail : '+result.detail);if(result.code)_ep.push('Code : '+result.code);toast(_ep.join(' | '),true);
@@ -599,16 +595,19 @@ function emit(type,data){
    persisté, mémoire JS uniquement) afin que doResetPin() authentifie
    l'appel serveur avec une vraie session Direction au lieu du faux
    getCurrentUser() local (racine de l'ancienne faille reset-employee-pin v3). */
-var _authRealSessionToken = null;
-var _authRealRole         = null;
+/* PROMPT 009B — CORRECTION SECURITE : le session_token n'est plus jamais
+   recu par cette iframe (voir doResetPin ci-dessus, qui passe par le
+   broker window.parent.veraluzSecureRequest). Seul le role est encore
+   utile localement (affichage), jamais utilise comme preuve d'autorisation
+   serveur. */
+var _authRealRole = null;
 window.addEventListener('message', function(ev){
   if(!ev.data||ev.data.source!=='veraluz-core') return;
   if(ev.data.type==='refresh') renderTab(currentTabId);
   if(ev.data.type==='navigate-tab'&&ev.data.data&&ev.data.data.tab)
     goTab(document.querySelector('.tab[data-tab="'+ev.data.data.tab+'"]'));
   if(ev.data.type==='auth-context'&&ev.data.data){
-    _authRealSessionToken = ev.data.data.session_token || null;
-    _authRealRole         = ev.data.data.role || null;
+    _authRealRole = ev.data.data.role || null;
   }
 });
 document.addEventListener('DOMContentLoaded', function(){

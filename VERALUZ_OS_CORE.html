@@ -3262,18 +3262,63 @@ function sendAuthContext(iframe) {
         roleIcon:    rd.icon  || '👤',
         modules:         rd.modules || [],
         allowed_modules: currentUser.allowed_modules || rd.modules || [],
-        employee_id:     currentUser.employee_id || null,
-        /* PROMPT 009 — jeton de session opaque transmis au module embarqué (même
-           origine, iframe de confiance) afin qu'il puisse appeler les Edge
-           Functions AUTH réelles (reset PIN, révocation de sessions, changement
-           personnel de PIN) au lieu du faux getCurrentUser() local. Jamais
-           persisté par CORE ; le module qui le reçoit ne doit pas non plus le
-           mettre en localStorage/sessionStorage — seulement en mémoire JS. */
-        session_token:   getSessionToken()
+        employee_id:     currentUser.employee_id || null
+        /* PROMPT 009B — CORRECTION SECURITE : le session_token n'est plus
+           jamais transmis aux modules embarques (RH/AUTH), meme en memoire.
+           Il reste exclusivement dans CORE. Les modules qui ont besoin
+           d'appeler une Edge Function AUTH reservee Direction (reset PIN,
+           revocation, statut d'acces) passent desormais par
+           window.parent.veraluzSecureRequest(endpoint, payload) — c'est
+           CORE, jamais l'iframe, qui ajoute le session_token reel avant
+           d'appeler le serveur. Voir la definition de veraluzSecureRequest
+           ci-dessous. */
       }
     }, '*');
   } catch(e){}
 }
+
+/* PROMPT 009B — Broker de session unique (CORE -> Edge Functions).
+   Principe : une iframe de confiance (RH_EMBEDDED, AUTH_EMBEDDED) ne recoit
+   jamais le session_token brut. Elle appelle
+   window.parent.veraluzSecureRequest(endpoint, payload) ; c'est CORE, et
+   CORE seul, qui ajoute le vrai session_token (en memoire, jamais transmis)
+   avant d'appeler l'Edge Function, puis renvoie uniquement le resultat
+   metier nettoye (jamais le jeton) a l'appelant. Reutilise le meme pattern
+   que celui deja utilise par AI_CENTER_EMBEDDED.html
+   (window.parent.veraluzSecureRequest) — un seul broker, pas un deuxieme.
+   L'autorite reste entierement cote serveur : chaque Edge Function revalide
+   elle-meme la session et le role (voir docs/auth-architecture-after-009.md
+   §3) ; ce broker ne fait qu'eviter que le jeton ne quitte jamais CORE, il
+   n'accorde aucun droit par lui-meme. */
+var VERALUZ_BROKER_ALLOWED_ENDPOINTS = [
+  'reset-employee-pin',
+  'revoke-employee-sessions',
+  'get-employee-access-status'
+];
+var VERALUZ_BROKER_EDGE_BASE = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/';
+window.veraluzSecureRequest = function (endpoint, payload) {
+  if (typeof endpoint !== 'string' || VERALUZ_BROKER_ALLOWED_ENDPOINTS.indexOf(endpoint) === -1) {
+    return Promise.resolve({ status: 400, body: { ok: false, error: 'endpoint_not_whitelisted' } });
+  }
+  var tok = getSessionToken();
+  if (!tok) {
+    return Promise.resolve({ status: 401, body: { ok: false, error: 'not_logged_in' } });
+  }
+  var reqBody = {};
+  try { for (var k in (payload || {})) { reqBody[k] = payload[k]; } } catch (e) {}
+  reqBody.session_token = tok;
+  return fetch(VERALUZ_BROKER_EDGE_BASE + endpoint, {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+    body: JSON.stringify(reqBody)
+  }).then(function (r) {
+    return r.json()
+      .then(function (j) { return { status: r.status, body: j }; })
+      .catch(function () { return { status: r.status, body: { ok: false, error: 'invalid_response' } }; });
+  }).catch(function () {
+    return { status: 0, body: { ok: false, error: 'network_error' } };
+  });
+};
 
 document.addEventListener('DOMContentLoaded', function(){
   applyVlTheme(); /* PROMPT 036B — Veraluz Theme : appliquer préférence dark/light */

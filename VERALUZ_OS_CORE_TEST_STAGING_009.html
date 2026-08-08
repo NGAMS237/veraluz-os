@@ -1,32 +1,33 @@
 <!--
-  VERALUZ — VERALUZ_OS_CORE_TEST_STAGING_009.html — PROMPT 009 §4
+  VERALUZ — VERALUZ_OS_CORE_TEST_STAGING_009.html — PROMPT 009 §4, corrige par 009B §7/§10/§11
 
-  Shell de TEST/STAGING pour valider en conditions réelles de navigateur
-  que l'interface Intelligence IA promue (AI_CENTER_EMBEDDED.html, ex-
-  AI_CENTER_FUNCTIONAL_EMBEDDED.html du lot 007, câblée sur l'agent
-  générique agent-run + agent-chloe-run du lot 008) affiche bien les 4
-  agents attendus pour la Direction : Chloé, Maya, Nora, TechOps.
+  Shell de TEST/STAGING pour valider en conditions reelles de navigateur, sur
+  GitHub Pages, un lien UNIQUE permettant au proprietaire de tester Auth, RH
+  et Intelligence IA sans jamais toucher PRODUCTION.
 
-  Règles respectées (mêmes que TEST_004/test-core-frontend.html, dont ce
-  fichier reprend fidèlement le modèle de broker, avec la whitelist
-  d'endpoints mise à jour pour les lots 007/008) :
+  Regles respectees :
    - pointe UNIQUEMENT sur joegfxwcsvtqtxbffpkp (jamais dfdmasejsoibxrvubegu) ;
-   - bandeau "ENVIRONNEMENT DE TEST" toujours visible ;
-   - jeton de session en mémoire UNIQUEMENT (jamais localStorage/
-     sessionStorage/URL) ;
-   - broker de session : window.veraluzSecureRequest(endpoint, payload)
-     est la SEULE porte que l'iframe Intelligence IA peut utiliser pour
-     atteindre les Edge Functions — endpoints whitelistés, jamais une
-     URL/méthode arbitraire, jamais de lecture du jeton par l'enfant ;
-   - ce fichier n'est PAS VERALUZ_OS_CORE.html réel et n'est jamais
-     utilisé comme tel — uniquement pour la vérification §4/§15 de ce lot.
+   - bandeau "ENVIRONNEMENT DE TEST" toujours visible, backend affiche en clair ;
+   - jeton de session en memoire UNIQUEMENT (jamais localStorage/sessionStorage/URL) ;
+   - broker de session UNIQUE : window.veraluzSecureRequest(endpoint, payload)
+     est la SEULE porte que les iframes de confiance (RH, Intelligence IA)
+     peuvent utiliser pour atteindre les Edge Functions — endpoints whitelistes,
+     jamais une URL/methode arbitraire, jamais de lecture du jeton par l'enfant ;
+   - le panneau RH ci-dessous n'est PAS RH_EMBEDDED.html (dont la couche
+     donnees generale est encore codee en dur vers PRODUCTION) : c'est une
+     fiche employe TEST minimale, utilisant EXACTEMENT le meme contrat de
+     broker (memes noms d'endpoint, meme forme de reponse) que RH_EMBEDDED.html
+     utilise reellement en production depuis 009B — donc une preuve fidele du
+     comportement reel, sans jamais exposer de donnees employe PRODUCTION ;
+   - ce fichier n'est PAS VERALUZ_OS_CORE.html reel et n'est jamais utilise
+     comme tel — uniquement pour la verification §4/§7/§10/§11 de ce lot.
 -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VERALUZ — TEST/STAGING 009 — Intelligence IA</title>
+<title>VERALUZ — TEST/STAGING 009B — Auth / RH / Intelligence IA</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
@@ -43,19 +44,31 @@
   button { cursor:pointer; border:none; border-radius:6px; padding:10px 16px; font-size:14px; font-weight:600; margin-top:12px; }
   .btn-primary { background:#3b82f6; color:#fff; }
   .btn-primary:hover { background:#2563eb; }
+  .btn-warn { background:#f59e0b; color:#111; }
+  .btn-danger { background:#dc2626; color:#fff; }
   .btn-logout { background:#3a3f4a; color:#e8eaed; }
   .btn-logout:hover { background:#4a505e; }
+  .btn-sec { background:#2a2e37; color:#e8eaed; margin-left:8px; }
   .err { color:#ff6b6b; font-size:13px; margin-top:8px; min-height:16px; }
+  .ok   { color:#4ade80; font-size:13px; margin-top:8px; }
   .topbar { display:flex; align-items:center; justify-content:space-between; padding:10px 20px; background:#181b21; border-bottom:1px solid #2a2e37; }
   .who { font-size:13px; color:#9aa0a6; }
   .who b { color:#e8eaed; }
-  iframe { width:100%; height:82vh; border:0; background:#fff; display:block; }
+  .tabs { display:flex; gap:8px; padding:0 20px; background:#14161b; border-bottom:1px solid #2a2e37; }
+  .tab { padding:10px 14px; font-size:13px; color:#9aa0a6; cursor:pointer; border-bottom:2px solid transparent; }
+  .tab.active { color:#e8eaed; border-bottom-color:#3b82f6; }
+  .pane { display:none; }
+  .pane.active { display:block; }
+  iframe { width:100%; height:78vh; border:0; background:#fff; display:block; }
   #login-view, #app-view { display:none; }
+  .kv { font-size:13px; margin:4px 0; }
+  .kv b { color:#9aa0a6; font-weight:600; }
+  code { background:#0f1115; padding:2px 6px; border-radius:4px; }
 </style>
 </head>
 <body>
 
-<div class="banner">🧪 ENVIRONNEMENT DE TEST/STAGING — PROMPT 009 §4/§15 — projet Supabase isolé <b>joegfxwcsvtqtxbffpkp</b> — jamais la production — comptes et données fictifs</div>
+<div class="banner">🧪 ENVIRONNEMENT DE TEST — jamais la production — Backend : <b>joegfxwcsvtqtxbffpkp</b> — comptes et données fictifs</div>
 
 <div id="login-view">
   <div class="wrap">
@@ -74,10 +87,43 @@
 
 <div id="app-view">
   <div class="topbar">
-    <div class="who">Connecté : <b id="who-name">—</b> (<span id="who-role">—</span>)</div>
+    <div class="who">Connecté : <b id="who-name">—</b> (<span id="who-role">—</span>) — Backend : <b>joegfxwcsvtqtxbffpkp</b> (TEST)</div>
     <button class="btn-logout" id="logout-btn">Se déconnecter</button>
   </div>
-  <iframe id="ai-center-frame" title="Intelligence IA (test/staging)"></iframe>
+  <div class="tabs">
+    <div class="tab active" data-pane="pane-rh">RH (fiche employé test)</div>
+    <div class="tab" data-pane="pane-ia">Intelligence IA</div>
+  </div>
+  <div class="wrap">
+    <div class="pane active" id="pane-rh">
+      <div class="card">
+        <h1>Gestion des accès — fiche employé test</h1>
+        <div class="sub">
+          Réservé Direction. Utilise le même broker <code>window.veraluzSecureRequest(endpoint, payload)</code>
+          que RH_EMBEDDED.html en production (PROMPT 009B §4) — reset-employee-pin, revoke-employee-sessions,
+          get-employee-access-status — répliqués sur ce projet TEST (§8) sans aucune donnée client PRODUCTION.
+        </div>
+        <label for="rh-employee-select">Employé fictif TEST cible</label>
+        <select id="rh-employee-select"></select>
+        <div id="rh-status" style="margin-top:12px;"><span class="sub">Statut non chargé.</span></div>
+        <div>
+          <button class="btn-sec" id="rh-refresh-btn">🔄 Actualiser le statut</button>
+          <button class="btn-warn" id="rh-reset-btn">🔑 Réinitialiser le code PIN</button>
+          <button class="btn-danger" id="rh-revoke-btn">🚫 Révoquer les sessions</button>
+        </div>
+        <div id="rh-result" style="display:none;margin-top:12px;padding:12px;background:#0f1115;border-radius:8px;">
+          <div class="sub">PIN provisoire (affiché une seule fois) :</div>
+          <div style="font-size:24px;font-weight:700;letter-spacing:4px;" id="rh-pin"></div>
+          <div class="sub" id="rh-exp"></div>
+        </div>
+        <div class="err" id="rh-err"></div>
+        <div class="ok" id="rh-ok"></div>
+      </div>
+    </div>
+    <div class="pane" id="pane-ia">
+      <iframe id="ai-center-frame" title="Intelligence IA (test/staging)"></iframe>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -87,15 +133,17 @@
   var SUPABASE_URL = 'https://joegfxwcsvtqtxbffpkp.supabase.co';
   var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvZWdmeHdjc3Z0cXR4YmZmcGtwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwNDYxMzYsImV4cCI6MjEwMTYyMjEzNn0.g60voRYTWV5DrhDSmzuPtwD5E36mNVHBNF9kL818E-E';
 
-  // PROMPT 009 §4 — whitelist mise à jour : agent-run (générique, lot 007)
-  // et agent-chloe-run (lot 008) ajoutés à la liste TEST_004 d'origine.
+  /* PROMPT 009B §4 — allowlist étendue : les 3 endpoints AUTH/RH réservés
+     Direction (répliqués sur TEST au §8) s'ajoutent aux endpoints agent-*
+     déjà whitelistés depuis 009. Un seul broker, jamais un deuxième. */
   var ALLOWED_ENDPOINTS = [
     'agent-foundation-read', 'agent-run', 'agent-chloe-run',
     'agent-restaurant-run', 'agent-reservations-run', 'agent-techops-run',
     'agent-feedback', 'agent-approval', 'agent-control',
+    'reset-employee-pin', 'revoke-employee-sessions', 'get-employee-access-status',
   ];
 
-  var _sessionToken = null;
+  var _sessionToken = null; /* jamais persisté, jamais transmis aux iframes */
   var _employee = null;
 
   function $(id) { return document.getElementById(id); }
@@ -127,6 +175,8 @@
       var opt = document.createElement('option');
       opt.value = e.id; opt.textContent = e.display_name;
       sel.appendChild(opt);
+      var opt2 = opt.cloneNode(true);
+      $('rh-employee-select').appendChild(opt2);
     });
   }
 
@@ -144,7 +194,7 @@
       $('login-err').textContent = 'Connexion refusée (' + code + ').';
       return;
     }
-    _sessionToken = r.body.session_token; // jamais persisté
+    _sessionToken = r.body.session_token; /* mémoire uniquement, jamais persisté, jamais transmis aux iframes */
     _employee = r.body.employee;
     $('pin-input').value = '';
     showApp();
@@ -160,6 +210,8 @@
     $('app-view').style.display = 'none';
     $('login-view').style.display = 'block';
     $('pin-input').value = '';
+    $('rh-result').style.display = 'none';
+    $('rh-status').innerHTML = '<span class="sub">Statut non chargé.</span>';
     loadEmployees();
   }
 
@@ -169,19 +221,25 @@
     $('who-name').textContent = (_employee && (_employee.public_display_name || _employee.full_name)) || '—';
     $('who-role').textContent = (_employee && _employee.role) || '—';
     var frame = $('ai-center-frame');
-    // Charge le VRAI module promu (identique à celui référencé par
-    // VERALUZ_OS_CORE.html en production — file:'AI_CENTER_EMBEDDED.html').
+    /* Charge le VRAI module promu (identique à celui référencé par
+       VERALUZ_OS_CORE.html en production — file:'AI_CENTER_EMBEDDED.html'). */
     frame.src = 'AI_CENTER_EMBEDDED.html';
     frame.onload = function () {
       frame.contentWindow.postMessage({ source: 'veraluz-core', type: 'auth-context', data: {
         name: (_employee && (_employee.public_display_name || _employee.full_name)) || '',
         role: (_employee && _employee.role) || '',
         employee_id: (_employee && _employee.id) || null,
+        /* PROMPT 009B — jamais de session_token ici, même en TEST : le
+           contrat est identique à celui de la production. */
       } }, '*');
     };
   }
 
-  /** Broker de session parent→enfant — seule porte vers le backend. */
+  /** Broker de session parent→enfant — seule porte vers le backend.
+   *  PROMPT 009B : c'est ce harnais (l'équivalent CORE ici) qui ajoute le
+   *  session_token réel avant d'appeler l'Edge Function ; l'appelant
+   *  (iframe IA, ou le panneau RH ci-dessous, qui suit exactement le même
+   *  contrat qu'une iframe) ne reçoit jamais le jeton. */
   window.veraluzSecureRequest = async function (endpoint, payload) {
     if (typeof endpoint !== 'string' || ALLOWED_ENDPOINTS.indexOf(endpoint) === -1) {
       return { status: 400, body: { ok: false, error: 'endpoint_not_whitelisted' } };
@@ -189,7 +247,10 @@
     if (!_sessionToken) {
       return { status: 401, body: { ok: false, error: 'not_logged_in' } };
     }
-    return apiCall(endpoint, payload, { 'X-Veraluz-Session': _sessionToken });
+    var reqBody = {};
+    try { for (var k in (payload || {})) { reqBody[k] = payload[k]; } } catch (e) {}
+    reqBody.session_token = _sessionToken;
+    return apiCall(endpoint, reqBody);
   };
 
   window.veraluzGetEmployee = function () {
@@ -198,9 +259,73 @@
 
   window.veraluzLogout = function () { return doLogout(); };
 
+  /* ── Panneau RH (fiche employé test) — même contrat de broker que RH_EMBEDDED.html ── */
+  function rhSelectedId() { return $('rh-employee-select').value; }
+
+  async function rhRefreshStatus() {
+    $('rh-err').textContent = ''; $('rh-ok').textContent = '';
+    var eid = rhSelectedId();
+    if (!eid) return;
+    var r = await window.veraluzSecureRequest('get-employee-access-status', { employee_id: eid });
+    if (!r.body || !r.body.ok) {
+      $('rh-status').innerHTML = '<span class="sub">Statut indisponible (' + ((r.body && r.body.error) || r.status) + ').</span>';
+      return;
+    }
+    var s = r.body.status || {};
+    $('rh-status').innerHTML =
+      '<div class="kv"><b>Compte :</b> ' + (s.account_locked ? 'verrouillé' : (s.account_status || '—')) + '</div>' +
+      '<div class="kv"><b>Code PIN :</b> ' + (s.must_change_pin ? 'provisoire — changement requis' : 'actif') + '</div>' +
+      '<div class="kv"><b>Sessions actives :</b> ' + (s.active_sessions_count || 0) + '</div>' +
+      '<div class="kv"><b>Dernière connexion :</b> ' + (s.last_connection_at ? new Date(s.last_connection_at).toLocaleString('fr-FR') : '—') + '</div>';
+  }
+
+  async function rhResetPin() {
+    $('rh-err').textContent = ''; $('rh-ok').textContent = ''; $('rh-result').style.display = 'none';
+    var eid = rhSelectedId();
+    if (!eid) return;
+    var btn = $('rh-reset-btn'); btn.disabled = true; btn.textContent = '⏳ Génération…';
+    var r = await window.veraluzSecureRequest('reset-employee-pin', { employee_id: eid });
+    btn.disabled = false; btn.textContent = '🔑 Réinitialiser le code PIN';
+    if (!r.body || !r.body.ok) {
+      $('rh-err').textContent = 'Erreur : ' + ((r.body && r.body.error) || r.status);
+      return;
+    }
+    $('rh-ok').textContent = '✅ PIN provisoire généré via le broker (aucun jeton exposé).';
+    $('rh-result').style.display = 'block';
+    $('rh-pin').textContent = r.body.temporary_pin;
+    $('rh-exp').textContent = 'Expire le : ' + (r.body.expires_at ? new Date(r.body.expires_at).toLocaleString('fr-FR') : '24h');
+    rhRefreshStatus();
+  }
+
+  async function rhRevokeSessions() {
+    $('rh-err').textContent = ''; $('rh-ok').textContent = '';
+    var eid = rhSelectedId();
+    if (!eid) return;
+    if (!confirm('Révoquer toutes les sessions actives de cet employé test ?')) return;
+    var r = await window.veraluzSecureRequest('revoke-employee-sessions', { employee_id: eid });
+    if (!r.body || !r.body.ok) {
+      $('rh-err').textContent = 'Erreur : ' + ((r.body && r.body.error) || r.status);
+      return;
+    }
+    $('rh-ok').textContent = '✅ ' + (r.body.revoked_count || 0) + ' session(s) révoquée(s) via le broker.';
+    rhRefreshStatus();
+  }
+
   $('login-btn').addEventListener('click', doLogin);
   $('pin-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
   $('logout-btn').addEventListener('click', doLogout);
+  $('rh-refresh-btn').addEventListener('click', rhRefreshStatus);
+  $('rh-reset-btn').addEventListener('click', rhResetPin);
+  $('rh-revoke-btn').addEventListener('click', rhRevokeSessions);
+
+  document.querySelectorAll('.tab').forEach(function (t) {
+    t.addEventListener('click', function () {
+      document.querySelectorAll('.tab').forEach(function (x) { x.classList.remove('active'); });
+      document.querySelectorAll('.pane').forEach(function (x) { x.classList.remove('active'); });
+      t.classList.add('active');
+      document.getElementById(t.dataset.pane).classList.add('active');
+    });
+  });
 
   $('login-view').style.display = 'block';
   loadEmployees();

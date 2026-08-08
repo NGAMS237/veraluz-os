@@ -535,10 +535,14 @@ function getAgentAvatar(row){
   return (row.ui_metadata_json && row.ui_metadata_json.avatar_url) ? row.ui_metadata_json.avatar_url : null;
 }
 
+function vlxAvatarErr(el){
+  el.style.display='none';
+  if(el.nextSibling) el.nextSibling.style.display='';
+}
 function agentAvatarOrIcon(row, cssClass, iconStyle){
   var av = getAgentAvatar(row);
   var icon = (row.ui_metadata_json&&row.ui_metadata_json.icon)||row.icon||'🤖';
-  if (av) return '<img class="'+cssClass+'" src="'+av+'" alt="" onerror="this.style.display='none';this.nextSibling.style.display=''">'+'<span style="display:none;'+iconStyle+'">'+esc(icon)+'</span>';
+  if (av) return '<img class="'+cssClass+'" src="'+av+'" alt="" onerror="vlxAvatarErr(this)">'+'<span style="display:none;'+iconStyle+'">'+esc(icon)+'</span>';
   return '<span style="'+iconStyle+'">'+esc(icon)+'</span>';
 }
 

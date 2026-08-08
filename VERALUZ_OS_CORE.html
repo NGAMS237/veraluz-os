@@ -1511,11 +1511,12 @@ function buildNav(){
       ROLES[currentUser.role] ? ROLES[currentUser.role].modules.indexOf('ai_center') >= 0 : 'N/A');
   }
 
-  /* 010C — préférer allowed_modules (superadmin/gerant voient Rapports, IA, etc.) */
+  /* 010C — préférer allowed_modules; fallback via ROLE_MAP (gerant→superadmin) */
+  var _normRole = currentUser ? (ROLE_MAP[currentUser.role] || currentUser.role) : null;
   var _modList = currentUser
     ? ((currentUser.allowed_modules && currentUser.allowed_modules.length > 0)
         ? currentUser.allowed_modules
-        : (ROLES[currentUser.role] ? ROLES[currentUser.role].modules : []))
+        : (ROLES[_normRole] ? ROLES[_normRole].modules : []))
     : null;
   var visibleModules = _modList
     ? MODULES.filter(function(m){ return _modList.indexOf(m.id) >= 0 && isModuleEnabled(m.id); })
@@ -2089,7 +2090,7 @@ function doLoginPin() {
     var emp           = result.employee;
     var empName2      = emp.full_name || emp.employee_name || empName || 'Employé';
     var coreRole      = emp.role || 'staff';
-    var allowedMods   = emp.allowed_modules || getAllowedModules(coreRole);
+    var allowedMods   = emp.allowed_modules || getAllowedModules(ROLE_MAP[coreRole] || coreRole);
     var expires       = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
     /* PROMPT 009 — correction : empDeptFinal est désormais déclaré AVANT toute
        utilisation (l'ancien code le référençait plus haut avant sa propre
@@ -2771,7 +2772,7 @@ function doChangePin() {
     var empId2        = emp.id || emp.employee_id;
     var empName2      = emp.full_name || emp.public_display_name || ps.empName || 'Employé';
     var coreRole      = emp.role || 'staff';
-    var allowedMods   = emp.allowed_modules || getAllowedModules(coreRole);
+    var allowedMods   = emp.allowed_modules || getAllowedModules(ROLE_MAP[coreRole] || coreRole);
     var empDeptFinal  = emp.department || emp.team_id || coreRole;
     var expires       = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
 

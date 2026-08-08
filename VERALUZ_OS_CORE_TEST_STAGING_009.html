@@ -1,0 +1,210 @@
+<!--
+  VERALUZ — VERALUZ_OS_CORE_TEST_STAGING_009.html — PROMPT 009 §4
+
+  Shell de TEST/STAGING pour valider en conditions réelles de navigateur
+  que l'interface Intelligence IA promue (AI_CENTER_EMBEDDED.html, ex-
+  AI_CENTER_FUNCTIONAL_EMBEDDED.html du lot 007, câblée sur l'agent
+  générique agent-run + agent-chloe-run du lot 008) affiche bien les 4
+  agents attendus pour la Direction : Chloé, Maya, Nora, TechOps.
+
+  Règles respectées (mêmes que TEST_004/test-core-frontend.html, dont ce
+  fichier reprend fidèlement le modèle de broker, avec la whitelist
+  d'endpoints mise à jour pour les lots 007/008) :
+   - pointe UNIQUEMENT sur joegfxwcsvtqtxbffpkp (jamais dfdmasejsoibxrvubegu) ;
+   - bandeau "ENVIRONNEMENT DE TEST" toujours visible ;
+   - jeton de session en mémoire UNIQUEMENT (jamais localStorage/
+     sessionStorage/URL) ;
+   - broker de session : window.veraluzSecureRequest(endpoint, payload)
+     est la SEULE porte que l'iframe Intelligence IA peut utiliser pour
+     atteindre les Edge Functions — endpoints whitelistés, jamais une
+     URL/méthode arbitraire, jamais de lecture du jeton par l'enfant ;
+   - ce fichier n'est PAS VERALUZ_OS_CORE.html réel et n'est jamais
+     utilisé comme tel — uniquement pour la vérification §4/§15 de ce lot.
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VERALUZ — TEST/STAGING 009 — Intelligence IA</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background:#0f1115; color:#e8eaed; }
+  .banner { background:#5b2b00; color:#ffd699; padding:8px 16px; font-size:13px; font-weight:600; text-align:center;
+            border-bottom:2px solid #ff9800; position:sticky; top:0; z-index:10; }
+  .banner b { color:#fff; }
+  .wrap { max-width:1100px; margin:0 auto; padding:20px; }
+  .card { background:#181b21; border:1px solid #2a2e37; border-radius:10px; padding:20px; margin-bottom:16px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .sub { color:#9aa0a6; font-size:13px; margin-bottom:16px; }
+  label { display:block; font-size:12px; color:#9aa0a6; margin:10px 0 4px; }
+  select, input { width:100%; padding:10px; border-radius:6px; border:1px solid #333; background:#0f1115; color:#e8eaed; font-size:14px; }
+  button { cursor:pointer; border:none; border-radius:6px; padding:10px 16px; font-size:14px; font-weight:600; margin-top:12px; }
+  .btn-primary { background:#3b82f6; color:#fff; }
+  .btn-primary:hover { background:#2563eb; }
+  .btn-logout { background:#3a3f4a; color:#e8eaed; }
+  .btn-logout:hover { background:#4a505e; }
+  .err { color:#ff6b6b; font-size:13px; margin-top:8px; min-height:16px; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; padding:10px 20px; background:#181b21; border-bottom:1px solid #2a2e37; }
+  .who { font-size:13px; color:#9aa0a6; }
+  .who b { color:#e8eaed; }
+  iframe { width:100%; height:82vh; border:0; background:#fff; display:block; }
+  #login-view, #app-view { display:none; }
+</style>
+</head>
+<body>
+
+<div class="banner">🧪 ENVIRONNEMENT DE TEST/STAGING — PROMPT 009 §4/§15 — projet Supabase isolé <b>joegfxwcsvtqtxbffpkp</b> — jamais la production — comptes et données fictifs</div>
+
+<div id="login-view">
+  <div class="wrap">
+    <div class="card" style="max-width:420px;margin:40px auto;">
+      <h1>VERALUZ OS — connexion (test/staging)</h1>
+      <div class="sub">Sélectionnez un compte fictif et saisissez son NIP. Compte Direction connu : <code>emp-direction</code> / PIN <code>815064</code>.</div>
+      <label for="employee-select">Employé</label>
+      <select id="employee-select"><option value="">Chargement…</option></select>
+      <label for="pin-input">NIP</label>
+      <input id="pin-input" type="password" inputmode="numeric" maxlength="6" placeholder="••••••">
+      <button class="btn-primary" id="login-btn" style="width:100%;">Se connecter</button>
+      <div class="err" id="login-err"></div>
+    </div>
+  </div>
+</div>
+
+<div id="app-view">
+  <div class="topbar">
+    <div class="who">Connecté : <b id="who-name">—</b> (<span id="who-role">—</span>)</div>
+    <button class="btn-logout" id="logout-btn">Se déconnecter</button>
+  </div>
+  <iframe id="ai-center-frame" title="Intelligence IA (test/staging)"></iframe>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var SUPABASE_URL = 'https://joegfxwcsvtqtxbffpkp.supabase.co';
+  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpvZWdmeHdjc3Z0cXR4YmZmcGtwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYwNDYxMzYsImV4cCI6MjEwMTYyMjEzNn0.g60voRYTWV5DrhDSmzuPtwD5E36mNVHBNF9kL818E-E';
+
+  // PROMPT 009 §4 — whitelist mise à jour : agent-run (générique, lot 007)
+  // et agent-chloe-run (lot 008) ajoutés à la liste TEST_004 d'origine.
+  var ALLOWED_ENDPOINTS = [
+    'agent-foundation-read', 'agent-run', 'agent-chloe-run',
+    'agent-restaurant-run', 'agent-reservations-run', 'agent-techops-run',
+    'agent-feedback', 'agent-approval', 'agent-control',
+  ];
+
+  var _sessionToken = null;
+  var _employee = null;
+
+  function $(id) { return document.getElementById(id); }
+
+  async function apiCall(path, body, extraHeaders) {
+    var headers = {
+      'apikey': ANON_KEY,
+      'Authorization': 'Bearer ' + ANON_KEY,
+      'Content-Type': 'application/json',
+    };
+    if (extraHeaders) Object.keys(extraHeaders).forEach(function (k) { headers[k] = extraHeaders[k]; });
+    var res = await fetch(SUPABASE_URL + '/functions/v1/' + path, {
+      method: 'POST', headers: headers, body: JSON.stringify(body || {}),
+    });
+    var json = null;
+    try { json = await res.json(); } catch (e) { /* corps non-JSON */ }
+    return { status: res.status, body: json };
+  }
+
+  async function loadEmployees() {
+    var r = await apiCall('list-login-employees', {});
+    var sel = $('employee-select');
+    sel.innerHTML = '';
+    if (!r.body || !r.body.ok) {
+      sel.innerHTML = '<option value="">Erreur de chargement</option>';
+      return;
+    }
+    (r.body.employees || []).forEach(function (e) {
+      var opt = document.createElement('option');
+      opt.value = e.id; opt.textContent = e.display_name;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function doLogin() {
+    var eid = $('employee-select').value;
+    var pin = $('pin-input').value.trim();
+    $('login-err').textContent = '';
+    if (!eid || !/^[0-9]{4,6}$/.test(pin)) {
+      $('login-err').textContent = 'Sélectionnez un employé et saisissez un NIP valide.';
+      return;
+    }
+    var r = await apiCall('verify-employee-pin', { employee_id: eid, pin: pin });
+    if (!r.body || !r.body.ok) {
+      var code = (r.body && r.body.error) || ('http_' + r.status);
+      $('login-err').textContent = 'Connexion refusée (' + code + ').';
+      return;
+    }
+    _sessionToken = r.body.session_token; // jamais persisté
+    _employee = r.body.employee;
+    $('pin-input').value = '';
+    showApp();
+  }
+
+  async function doLogout() {
+    if (_sessionToken) {
+      try { await apiCall('logout-employee-session', { session_token: _sessionToken }); } catch (e) { /* best-effort */ }
+    }
+    _sessionToken = null;
+    _employee = null;
+    $('ai-center-frame').src = 'about:blank';
+    $('app-view').style.display = 'none';
+    $('login-view').style.display = 'block';
+    $('pin-input').value = '';
+    loadEmployees();
+  }
+
+  function showApp() {
+    $('login-view').style.display = 'none';
+    $('app-view').style.display = 'block';
+    $('who-name').textContent = (_employee && (_employee.public_display_name || _employee.full_name)) || '—';
+    $('who-role').textContent = (_employee && _employee.role) || '—';
+    var frame = $('ai-center-frame');
+    // Charge le VRAI module promu (identique à celui référencé par
+    // VERALUZ_OS_CORE.html en production — file:'AI_CENTER_EMBEDDED.html').
+    frame.src = 'AI_CENTER_EMBEDDED.html';
+    frame.onload = function () {
+      frame.contentWindow.postMessage({ source: 'veraluz-core', type: 'auth-context', data: {
+        name: (_employee && (_employee.public_display_name || _employee.full_name)) || '',
+        role: (_employee && _employee.role) || '',
+        employee_id: (_employee && _employee.id) || null,
+      } }, '*');
+    };
+  }
+
+  /** Broker de session parent→enfant — seule porte vers le backend. */
+  window.veraluzSecureRequest = async function (endpoint, payload) {
+    if (typeof endpoint !== 'string' || ALLOWED_ENDPOINTS.indexOf(endpoint) === -1) {
+      return { status: 400, body: { ok: false, error: 'endpoint_not_whitelisted' } };
+    }
+    if (!_sessionToken) {
+      return { status: 401, body: { ok: false, error: 'not_logged_in' } };
+    }
+    return apiCall(endpoint, payload, { 'X-Veraluz-Session': _sessionToken });
+  };
+
+  window.veraluzGetEmployee = function () {
+    return _employee ? { id: _employee.id, role: _employee.role, display_name: _employee.public_display_name || _employee.full_name } : null;
+  };
+
+  window.veraluzLogout = function () { return doLogout(); };
+
+  $('login-btn').addEventListener('click', doLogin);
+  $('pin-input').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+  $('logout-btn').addEventListener('click', doLogout);
+
+  $('login-view').style.display = 'block';
+  loadEmployees();
+})();
+</script>
+</body>
+</html>

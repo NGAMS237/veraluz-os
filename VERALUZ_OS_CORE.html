@@ -1132,13 +1132,17 @@ html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
       <span class="auth-pin-lbl">Votre NIP / PIN employé</span>
       <!-- PROMPT 020C — sous-titre 4/6 chiffres -->
       <div class="auth-pin-sub">Les anciens PIN ont 4 chiffres · Les nouveaux PIN ont 6 chiffres</div>
-      <div class="auth-pin-display">
-        <div class="auth-pin-dot" id="pin-dot-0"></div>
-        <div class="auth-pin-dot" id="pin-dot-1"></div>
-        <div class="auth-pin-dot" id="pin-dot-2"></div>
-        <div class="auth-pin-dot" id="pin-dot-3"></div>
-        <div class="auth-pin-dot" id="pin-dot-4"></div>
-        <div class="auth-pin-dot" id="pin-dot-5"></div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+        <div class="auth-pin-display" id="auth-pin-display">
+          <div class="auth-pin-dot" id="pin-dot-0"></div>
+          <div class="auth-pin-dot" id="pin-dot-1"></div>
+          <div class="auth-pin-dot" id="pin-dot-2"></div>
+          <div class="auth-pin-dot" id="pin-dot-3"></div>
+          <div class="auth-pin-dot" id="pin-dot-4"></div>
+          <div class="auth-pin-dot" id="pin-dot-5"></div>
+        </div>
+        <div class="auth-pin-reveal-text" id="auth-pin-reveal-text" style="display:none;font-family:monospace;font-size:18px;letter-spacing:4px;color:var(--acc,#22d3a5);min-width:96px;text-align:center;"></div>
+        <button type="button" id="auth-pin-eye-btn" onclick="toggleLoginPinVisibility()" aria-label="Afficher ou masquer le PIN" title="Afficher / masquer le PIN" style="background:none;border:none;cursor:pointer;font-size:18px;line-height:1;padding:4px;">👁️</button>
       </div>
       <!-- PROMPT 020C — hint contextuel -->
       <div id="pin-hint" class="auth-pin-hint"></div>
@@ -1518,18 +1522,9 @@ function buildNav(){
       ROLES[currentUser.role] ? ROLES[currentUser.role].modules.indexOf('ai_center') >= 0 : 'N/A');
   }
 
-  /* EMERGENCY_001 — la sidebar lit ROLES[role].modules directement.
-     RESTRICTED_MODULES est applique ici aussi, sinon un module reserve
-     resterait visible pour un role non autorise. */
-  function _moduleAutorise(id, role) {
-    var r = (typeof RESTRICTED_MODULES !== 'undefined') && RESTRICTED_MODULES[id];
-    return r ? r.indexOf(role) !== -1 : true;
-  }
   var visibleModules = (currentUser && ROLES[currentUser.role])
-    ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0
-                                      && _moduleAutorise(m.id, currentUser.role)
-                                      && isModuleEnabled(m.id); })
-    : MODULES.filter(function(m){ return isModuleEnabled(m.id) && !(typeof RESTRICTED_MODULES !== 'undefined' && RESTRICTED_MODULES[m.id]); });
+    ? MODULES.filter(function(m){ return ROLES[currentUser.role].modules.indexOf(m.id) >= 0 && isModuleEnabled(m.id); })
+    : MODULES.filter(function(m){ return isModuleEnabled(m.id); });
 
   /* PROMPT 008A — Mon espace pour les employés */
   if (currentUser && currentUser.employee_id) {
@@ -1770,7 +1765,7 @@ var ROLES = {
   superadmin:  { label:'Gérant / Admin',   icon:'👑', color:'#a855f7', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
              'notifications','analytics','audit','settings','eventbus','auth','contacts','appro','integrations','ai_center',
-             'documents','messages','rapports'] /* PROMPT 019+030 ; EMERGENCY_001 : rapports */ },
+             'documents','messages'] /* PROMPT 019+030 */ },
   manager:     { label:'Manager',          icon:'🏅', color:'#3b82f6', primaryModule:'employee_home',
     modules:['reservations','paiements','housekeeping','restaurant','finance','rh',
              'notifications','analytics','contacts','appro','ai_center',
@@ -1886,6 +1881,29 @@ function updatePinDisplay() {
     var dot = document.getElementById('pin-dot-' + i);
     if (dot) dot.className = 'auth-pin-dot' + (i < _pinBuffer.length ? ' filled' : '');
   }
+  /* PROMPT 009 — emplacement 1/6 : afficher/masquer le PIN du pavé de connexion.
+     Pas de <input> réel ici (boutons numériques), donc bascule entre les
+     puces (masqué) et un texte simple des chiffres saisis (affiché). */
+  var dotsWrap  = document.getElementById('auth-pin-display');
+  var revealEl  = document.getElementById('auth-pin-reveal-text');
+  if (revealEl) {
+    if (_pinRevealed && _pinBuffer.length > 0) {
+      revealEl.textContent = _pinBuffer.split('').join(' ');
+      revealEl.style.display = 'inline-block';
+      if (dotsWrap) dotsWrap.style.display = 'none';
+    } else {
+      revealEl.style.display = 'none';
+      if (dotsWrap) dotsWrap.style.display = 'flex';
+    }
+  }
+}
+/* PROMPT 009 — bascule affichage/masquage du PIN saisi au pavé de connexion. */
+var _pinRevealed = false;
+function toggleLoginPinVisibility() {
+  _pinRevealed = !_pinRevealed;
+  var btn = document.getElementById('auth-pin-eye-btn');
+  if (btn) btn.textContent = _pinRevealed ? '🙈' : '👁️';
+  updatePinDisplay();
 }
 /* PROMPT 020C — message d'aide contextuel selon longueur saisie */
 function updatePinHint() {
@@ -2034,7 +2052,7 @@ function doLoginPin() {
   /* PROMPT 008B Mission 6 — vérification PIN côté serveur (Edge Function) */
   verifyEmployeePin(empId, _pinBuffer)
   .then(function(result) {
-    if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = '\u2705 Se connecter'; }
+    if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = '✅ Se connecter'; }
     _pinBuffer = ''; updatePinDisplay();
 
     if (!result.ok) {
@@ -2058,23 +2076,32 @@ function doLoginPin() {
       return;
     }
 
-    /* Succès — construire session depuis réponse serveur (sans données sensibles) */
-    setSessionToken(result.session_token, result.session_expiry);   /* EMERGENCY_001 */
-    var emp = result.employee;
-    var empName2 = emp.full_name || emp.employee_name || empName || 'Employé';
-    var coreRole = emp.role || 'staff';
-    var allowedMods = emp.allowed_modules || getAllowedModules(coreRole);
-    var expires = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
-
-    /* PROMPT 010 — si must_change_pin : afficher la vue de changement PIN avant connexion */
-    if (result.must_change_pin) {
-      _pinBuffer = ''; updatePinDisplay();
-      showChangePinView(empId, empName2, coreRole, allowedMods, expires, empDeptFinal);
+    /* PROMPT 009 — PIN provisoire : AUCUNE session CORE n'est créée ici.
+       Le serveur ne renvoie qu'un change_token à portée strictement limitée
+       à l'écran de changement obligatoire (complete-forced-pin-change).
+       L'ancien code appelait setSessionToken() avant même de vérifier ce cas
+       — corrigé : on teste auth_state EN PREMIER. */
+    if (result.auth_state === 'must_change_pin' || result.must_change_pin) {
+      var empForChange     = result.employee || {};
+      var empNameForChange = empForChange.full_name || empForChange.public_display_name || empName || 'Employé';
+      showChangePinView(result.change_token, empNameForChange);
       return;
     }
 
+    /* Succès normal — construire session depuis réponse serveur (sans données sensibles) */
+    /* EMERGENCY_001 : le jeton opaque reste en mémoire, jamais persisté. */
+    setSessionToken(result.session_token, result.session_expiry);
+    var emp           = result.employee;
+    var empName2      = emp.full_name || emp.employee_name || empName || 'Employé';
+    var coreRole      = emp.role || 'staff';
+    var allowedMods   = emp.allowed_modules || getAllowedModules(coreRole);
+    var expires       = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
+    /* PROMPT 009 — correction : empDeptFinal est désormais déclaré AVANT toute
+       utilisation (l'ancien code le référençait plus haut avant sa propre
+       déclaration var, un bug de hoisting qui produisait undefined). */
+    var empDeptFinal  = emp.department || emp.team_id || empDept || coreRole;
+
     /* PIN JAMAIS stocké — session 12h issue du serveur */
-    var empDeptFinal = emp.department || emp.team_id || empDept || coreRole;
     var session = {
       username:        empId,
       name:            empName2,
@@ -2268,6 +2295,9 @@ var EDGE_VERIFY_ADMIN_URL  = 'https://dfdmasejsoibxrvubegu.supabase.co/functions
 /* PROMPT 010 — Nouvelles Edge Functions PIN lifecycle */
 var EDGE_CHANGE_PIN_URL    = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/change-employee-pin';
 var EDGE_RESET_PIN_URL     = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/reset-employee-pin';
+/* PROMPT 009 — nouvelles Edge Functions AUTH (change_token, révocation) */
+var EDGE_COMPLETE_FORCED_PIN_CHANGE_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/complete-forced-pin-change';
+var EDGE_REVOKE_SESSIONS_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/revoke-employee-sessions';
 var EDGE_CHANGE_ADMIN_PW   = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/change-admin-password';
 
 /* ================================================================
@@ -2277,7 +2307,7 @@ var EDGE_CHANGE_ADMIN_PW   = 'https://dfdmasejsoibxrvubegu.supabase.co/functions
    TODO SECURITY: supprimer DEV_UNLOCK_ENABLED, DEV_UNLOCK_EXPIRES_AT
                   et handleDevUnlock() avant production.
    ================================================================ */
-var DEV_UNLOCK_ENABLED    = false; /* EMERGENCY_001 */
+var DEV_UNLOCK_ENABLED    = false; /* EMERGENCY_001 : déverrouillage DEV supprimé */
 var DEV_UNLOCK_EXPIRES_AT = '2026-06-28T23:59:59Z';
 var DEV_UNLOCK_TOKEN      = 'veraluz_dev_recovery'; /* token URL — pas un secret de prod */
 
@@ -2649,8 +2679,8 @@ function verifyEmployeePin(employeeId, pin) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'apikey': SUPA_KEY,                    /* clé anon — publique */
-      'Authorization': 'Bearer ' + SUPA_KEY  /* EMERGENCY_001 : verify_jwt actif */
+      'apikey': SUPA_KEY,                    /* clé anon — publique, safe côté client */
+      'Authorization': 'Bearer ' + SUPA_KEY  /* EMERGENCY_001 : verify_jwt actif côté Edge */
     },
     body: JSON.stringify({ employee_id: employeeId, pin: pin })
   })
@@ -2672,8 +2702,9 @@ function verifyEmployeePin(employeeId, pin) {
 /* Données temporaires de pré-session pour le changement de PIN */
 var _pendingPinSession = null;
 
-/* EMERGENCY_001 — jeton de session opaque, EN MÉMOIRE UNIQUEMENT.
-   Jamais localStorage, sessionStorage, cookie ni URL. */
+/* EMERGENCY_001 — Jeton de session opaque.
+   EN MÉMOIRE UNIQUEMENT : jamais localStorage, sessionStorage, cookie ni URL.
+   Perdu au rechargement de page, ce qui est le comportement voulu. */
 var _sessionToken  = null;
 var _sessionExpiry = null;
 function setSessionToken(t, exp) { _sessionToken = t || null; _sessionExpiry = exp || null; }
@@ -2684,36 +2715,59 @@ function getSessionToken()       { return _sessionToken; }
  * showChangePinView() — affiché quand must_change_pin = true
  * L'employé doit changer son PIN avant d'accéder à l'application.
  */
-function showChangePinView(empId, empName, coreRole, allowedMods, expires, empDept) {
-  _pendingPinSession = { empId:empId, empName:empName, coreRole:coreRole, allowedMods:allowedMods, expires:expires, empDept:empDept||coreRole };
+function showChangePinView(changeToken, empName) {
+  _pendingPinSession = { changeToken: changeToken, empName: empName };
   var overlay = document.getElementById('auth-overlay');
   if (!overlay) { console.error('[changePIN] auth-overlay introuvable'); return; }
   var box = overlay.querySelector('.auth-box') || overlay;
   box.innerHTML = '<div id="view-change-pin" style="padding:16px 0;">'
     + '<div style="text-align:center;margin-bottom:16px;">'
     + '<div style="font-size:28px;margin-bottom:6px;">🔐</div>'
-    + '<div style="font-weight:700;font-size:18px;color:var(--text1)">Changement de PIN requis</div>'
-    + '<div style="color:var(--text2);font-size:13px;margin-top:4px;">Bonjour ' + esc(empName) + ', vous devez définir un nouveau PIN à 6 chiffres pour continuer.</div>'
+    + '<div style="font-weight:700;font-size:18px;color:var(--text1)">Changement de code PIN requis</div>'
+    + '<div style="color:var(--text2);font-size:13px;margin-top:4px;">Bonjour ' + esc(empName) + ', vous devez définir un nouveau code PIN à 6 chiffres avant de continuer. Ce code PIN provisoire ne peut pas être réutilisé.</div>'
     + '</div>'
     + '<div id="cp-error" class="auth-error" style="display:none;margin-bottom:8px;"></div>'
-    + '<label class="auth-label">PIN temporaire actuel (4 ou 6 chiffres)</label>'
-    + '<input class="auth-input" id="cp-current" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="current-password">'
-    + '<label class="auth-label" style="margin-top:10px;">Nouveau PIN (6 chiffres)</label>'
-    + '<input class="auth-input" id="cp-new" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="new-password">'
-    + '<label class="auth-label" style="margin-top:10px;">Confirmer le nouveau PIN</label>'
-    + '<input class="auth-input" id="cp-confirm" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="new-password">'
-    + '<button class="auth-btn" style="margin-top:16px;width:100%;" onclick="doChangePin()">Enregistrer le nouveau PIN</button>'
+    + '<label class="auth-label">Nouveau code PIN (6 chiffres)</label>'
+    + '<div style="display:flex;align-items:center;gap:6px;">'
+    + '<input class="auth-input" id="cp-new" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="new-password" style="flex:1;">'
+    + '<button type="button" onclick="togglePinFieldVisibility(\'cp-new\', this)" aria-label="Afficher ou masquer le code PIN" title="Afficher / masquer le code PIN" style="background:none;border:none;cursor:pointer;font-size:16px;padding:4px;">👁️</button>'
+    + '</div>'
+    + '<label class="auth-label" style="margin-top:10px;">Confirmer le nouveau code PIN</label>'
+    + '<div style="display:flex;align-items:center;gap:6px;">'
+    + '<input class="auth-input" id="cp-confirm" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="new-password" style="flex:1;">'
+    + '<button type="button" onclick="togglePinFieldVisibility(\'cp-confirm\', this)" aria-label="Afficher ou masquer le code PIN" title="Afficher / masquer le code PIN" style="background:none;border:none;cursor:pointer;font-size:16px;padding:4px;">👁️</button>'
+    + '</div>'
+    + '<button class="auth-btn" style="margin-top:16px;width:100%;" onclick="doChangePin()">Enregistrer le nouveau code PIN</button>'
     + '</div>';
 }
 
+/* PROMPT 009 — bascule type=password / type=text pour un champ PIN donné.
+   Utilisé sur les champs de saisie réels (input), distinct du toggle du
+   pavé numérique de connexion (toggleLoginPinVisibility, qui n'a pas de
+   véritable <input>). */
+function togglePinFieldVisibility(inputId, btnEl) {
+  var el = document.getElementById(inputId);
+  if (!el) return;
+  if (el.type === 'password') {
+    el.type = 'text';
+    if (btnEl) btnEl.textContent = '🙈';
+  } else {
+    el.type = 'password';
+    if (btnEl) btnEl.textContent = '👁️';
+  }
+}
+
 /**
- * doChangePin() — soumet le changement de PIN via Edge Function
+ * doChangePin() — PROMPT 009 : soumet le changement de PIN obligatoire via
+ * complete-forced-pin-change (change_token à usage unique, jamais de
+ * session_token/current_pin ici). Remplace l'ancien appel à
+ * change-employee-pin qui n'a jamais fonctionné dans ce flux (il attendait
+ * un session_token que le PIN provisoire n'a plus le droit d'obtenir).
  */
 function doChangePin() {
-  var ps  = _pendingPinSession;
-  if (!ps) { console.error('[changePIN] Session en attente introuvable'); return; }
+  var ps = _pendingPinSession;
+  if (!ps || !ps.changeToken) { console.error('[changePIN] Session en attente introuvable'); return; }
 
-  var currentPin = (document.getElementById('cp-current').value || '').trim();
   var newPin     = (document.getElementById('cp-new').value || '').trim();
   var confirmPin = (document.getElementById('cp-confirm').value || '').trim();
   var errEl      = document.getElementById('cp-error');
@@ -2724,59 +2778,68 @@ function doChangePin() {
   }
   errEl.style.display = 'none';
 
-  if (!currentPin || !newPin || !confirmPin) { showErr('Veuillez remplir tous les champs.'); return; }
-  if (!/^\d{4}$/.test(currentPin) && !/^\d{6}$/.test(currentPin)) { showErr('PIN actuel : 4 ou 6 chiffres requis.'); return; }
-  if (!/^\d{6}$/.test(newPin)) { showErr('Le nouveau PIN doit comporter exactement 6 chiffres.'); return; }
-  if (newPin !== confirmPin) { showErr('Les deux nouveaux PIN ne correspondent pas.'); return; }
+  if (!newPin || !confirmPin) { showErr('Veuillez remplir tous les champs.'); return; }
+  if (!/^\d{6}$/.test(newPin)) { showErr('Le nouveau code PIN doit comporter exactement 6 chiffres.'); return; }
+  if (newPin !== confirmPin) { showErr('Les deux codes PIN ne correspondent pas.'); return; }
 
   var btn = document.querySelector('#view-change-pin .auth-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement…'; }
 
-  fetch(EDGE_CHANGE_PIN_URL, {
+  fetch(EDGE_COMPLETE_FORCED_PIN_CHANGE_URL, {
     method: 'POST', mode: 'cors', credentials: 'omit',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
-    body: JSON.stringify({ employee_id: ps.empId, current_pin: currentPin, new_pin: newPin })
+    body: JSON.stringify({ change_token: ps.changeToken, new_pin: newPin })
   })
   .then(function(r) { return r.json(); })
   .then(function(result) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer le nouveau PIN'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer le nouveau code PIN'; }
     if (!result.ok) {
-      var msg = (result.error === 'invalid_credentials') ? 'PIN actuel incorrect.'
-        : (result.error === 'new_pin_must_be_6_digits') ? 'Le nouveau PIN doit comporter exactement 6 chiffres.'
-        : (result.error === 'weak_pin') ? 'PIN trop simple. Choisissez une combinaison moins évidente.'
-        : (result.error === 'temporary_pin_expired') ? 'PIN temporaire expiré. Contactez votre responsable.'
-        : (result.error || 'Erreur lors du changement de PIN.');
+      var msg = (result.error === 'invalid_change_token' || result.error === 'change_token_already_used' || result.error === 'change_token_expired')
+          ? 'Ce lien de changement de PIN provisoire a expiré ou a déjà été utilisé. Reconnectez-vous avec votre PIN provisoire pour recommencer.'
+        : (result.error === 'new_pin_must_be_6_digits') ? 'Le nouveau code PIN doit comporter exactement 6 chiffres.'
+        : (result.error === 'weak_pin') ? 'Code PIN trop simple. Choisissez une combinaison moins évidente.'
+        : (result.error || 'Erreur lors du changement de code PIN.');
       showErr(msg); return;
     }
 
-    /* PIN changé — compléter la connexion */
+    /* Nouveau PIN enregistré — vraie session CORE créée côté serveur, EMERGENCY_001 :
+       le jeton opaque reste en mémoire, jamais persisté. */
     _pendingPinSession = null;
+    setSessionToken(result.session_token, result.session_expiry);
+    var emp           = result.employee || {};
+    var empId2        = emp.id || emp.employee_id;
+    var empName2      = emp.full_name || emp.public_display_name || ps.empName || 'Employé';
+    var coreRole      = emp.role || 'staff';
+    var allowedMods   = emp.allowed_modules || getAllowedModules(coreRole);
+    var empDeptFinal  = emp.department || emp.team_id || coreRole;
+    var expires       = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
+
     var session = {
-      username:        ps.empId,
-      name:            ps.empName,
-      role:            ps.coreRole,
-      employee_id:     ps.empId,
-      user_id:         ps.empId,
-      department:      ps.empDept || ps.coreRole,
+      username:        empId2,
+      name:            empName2,
+      role:            coreRole,
+      employee_id:     empId2,
+      user_id:         empId2,
+      department:      empDeptFinal,
       tenant_id:       TENANT_ID,
-      allowed_modules: ps.allowedMods,
+      allowed_modules: allowedMods,
       primaryModule:   'employee_home',
       loginAt:         Date.now(),
-      expires:         ps.expires
+      expires:         expires
     };
     localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
     /* PROMPT 038 — alias veraluz_session pour les modules */
     localStorage.setItem('veraluz_session', JSON.stringify({
-      user_id:    ps.empId,
-      id:         ps.empId,
-      name:       ps.empName,
-      role:       ps.coreRole,
-      department: ps.empDept || ps.coreRole,
+      user_id:    empId2,
+      id:         empId2,
+      name:       empName2,
+      role:       coreRole,
+      department: empDeptFinal,
       tenant_id:  TENANT_ID
     }));
-    logAuthEvent('pin-changed-and-login', ps.empName, ps.coreRole);
-    currentUser = { username:ps.empId, name:ps.empName, role:ps.coreRole,
-                    employee_id:ps.empId, allowed_modules:ps.allowedMods };
+    logAuthEvent('pin-changed-and-login', empName2, coreRole);
+    currentUser = { username:empId2, name:empName2, role:coreRole,
+                    employee_id:empId2, allowed_modules:allowedMods };
     hideAuthOverlay();
     updateTopbarUser();
     buildNav();
@@ -2785,7 +2848,7 @@ function doChangePin() {
     setTimeout(function() { goTo('employee_home'); }, 300);
   })
   .catch(function(e) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer le nouveau PIN'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer le nouveau code PIN'; }
     console.error('[changePIN] Erreur réseau:', e);
     showErr('Service indisponible. Vérifiez la connexion.');
   });
@@ -2808,7 +2871,7 @@ function normalizeRole(employee) {
 }
 
 /* Mission 5 — modules autorisés par rôle */
-/* EMERGENCY_001 — modules réservés à la direction. */
+/* EMERGENCY_001 — modules reserves a la direction. */
 var RESTRICTED_MODULES = { rapports: ['gerant','admin','superadmin'] };
 
 function getAllowedModules(role) {
@@ -2838,7 +2901,14 @@ function renderEmployeeHome(user) {
       +'<div><div class="emp-pname">'+esc(user.name||'Employe')+'</div>'
       +'<div class="emp-prole">'+esc(rd.label||user.role||'Staff')+'</div></div>'
       +'</div>'
-      +'<div id="emp-profile-extra"><span style="color:var(--text3);font-size:12px">Chargement profil...</span></div>';
+      +'<div id="emp-profile-extra"><span style="color:var(--text3);font-size:12px">Chargement profil...</span></div>'
+      /* PROMPT 009 — §11 : changement de PIN volontaire, accessible à tout employé
+         connecté (pas seulement Direction). Repose sur getSessionToken()/EDGE_CHANGE_PIN_URL
+         déjà définis pour la connexion — aucun nouveau système d'auth. */
+      +'<div id="emp-pin-change-wrap" style="margin-top:12px;">'
+      +'<button type="button" class="emp-mod-btn" style="width:100%;text-align:center;" onclick="toggleEmpPinChangeForm()">🔐 Modifier mon code PIN</button>'
+      +'<div id="emp-pin-change-form" style="display:none;margin-top:10px;text-align:left;"></div>'
+      +'</div>';
   }
 
   /* ── Modules disponibles ── */
@@ -2864,6 +2934,95 @@ function renderEmployeeHome(user) {
   /* Charger les données personnelles */
   if (user.employee_id) loadEmployeePersonalData(user.employee_id);
 }
+
+/* ================================================================
+   PROMPT 009 — §11 : changement de PIN volontaire ("Mon profil")
+   Emplacements 4/6, 5/6, 6/6 du toggle afficher/masquer PIN.
+   ================================================================ */
+function toggleEmpPinChangeForm() {
+  var wrap = document.getElementById('emp-pin-change-form');
+  if (!wrap) return;
+  if (wrap.style.display === 'none' || !wrap.style.display) {
+    wrap.style.display = 'block';
+    renderEmpPinChangeForm();
+  } else {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+  }
+}
+
+function renderEmpPinChangeForm() {
+  var wrap = document.getElementById('emp-pin-change-form');
+  if (!wrap) return;
+  function field(id, label) {
+    return '<label style="display:block;font-size:11px;color:var(--text3);margin-bottom:4px;margin-top:8px;">' + label + '</label>'
+      + '<div style="display:flex;align-items:center;gap:6px;">'
+      + '<input id="' + id + '" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" autocomplete="off" '
+      + 'style="flex:1;padding:9px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text1);font-size:14px;">'
+      + '<button type="button" onclick="togglePinFieldVisibility(\'' + id + '\', this)" aria-label="Afficher ou masquer le code PIN" title="Afficher / masquer le code PIN" '
+      + 'style="background:none;border:none;cursor:pointer;font-size:16px;padding:4px;">👁️</button>'
+      + '</div>';
+  }
+  wrap.innerHTML =
+      '<div id="epc-error" class="auth-error" style="display:none;margin-bottom:8px;"></div>'
+    + field('epc-current', 'Code PIN actuel')
+    + field('epc-new', 'Nouveau code PIN (6 chiffres)')
+    + field('epc-confirm', 'Confirmer le nouveau code PIN')
+    + '<button type="button" class="emp-mod-btn" style="width:100%;text-align:center;margin-top:12px;" onclick="submitEmpPinChange()">Enregistrer le nouveau code PIN</button>'
+    + '<div style="font-size:11px;color:var(--text3);margin-top:6px;">Vous serez déconnecté après le changement — reconnectez-vous avec le nouveau code PIN.</div>';
+}
+
+function submitEmpPinChange() {
+  var errEl = document.getElementById('epc-error');
+  function showErr(msg) { if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } }
+  if (errEl) errEl.style.display = 'none';
+
+  var tok = getSessionToken();
+  if (!tok) { showErr('Session expirée. Reconnectez-vous.'); return; }
+
+  var currentPin = (document.getElementById('epc-current').value || '').trim();
+  var newPin     = (document.getElementById('epc-new').value || '').trim();
+  var confirmPin = (document.getElementById('epc-confirm').value || '').trim();
+
+  if (!currentPin || !newPin || !confirmPin) { showErr('Veuillez remplir tous les champs.'); return; }
+  if (!/^\d{6}$/.test(newPin)) { showErr('Le nouveau code PIN doit comporter exactement 6 chiffres.'); return; }
+  if (newPin !== confirmPin) { showErr('Les deux codes PIN ne correspondent pas.'); return; }
+
+  var btn = document.querySelector('#emp-pin-change-form .emp-mod-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement…'; }
+
+  fetch(EDGE_CHANGE_PIN_URL, {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+    body: JSON.stringify({ session_token: tok, current_pin: currentPin, new_pin: newPin })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(result) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer le nouveau code PIN'; }
+    if (!result.ok) {
+      var msg = (result.error === 'invalid_credentials') ? 'Code PIN actuel incorrect.'
+        : (result.error === 'new_pin_must_be_6_digits') ? 'Le nouveau code PIN doit comporter exactement 6 chiffres.'
+        : (result.error === 'weak_pin') ? 'Code PIN trop simple. Choisissez une combinaison moins évidente.'
+        : (result.error === 'new_pin_same_as_current') ? 'Le nouveau code PIN doit être différent de l\'actuel.'
+        : (result.error === 'unauthorized') ? 'Session expirée. Reconnectez-vous.'
+        : (result.error || 'Erreur lors du changement de code PIN.');
+      showErr(msg); return;
+    }
+    /* change-employee-pin révoque TOUTES les sessions (y compris celle-ci) —
+       déconnexion locale immédiate, sans confirm() ni appel logout redondant. */
+    alert('Code PIN modifié avec succès. Vous allez être déconnecté — reconnectez-vous avec votre nouveau code PIN.');
+    clearSessionToken();
+    localStorage.removeItem('veraluz_auth_v1');
+    localStorage.removeItem('veraluz_session');
+    currentUser = null;
+    showAuthOverlay();
+  })
+  .catch(function(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer le nouveau code PIN'; }
+    showErr('Service indisponible. Vérifiez la connexion.');
+  });
+}
+
 
 /* Mission 7 — Chargement données personnelles (employee_id uniquement) */
 /* SECURITE : Ne jamais charger les donnees de tous les employes      */
@@ -3011,7 +3170,8 @@ function toggleAdminMode() {
 
 function logout() {
   if (!confirm('Confirmer la déconnexion ?')) return;
-  /* EMERGENCY_001 — révoquer la session serveur avant l'effacement local. */
+  /* EMERGENCY_001 — révoquer la session côté serveur AVANT l'effacement local.
+     keepalive : la requête survit à la navigation. Échec réseau non bloquant. */
   var _tok = getSessionToken();
   if (_tok) {
     try {
@@ -3102,7 +3262,14 @@ function sendAuthContext(iframe) {
         roleIcon:    rd.icon  || '👤',
         modules:         rd.modules || [],
         allowed_modules: currentUser.allowed_modules || rd.modules || [],
-        employee_id:     currentUser.employee_id || null
+        employee_id:     currentUser.employee_id || null,
+        /* PROMPT 009 — jeton de session opaque transmis au module embarqué (même
+           origine, iframe de confiance) afin qu'il puisse appeler les Edge
+           Functions AUTH réelles (reset PIN, révocation de sessions, changement
+           personnel de PIN) au lieu du faux getCurrentUser() local. Jamais
+           persisté par CORE ; le module qui le reçoit ne doit pas non plus le
+           mettre en localStorage/sessionStorage — seulement en mémoire JS. */
+        session_token:   getSessionToken()
       }
     }, '*');
   } catch(e){}

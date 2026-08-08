@@ -839,6 +839,11 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
   </div>
 </div>
 
+<!-- PROMPT 009 — §10 : modal Réinitialiser le PIN (Gestion des accès, fiche employé) -->
+<div class="ov" id="md-rh-reset-pin">
+  <div class="md" id="md-rh-reset-pin-body"></div>
+</div>
+
 <div id="toast"></div>
 <script>
 
@@ -1200,6 +1205,7 @@ function openDossier(eid){
   document.getElementById('md-dossier').classList.add('on');
   goDosTb('dos-profil',document.querySelector('.dos-tab'));
   renderDosProfil(e);
+  if (typeof rhIsDirection === 'function' && rhIsDirection()) loadDosAccessStatus(e.id);
 }
 function closeDossier(){document.getElementById('md-dossier').classList.remove('on');}
 function goDosTb(pane,btn){
@@ -1286,8 +1292,151 @@ function renderDosProfil(e){
     +'<button class="btn btn-primary btn-sm" data-eid="'+esc(e.id)+'" onclick="editEmp(this.dataset.eid)">&#9998; Modifier</button>'
     +'<button class="btn btn-warn btn-sm" data-eid="'+esc(e.id)+'" data-est="'+esc(e.status)+'" onclick="toggleEmpStatus(this.dataset.eid,this.dataset.est)">'+((e.status==='actif')?'Suspendre':'Activer')+'</button>'
     +'<button class="btn btn-sec btn-sm" data-eid="'+esc(e.id)+'" onclick="openBonusForEmp(this.dataset.eid)">&#43; Prime/Retenue</button>'
-    +'</div>';
+    +'</div>'
+    /* PROMPT 009 — §10 : bloc Gestion des accès, réservé à la Direction, chargé
+       de façon asynchrone via get-employee-access-status (jamais de pin_hash/
+       token exposé — seulement des métadonnées de statut). */
+    +(rhIsDirection()
+      ? '<div class="card" id="dos-access-card" style="margin-top:10px;">'
+        +'<div style="font-weight:700;font-size:12px;margin-bottom:8px;">&#128272; Gestion des accès</div>'
+        +'<div id="dos-access-body" style="font-size:12px;color:var(--text3);">Chargement…</div>'
+        +'</div>'
+      : '');
 }
+/* ================================================================
+   PROMPT 009 — §10 : Gestion des accès (fiche employé RH)
+   Réutilise le même modèle d'autorisation que reset-employee-pin /
+   revoke-employee-sessions : session_token réel transmis par CORE,
+   jamais une identité locale non vérifiée.
+   ================================================================ */
+function loadDosAccessStatus(eid) {
+  var body = document.getElementById('dos-access-body');
+  if (!body) return;
+  if (!_rhSessionToken) {
+    body.innerHTML = '<div style="color:var(--text3);">Session Direction introuvable — reconnectez-vous.</div>';
+    return;
+  }
+  fetch(SUPA_URL + '/functions/v1/get-employee-access-status', {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+    body: JSON.stringify({ session_token: _rhSessionToken, employee_id: eid })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(result) {
+    if (!result.ok) {
+      body.innerHTML = '<div style="color:var(--text3);">Statut indisponible ('+esc(result.error||'erreur')+').</div>';
+      return;
+    }
+    var s = result.status || {};
+    var lines = [];
+    lines.push('<div><strong>Compte :</strong> ' + (s.account_locked ? '<span style="color:#f87171;">verrouillé (trop de tentatives)</span>' : esc(s.account_status||'—')) + '</div>');
+    lines.push('<div><strong>Code PIN :</strong> ' + (s.must_change_pin ? '<span style="color:#f59e0b;">provisoire — changement requis</span>' : 'actif') + '</div>');
+    if (s.temporary_pin_expires_at) lines.push('<div style="font-size:11px;color:var(--text3);">Expire le ' + esc(new Date(s.temporary_pin_expires_at).toLocaleString('fr-FR')) + '</div>');
+    lines.push('<div><strong>Sessions actives :</strong> ' + (s.active_sessions_count||0) + '</div>');
+    lines.push('<div><strong>Dernière connexion :</strong> ' + (s.last_connection_at ? esc(new Date(s.last_connection_at).toLocaleString('fr-FR')) : '—') + '</div>');
+    body.innerHTML = lines.join('')
+      + '<div class="btn-row" style="margin-top:10px;">'
+      + '<button class="btn btn-warn btn-sm" data-eid="' + esc(eid) + '" data-ename="' + esc((EMPS.find(function(x){return x.id===eid;})||{}).full_name||'') + '" onclick="openRhResetPinMd(this.dataset.eid,this.dataset.ename)">&#128273; Réinitialiser le code PIN</button>'
+      + '<button class="btn btn-sec btn-sm" data-eid="' + esc(eid) + '" onclick="doRhRevokeSessions(this.dataset.eid)">&#128683; Révoquer les sessions</button>'
+      + '</div>';
+  })
+  .catch(function() {
+    body.innerHTML = '<div style="color:var(--text3);">Erreur réseau — statut indisponible.</div>';
+  });
+}
+
+function openRhResetPinMd(empId, empName) {
+  document.getElementById('md-rh-reset-pin-body').innerHTML
+    = '<div class="mdhdr"><h3>&#128273; Réinitialiser le code PIN</h3><button class="mdc" onclick="closeMd(\'md-rh-reset-pin\')">&#10005;</button></div>'
+    + '<div style="color:var(--text3);font-size:13px;margin-bottom:14px;">'
+    + 'Employé : <strong>' + esc(empName) + '</strong><br>'
+    + 'Un code PIN provisoire à 6 chiffres sera généré et affiché une seule fois.<br>'
+    + "L'employé devra le changer à sa prochaine connexion — ses sessions actives seront révoquées."
+    + '</div>'
+    + '<div id="rrp-result" style="display:none;background:var(--bg2);border:1.5px solid #22d3a5;border-radius:10px;padding:18px 14px;margin-bottom:14px;text-align:center;">'
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:4px;text-transform:uppercase;letter-spacing:.8px;">Code PIN provisoire</div>'
+    + '<div id="rrp-pin" style="font-size:36px;font-weight:900;letter-spacing:10px;color:#22d3a5;font-family:monospace;margin:6px 0 2px;"></div>'
+    + '<div id="rrp-exp" style="font-size:11px;color:var(--text3);margin-bottom:8px;"></div>'
+    + '<div style="font-size:11px;color:#f87171;font-weight:700;background:rgba(239,68,68,.12);border-radius:6px;padding:6px 10px;">&#9888;&#65039; Ce code PIN ne sera affiché qu\'une seule fois. Notez-le maintenant.</div>'
+    + '</div>'
+    + '<div class="btn-row" id="rrp-btn-row">'
+    + '<button class="btn btn-sec" onclick="closeMd(\'md-rh-reset-pin\')">Annuler</button>'
+    + '<button class="btn btn-warn" id="rrp-confirm-btn" data-eid="' + esc(empId) + '" data-ename="' + esc(empName) + '" onclick="doRhResetPin(this)">&#128273; Générer le code PIN provisoire</button>'
+    + '</div>';
+  openMd('md-rh-reset-pin');
+}
+
+function doRhResetPin(btn) {
+  var empId   = btn.dataset.eid;
+  var empName = btn.dataset.ename;
+  if (!_rhSessionToken) { toast('Session Direction introuvable — reconnectez-vous', 'err'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Génération…';
+
+  fetch(SUPA_URL + '/functions/v1/reset-employee-pin', {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+    body: JSON.stringify({ session_token: _rhSessionToken, employee_id: empId })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(result) {
+    if (!result.ok) {
+      toast('Erreur : ' + (result.error || 'échec du reset PIN'), 'err');
+      btn.disabled = false; btn.textContent = '🔑 Générer le code PIN provisoire';
+      return;
+    }
+    toast('✅ Code PIN provisoire généré — copiez-le maintenant !');
+    document.getElementById('rrp-result').style.display = 'block';
+    document.getElementById('rrp-pin').textContent = result.temporary_pin;
+    var exp = result.expires_at ? new Date(result.expires_at).toLocaleString('fr-FR') : '24h';
+    document.getElementById('rrp-exp').textContent = 'Expire le : ' + exp;
+    document.getElementById('rrp-btn-row').innerHTML
+      = '<button class="btn btn-sec" onclick="copyRhTempPin()">📋 Copier le code PIN</button>'
+      + '<button class="btn btn-primary" onclick="closeMd(\'md-rh-reset-pin\');loadDosAccessStatus(\'' + empId.replace(/'/g,"\\'") + '\');">✅ Fermé — code PIN noté</button>';
+  })
+  .catch(function() {
+    toast('Erreur réseau : impossible de contacter le serveur', 'err');
+    btn.disabled = false; btn.textContent = '🔑 Générer le code PIN provisoire';
+  });
+}
+
+function copyRhTempPin() {
+  var el = document.getElementById('rrp-pin');
+  if (!el) return;
+  var pin = el.textContent || '';
+  if (!pin) { toast('Aucun code PIN à copier', 'err'); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(pin).then(function() { toast('Code PIN copié ✅'); })
+      .catch(function() { _rhCopyFallback(pin); });
+  } else { _rhCopyFallback(pin); }
+}
+function _rhCopyFallback(pin) {
+  var ta = document.createElement('textarea');
+  ta.value = pin; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); toast('Code PIN copié ✅'); }
+  catch (e) { toast('Copie impossible — notez le code PIN manuellement', 'err'); }
+  document.body.removeChild(ta);
+}
+
+function doRhRevokeSessions(eid) {
+  if (!_rhSessionToken) { toast('Session Direction introuvable — reconnectez-vous', 'err'); return; }
+  if (!confirm('Révoquer toutes les sessions actives de cet employé ? Il devra se reconnecter.')) return;
+  fetch(SUPA_URL + '/functions/v1/revoke-employee-sessions', {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+    body: JSON.stringify({ session_token: _rhSessionToken, employee_id: eid })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(result) {
+    if (!result.ok) { toast('Erreur : ' + (result.error || 'échec'), 'err'); return; }
+    toast('✅ ' + (result.revoked_count||0) + ' session(s) révoquée(s)');
+    loadDosAccessStatus(eid);
+  })
+  .catch(function() { toast('Erreur réseau', 'err'); });
+}
+
 function editEmp(eid){
   var e=EMPS.find(function(x){return x.id===eid;});if(!e)return;
   document.getElementById('emp-edit-id').value=e.id;
@@ -2744,10 +2893,24 @@ function validateMgrPeriode(pid){
 /* FIN PROMPT 020 — PAIE FORMELLE */
 
 // ─── Auto-login depuis le Core Veraluz OS (postMessage) ─────────────────────
+/* PROMPT 009 — §10 : capture du vrai session_token/rôle transmis par CORE
+   (sendAuthContext) pour permettre les actions Direction (reset PIN,
+   révocation de sessions) dans la fiche employé, au lieu d'une identité
+   locale non vérifiée. Jamais persisté (localStorage/sessionStorage) —
+   variables JS en mémoire uniquement, à l'image de _sessionToken dans CORE. */
+var _rhSessionToken = null;
+var _rhCallerRole   = null;
+var _rhCallerId     = null;
+var RH_DIRECTION_ROLES = ['gerant', 'admin', 'superadmin'];
+function rhIsDirection() { return RH_DIRECTION_ROLES.indexOf(_rhCallerRole || '') !== -1; }
+
 window.addEventListener('message', function(ev) {
   if (!ev.data || ev.data.source !== 'veraluz-core') return;
   if (ev.data.type !== 'auth-context') return;
   var d = ev.data.data || {};
+  _rhSessionToken = d.session_token || null;
+  _rhCallerRole   = d.role || null;
+  _rhCallerId     = d.employee_id || null;
   var empId = d.employee_id || null;
   if (!empId) return;
   function tryAutoLogin(attempts) {

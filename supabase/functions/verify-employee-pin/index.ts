@@ -1,105 +1,153 @@
 /**
- * VERALUZ — Edge Function : verify-employee-pin
- * PROMPT 020C — v4 : accept 4 OR 6 digit PINs + must_change_pin lifecycle
+ * VERALUZ — verify-employee-pin — v6 (PROMPT 009)
+ *
+ * POST { employee_id, pin }
+ * -> si must_change_pin=false : { ok:true, employee, session_token, session_expiry, must_change_pin:false }
+ * -> si must_change_pin=true  : { ok:true, auth_state:'must_change_pin', employee:{id,display_name},
+ *                                  change_token, change_token_expires_at, must_change_pin:true }
+ *    AUCUNE session CORE n'est creee dans ce cas — change_token est a portee strictement
+ *    limitee au endpoint complete-forced-pin-change (aucun autre endpoint ne le reconnait).
+ * | { ok:false, error }
+ *
+ * Regles inchangees par rapport a la v5 : verification bcrypt deleguee a
+ * veraluz_verify_employee_pin, aucun repli vers pin_code, CORS restreint, rien de
+ * sensible journalise.
  */
-import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const CORS = {
-  'Access-Control-Allow-Origin':  '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+const ALLOWED_ORIGINS = [
+  'https://ngams237.github.io',
+  'http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080',
+  'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080',
+]
+
+function corsHeaders(origin: string | null) {
+  const h: Record<string, string> = {
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  }
+  if (origin && ALLOWED_ORIGINS.includes(origin)) h['Access-Control-Allow-Origin'] = origin
+  return h
 }
-function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
+function json(body: unknown, status: number, origin: string | null) {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' } })
+}
+async function sha256Hex(s: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+function newToken(): string {
+  const b = new Uint8Array(32)
+  crypto.getRandomValues(b)
+  return Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('')
 }
 
-const ROLE_MAP: Record<string, string> = {
-  gerant:'superadmin', directeur:'superadmin', admin:'superadmin', administrateur:'superadmin', superadmin:'superadmin', proprietaire:'superadmin', owner:'superadmin',
-  manager:'manager', superviseur:'manager', chef_equipe:'manager',
-  receptionniste:'reception', agent_accueil:'reception', reception:'reception', receptioniste:'reception',
-  comptable:'accountant', financier:'accountant', finance:'accountant', accountant:'accountant',
-  rh:'rh', ressources_humaines:'rh', hr:'rh',
-  barman:'restaurant', serveur:'restaurant', restaurant:'restaurant', waiter:'restaurant',
-  cuisinier:'kitchen', chef:'kitchen', kitchen:'kitchen', aide_cuisine:'kitchen', cook:'kitchen', cuisine:'kitchen',
-  femme_chambre:'housekeeping', agent_menage:'housekeeping', housekeeping:'housekeeping', menage:'housekeeping', cleaner:'housekeeping', housekeeper:'housekeeping',
-  technicien:'maintenance', maintenance:'maintenance', plombier:'maintenance', electricien:'maintenance', agent_securite:'maintenance',
-  livreur:'delivery', coursier:'delivery', driver:'delivery', delivery:'delivery', chauffeur:'delivery',
-  staff:'staff', agent:'staff', employe:'staff',
-}
+Deno.serve(async (req) => {
+  const origin = req.headers.get('origin')
 
-const MODULES_BY_ROLE: Record<string, string[]> = {
-  superadmin:   ['reservations','paiements','housekeeping','restaurant','finance','rh','notifications','analytics','audit','settings','eventbus','auth','contacts','appro','integrations'],
-  manager:      ['reservations','paiements','housekeeping','restaurant','finance','rh','notifications','analytics','contacts','appro'],
-  reception:    ['reservations','paiements','notifications','contacts','housekeeping'],
-  rh:           ['rh','notifications','analytics'],
-  accountant:   ['finance','paiements','analytics'],
-  comptable:    ['finance','paiements','analytics'],
-  restaurant:   ['restaurant'], kitchen: ['restaurant'],
-  housekeeping: ['housekeeping'], maintenance: ['housekeeping'],
-  delivery: [], staff: [],
-}
-
-function normalizeRole(raw: string): string {
-  const key = (raw || '').toLowerCase().trim().replace(/ /g,'_').replace(/-/g,'_')
-  return ROLE_MAP[key] || 'staff'
-}
-
-serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
-  if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405)
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(origin) })
+  if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405, origin)
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) return json({ ok: false, error: 'forbidden_origin' }, 403, origin)
 
   let body: { employee_id?: string; pin?: string }
-  try { body = await req.json() } catch { return json({ ok: false, error: 'invalid_json' }, 400) }
+  try { body = await req.json() } catch { return json({ ok: false, error: 'invalid_json' }, 400, origin) }
 
-  const { employee_id, pin } = body
-  if (!employee_id || !pin) return json({ ok: false, error: 'missing_fields' }, 400)
+  const employeeId = String(body.employee_id || '').trim()
+  const pin = String(body.pin || '').trim()
+  if (!employeeId || !pin) return json({ ok: false, error: 'missing_fields' }, 400, origin)
 
-  /* PROMPT 020C — accepter 4 OU 6 chiffres */
-  if (!/^\d{4}$/.test(pin) && !/^\d{6}$/.test(pin)) {
-    return json({ ok: false, error: 'invalid_credentials' }, 401)
+  const admin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  )
+
+  const { data, error } = await admin.rpc('veraluz_verify_employee_pin', {
+    p_employee_id: employeeId, p_pin: pin,
+  })
+
+  if (error) {
+    console.error('[verify-pin] rpc_failed code=', error.code)
+    return json({ ok: false, error: 'server_error' }, 500, origin)
   }
 
-  const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { autoRefreshToken: false, persistSession: false } })
+  const res = data as { ok: boolean; error?: string; employee?: Record<string, unknown>; must_change_pin?: boolean }
 
-  const { data: rows, error } = await supabase
-    .from('veraluz_employees')
-    .select('id,full_name,role,pin_code,status,team_id,phone,email,hire_date,must_change_pin,temporary_pin_expires_at,failed_pin_attempts,pin_locked_until')
-    .eq('id', employee_id).eq('status', 'actif').limit(1)
-
-  if (error || !rows || rows.length === 0) return json({ ok: false, error: 'invalid_credentials' }, 401)
-
-  const emp = rows[0]
-
-  if (emp.pin_locked_until && new Date(emp.pin_locked_until) > new Date()) return json({ ok: false, error: 'too_many_attempts' }, 429)
-
-  const storedPin = String(emp.pin_code || '').trim()
-  if (!storedPin || storedPin !== pin) {
-    const newAttempts = (emp.failed_pin_attempts || 0) + 1
-    const lockUntil = newAttempts >= 5 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null
-    await supabase.from('veraluz_employees').update({ failed_pin_attempts: newAttempts, ...(lockUntil ? { pin_locked_until: lockUntil } : {}) }).eq('id', employee_id)
-    return json({ ok: false, error: 'invalid_credentials' }, 401)
+  if (!res || !res.ok) {
+    const code = res?.error || 'invalid_credentials'
+    const status = code === 'too_many_attempts' ? 429 : 401
+    /* Journaliser l'echec — jamais le PIN. */
+    await admin.from('veraluz_auth_events').insert({
+      event_type: 'login_failed', employee_id: employeeId, success: false,
+      details_json: { error: code },
+    })
+    return json({ ok: false, error: code }, status, origin)
   }
 
-  if (emp.must_change_pin && emp.temporary_pin_expires_at && new Date(emp.temporary_pin_expires_at) < new Date()) return json({ ok: false, error: 'pin_expired' }, 401)
+  /* ── Cas A : PIN provisoire — auth_state=must_change_pin, JAMAIS de session CORE. ── */
+  if (res.must_change_pin === true) {
+    const changeToken = newToken()
+    const changeTokenHash = await sha256Hex(changeToken)
+    const changeExpiresAt = new Date(Date.now() + 15 * 60 * 1000) /* 15 min — courte duree, usage unique */
 
-  await supabase.from('veraluz_employees').update({ failed_pin_attempts: 0, pin_locked_until: null }).eq('id', employee_id)
+    const { error: ctErr } = await admin.from('veraluz_employee_change_tokens').insert({
+      employee_id: employeeId, token_hash: changeTokenHash, expires_at: changeExpiresAt.toISOString(),
+    })
+    if (ctErr) {
+      console.error('[verify-pin] change_token_insert_failed code=', ctErr.code)
+      return json({ ok: false, error: 'server_error' }, 500, origin)
+    }
 
-  const coreRole = normalizeRole(emp.role || 'staff')
-  const now = Date.now()
-  const fullName = String(emp.full_name || '').trim() || 'Employé'
+    await admin.from('veraluz_auth_events').insert({
+      event_type: 'login_must_change_pin', employee_id: employeeId, success: true, details_json: {},
+    })
+
+    const emp = res.employee || {}
+    return json({
+      ok: true,
+      auth_state: 'must_change_pin',
+      must_change_pin: true,
+      employee: {
+        id: emp.id, employee_id: emp.id,
+        full_name: emp.full_name, public_display_name: emp.public_display_name,
+        role: emp.role, department: emp.department,
+      },
+      change_token: changeToken,                 // retourne UNE SEULE FOIS
+      change_token_expires_at: changeExpiresAt.toISOString(),
+    }, 200, origin)
+  }
+
+  /* ── Cas B : PIN permanent normal — session CORE complete, comportement existant. ── */
+  const token = newToken()
+  const tokenHash = await sha256Hex(token)
+  const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000)
+
+  const { error: sErr } = await admin.from('veraluz_employee_sessions').insert({
+    employee_id: employeeId,
+    token_hash: tokenHash,
+    expires_at: expiresAt.toISOString(),
+    last_seen_at: new Date().toISOString(),
+  })
+
+  if (sErr) {
+    console.error('[verify-pin] session_insert_failed code=', sErr.code)
+    return json({ ok: false, error: 'server_error' }, 500, origin)
+  }
+
+  await admin.from('veraluz_auth_events').insert({
+    event_type: 'login_success', employee_id: employeeId, success: true, details_json: {},
+  })
+
+  const emp = { ...(res.employee || {}), session_expiry_ts: expiresAt.getTime() }
 
   return json({
     ok: true,
-    must_change_pin: !!(emp.must_change_pin),
-    employee: {
-      id: String(emp.id), employee_id: String(emp.id),
-      employee_name: fullName, full_name: fullName,
-      role: coreRole, raw_role: emp.role || 'staff', team_id: emp.team_id || null,
-      allowed_modules: (MODULES_BY_ROLE[coreRole] || []).slice(),
-      login_time: new Date(now).toISOString(),
-      session_expiry: new Date(now + 12*60*60*1000).toISOString(),
-      session_expiry_ts: now + 12*60*60*1000,
-    },
-  })
+    auth_state: 'ok',
+    employee: emp,
+    session_token: token,                    // retourne UNE SEULE FOIS
+    session_expiry: expiresAt.toISOString(),
+    must_change_pin: false,
+  }, 200, origin)
 })

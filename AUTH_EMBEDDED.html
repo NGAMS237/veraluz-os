@@ -297,8 +297,6 @@ function loadSBEmployees(cb) {
 
 /* ── Réinitialisation PIN employé ─────────────────────────────────────────── */
 function openResetPinMd(empId, empName) {
-  var cu = getCurrentUser();
-  var cuRole = (cu && cu.role) || 'unknown';
   document.getElementById('md-reset-pin-body').innerHTML
     = '<div class="modal-title">🔑 Réinitialiser le PIN</div>'
     + '<div style="color:var(--text2);font-size:13px;margin-bottom:14px;">'
@@ -314,7 +312,7 @@ function openResetPinMd(empId, empName) {
     + '</div>'
     + '<div class="btn-row" id="rp-btn-row">'
     + '<button class="btn btn-sec" onclick="closeMd(\'md-reset-pin\')">Annuler</button>'
-    + '<button class="btn btn-warn" id="rp-confirm-btn" data-eid="' + esc(empId) + '" data-ename="' + esc(empName) + '" data-role="' + esc(cuRole) + '" onclick="doResetPin(this)">🔑 Générer PIN temporaire</button>'
+    + '<button class="btn btn-warn" id="rp-confirm-btn" data-eid="' + esc(empId) + '" data-ename="' + esc(empName) + '" onclick="doResetPin(this)">🔑 Générer PIN temporaire</button>'
     + '</div>';
   openMd('md-reset-pin');
 }
@@ -322,9 +320,16 @@ function openResetPinMd(empId, empName) {
 function doResetPin(btn) {
   var empId   = btn.dataset.eid;
   var empName = btn.dataset.ename;
-  var cuRole  = btn.dataset.role;
-  var cu      = getCurrentUser();
-  var cuName  = (cu && (cu.name || cu.username)) || 'Admin';
+
+  /* PROMPT 009 — le rôle et l'autorisation sont désormais dérivés côté
+     serveur à partir de _authRealSessionToken (session Direction réelle),
+     jamais d'un champ client. requested_by/requested_by_role supprimés :
+     reset-employee-pin v5 les ignore et exigerait de toute façon un
+     session_token valide — c'était exactement la faille de la v3. */
+  if (!_authRealSessionToken) {
+    toast('Session Direction introuvable — reconnectez-vous depuis Veraluz OS', true);
+    return;
+  }
 
   btn.disabled = true;
   btn.textContent = '⏳ Génération…';
@@ -333,10 +338,8 @@ function doResetPin(btn) {
     method: 'POST', mode: 'cors', credentials: 'omit',
     headers: { 'Content-Type': 'application/json', 'apikey': _SB_KEY, 'Authorization': 'Bearer ' + _SB_KEY },
     body: JSON.stringify({
-      employee_id:       empId,
-      requested_by:      cuName,
-      requested_by_role: cuRole,
-      reason:            'manual_reset_via_auth_module'
+      session_token: _authRealSessionToken,
+      employee_id:   empId
     })
   })
   .then(function(r){ return r.json(); })
@@ -355,7 +358,7 @@ function doResetPin(btn) {
     document.getElementById('rp-btn-row').innerHTML
       = '<button class="btn btn-sec" onclick="copyTempPin()">📋 Copier le PIN</button>'
       + '<button class="btn btn-primary" onclick="closeMd(\'md-reset-pin\')">✅ Fermé — PIN noté</button>';
-    audit('reset_pin', { employee_id: empId, employee_name: empName, by: cuName });
+    audit('reset_pin', { employee_id: empId, employee_name: empName, by: (getCurrentUser()||{}).name || 'Direction' });
   })
   .catch(function(e){
     toast('Erreur réseau : impossible de contacter le serveur', true);
@@ -592,11 +595,21 @@ var DEFAULT_POLICY = {
 function emit(type,data){
   try{ window.parent.postMessage({source:'veraluz-auth',type:type,data:data||{}},'*'); }catch(e){}
 }
+/* PROMPT 009 — §10/§13 : jeton de session réel transmis par CORE (jamais
+   persisté, mémoire JS uniquement) afin que doResetPin() authentifie
+   l'appel serveur avec une vraie session Direction au lieu du faux
+   getCurrentUser() local (racine de l'ancienne faille reset-employee-pin v3). */
+var _authRealSessionToken = null;
+var _authRealRole         = null;
 window.addEventListener('message', function(ev){
   if(!ev.data||ev.data.source!=='veraluz-core') return;
   if(ev.data.type==='refresh') renderTab(currentTabId);
   if(ev.data.type==='navigate-tab'&&ev.data.data&&ev.data.data.tab)
     goTab(document.querySelector('.tab[data-tab="'+ev.data.data.tab+'"]'));
+  if(ev.data.type==='auth-context'&&ev.data.data){
+    _authRealSessionToken = ev.data.data.session_token || null;
+    _authRealRole         = ev.data.data.role || null;
+  }
 });
 document.addEventListener('DOMContentLoaded', function(){
   emit('module-ready',{module:'auth',version:MODULE_VER});

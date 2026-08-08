@@ -1971,6 +1971,33 @@ function showAuthOverlay() {
 
 function checkAuth() {
   try {
+    /* PROMPT 010I — Si session_token absent de la mémoire (ex: refresh)
+       mais que les métadonnées locales + un resume_token existent,
+       tenter une reprise silencieuse avant d'afficher le login. */
+    if (!getSessionToken()) {
+      var resumeToken = localStorage.getItem('vz_resume');
+      var sessionStr0 = localStorage.getItem('veraluz_auth_v1');
+      if (resumeToken && sessionStr0) {
+        try { var s0=JSON.parse(sessionStr0); if(!s0||s0.expires<Date.now())throw'x'; } catch(e){ localStorage.removeItem('vz_resume'); showAuthOverlay(); return; }
+        fetch(EDGE_RESUME_SESSION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY },
+          body: JSON.stringify({ resume_token: resumeToken })
+        }).then(function(r){ return r.json(); })
+          .then(function(d){
+            if (d && d.session_token) {
+              setSessionToken(d.session_token, d.expires_at);
+              if (d.resume_token) localStorage.setItem('vz_resume', d.resume_token);
+              /* Reprendre avec les métadonnées locales (rôle, nom, etc.) */
+              checkAuth();
+            } else {
+              localStorage.removeItem('vz_resume');
+              showAuthOverlay();
+            }
+          }).catch(function(){ showAuthOverlay(); });
+        return; /* attendre la réponse async */
+      }
+    }
     var sessionStr = localStorage.getItem('veraluz_auth_v1');
     if (!sessionStr) { showAuthOverlay(); return; }
     var session = JSON.parse(sessionStr);
@@ -2132,6 +2159,24 @@ function doLoginPin() {
     loadDashboardData();
     /* Espace Employé en premier */
     setTimeout(function() { goTo('employee_home'); }, 300);
+
+    /* PROMPT 010I — Émettre un resume_token (opaque) pour la reprise après refresh.
+       Le session_token reste en mémoire uniquement ; seul ce jeton résiduel
+       est persisté dans localStorage. Il ne donne aucun droit métier direct. */
+    (function() {
+      var tok = getSessionToken();
+      if (!tok) return;
+      fetch(EDGE_ISSUE_RESUME_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY },
+        body: JSON.stringify({ session_token: tok })
+      }).then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(d){
+          if (d && d.resume_token) {
+            localStorage.setItem('vz_resume', d.resume_token);
+          }
+        }).catch(function(){});
+    })();
   });
 }
 
@@ -2295,6 +2340,9 @@ var EDGE_RESET_PIN_URL     = 'https://dfdmasejsoibxrvubegu.supabase.co/functions
 var EDGE_COMPLETE_FORCED_PIN_CHANGE_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/complete-forced-pin-change';
 var EDGE_REVOKE_SESSIONS_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/revoke-employee-sessions';
 var EDGE_CHANGE_ADMIN_PW   = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/change-admin-password';
+/* PROMPT 010I — Session resume (après refresh, sans saisir PIN) */
+var EDGE_ISSUE_RESUME_URL  = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/issue-resume-token';
+var EDGE_RESUME_SESSION_URL= 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/resume-employee-session';
 
 /* ================================================================
    PROMPT 010B — MODE DEV UNLOCK TEMPORAIRE
@@ -3150,6 +3198,7 @@ function logout() {
                          currentUser ? currentUser.role : '?');
   localStorage.removeItem('veraluz_auth_v1');
   localStorage.removeItem('veraluz_session'); /* PROMPT 038 */
+  localStorage.removeItem('vz_resume');       /* PROMPT 010I — révocation resume token */
   currentUser = null;
   _pinBuffer = '';
   updateTopbarUser();

@@ -93,6 +93,7 @@
   .hint{font-size:11.5px;color:var(--txt3);margin-top:3px}
   @media(max-width:640px){ .toolbar .fld{min-width:100%} header .who{width:100%;margin:0} }
 </style>
+<script src="VERALUZ_PDF_THEME.js"></script>
 </head>
 <body>
 
@@ -152,6 +153,7 @@
            Voir README section 2 pour le choix A / B / C. -->
       <button class="btn ghost" id="csvPageBtn" type="button" style="display:none">Exporter cette page</button>
       <button class="btn ghost" id="csvAllBtn"  type="button" style="display:none">Exporter tout (≤ 2000)</button>
+      <button class="btn ghost" id="pdfBtn" type="button" style="display:none;border-color:#0ABFBC;color:#0ABFBC;">&#x2193; Télécharger PDF</button>
     </div>
 
     <div class="msg" id="pinWarn"></div>
@@ -618,6 +620,7 @@ function buildReportSelect(){
   var canExport = (ACTOR === 'direction');
   $('csvPageBtn').style.display = canExport ? '' : 'none';
   $('csvAllBtn').style.display  = canExport ? '' : 'none';
+  $('pdfBtn').style.display     = canExport ? '' : 'none';
   onReportChange();
 }
 
@@ -861,6 +864,7 @@ function setExportEnabled(on){
   var allow = !!on && hasRows;
   $('csvPageBtn').disabled = !allow;
   $('csvAllBtn').disabled  = !allow || fin;
+  $('pdfBtn').disabled     = !allow;
 }
 
 function onReportChange(){
@@ -1034,7 +1038,8 @@ var QUERY_CONTROLS = [
   'prevBtn',
   'nextBtn',
   'csvPageBtn',
-  'csvAllBtn'
+  'csvAllBtn',
+  'pdfBtn'
 ];
 
 function setQueryBusy(on){
@@ -1121,6 +1126,80 @@ $('csvPageBtn').addEventListener('click', function(){ exportCurrentPage(); });
 
 /* ── Export C : parcours borné des pages ── */
 $('csvAllBtn').addEventListener('click', function(){ exportAllBounded(); });
+
+/* ── Export PDF — VERALUZ_PDF_THEME ─────────────────────────────────
+   PROMPT 010I/F : génère un PDF A4 au thème VERALUZ depuis les données
+   du rapport courant. Utilise veraluzPdfRender() de VERALUZ_PDF_THEME.js.
+   ────────────────────────────────────────────────────────────────────── */
+$('pdfBtn').addEventListener('click', function(){ exportReportPDF(); });
+
+function exportReportPDF(){
+  if (!STATE.rows || !STATE.rows.length) { alert('Aucune donnée à exporter.'); return; }
+  if (typeof veraluzPdfRender !== 'function') { alert('Thème PDF non chargé. Rechargez la page.'); return; }
+
+  var r      = currentReport();
+  var title  = r ? r.label : 'Rapport';
+  var rId    = STATE.reportId || (r ? r.id : 'rapport');
+  var period = '';
+  var df = $('dateFrom'); var dt = $('dateTo');
+  if (df && df.value) period += 'Du ' + df.value;
+  if (dt && dt.value) period += (period?' au ':' au ') + dt.value;
+
+  var empName = (EMPLOYEE && (EMPLOYEE.full_name || EMPLOYEE.public_display_name)) || 'Système';
+  var today   = new Date().toISOString();
+  var dateStr = new Date().toISOString().split('T')[0];
+
+  /* Construire les lignes du tableau (page courante affichée) */
+  var cols = STATE.cols || [];
+  var rows = STATE.rows || [];
+
+  /* KPIs synthèse */
+  var kpis = [
+    { label:'Lignes',    value: String(STATE.total || rows.length), color:'turquoise' },
+    { label:'Page',      value: String(STATE.page) + ' / ' + String(Math.ceil((STATE.total||rows.length)/(STATE.pageSize||50))), color:'' },
+    { label:'Rapport',   value: rId, color:'' },
+  ];
+  if (period) kpis.push({ label:'Période', value: period, color:'gold' });
+
+  /* Tableau de données */
+  var tableRows = rows.slice(0,200).map(function(row){
+    return cols.map(function(col){ var v=row[col]; return v===null||v===undefined?'—':String(v); });
+  });
+
+  var sections = [
+    {
+      title: title,
+      icon: '📊',
+      kpis: kpis,
+      headers: cols,
+      rows: tableRows,
+      note: period ? 'Période : '+period : null,
+    }
+  ];
+
+  var htmlStr = veraluzPdfRender({
+    title:             title,
+    subtitle:          period || null,
+    document_type:     'generic_report',
+    generated_at:      today,
+    generated_by:      empName,
+    reference:         rId + '_' + dateStr,
+    construction_mode: true,
+    sources:           ['Centre de Rapports VERALUZ', r ? r.id : ''],
+    footer_note:       'Document confidentiel — Usage interne VERALUZ Kribi',
+  }, sections);
+
+  /* Ouvrir dans une nouvelle fenêtre pour impression / save as PDF */
+  var win = window.open('', '_blank', 'width=900,height=700');
+  if (!win) { alert('Popup bloqué. Autorisez les popups pour ce site.'); return; }
+  win.document.write(htmlStr);
+  win.document.close();
+  /* Lancer la boîte d'impression après chargement — le navigateur propose "Enregistrer en PDF" */
+  win.onload = function(){ win.focus(); win.print(); };
+
+  /* Nom suggéré dans le titre de la fenêtre (utilisé par certains navigateurs comme nom de fichier) */
+  win.document.title = 'VERALUZ_Rapport_' + rId.replace(/[^a-zA-Z0-9]/g,'_') + '_' + dateStr + '.pdf';
+}
 
 function renderNotes(meta){
   var box = $('notesBox');

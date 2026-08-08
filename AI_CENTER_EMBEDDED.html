@@ -220,6 +220,8 @@ var _chatAgentKey = null;
 var _chatConvId = null;
 var _chatMessages = [];
 var _chatBusy = false;
+var _chatConvPerAgent = {};   /* PROMPT 010I — conversation_id par agent */
+var _historyLoading = false;  /* PROMPT 010I — chargement historique en cours */
 
 var STATUS_LABELS = { draft:'Brouillon', observation:'Observation', active:'Actif', paused:'En pause', disabled:'Désactivé' };
 var ENGINE_LABELS_PRIMARY = { deterministic_rules:'Analyse automatisée', llm_assisted:'Assistant IA', hybrid:'Assistant IA (analyse hybride)' };
@@ -921,21 +923,114 @@ function refreshHistory(){
     if (_activeSection === 'historique') render('historique');
   });
 }
+/* PROMPT 010I — Historique réel des conversations (server-side) */
+var _histConversations = [];
+
 function renderHistorique(){
   var el = document.getElementById('sec-historique');
+  if (!el) return;
+
+  if (STANDALONE) {
+    el.innerHTML = '<div class="vlx-card"><div class="vlx-disclaimer">Mode aperçu — historique non disponible.</div></div>';
+    return;
+  }
+
+  if (_historyLoading) {
+    el.innerHTML = '<div class="vlx-card"><div class="vlx-empty">Chargement…</div></div>';
+    return;
+  }
+
+  _historyLoading = true;
+  el.innerHTML = '<div class="vlx-card"><div class="vlx-empty">Chargement des conversations…</div></div>';
+
+  secureCall('agent-chat', { action: 'list_conversations' })
+    .then(function(r){
+      _historyLoading = false;
+      _histConversations = (r && r.body && r.body.conversations) ? r.body.conversations : [];
+      renderHistoriqueList();
+    }).catch(function(){
+      _historyLoading = false;
+      el.innerHTML = '<div class="vlx-card"><div class="vlx-empty">Erreur de chargement.</div></div>';
+    });
+}
+
+function renderHistoriqueList(){
+  var el = document.getElementById('sec-historique');
+  if (!el) return;
+  var convs = _histConversations;
+
   var html = '<div class="vlx-card">';
-  if (!_historyData.length) {
-    html += '<div class="vlx-empty">Aucun historique disponible pour le moment.</div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
+        + '<h3 style="margin:0;font-size:15px;">Conversations</h3>'
+        + '<button class="vlx-btn" style="font-size:12px;padding:4px 10px;" onclick="renderHistorique()">↻ Rafraîchir</button>'
+        + '</div>';
+
+  if (!convs.length) {
+    html += '<div class="vlx-empty">Aucune conversation pour le moment. Démarrez un chat avec un agent !</div>';
   } else {
-    _historyData.forEach(function(h){
-      html += '<div class="vlx-alert-row"><div><div style="font-size:12px;color:var(--text2);">'+esc(h.agent_name)+'</div>'+
-        '<b>Analyse ('+esc(h.run_type||'manual')+')</b></div>'+
-        '<div style="text-align:right;"><span class="vlx-sev vlx-sev-'+(h.status==='failed'?'critical':'info')+'">'+esc(h.status)+'</span>'+
-        '<div style="color:var(--text3);font-size:11px;margin-top:4px;">'+fmtDate(h.at)+'</div></div></div>';
+    /* Grouper par jour */
+    var grouped = {};
+    var today = new Date().toDateString();
+    var yesterday = new Date(Date.now()-86400000).toDateString();
+    convs.forEach(function(c){
+      var d = new Date(c.updated_at||c.created_at);
+      var key = d.toDateString();
+      var label = key===today?'Aujourd'hui':key===yesterday?'Hier':d.toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'});
+      if(!grouped[label])grouped[label]=[];
+      grouped[label].push(c);
+    });
+
+    /* Lookup nom agent */
+    function agentLabel(key){
+      var a=(_platformAgents||[]).filter(function(x){return x.row.agent_key===key;})[0];
+      return a?a.row.name:key;
+    }
+
+    Object.keys(grouped).forEach(function(day){
+      html+='<div style="font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px;">'+esc(day)+'</div>';
+      grouped[day].forEach(function(conv){
+        var title=conv.title||'(Sans titre)';
+        var agent=agentLabel(conv.agent_key);
+        var msgs=conv.message_count||0;
+        var ts=new Date(conv.updated_at||conv.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        html+='<div class="vlx-alert-row" style="align-items:center;gap:8px;">'
+          +'<div style="flex:1;min-width:0;">'
+          +'<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(title)+'</div>'
+          +'<div style="font-size:11px;color:var(--text2);">'+esc(agent)+' · '+ts+' · '+msgs+' msg</div>'
+          +'</div>'
+          +'<div style="display:flex;gap:4px;flex-shrink:0;">'
+          +'<button class="vlx-btn" style="font-size:11px;padding:3px 8px;" onclick="openHistConv(''+esc(conv.id)+'',''+esc(conv.agent_key)+'')">Ouvrir</button>'
+          +'<button class="vlx-btn" style="font-size:11px;padding:3px 8px;" onclick="renameHistConv(''+esc(conv.id)+'',''+esc(title)+'')">Renommer</button>'
+          +'<button class="vlx-btn vlx-btn-danger" style="font-size:11px;padding:3px 8px;" onclick="archiveHistConv(''+esc(conv.id)+'')">Archiver</button>'
+          +'</div>'
+          +'</div>';
+      });
     });
   }
   html += '</div>';
   el.innerHTML = html;
+}
+
+function openHistConv(convId, agentKey){
+  if (!agentKey||!convId) return;
+  openChat(agentKey, convId);
+}
+
+function renameHistConv(convId, currentTitle){
+  var newTitle = prompt('Nouveau titre :', currentTitle);
+  if (!newTitle||newTitle===currentTitle) return;
+  secureCall('agent-chat', { action:'update_conversation', conversation_id:convId, title:newTitle })
+    .then(function(){ toast('Renommé', 'ok'); renderHistoriqueList(); })
+    .catch(function(){ toast('Erreur', 'err'); });
+}
+
+function archiveHistConv(convId){
+  if (!confirm('Archiver cette conversation ?')) return;
+  secureCall('agent-chat', { action:'update_conversation', conversation_id:convId, status:'archived' })
+    .then(function(){
+      _histConversations = _histConversations.filter(function(c){return c.id!==convId;});
+      toast('Archivé', 'ok'); renderHistoriqueList();
+    }).catch(function(){ toast('Erreur', 'err'); });
 }
 
 /* ── Paramètres (direction uniquement) ── */
@@ -959,12 +1054,48 @@ function renderParametres(){
    §CHAT — Chat IA générique (agent-chat endpoint)
    ══════════════════════════════════════════════════════════════ */
 
-function openChat(agentKey){
+function openChat(agentKey, conversationId){
+  /* PROMPT 010I — Sauvegarder la conv courante avant de changer d'agent */
+  if (_chatAgentKey && _chatConvId) {
+    _chatConvPerAgent[_chatAgentKey] = _chatConvId;
+  }
   _chatAgentKey = agentKey;
-  // reset conversation (nouvelle conv par session)
-  _chatConvId = null;
-  _chatMessages = [];
-  showSection('chat');
+
+  if (conversationId) {
+    /* Ouverture depuis Historique avec une conv spécifique */
+    _chatConvId = conversationId;
+    _chatMessages = [];
+    showSection('chat');
+    loadChatConversation(conversationId);
+    return;
+  }
+
+  /* Restaurer la conversation précédente de cet agent si elle existe */
+  var saved = _chatConvPerAgent[agentKey] || null;
+  if (saved) {
+    _chatConvId = saved;
+    _chatMessages = [];
+    showSection('chat');
+    loadChatConversation(saved);
+  } else {
+    _chatConvId = null;
+    _chatMessages = [];
+    showSection('chat');
+  }
+}
+
+/* PROMPT 010I — Charger les messages d'une conversation depuis le serveur */
+function loadChatConversation(convId){
+  if (!convId || STANDALONE) return;
+  secureCall('agent-chat', { action: 'load_conversation', conversation_id: convId })
+    .then(function(r){
+      if (r && r.body && r.body.messages) {
+        _chatMessages = r.body.messages.map(function(m){
+          return { role: m.role, content: m.content, sources: m.sources || [], operational_mode: _operationalMode };
+        });
+        renderChat();
+      }
+    }).catch(function(){});
 }
 
 function openChatWithMessage(agentKey, msg){
@@ -1131,10 +1262,8 @@ function renderChat(){
 }
 
 function selectChatAgent(agentKey){
-  _chatAgentKey = agentKey;
-  _chatConvId = null;
-  _chatMessages = [];
-  renderChat();
+  /* PROMPT 010I — utilise openChat pour gérer la conv par agent */
+  openChat(agentKey);
 }
 
 function submitChatInput(){

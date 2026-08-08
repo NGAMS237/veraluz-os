@@ -122,7 +122,23 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
 .vlx-chat-thread{min-height:200px;max-height:440px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:16px;background:var(--bg3);border-radius:12px;border:1px solid var(--border);margin-bottom:10px;}
 .vlx-chat-msg{max-width:88%;}
 .vlx-chat-msg.user{align-self:flex-end;background:var(--accent2);color:#fff;border-radius:14px 14px 3px 14px;padding:10px 14px;font-size:14px;white-space:pre-wrap;}
-.vlx-chat-msg.assistant{align-self:flex-start;background:var(--bg2);border:1px solid var(--border);border-radius:3px 14px 14px 14px;padding:10px 14px;font-size:14px;white-space:pre-wrap;}
+.vlx-chat-msg.assistant{align-self:flex-start;background:var(--bg2);border:1px solid var(--border);border-radius:3px 14px 14px 14px;padding:12px 16px;font-size:14px;line-height:1.55;}
+.vlx-chat-msg.assistant p{margin:4px 0 8px;}
+.vlx-chat-msg.assistant p:last-child{margin-bottom:0;}
+.vlx-chat-msg.assistant h2{font-size:15px;font-weight:700;margin:12px 0 4px;color:var(--accent);}
+.vlx-chat-msg.assistant h3{font-size:14px;font-weight:600;margin:10px 0 4px;color:var(--text);}
+.vlx-chat-msg.assistant h4{font-size:13px;font-weight:600;margin:8px 0 3px;color:var(--text2);}
+.vlx-chat-msg.assistant ul,.vlx-chat-msg.assistant ol{margin:4px 0 8px;padding-left:20px;}
+.vlx-chat-msg.assistant li{margin:3px 0;line-height:1.5;}
+.vlx-chat-msg.assistant hr{border:none;border-top:1px solid var(--border);margin:10px 0;}
+.vlx-chat-msg.assistant code{background:var(--bg3);padding:1px 5px;border-radius:4px;font-size:12px;font-family:monospace;}
+.vlx-chat-msg.assistant strong{color:var(--text);font-weight:700;}
+.vlx-chat-msg.assistant em{color:var(--text2);font-style:italic;}
+.vlx-md-table{border-collapse:collapse;width:100%;font-size:12px;margin:8px 0;}
+.vlx-md-table td,.vlx-md-table th{border:1px solid var(--border);padding:5px 10px;text-align:left;}
+.vlx-md-table tr:nth-child(even){background:var(--bg3);}
+.vlx-md-src{font-size:11px;color:var(--text3);margin-top:8px;padding-top:6px;border-top:1px dashed var(--border);}
+.vlx-md-sim{display:inline-block;font-size:11px;padding:2px 8px;border-radius:8px;background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3);margin-bottom:6px;}
 .vlx-chat-msg.system{align-self:center;color:var(--text3);font-size:12px;font-style:italic;}
 .vlx-chat-input-row{display:flex;gap:8px;}
 .vlx-chat-input{flex:1;padding:12px 14px;border-radius:12px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;outline:none;}
@@ -956,6 +972,66 @@ function openChatWithMessage(agentKey, msg){
   setTimeout(function(){ sendChatMessage(msg); }, 80);
 }
 
+
+/* ── renderMd — Markdown sécurisé pour réponses agents ──────────────────── */
+function renderMd(raw) {
+  if (!raw) return '';
+  function esc2(t) {
+    return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function inline(t) {
+    return t
+      .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+      .replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  }
+  var lines = esc2(raw).split('\n');
+  var out = []; var state = null;
+  function closeState() {
+    if (state==='ul') out.push('</ul>');
+    if (state==='ol') out.push('</ol>');
+    if (state==='table') out.push('</table>');
+    state = null;
+  }
+  for (var i=0; i<lines.length; i++) {
+    var l = lines[i]; var lt = l.trim();
+    if (/^\[SIM\]/.test(lt)) {
+      closeState();
+      out.push('<span class="vlx-md-sim">⚙ Simulation Construction</span>');
+      l = lt.replace(/^\[SIM\]\s*/, ''); lt = l.trim();
+    }
+    if (/^#### /.test(l)) { closeState(); out.push('<h4>'+inline(l.slice(5))+'</h4>'); continue; }
+    if (/^### /.test(l))  { closeState(); out.push('<h3>'+inline(l.slice(4))+'</h3>'); continue; }
+    if (/^## /.test(l))   { closeState(); out.push('<h2>'+inline(l.slice(3))+'</h2>'); continue; }
+    if (/^# /.test(l))    { closeState(); out.push('<h2>'+inline(l.slice(2))+'</h2>'); continue; }
+    if (/^---+$/.test(lt)) { closeState(); out.push('<hr>'); continue; }
+    var ulM = l.match(/^[\-\*\u2022]\s+(.*)$/);
+    if (ulM) { if (state!=='ul'){closeState();out.push('<ul>');state='ul';} out.push('<li>'+inline(ulM[1])+'</li>'); continue; }
+    var olM = l.match(/^\d+\.\s+(.*)$/);
+    if (olM) { if (state!=='ol'){closeState();out.push('<ol>');state='ol';} out.push('<li>'+inline(olM[1])+'</li>'); continue; }
+    if (/^\|/.test(l)) {
+      if (/^\|[\|\s\-:]+\|$/.test(lt)) continue;
+      if (state!=='table'){closeState();out.push('<table class="vlx-md-table">');state='table';}
+      var cells=lt.split('|').filter(function(c,idx,a){return idx>0&&idx<a.length-1;});
+      out.push('<tr>'+cells.map(function(c){return '<td>'+inline(c.trim())+'</td>';}).join('')+'</tr>');
+      continue;
+    }
+    if (/^\*Sources/.test(lt)) {
+      closeState();
+      var st=lt.replace(/^\*Sources\s*:\s*/,'').replace(/\*$/,'');
+      out.push('<div class="vlx-md-src">\u{1F4CC} Sources\u00a0: '+inline(st)+'</div>');
+      continue;
+    }
+    if (/Mode construction/.test(lt)&&/donn/.test(lt)) {
+      closeState(); out.push('<div class="vlx-md-src">'+inline(lt.replace(/^[\u26a0\ufe0f\s]+/,''))+'</div>'); continue;
+    }
+    if (lt==='') { closeState(); continue; }
+    closeState(); out.push('<p>'+inline(l)+'</p>');
+  }
+  closeState();
+  return out.join('\n');
+}
+
 function renderChat(){
   var el = document.getElementById('sec-chat');
   if (!el) return;
@@ -1011,7 +1087,7 @@ function renderChat(){
       if (m.role === 'user') {
         html += '<div class="vlx-chat-msg user">'+esc(m.content)+'</div>';
       } else if (m.role === 'assistant') {
-        html += '<div class="vlx-chat-msg assistant">'+esc(m.content)+
+        html += '<div class="vlx-chat-msg assistant">'+renderMd(m.content)+
           '<div class="vlx-chat-feedback">'+
           '<button onclick="submitChatFeedback('+idx+',\'helpful\')" title="Utile">👍</button>'+
           '<button onclick="submitChatFeedback('+idx+',\'incorrect\')" title="Inexact">👎</button>'+

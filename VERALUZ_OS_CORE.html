@@ -3810,6 +3810,16 @@ window.addEventListener('message', function(ev) {
   if (!ev.data || !ev.data.source) return;
   /* Ignore messages originating from the Core itself */
   if (ev.data.source === 'veraluz-core') return;
+
+  /* 010E — Handshake SSO Rapports : répondre à auth-ready avec auth-context */
+  if (ev.data.source === 'veraluz-rapports' && ev.data.type === 'auth-ready') {
+    var frame = document.getElementById('module-frame');
+    if (frame && ev.source === frame.contentWindow) {
+      sendAuthContext(frame);
+    }
+    return;
+  }
+
   try {
     EventBus.handle(ev.data);
   } catch(e) {

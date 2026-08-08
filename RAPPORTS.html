@@ -171,6 +171,25 @@
 'use strict';
 (function () {
 
+/* ════════ 010E — Détection mode embarqué ════════ */
+var EMBEDDED_IN_CORE = (window.parent !== window);
+
+/* Si embarqué dans CORE : masquer le formulaire de login immédiatement,
+   afficher un message d'attente — le handshake auth-ready/auth-context prendra le relais. */
+if (EMBEDDED_IN_CORE) {
+  document.addEventListener('DOMContentLoaded', function () {
+    var loginEl = document.getElementById('login');
+    if (loginEl) {
+      loginEl.innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;'
+        + 'height:100%;gap:12px;color:var(--text,#e2e8f0);font-family:inherit;">'
+        + '<span style="font-size:1.4rem">⏳</span>'
+        + '<span style="font-size:.95rem;opacity:.75">Connexion via VERALUZ OS…</span>'
+        + '</div>';
+    }
+  });
+}
+
 /* ════════ Configuration ════════ */
 var SB_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
 /* Clé publique anon : sert uniquement d'en-tête apikey exigé par la passerelle
@@ -1443,20 +1462,40 @@ if (!configIsValid()) {
   loadEmployees();
 }
 
-/* 010C — SSO CORE : réutilise la session établie par VERALUZ_OS_CORE.html.
-   Aucun session_token ne transite vers cet iframe — le broker CORE s'en charge. */
+/* 010E — SSO CORE handshake déterministe.
+   1. Listener installé, puis signal auth-ready envoyé au parent.
+   2. CORE répond avec auth-context (ou onload l'a déjà envoyé — les deux couverts).
+   3. Timeout 8 s si aucun auth-context reçu en mode embarqué.
+   Aucun session_token ne transite — broker CORE s'en charge. */
+
+var _ssoReceived = false;
+var _ssoTimeout  = null;
+
 window.addEventListener('message', function (ev) {
+  /* Sécurité : accepter uniquement le parent direct en mode embarqué */
+  if (EMBEDDED_IN_CORE && ev.source !== window.parent) return;
   if (!ev.data || ev.data.source !== 'veraluz-core' || ev.data.type !== 'auth-context') return;
+
+  _ssoReceived = true;
+  if (_ssoTimeout) { clearTimeout(_ssoTimeout); _ssoTimeout = null; }
+
   var data = ev.data.data || {};
   var role = (data.role || '').toLowerCase();
   var ALLOWED_SSO_ROLES = ['gerant', 'admin', 'superadmin', 'directeur', 'direction'];
   if (ALLOWED_SSO_ROLES.indexOf(role) === -1) {
-    show($('loginMsg'), 'Acc\u00e8s non autoris\u00e9 pour votre r\u00f4le.');
+    var loginEl = document.getElementById('login');
+    if (loginEl) {
+      loginEl.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:center;height:100%;'
+        + 'color:#f87171;font-family:inherit;font-size:.95rem;">'
+        + 'Acc\u00e8s non autoris\u00e9 pour votre r\u00f4le.</div>';
+      loginEl.classList.add('on');
+    }
     return;
   }
-  SSO_MODE    = true;
-  SESSION_TOKEN = null;   /* token reste dans CORE — ne jamais l'extraire */
-  EMPLOYEE    = {
+  SSO_MODE      = true;
+  SESSION_TOKEN = null;
+  EMPLOYEE = {
     id:        data.employee_id || '',
     full_name: data.name || data.username || 'Utilisateur',
     raw_role:  role,
@@ -1467,6 +1506,27 @@ window.addEventListener('message', function (ev) {
   MUST_CHANGE_PIN = false;
   enterApp();
 });
+
+/* Signal au parent : listener prêt — déclenche l'envoi de auth-context */
+if (EMBEDDED_IN_CORE) {
+  try {
+    window.parent.postMessage({ source: 'veraluz-rapports', type: 'auth-ready' }, '*');
+  } catch (e) { /* cross-origin bloqué — le filet onload de CORE suffira */ }
+
+  /* Fallback : si auth-context n'arrive pas dans les 8 s, message d'erreur sans PIN */
+  _ssoTimeout = setTimeout(function () {
+    if (_ssoReceived) return;
+    var loginEl = document.getElementById('login');
+    if (loginEl) {
+      loginEl.innerHTML =
+        '<div style="display:flex;align-items:center;justify-content:center;height:100%;'
+        + 'color:#94a3b8;font-family:inherit;font-size:.9rem;text-align:center;padding:24px;">'
+        + 'Session VERALUZ non reçue — rechargez le module.</div>';
+      loginEl.classList.add('on');
+    }
+  }, 8000);
+}
+
 
 })();
 </script>

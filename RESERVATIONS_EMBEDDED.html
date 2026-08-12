@@ -361,7 +361,7 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
       <button class="tab-btn active" id="tab-dash" onclick="goTab('dash')">📊 Dashboard</button>
       <button class="tab-btn" id="tab-planning" onclick="goTab('planning')">📅 Planning</button>
       <button class="tab-btn" id="tab-chambres" onclick="goTab('chambres')">
-        🛏 Chambres <span class="tbadge" id="avail-badge">0</span>
+        🛏 Chambres <span class="tbadge" id="total-badge">0</span>
       </button>
       <button class="tab-btn" id="tab-liste" onclick="goTab('liste')">
         📋 Réservations <span class="tbadge warn" id="rez-badge" style="display:none">0</span>
@@ -603,62 +603,66 @@ var _rooms = [], _rez = [], _filter = 'all', _planOffset = 0, _nf = {step:1};
 
 /* ── Chargement ── */
 function loadAll(cb){
-  var done = 2;
-  function check(){ if(--done===0 && cb) cb(); }
+  /* 011C-2D — Promise.all: 3 fetches parallèles, rendu après résolution complète */
+  var FIELDS='id,name,type,floor,capacity,price,description,amenities,status,sort_order,hk_status,updated_at';
+  var _localEntries=(_rez||[]).filter(function(r){return r._fromSync||r._local;});
 
-  sbGet('veraluz_units?select=*&order=sort_order.asc,name.asc').then(function(data){
-    _rooms = Array.isArray(data) ? data : [];
-    _rooms.forEach(function(r){
-      r._dynStatus = r.status==='active'?'available':r.status;
-      r._canonicalPhoto = null; // will be set by cover fetch below
-      r._images = [];
-      if(!r._images.length) seedRoomImages(r);
-    });
-    /* 011C-2C: batch-fetch canonical cover photos from veraluz_photos */
-    sbGet('veraluz_photos?active=eq.true&is_cover=eq.true&select=unit_id,url').then(function(photos){
-      if(Array.isArray(photos)){
-        var coverMap={};
-        photos.forEach(function(p){ coverMap[p.unit_id]=p.url; });
-        _rooms.forEach(function(r){ r._canonicalPhoto=coverMap[r.id]||null; });
-      }
-    }).catch(function(){});
-    try{ localStorage.setItem('vlz_cache_rooms', JSON.stringify(_rooms.map(function(r){
-      return {id:r.id,name:r.name,type:r.type,capacity:r.capacity,price:r.price,
-              status:r.status,description:r.description,
-              amenities:r.amenities||[],images:r.images||[],floor:r.floor||1};
-    }))); }catch(e){}
-    check();
-  }).catch(function(){
-    try{
-      var c=localStorage.getItem('vlz_cache_rooms');
-      if(c){ _rooms=JSON.parse(c); _rooms.forEach(function(r){ r._images=[]; seedRoomImages(r); }); }
-    }catch(e){}
-    /* Si toujours vide → seed depuis UNIT_DATA (même unités que Booking Engine) */
-    if(!_rooms.length){
-      var ORDER=['std','sea','studio','apt','suite','villa','loft','penthouse'];
-      _rooms = ORDER.map(function(k,i){
-        var u=UNIT_DATA[k]||{};
-        var r={id:'local-'+k, type:k, name:u.name||k, capacity:u.capacity||2,
-               price:u.price||35000, status:'active', _dynStatus:'available',
-               description:u.beds||'', amenities:u.amenities||[], _images:[]};
-        seedRoomImages(r);
-        return r;
+  Promise.all([
+    sbGet('veraluz_units?select='+FIELDS+'&order=sort_order.asc,name.asc'),
+    sbGet('veraluz_photos?active=eq.true&select=unit_id,url,is_cover,sort_order&order=unit_id.asc,sort_order.asc'),
+    sbGet('veraluz_reservations?select=*&order=created_at.desc&limit=200')
+  ]).then(function(results){
+    var unitData=results[0], photoData=results[1], rezData=results[2];
+
+    /* ── Maps photos: coverMap[unit_id]=url, photoMap[unit_id]=[...] ── */
+    var coverMap={}, photoMap={};
+    if(Array.isArray(photoData)){
+      photoData.forEach(function(p){
+        if(!photoMap[p.unit_id]) photoMap[p.unit_id]=[];
+        photoMap[p.unit_id].push(p);
+        if(p.is_cover&&!coverMap[p.unit_id]) coverMap[p.unit_id]=p.url;
       });
     }
-    check();
-  });
 
-  /* Sauvegarder les entrées locales avant rechargement */
-  var _localEntries = (_rez||[]).filter(function(r){ return r._fromSync||r._local; });
+    /* ── Unités: DB ou cache offline ── */
+    if(Array.isArray(unitData)&&unitData.length){
+      _rooms=unitData;
+    } else {
+      try{
+        var c=localStorage.getItem('vlz_cache_rooms');
+        if(c) _rooms=JSON.parse(c);
+      }catch(e){}
+      if(!_rooms||!_rooms.length){
+        var ORDER=['std','sea','studio','apt','suite','villa','loft','penthouse'];
+        _rooms=ORDER.map(function(k){
+          var u=UNIT_DATA[k]||{};
+          return {id:'local-'+k,type:k,name:u.name||k,capacity:u.capacity||2,
+                  price:u.price||35000,status:'active',description:u.beds||'',amenities:u.amenities||[]};
+        });
+      }
+    }
 
-  sbGet('veraluz_reservations?select=*&order=created_at.desc&limit=200').then(function(data){
-    var fromSB = Array.isArray(data) ? data.map(norm) : [];
-    /* Réintégrer les entrées locales non-présentes dans Supabase */
-    var stillLocal = _localEntries.filter(function(loc){
-      return !fromSB.some(function(s){ return s.id && loc.id && String(s.id)===String(loc.id); });
+    _rooms.forEach(function(r){
+      r._dynStatus=r.status==='active'?'available':r.status;
+      var photos=photoMap[r.id]||[];
+      r._photos=photos;
+      r._photoCount=photos.length;
+      r._canonicalPhoto=coverMap[r.id]||(photos.length?photos[0].url:null);
     });
-    _rez = fromSB.concat(stillLocal);
-    /* Fusionner les notifications en attente (vlz_booking_sync non encore importées) */
+
+    /* Cache sans base64 */
+    try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms.map(function(r){
+      return {id:r.id,name:r.name,type:r.type,capacity:r.capacity,price:r.price,
+              status:r.status,description:r.description,amenities:r.amenities||[],
+              floor:r.floor||1,_canonicalPhoto:r._canonicalPhoto,_photoCount:r._photoCount};
+    }))); }catch(e){}
+
+    /* ── Réservations ── */
+    var fromSB=Array.isArray(rezData)?rezData.map(norm):[];
+    var stillLocal=_localEntries.filter(function(loc){
+      return !fromSB.some(function(s){return s.id&&loc.id&&String(s.id)===String(loc.id);});
+    });
+    _rez=fromSB.concat(stillLocal);
     try{
       var pending=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
       pending.forEach(function(s){
@@ -666,11 +670,19 @@ function loadAll(cb){
         if(!exists) _rez.unshift(norm(Object.assign({},s,{_fromSync:true})));
       });
     }catch(e){}
-    try{ localStorage.setItem('vlz_cache_rez', JSON.stringify(_rez)); }catch(e){}
-    check();
+    try{ localStorage.setItem('vlz_cache_rez',JSON.stringify(_rez)); }catch(e){}
+
+    if(cb) cb();
   }).catch(function(){
-    try{ var c=localStorage.getItem('vlz_cache_rez'); if(c) _rez=JSON.parse(c).map(norm); }catch(e){}
-    /* En mode hors-ligne: intégrer aussi vlz_booking_sync */
+    /* Erreur JS inattendue — fallback cache */
+    try{
+      var c=localStorage.getItem('vlz_cache_rooms');
+      if(c){ _rooms=JSON.parse(c); _rooms.forEach(function(r){r._dynStatus=r.status==='active'?'available':r.status;}); }
+    }catch(e){}
+    try{
+      var c2=localStorage.getItem('vlz_cache_rez');
+      if(c2) _rez=JSON.parse(c2).map(norm);
+    }catch(e){}
     try{
       var pending=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]');
       pending.forEach(function(s){
@@ -678,8 +690,39 @@ function loadAll(cb){
         if(!exists) _rez.unshift(norm(Object.assign({},s,{_fromSync:true,status:'pending'})));
       });
     }catch(e){}
-    check();
+    if(cb) cb();
   });
+}
+
+function reloadCanonicalUnitsAndPhotos(cb){
+  /* 011C-2D — Read-back DB après modification unité/photo pour garantir cohérence */
+  var FIELDS='id,name,type,floor,capacity,price,description,amenities,status,sort_order,hk_status,updated_at';
+  Promise.all([
+    sbGet('veraluz_units?select='+FIELDS+'&order=sort_order.asc,name.asc'),
+    sbGet('veraluz_photos?active=eq.true&select=unit_id,url,is_cover,sort_order&order=unit_id.asc,sort_order.asc')
+  ]).then(function(results){
+    var unitData=results[0], photoData=results[1];
+    if(!Array.isArray(unitData)||!unitData.length){ if(cb) cb(); return; }
+    var coverMap={}, photoMap={};
+    if(Array.isArray(photoData)){
+      photoData.forEach(function(p){
+        if(!photoMap[p.unit_id]) photoMap[p.unit_id]=[];
+        photoMap[p.unit_id].push(p);
+        if(p.is_cover&&!coverMap[p.unit_id]) coverMap[p.unit_id]=p.url;
+      });
+    }
+    _rooms=unitData;
+    _rooms.forEach(function(r){
+      r._dynStatus=r.status==='active'?'available':r.status;
+      var photos=photoMap[r.id]||[];
+      r._photos=photos;
+      r._photoCount=photos.length;
+      r._canonicalPhoto=coverMap[r.id]||(photos.length?photos[0].url:null);
+    });
+    enrichStatuses();
+    syncRoomsCache();
+    if(cb) cb();
+  }).catch(function(){ if(cb) cb(); });
 }
 
 /* ── Images par défaut selon nom chambre ── */
@@ -735,9 +778,13 @@ function renderTab(id){
   else if(id==='params') renderParams();
 }
 function updateBadges(){
-  var avail = _rooms.filter(function(r){return r._dynStatus==='available';}).length;
-  var el=document.getElementById('avail-badge');
-  if(el){el.textContent=avail; el.className='tbadge'+(avail>0?' ok':'');}
+  var total=_rooms.length;
+  var avail=_rooms.filter(function(r){return r._dynStatus==='available';}).length;
+  /* 011C-2D: tab badge = total, avail-count-badge dans le contenu */
+  var el=document.getElementById('total-badge');
+  if(el){el.textContent=total; el.className='tbadge'+(total>0?' ok':'');}
+  var availEl=document.getElementById('avail-count-badge');
+  if(availEl) availEl.textContent=avail+' dispo.';
   var pending = _rez.filter(function(r){return r.status==='pending';}).length;
   var onlineCnt=0; try{onlineCnt=JSON.parse(localStorage.getItem('vlz_booking_sync')||'[]').length;}catch(e){}
   var rb=document.getElementById('rez-badge');
@@ -855,7 +902,14 @@ function getRoomAmens(room){
 function renderRooms(){
   var fval=(document.getElementById('roomFilter')||{}).value||'all';
   var list=fval==='all'?_rooms:_rooms.filter(function(r){return r._dynStatus===fval;});
-  var cnt=document.getElementById('roomCount'); if(cnt) cnt.textContent=list.length+' chambre'+(list.length!==1?'s':'');
+  var cnt=document.getElementById('roomCount');
+  if(cnt){
+    var dispCount=list.length;
+    var availCount=_rooms.filter(function(r){return r._dynStatus==='available';}).length;
+    var cntLbl=dispCount+' chambre'+(dispCount!==1?'s':'');
+    if(fval==='all') cntLbl+=' &nbsp;<span id="avail-count-badge" style="color:#2a9d4e;font-size:.85em;font-weight:500">'+availCount+' dispo.</span>';
+    cnt.innerHTML=cntLbl;
+  }
   var grid=document.getElementById('roomsGrid'); if(!grid) return;
   if(!list.length){grid.innerHTML='<div class="empty-state"><p>Aucune chambre</p></div>';return;}
   grid.innerHTML=list.map(function(room){
@@ -1641,7 +1695,7 @@ function renderParams(){
       (img?'<img class="unit-p-img" src="'+esc(img)+'" onerror="this.style.display=\'none\'">':'<div class="unit-p-img" style="display:flex;align-items:center;justify-content:center;font-size:24px">🛏</div>')+
       '<div class="unit-p-info">'+
         '<div class="unit-p-name">'+esc(u.name||'Unité')+' <span class="room-sbadge '+stCss+'" style="font-size:9px">'+stLbl+'</span></div>'+
-        '<div class="unit-p-meta">'+(u.type||'chambre')+' · '+(u.capacity||2)+' pers. · '+fmtMoney(u.price||0)+'/nuit · '+(httpPhotos.length)+' photo(s)</div>'+
+        '<div class="unit-p-meta">'+(u.type||'chambre')+' · '+(u.capacity||2)+' pers. · '+fmtMoney(u.price||0)+'/nuit · '+(u._photoCount||0)+' photo(s)</div>'+
         (amHtml?'<div class="unit-p-amenities">'+amHtml+'</div>':'')+
       '</div>'+
       '<div class="unit-p-actions">'+
@@ -1870,9 +1924,20 @@ function setPhotoCoverDB(photoId){
       body:JSON.stringify({is_cover:true})
     });
   }).then(function(){
-    _editPhotos.forEach(function(p){ p.is_cover = (p.id===photoId); });
-    refreshEditPhotosGrid();
     toast('Photo de couverture définie ✓','success');
+    /* 011C-2D: re-read photos from DB pour sync canonique */
+    sbGet('veraluz_photos?unit_id=eq.'+encodeURIComponent(_editUnitId)+'&active=eq.true&order=sort_order.asc').then(function(photos){
+      _editPhotos=Array.isArray(photos)?photos:[];
+      var cover=_editPhotos.find(function(p){return p.is_cover;});
+      var room=_rooms.find(function(r){return r.id===_editUnitId;});
+      if(room){
+        room._canonicalPhoto=cover?cover.url:(_editPhotos.length?_editPhotos[0].url:null);
+        room._photoCount=_editPhotos.length;
+        room._photos=_editPhotos.slice();
+      }
+      refreshEditPhotosGrid();
+      renderRooms();
+    }).catch(function(){refreshEditPhotosGrid();});
   }).catch(function(){ toast('Erreur set cover','danger'); });
 }
 
@@ -1960,13 +2025,10 @@ function saveUnitFull(){
   if(_editUnitId){
     /* PATCH */
     sbPatch('veraluz_units?id=eq.'+_editUnitId, body).then(function(){
-      var r=_rooms.find(function(r){return r.id===_editUnitId;});
-      if(r){ Object.assign(r,body);
-        var canonImgs=_editPhotos.filter(function(p){return p.active!==false&&p.url&&p.url.startsWith('http');}).map(function(p){return p.url;});
-        r.images=canonImgs; r._images=canonImgs; r._canonicalPhoto=canonImgs[0]||null; }
-      syncRoomsCache();
       toast('Unité mise à jour ✓','success');
-      closeUnitForm(); renderParams(); renderRooms();
+      closeUnitForm();
+      /* 011C-2D: read-back depuis DB — jamais Object.assign local */
+      reloadCanonicalUnitsAndPhotos(function(){ renderParams(); renderRooms(); updateBadges(); });
     }).catch(function(){
       toast('Erreur mise à jour','danger');
       if(btn){btn.disabled=false;btn.textContent='✓ Enregistrer les modifications';}
@@ -1976,12 +2038,10 @@ function saveUnitFull(){
     sbPost('veraluz_units', body).then(function(data){
       var saved=Array.isArray(data)?data[0]:data;
       if(saved&&saved.id){
-        var canonImgs2=_editPhotos.filter(function(p){return p.active!==false&&p.url&&p.url.startsWith('http');}).map(function(p){return p.url;});
-        saved._images=canonImgs2; saved.images=canonImgs2; saved._canonicalPhoto=canonImgs2[0]||null; saved._dynStatus='available';
-        seedRoomImages(saved); _rooms.push(saved);
-        syncRoomsCache();
         toast('Unité créée ✓','success');
-        closeUnitForm(); renderParams(); renderRooms(); updateBadges();
+        closeUnitForm();
+        /* 011C-2D: read-back depuis DB */
+        reloadCanonicalUnitsAndPhotos(function(){ renderParams(); renderRooms(); updateBadges(); });
       } else {
         toast('Erreur création unité','danger');
         if(btn){btn.disabled=false;btn.textContent='✓ Créer l\'unité';}

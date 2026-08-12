@@ -1668,20 +1668,7 @@ function showCatalogUnavailable(){
 }
 
 function loadFromCache(){
-  /* Cache localStorage (écrit par RESERVATIONS_EMBEDDED) — exclure les fallback-* */
-  try{
-    var cached=JSON.parse(localStorage.getItem('vlz_cache_rooms')||'[]');
-    var real=cached.filter(function(r){ return r.id && !String(r.id).startsWith('fallback-'); });
-    if(real.length){
-      _rooms=real.map(function(r){
-        if(typeof r.amenities==='string'){try{r.amenities=JSON.parse(r.amenities);}catch(e){r.amenities=[];}}
-        if(!Array.isArray(r.amenities)) r.amenities=[];
-        return r;
-      });
-      renderBkRooms();
-      return;
-    }
-  }catch(e){}
+  /* 011C-2D: ne jamais afficher des unités en cache comme disponibles à la réservation */
   showCatalogUnavailable();
 }
 
@@ -1721,7 +1708,7 @@ function loadRooms(){
   })
   .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
   .then(function(data){
-    if(!Array.isArray(data)||!data.length){ loadFromCache(); return; }
+    if(!Array.isArray(data)||!data.length){ showCatalogUnavailable(); return; }
     _rooms=data.map(function(r){
       r._canonicalPhoto = r.cover_photo_url || null;
       if(typeof r.amenities==='string'){try{r.amenities=JSON.parse(r.amenities);}catch(e){r.amenities=[];}}
@@ -1733,7 +1720,7 @@ function loadRooms(){
   })
   .catch(function(e){
     console.warn('[BOOKING] live catalog unavailable:',e&&e.message);
-    loadFromCache();
+    showCatalogUnavailable();
   });
 }
 

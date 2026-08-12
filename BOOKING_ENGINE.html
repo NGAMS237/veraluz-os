@@ -1243,12 +1243,9 @@ var DEFAULT_REVIEWS = [
 
 /* ═══ HOTEL INFO (from localStorage/Core) ═══ */
 function getAmenities(unit){
-  var data = UNIT_DATA[unit.type] || {};
   var ams = unit.amenities;
-  /* Supabase peut retourner les amenities comme string JSON */
   if(typeof ams === 'string'){ try{ ams=JSON.parse(ams); }catch(e){ ams=[]; } }
-  if(!Array.isArray(ams) || !ams.length) ams = data.amenities || [];
-  return ams;
+  return Array.isArray(ams) ? ams : [];
 }
 
 function renderAmBadges(ams, max){
@@ -1657,32 +1654,35 @@ function syncDates(){
 }
 
 /* ── LOAD ROOMS ── */
+function showCatalogUnavailable(){
+  var msg='<div style="text-align:center;padding:48px 20px;color:var(--text3)">'+
+    '<svg viewBox="0 0 24 24" style="width:40px;height:40px;stroke:currentColor;fill:none;stroke-width:1.5;display:block;margin:0 auto 12px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'+
+    '<p style="font-weight:600;margin:0 0 6px">Disponibilités temporairement indisponibles</p>'+
+    '<p style="font-size:.85rem;margin:0">Veuillez réessayer dans quelques instants ou nous contacter directement.</p>'+
+    '</div>';
+  var cont=document.getElementById('bk-rooms');
+  var rg=document.getElementById('rooms-grid');
+  if(cont) cont.innerHTML=msg;
+  if(rg) rg.innerHTML=msg;
+  console.warn('[BOOKING] live catalog unavailable');
+}
+
 function loadFromCache(){
-  /* Niveau 2 — vlz_cache_rooms écrit par le module Réservations (Paramètres) */
+  /* Cache localStorage (écrit par RESERVATIONS_EMBEDDED) — exclure les fallback-* */
   try{
     var cached=JSON.parse(localStorage.getItem('vlz_cache_rooms')||'[]');
-    if(cached&&cached.length){
-      _rooms=cached.map(function(r){
-        r._dynStatus=r.status==='active'?'available':r.status;
-        /* Fusionner les images: Supabase/cache + localStorage per-room */
-        var imgs = r.images||[];
-        if(typeof imgs==='string'){try{imgs=JSON.parse(imgs);}catch(e){imgs=[];}}
-        try{
-          var stored=JSON.parse(localStorage.getItem('vlz_room_images_'+r.id)||'[]');
-          imgs=imgs.concat(stored).filter(function(x,i,a){return x&&a.indexOf(x)===i;});
-        }catch(e){}
-        r.images=imgs; r._images=imgs;
-        if(!Array.isArray(r.amenities)){
-          try{r.amenities=JSON.parse(r.amenities||'[]');}catch(e){r.amenities=[];}
-        }
+    var real=cached.filter(function(r){ return r.id && !String(r.id).startsWith('fallback-'); });
+    if(real.length){
+      _rooms=real.map(function(r){
+        if(typeof r.amenities==='string'){try{r.amenities=JSON.parse(r.amenities);}catch(e){r.amenities=[];}}
+        if(!Array.isArray(r.amenities)) r.amenities=[];
         return r;
       });
       renderBkRooms();
       return;
     }
   }catch(e){}
-  /* Niveau 3 — UNIT_DATA fallback (aucune connexion ni cache) */
-  renderFallbackRooms();
+  showCatalogUnavailable();
 }
 
 function loadRooms(){
@@ -1690,68 +1690,38 @@ function loadRooms(){
   if(!cont) return;
   cont.innerHTML='<div class="bk-loading"><svg viewBox="0 0 24 24" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Chargement des disponibilités...</div>';
 
-  if(!SB||!SK){
-    /* Pas de Supabase — essayer le cache du module Réservations */
-    loadFromCache();
-    return;
-  }
-  /* Niveau 1 — Supabase (même source que le module Réservations) */
-  fetch(SB+'/rest/v1/veraluz_units?select=*&order=price.asc,id.asc',{
-    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'}
+  if(!SB||!SK){ loadFromCache(); return; }
+
+  /* Source canonique : RPC sécurisée — aucun champ interne, cover intégrée, status=active seulement */
+  fetch(SB+'/rest/v1/rpc/get_public_booking_units',{
+    method:'POST',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+    body:'{}'
   })
   .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
   .then(function(data){
-    var active=(data||[]).filter(function(r){return r.status==='active'||r.status==='available';});
-    if(!active.length){ loadFromCache(); return; }
-    /* Préparer rooms — normaliser images */
-    var rooms=active.map(function(r){
-      var imgs = r.images||[];
-      if(typeof imgs==='string'){try{imgs=JSON.parse(imgs);}catch(e){imgs=[];}}
-      /* Filtrer les base64 (>200 chars sans http) — trop lourds, non cross-device */
-      imgs = imgs.filter(function(u){ return typeof u==='string' && (u.startsWith('http')||u.startsWith('/')); });
-      r.images=imgs; r._images=imgs;
+    if(!Array.isArray(data)||!data.length){ loadFromCache(); return; }
+    _rooms=data.map(function(r){
+      r._canonicalPhoto = r.cover_photo_url || null;
       if(typeof r.amenities==='string'){try{r.amenities=JSON.parse(r.amenities);}catch(e){r.amenities=[];}}
+      if(!Array.isArray(r.amenities)) r.amenities=[];
       return r;
     });
-    /* Niveau 0 — veraluz_photos : source canonique cross-device */
-    fetch(SB+'/rest/v1/veraluz_photos?active=eq.true&is_cover=eq.true&select=unit_id,url',{
-      headers:{'apikey':SK,'Authorization':'Bearer '+SK}
-    })
-    .then(function(pr){ return pr.ok ? pr.json() : []; })
-    .then(function(photos){
-      var photoMap={};
-      (photos||[]).forEach(function(p){ photoMap[p.unit_id]=p.url; });
-      _rooms=rooms.map(function(r){
-        r._canonicalPhoto = photoMap[r.id] || null;
-        return r;
-      });
-      try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms)); }catch(e){}
-      renderBkRooms();
-    })
-    .catch(function(){
-      _rooms=rooms;
-      try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms)); }catch(e){}
-      renderBkRooms();
-    });
+    try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms)); }catch(e){}
+    renderBkRooms();
   })
-  .catch(function(){ loadFromCache(); });
+  .catch(function(e){
+    console.warn('[BOOKING] live catalog unavailable:',e&&e.message);
+    loadFromCache();
+  });
 }
 
 function renderFallbackRooms(){
-  /* Fallback si Supabase indisponible — utilise UNIT_DATA comme source de vérité */
-  console.warn('[BOOKING] fallback unit catalog active — Supabase indisponible ou aucune unité active');
-  _rooms=[
-    {id:'fallback-std',   type:'std',       price:35000,  price_per_night:35000,  capacity:2},
-    {id:'fallback-sea',   type:'sea',       price:50000,  price_per_night:50000,  capacity:2},
-    {id:'fallback-studio',type:'studio',    price:45000,  price_per_night:45000,  capacity:3},
-    {id:'fallback-apt',   type:'apt',       price:75000,  price_per_night:75000,  capacity:5},
-    {id:'fallback-suite', type:'suite',     price:120000, price_per_night:120000, capacity:2},
-    {id:'fallback-villa', type:'villa',     price:200000, price_per_night:200000, capacity:6},
-    {id:'fallback-loft',  type:'loft',      price:80000,  price_per_night:80000,  capacity:2},
-    {id:'fallback-pent',  type:'penthouse', price:150000, price_per_night:150000, capacity:2}
-  ];
-  renderBkRooms();
+  /* Plus de faux catalogue réservable — afficher un message d'indisponibilité */
+  console.warn('[BOOKING] live catalog unavailable — connexion Supabase échouée');
+  showCatalogUnavailable();
 }
+
 
 function renderBkRooms(){
   var cont=document.getElementById('bk-rooms');
@@ -1761,7 +1731,7 @@ function renderBkRooms(){
 
   _rooms.forEach(function(r){
     var ud=UNIT_DATA[r.type]||{};
-    var nm=r.name||ud.name||ELEGANT_NAMES[r.type]||r.type;
+    var nm=r.name||r.type;  /* DB is the single source — no UNIT_DATA override */
     var photo=getBEPhoto(r);
     var price=fmtXAF(r.price_per_night||r.price||0);
     var ams=getAmenities(r);
@@ -1810,7 +1780,7 @@ function renderLandingRooms(container){
   container.innerHTML='';
   _rooms.forEach(function(r){
     var ud=UNIT_DATA[r.type]||{};
-    var nm=r.name||ud.name||ELEGANT_NAMES[r.type]||r.type;
+    var nm=r.name||r.type;  /* DB is the single source — no UNIT_DATA override */
     var photo=getBEPhoto(r);
     var price=fmtXAF(r.price_per_night||r.price||0);
     var ams=getAmenities(r);
@@ -1820,7 +1790,7 @@ function renderLandingRooms(container){
     container.insertAdjacentHTML('beforeend',
       '<div class="room-card">'
       +'<div class="room-card-img" style="background-image:url(\''+photo+'\')">'
-      +'<div class="room-badge">Disponible</div>'
+      /* badge Disponible supprimé — les unités RPC sont toujours actives */
       +'<div class="room-cap-badge"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>'+cap+' pers'+sqm+'</div>'
       +'</div>'
       +'<div class="room-card-body">'
@@ -1946,7 +1916,7 @@ function buildRecap(){
   var ln=document.getElementById('bk-lname').value;
   var em=document.getElementById('bk-email').value;
   var ph=document.getElementById('bk-phone').value;
-  var nm=r?ELEGANT_NAMES[r.type]||r.name||r.type:'—';
+  var nm=r?r.name||r.type:'—';
   var recap=document.getElementById('bk-recap');
   if(recap){
     recap.innerHTML='<div class="bk-recap-title">Récapitulatif</div>'
@@ -1976,7 +1946,7 @@ function submitBooking(){
   var mode=document.querySelector('input[name="bk-mode"]:checked');
   if(!r||!ci||!co||!fn||!ln||!em||!ph){ showToast('Veuillez remplir tous les champs obligatoires.','warn'); return; }
 
-  var unitNm = r.name||ELEGANT_NAMES[r.type]||(UNIT_DATA[r.type]||{}).name||r.type;
+  var unitNm = r.name||r.type;
   var payload={
     /* Champs locaux (sync/affichage) */
     client_name:fn+' '+ln,

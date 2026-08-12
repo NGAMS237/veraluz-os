@@ -1847,15 +1847,17 @@ function setPhotoCoverDB(photoId){
 }
 
 function removePhotoFromDB(photoId){
-  if(!confirm('Supprimer cette photo ?')) return;
+  if(!confirm('Masquer cette photo ? (l\'image reste dans Storage)')) return;
+  /* Soft delete: active=false + is_cover=false — fichier Storage préservé */
   fetch(SB+'/rest/v1/veraluz_photos?id=eq.'+encodeURIComponent(photoId),{
-    method:'DELETE',
-    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}
+    method:'PATCH',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({active:false, is_cover:false})
   }).then(function(){
     _editPhotos = _editPhotos.filter(function(p){ return p.id!==photoId; });
     refreshEditPhotosGrid();
-    toast('Photo supprimée','success');
-  }).catch(function(){ toast('Erreur suppression photo','danger'); });
+    toast('Photo masquée (fichier conservé)','success');
+  }).catch(function(){ toast('Erreur masquage photo','danger'); });
 }
 
 function refreshEditPhotosGrid(){
@@ -1912,13 +1914,15 @@ function saveUnitFull(){
     var cb=document.getElementById('am-'+a.k);
     return (cb&&cb.checked)?a.k:null;
   }).filter(Boolean);
+  /* Corps de base — NE PAS inclure `images` pour éviter d'écraser les URLs/base64 legacy */
   var body = {
     name:name.trim(), type:type, price:price, capacity:cap,
     floor:floor, status:status, description:desc,
-    amenities:amens,
-    /* Synchroniser images avec les URLs canoniques des photos actives (pas de base64) */
-    images:_editPhotos.filter(function(p){return p.active!==false && p.url && p.url.startsWith('http');}).map(function(p){return p.url;})
+    amenities:amens
   };
+  /* Ajouter images uniquement si on a des photos DB canoniques (http) — pas de base64 */
+  var canonImgsForBody = _editPhotos.filter(function(p){return p.active!==false && p.url && p.url.startsWith('http');}).map(function(p){return p.url;});
+  if(canonImgsForBody.length) body.images = canonImgsForBody;
 
   var btn = document.querySelector('#unit-form-wrap .btn-save-p');
   if(btn){btn.disabled=true;btn.textContent='Enregistrement…';}

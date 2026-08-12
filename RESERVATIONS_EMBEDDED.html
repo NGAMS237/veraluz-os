@@ -121,6 +121,7 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .rb-checked_out,.rb-checkedout{background:rgba(107,114,128,.2);color:var(--so)}
 .rb-cancelled{background:rgba(239,68,68,.2);color:var(--danger)}
 .rb-no_show{background:rgba(153,27,27,.3);color:#fca5a5}
+.btn-noshow{background:rgba(153,27,27,.15)!important;color:#fca5a5!important;border:1px solid rgba(153,27,27,.4)!important;}
 .rez-info{flex:1;min-width:0}
 .rez-guest{font-size:13px;font-weight:700;color:var(--text)}
 .rez-sub{font-size:11px;color:var(--text2);margin-top:2px}
@@ -911,6 +912,7 @@ function renderRezList(){
     var actions='';
     if(r.status==='pending') actions+='<button class="act-btn btn-confirm" onclick="event.stopPropagation();doConfirm(\''+r.id+'\')">Confirmer</button>';
     if(r.status==='confirmed') actions+='<button class="act-btn btn-checkin" onclick="event.stopPropagation();doCheckIn(\''+r.id+'\')">Check-in</button>';
+    if(r.status==='confirmed') actions+='<button class="act-btn btn-noshow" onclick="event.stopPropagation();doNoShow(\''+r.id+'\')" title="Client absent">No-show</button>';
     if(r.status==='checkedin'||r.status==='checked_in') actions+='<button class="act-btn btn-checkout" onclick="event.stopPropagation();doCheckOut(\''+r.id+'\')">Check-out</button>';
     return '<div class="rez-card" onclick="openRezModal(\''+r.id+'\')">'+
       '<span class="rez-sbadge '+s.badge+'">'+s.label+'</span>'+
@@ -1161,6 +1163,7 @@ function openRezModal(rezId,_tab){
   var actions='';
   if(r.status==='pending') actions+='<button class="act-btn btn-confirm" data-rid="'+r.id+'" onclick="doConfirm(this.dataset.rid)">Confirmer</button>';
   if(r.status==='confirmed') actions+='<button class="act-btn btn-checkin" data-rid="'+r.id+'" onclick="doCheckIn(this.dataset.rid)">Check-in</button>';
+  if(r.status==='confirmed') actions+='<button class="act-btn btn-noshow" data-rid="'+r.id+'" onclick="doNoShow(this.dataset.rid)" title="Client absent">No-show</button>';
   if(r.status==='checkedin'||r.status==='checked_in') actions+='<button class="act-btn btn-checkout" data-rid="'+r.id+'" onclick="doCheckOut(this.dataset.rid)">Check-out</button>';
   if(['pending','confirmed','checkedin','checked_in'].includes(r.status)) actions+='<button class="act-btn btn-cancel" data-rid="'+r.id+'" onclick="doCancel(this.dataset.rid)">Annuler</button>';
   if(r.guest_email) actions+='<button class="act-btn" style="background:var(--bg3);color:var(--text1);border:1px solid var(--border);" data-rid="'+r.id+'" onclick="sendConfirmEmail(this.dataset.rid)">&#9993; Email</button>';

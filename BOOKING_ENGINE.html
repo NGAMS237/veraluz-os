@@ -373,6 +373,11 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
 .bk-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
 /* Totals */
 .bk-total-wrap{background:rgba(212,148,58,.07);border:1px solid rgba(212,148,58,.2);border-radius:var(--rd2);padding:20px;margin-bottom:20px}
+.bk-avail-msg{font-size:.83rem;padding:7px 0 4px;font-weight:600;transition:color .2s}
+.bk-avail-ok{color:#22c55e}.bk-avail-unavail{color:#ef4444}
+.bk-avail-legend{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--text3);margin-bottom:12px}
+.leg-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.leg-avail{background:#22c55e}.leg-unavail{background:#ef4444}
 .bk-total-row{display:flex;justify-content:space-between;font-size:.86rem;color:var(--text2);padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)}
 .bk-total-row:last-child{border-bottom:none}
 .bk-total-main{font-size:1rem;font-weight:600;color:var(--sand);padding:10px 0}
@@ -1017,6 +1022,8 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
           </select>
         </div>
       </div>
+      <div id="bk-avail-msg" class="bk-avail-msg" style="display:none"></div>
+      <div class="bk-avail-legend"><span class="leg-dot leg-avail"></span>Disponible&nbsp;&nbsp;<span class="leg-dot leg-unavail"></span>Indisponible</div>
       <div class="bk-total-wrap" id="bk-total-wrap" style="display:none">
         <div class="bk-total-row"><span>Durée du séjour</span><span id="bk-nights-label">-</span></div>
         <div class="bk-total-row"><span>Tarif par nuit</span><span id="bk-price-night">-</span></div>
@@ -1132,7 +1139,8 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
 /* ── CONSTANTS ── */
 var SB = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
-var _selRoom = null;   // currently selected room object
+var _selRoom = null;
+var _blockedRanges = []; // {ci, co} — blocked periods for selected unit   // currently selected room object
 var _bkData  = {};     // accumulates booking data across steps
 
 /* ── ELEGANT NAMES MAP ── */
@@ -1812,6 +1820,38 @@ function selRoom(id){
   var card=document.getElementById('bkr-'+id);
   if(card) card.classList.add('selected');
   document.getElementById('bk-btn-s1').disabled=!_selRoom;
+  _blockedRanges=[];
+  if(_selRoom&&SB&&SK){ loadBlockedDates(_selRoom.id); }
+}
+
+/* ── DISPONIBILITÉ — charge les périodes bloquées pour l'unité sélectionnée ── */
+function loadBlockedDates(unitId){
+  var msg=document.getElementById('bk-avail-msg');
+  if(msg){msg.className='bk-avail-msg';msg.textContent='Chargement des disponibilités…';msg.style.display='block';}
+  fetch(SB+'/rest/v1/veraluz_reservations?unit_id=eq.'+encodeURIComponent(unitId)
+      +'&status=in.(confirmed,checkedin,pending)'
+      +'&select=check_in,check_out,status,hold_expires_at'
+      +'&order=check_in.asc',
+    {headers:{'apikey':SK,'Authorization':'Bearer '+SK}})
+  .then(function(r){return r.ok?r.json():[];})
+  .then(function(rows){
+    var now=new Date();
+    _blockedRanges=(rows||[]).filter(function(r){
+      if(r.status==='confirmed'||r.status==='checkedin') return true;
+      if(r.status==='pending'){
+        if(!r.hold_expires_at) return true; // legacy: pas d'expiration = actif
+        return new Date(r.hold_expires_at)>now;
+      }
+      return false;
+    }).map(function(r){return{ci:r.check_in,co:r.check_out};});
+    calcTotal(); // re-valider les dates déjà saisies
+  })
+  .catch(function(){if(msg){msg.textContent='';msg.style.display='none';}});
+}
+
+function hasRangeOverlap(ci,co){
+  // [check_in,check_out) : a.ci < b.co && b.ci < a.co
+  return _blockedRanges.some(function(b){return ci<b.co&&b.ci<co;});
 }
 
 /* ── DATE / TOTAL CALC ── */
@@ -1834,6 +1874,15 @@ function calcTotal(){
     setText('bk-total-price',fmtXAF(total));
     setText('bk-acompte-price',fmtXAF(acompte));
   }
+  /* Vérifier chevauchement avec périodes bloquées */
+  var msg=document.getElementById('bk-avail-msg');
+  if(hasRangeOverlap(ci,co)){
+    if(msg){msg.className='bk-avail-msg bk-avail-unavail';msg.style.display='block';
+      msg.textContent='⚠️ Ces dates ne sont pas disponibles pour cette unité.';}
+    if(btn) btn.disabled=true;
+    return;
+  }
+  if(msg){msg.className='bk-avail-msg bk-avail-ok';msg.style.display='block';msg.textContent='✓ Dates disponibles';}
   if(btn) btn.disabled=false;
   _bkData.nights=nights; _bkData.total=total; _bkData.acompte=acompte;
 }
@@ -1958,30 +2007,47 @@ function submitBooking(){
   };
 
   if(SB&&SK){
-    /* N'envoyer que les colonnes présentes dans le schéma Supabase */
-    var sbPayload={
-      unit_id:    payload.unit_id,
-      client_name:payload.client_name,
-      client_email:payload.client_email,
-      client_phone:payload.client_phone,
-      guests:     payload.guests,
-      check_in:   payload.check_in||payload.checkin,
-      check_out:  payload.check_out||payload.checkout,
-      nights:     payload.nights,
-      total:      payload.total||payload.total_amount||0,
-      paid:       payload.paid||payload.acompte||0,
-      status:     payload.status||'pending',
-      source:     payload.source||'booking-engine',
-      notes:      payload.notes||null
+    /* Appel RPC atomique — vérif dispo + INSERT en une transaction */
+    var rpcPayload={
+      p_unit_id:     payload.unit_id,
+      p_check_in:    payload.check_in||payload.checkin,
+      p_check_out:   payload.check_out||payload.checkout,
+      p_client_name: payload.client_name,
+      p_client_email:payload.client_email||null,
+      p_client_phone:payload.client_phone||null,
+      p_guests:      payload.guests||2,
+      p_nights:      payload.nights||1,
+      p_total:       payload.total||payload.total_amount||0,
+      p_notes:       payload.notes||null,
+      p_source:      'booking-engine'
     };
-    fetch(SB+'/rest/v1/veraluz_reservations',{
+    var btn=document.getElementById('submitBtn');
+    fetch(SB+'/rest/v1/rpc/create_booking_hold',{
       method:'POST',
-      headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=representation'},
-      body:JSON.stringify(sbPayload)
+      headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+      body:JSON.stringify(rpcPayload)
     })
-    .then(function(res){ if(!res.ok) throw new Error(res.status); return res.json(); })
-    .then(function(data){ doConfirm(data&&data[0]&&data[0].id); })
-    .catch(function(e){ console.warn('BE Supabase insert failed:',e); doConfirm(); });
+    .then(function(res){if(!res.ok)throw new Error(res.status);return res.json();})
+    .then(function(data){
+      if(data&&data.error){
+        if(data.error==='availability_conflict'){
+          showToast(data.message||'Cette unité vient de devenir indisponible pour ces dates. Veuillez choisir une autre période.','warn');
+          goS(2);
+          if(btn)btn.disabled=false;
+          loadBlockedDates(payload.unit_id); // rafraîchir le calendrier
+          return;
+        }
+        showToast(data.message||('Erreur: '+data.error),'err');
+        if(btn)btn.disabled=false;
+        return;
+      }
+      doConfirm(data&&data.id);
+    })
+    .catch(function(e){
+      console.warn('BE booking hold failed:',e);
+      showToast('Erreur lors de la réservation. Veuillez réessayer.','err');
+      if(btn)btn.disabled=false;
+    });
   } else {
     doConfirm();
   }

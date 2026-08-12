@@ -1028,7 +1028,7 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
         <div class="bk-total-row"><span>Durée du séjour</span><span id="bk-nights-label">-</span></div>
         <div class="bk-total-row"><span>Tarif par nuit</span><span id="bk-price-night">-</span></div>
         <div class="bk-total-row bk-total-main"><span>Total</span><span id="bk-total-price">-</span></div>
-        <div class="bk-total-row bk-acompte"><span>Acompte (30%)</span><span id="bk-acompte-price">-</span></div>
+        <div class="bk-total-row bk-acompte"><span id="bk-acompte-label">Acompte (30%)</span><span id="bk-acompte-price">-</span></div>
       </div>
       <div class="bk-footer bk-footer-2btn">
         <button class="bk-btn-back" onclick="goS(1)">Retour</button>
@@ -1073,7 +1073,7 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
     <!-- Step 4: Payment info -->
     <div class="bk-step" id="bk-step-4" style="display:none">
       <h3>Mode de paiement</h3>
-      <p class="bk-sub">Choisissez comment vous souhaitez régler l'acompte de 30%.</p>
+      <p class="bk-sub" id="bk-step4-sub">Choisissez comment vous souhaitez régler l'acompte de 30%.</p>
       <div class="bk-payment-opts">
         <label class="pm-opt">
           <input type="radio" name="bk-mode" value="mobile_money" id="bk-mm" checked onchange="updatePayMode()">
@@ -1273,8 +1273,7 @@ function returnToOS(){
 function applyHotelInfo(){
   try{
     var d=JSON.parse(localStorage.getItem('vz_hotel_info')||'{}');
-    if(d.supabase_url) SB=d.supabase_url;
-    if(d.supabase_key) SK=d.supabase_key;
+    /* 011C-2E: SB/SK viennent uniquement du build — localStorage ne peut pas les modifier */
     if(d.whatsapp){
       var wnum=d.whatsapp.replace(/\D/g,'');
       document.querySelectorAll('.cms-wa-btn,[id^=cms-wa]').forEach(function(el){
@@ -1694,11 +1693,14 @@ function loadBookingSettings(){
 }
 
 function loadRooms(){
+  /* 011C-2E: popule les deux conteneurs — modal (bk-rooms) + landing (rooms-grid) */
   var cont=document.getElementById('bk-rooms');
-  if(!cont) return;
-  cont.innerHTML='<div class="bk-loading"><svg viewBox="0 0 24 24" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Chargement des disponibilités...</div>';
+  var rg=document.getElementById('rooms-grid');
+  var loadingHtml='<div class="bk-loading"><svg viewBox="0 0 24 24" class="spin"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>Chargement des disponibilités...</div>';
+  if(cont) cont.innerHTML=loadingHtml;
+  if(rg) rg.innerHTML=loadingHtml;
 
-  if(!SB||!SK){ loadFromCache(); return; }
+  if(!SB||!SK){ showCatalogUnavailable(); return; }
 
   /* Source canonique : RPC sécurisée — aucun champ interne, cover intégrée, status=active seulement */
   fetch(SB+'/rest/v1/rpc/get_public_booking_units',{
@@ -1717,6 +1719,8 @@ function loadRooms(){
     });
     try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms)); }catch(e){}
     renderBkRooms();
+    /* 011C-2E: landing catalog depuis même _rooms */
+    if(rg) renderLandingRooms(rg);
   })
   .catch(function(e){
     console.warn('[BOOKING] live catalog unavailable:',e&&e.message);
@@ -1871,6 +1875,12 @@ function calcTotal(){
     setText('bk-price-night',fmtXAF(ppn));
     setText('bk-total-price',fmtXAF(total));
     setText('bk-acompte-price',fmtXAF(acompte));
+    /* 011C-2E: labels dynamiques avec deposit_pct réel */
+    var pct=_bkCfg.deposit_pct||30;
+    var lbl=document.getElementById('bk-acompte-label');
+    if(lbl) lbl.textContent='Acompte ('+pct+'%)';
+    var sub=document.getElementById('bk-step4-sub');
+    if(sub) sub.textContent='Choisissez comment vous souhaitez régler l'acompte de '+pct+'%.';
   }
   /* Vérifier chevauchement avec périodes bloquées */
   var msg=document.getElementById('bk-avail-msg');
@@ -1935,7 +1945,7 @@ function buildRecap(){
     +'<div class="bk-recap-row"><span>Client</span><span>'+fn+' '+ln+'</span></div>'
     +'<div class="bk-recap-row"><span>Email</span><span>'+em+'</span></div>'
     +'<div class="bk-recap-row"><span>Total</span><span>'+fmtXAF(_bkData.total||0)+'</span></div>'
-    +'<div class="bk-recap-row bk-recap-acompte"><span>Acompte à régler (30%)</span><span>'+fmtXAF(_bkData.acompte||0)+'</span></div>';
+    +'<div class="bk-recap-row bk-recap-acompte"><span>Acompte à régler ('+(_bkCfg.deposit_pct||30)+'%)</span><span>'+fmtXAF(_bkData.acompte||0)+'</span></div>';
   }
   updatePayMode();
 }
@@ -1979,7 +1989,8 @@ function submitBooking(){
     checkout:co,
     nights:_bkData.nights||1,
     total:_bkData.total||0,
-    paid:_bkData.acompte||0,
+    paid:0,
+    deposit_due:_bkData.acompte||0,
     notes:notes,
     source:'booking-engine',
     status:'pending',
@@ -2047,7 +2058,10 @@ function submitBooking(){
       if(btn)btn.disabled=false;
     });
   } else {
-    doConfirm();
+    /* 011C-2E: fail closed — aucune confirmation sans backend */
+    var sbtn=document.getElementById('submitBtn');
+    if(sbtn) sbtn.disabled=false;
+    showToast('Réservation impossible pour le moment. Veuillez réessayer ou contacter la réception directement.','err');
   }
 }
 
@@ -2066,7 +2080,7 @@ function showConfirmation(d){
       +'<div class="bk-recap-row"><span>Arrivée</span><span>'+fmtDate(d.checkin)+'</span></div>'
       +'<div class="bk-recap-row"><span>Départ</span><span>'+fmtDate(d.checkout)+'</span></div>'
       +'<div class="bk-recap-row"><span>Total</span><span>'+fmtXAF(d.total_amount)+'</span></div>'
-      +'<div class="bk-recap-row bk-recap-acompte"><span>Acompte (30%)</span><span>'+fmtXAF(d.acompte)+'</span></div>'
+      +'<div class="bk-recap-row bk-recap-acompte"><span>Acompte ('+(_bkCfg.deposit_pct||30)+'%)</span><span>'+fmtXAF(d.acompte)+'</span></div>'
       +'</div>'
       +'<p class="bk-conf-next">Notre équipe vous contactera dans les <strong>15 minutes</strong> pour confirmer votre réservation et les modalités de paiement.</p>'
       +'<div class="bk-conf-actions">'
@@ -2145,6 +2159,9 @@ document.addEventListener('DOMContentLoaded',function(){
   // 011C-2B: load booking settings from DB
   loadBookingSettings();
 
+  // 011C-2E: boot catalog immediately — do not wait for user to click Réserver
+  loadRooms();
+
   // Init default reviews (merge with saved user reviews)
   var saved=[];
   try{ saved=JSON.parse(localStorage.getItem('vz_user_reviews')||'[]'); }catch(e){}
@@ -2194,13 +2211,7 @@ document.addEventListener('DOMContentLoaded',function(){
     });
   }
 
-  // Remove skeleton if rooms not loaded
-  setTimeout(function(){
-    var rg=document.getElementById('rooms-grid');
-    if(rg&&rg.querySelector('.skeleton')&&!_rooms.length){
-      renderFallbackRooms();
-    }
-  },3000);
+  // 011C-2E: 3s false fallback supprimé — loadRooms() est appelé au boot
 });
 </script>
 </body>

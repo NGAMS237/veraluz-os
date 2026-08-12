@@ -610,13 +610,18 @@ function loadAll(cb){
     _rooms = Array.isArray(data) ? data : [];
     _rooms.forEach(function(r){
       r._dynStatus = r.status==='active'?'available':r.status;
+      r._canonicalPhoto = null; // will be set by cover fetch below
       r._images = [];
-      try{
-        var imgs = localStorage.getItem('vlz_room_images_'+r.id);
-        if(imgs) r._images = JSON.parse(imgs);
-      }catch(e){}
       if(!r._images.length) seedRoomImages(r);
     });
+    /* 011C-2C: batch-fetch canonical cover photos from veraluz_photos */
+    sbGet('veraluz_photos?active=eq.true&is_cover=eq.true&select=unit_id,url').then(function(photos){
+      if(Array.isArray(photos)){
+        var coverMap={};
+        photos.forEach(function(p){ coverMap[p.unit_id]=p.url; });
+        _rooms.forEach(function(r){ r._canonicalPhoto=coverMap[r.id]||null; });
+      }
+    }).catch(function(){});
     try{ localStorage.setItem('vlz_cache_rooms', JSON.stringify(_rooms.map(function(r){
       return {id:r.id,name:r.name,type:r.type,capacity:r.capacity,price:r.price,
               status:r.status,description:r.description,
@@ -832,11 +837,15 @@ function renderPlanning(){
 
 /* ── CHAMBRES ── */
 function getRoomPhoto(room){
-  var imgs = room._images||[];
+  /* 011C-2C: canonical photo priority */
+  if(room._canonicalPhoto) return room._canonicalPhoto;
   var fromDB = room.images||[];
   if(typeof fromDB==='string'){try{fromDB=JSON.parse(fromDB);}catch(e){fromDB=[];}}
-  imgs = fromDB.concat(imgs).filter(function(x,i,a){return x&&a.indexOf(x)===i;});
-  return imgs.length ? imgs[0] : '';
+  var httpImgs = (Array.isArray(fromDB)?fromDB:[]).filter(function(x){return x&&typeof x==='string'&&x.startsWith('http');});
+  if(httpImgs.length) return httpImgs[0];
+  var imgs = room._images||[];
+  var httpFallback = (Array.isArray(imgs)?imgs:[]).filter(function(x){return x&&typeof x==='string'&&x.startsWith('http');});
+  return httpFallback.length ? httpFallback[0] : '';
 }
 function getRoomAmens(room){
   var amens = room.amenities||[];
@@ -945,7 +954,8 @@ function statusInfo(s){ return STATUS_MAP[s]||{label:s||'?',color:'var(--text3)'
 function unitName(id){
   var r=_rooms.find(function(r){return r.id===id;});
   if(!r) return '';
-  return (UNIT_DATA[r.type]||{}).name||ELEGANT_NAMES[r.type]||r.name||'';
+  /* 011C-2C: DB name is canonical */
+  return r.name||(UNIT_DATA[r.type]||{}).name||ELEGANT_NAMES[r.type]||r.type||'—';
 }
 
 /* ── Workflow ── */
@@ -1647,9 +1657,7 @@ function renderParams(){
 
   /* ── Section Général ── */
   var genHtml =
-    '<div class="param-row-p"><span class="param-lbl-p">Nom de la résidence</span><input class="param-inp-p" id="p-hotel" value="'+esc(_settings.hotel_name||'Veraluz')+'"></div>'+
-    '<div class="param-row-p"><span class="param-lbl-p">Heure check-in</span><input class="param-inp-p" id="p-ci-time" value="'+esc(_settings.checkin_time||'14:00')+'"></div>'+
-    '<div class="param-row-p"><span class="param-lbl-p">Heure check-out</span><input class="param-inp-p" id="p-co-time" value="'+esc(_settings.checkout_time||'11:00')+'"></div>'+
+    '<div style="font-size:11px;color:var(--text3);padding:4px 0 8px">ℹ️ Nom et contact gérés dans les sections Identité/Contact ci-dessus.</div>'+
     '<div class="param-row-p"><span class="param-lbl-p">Devise</span><input class="param-inp-p" id="p-currency" value="'+esc(_settings.currency||'FCFA')+'"></div>'+
     '<div class="param-row-p"><span class="param-lbl-p">WhatsApp réception</span><input class="param-inp-p" id="p-wa" value="'+esc(_settings.whatsapp||'')+'" placeholder="+237 6XX…"></div>'+
     '<div class="param-row-p"><span class="param-lbl-p">Petit-déjeuner (FCFA/pers.)</span><input class="param-inp-p" type="number" id="p-bkf" value="'+(_settings.breakfast_price||0)+'"></div>'+
@@ -1693,6 +1701,14 @@ function renderParams(){
     '<div class="p-section-hdr"><span class="p-section-title">⚙️ Paramètres généraux & Tarifs</span></div>'+
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px">'+genHtml+'</div>'+
     '</div>'+
+    /* 011C-2C — Propriété */
+    '<div class="p-section"><div class="p-section-hdr"><span class="p-section-title">🏠 Identité résidence</span></div>'+
+    '<div id="p-property-wrap" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px">'+
+    '<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px">Chargement…</div></div></div>'+
+    /* 011C-2C — Contact */
+    '<div class="p-section"><div class="p-section-hdr"><span class="p-section-title">📞 Contact séjour</span></div>'+
+    '<div id="p-contact-wrap" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px">'+
+    '<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px">Chargement…</div></div></div>'+
     /* 011C-2B — Réservation */
     '<div class="p-section"><div class="p-section-hdr"><span class="p-section-title">📅 Règles de réservation</span></div>'+
     '<div id="p-booking-wrap" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px">'+
@@ -1998,22 +2014,26 @@ function sbFetch(path,opts){
 var _dbSettings = {};
 
 function sbPatchSettings(key, obj, cb){
-  fetch(SB+'/rest/v1/veraluz_settings?key=eq.'+encodeURIComponent(key),{
-    method:'PATCH',
-    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
-    body:JSON.stringify({value:obj})
+  /* 011C-2C: write via secure RPC — never direct REST PATCH (blocked by RLS) */
+  fetch(SB+'/rest/v1/rpc/update_settings_safe',{
+    method:'POST',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({p_key:key, p_value:obj})
   })
-  .then(function(r){ if(cb) cb(r.ok?null:new Error(r.status)); })
+  .then(function(r){ return r.ok?r.json():Promise.reject(new Error(r.status)); })
+  .then(function(d){ if(cb) cb(d&&d.ok?null:new Error(d&&d.error||'rpc_error')); })
   .catch(function(e){ if(cb) cb(e); });
 }
 
 function loadSettingsFromDB(){
-  fetch(SB+'/rest/v1/veraluz_settings?key=in.(booking,wifi,restaurant,contact)',{
+  fetch(SB+'/rest/v1/veraluz_settings?key=in.(booking,wifi,restaurant,contact,property)',{
     headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}
   })
   .then(function(r){ return r.ok?r.json():[]; })
   .then(function(rows){
     rows.forEach(function(row){ _dbSettings[row.key]=row.value; });
+    renderPropertyCard();
+    renderContactCard();
     renderBookingCard();
     renderWifiCard();
     renderRestaurantCard();
@@ -2021,6 +2041,55 @@ function loadSettingsFromDB(){
   .catch(function(e){ console.warn('[RES] settings load failed',e); });
 }
 
+function renderPropertyCard(){
+  var w=document.getElementById('p-property-wrap'); if(!w) return;
+  var pr=_dbSettings.property||{};
+  w.innerHTML=
+    '<div class="param-row-p"><span class="param-lbl-p">Nom public résidence</span>'+
+    '<input class="param-inp-p" id="db-prop-name" value="'+esc(pr.name||'Résidences Veraluz')+'"></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Slogan</span>'+
+    '<input class="param-inp-p" id="db-prop-tagline" value="'+esc(pr.tagline||'')+'"></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Adresse / localisation</span>'+
+    '<input class="param-inp-p" id="db-prop-loc" value="'+esc(pr.location||'')+'"></div>'+
+    '<button class="btn-save-p" onclick="savePropertySettings()">✓ Enregistrer</button>';
+}
+function savePropertySettings(){
+  var obj={
+    name:    (document.getElementById('db-prop-name')||{}).value||'',
+    tagline: (document.getElementById('db-prop-tagline')||{}).value||'',
+    location:(document.getElementById('db-prop-loc')||{}).value||'',
+    heroImage:(_dbSettings.property||{}).heroImage||''
+  };
+  sbPatchSettings('property', obj, function(err){
+    if(err){ toast('Erreur sauvegarde propriété','danger'); return; }
+    _dbSettings.property=obj;
+    toast('Propriété sauvegardée ✓','success');
+  });
+}
+function renderContactCard(){
+  var w=document.getElementById('p-contact-wrap'); if(!w) return;
+  var ct=_dbSettings.contact||{};
+  w.innerHTML=
+    '<div class="param-row-p"><span class="param-lbl-p">Téléphone réception</span>'+
+    '<input class="param-inp-p" id="db-ct-phone" value="'+esc(ct.phone||'')+'"></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Email réception</span>'+
+    '<input class="param-inp-p" id="db-ct-email" value="'+esc(ct.email||'')+'"></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">WhatsApp (display)</span>'+
+    '<input class="param-inp-p" id="db-ct-wa" value="'+esc(ct.whatsappDisplay||ct.whatsapp||'')+'"></div>'+
+    '<button class="btn-save-p" onclick="saveContactSettings()">✓ Enregistrer</button>';
+}
+function saveContactSettings(){
+  var ph=(document.getElementById('db-ct-phone')||{}).value||'';
+  var em=(document.getElementById('db-ct-email')||{}).value||'';
+  var wa=(document.getElementById('db-ct-wa')||{}).value||'';
+  var prev=_dbSettings.contact||{};
+  var obj=Object.assign({},prev,{phone:ph,email:em,whatsappDisplay:wa});
+  sbPatchSettings('contact', obj, function(err){
+    if(err){ toast('Erreur sauvegarde contact','danger'); return; }
+    _dbSettings.contact=obj;
+    toast('Contact sauvegardé ✓','success');
+  });
+}
 function renderBookingCard(){
   var w=document.getElementById('p-booking-wrap'); if(!w) return;
   var bk=_dbSettings.booking||{};

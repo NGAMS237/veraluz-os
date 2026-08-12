@@ -266,9 +266,16 @@ form-select{background:var(--bg3);border:1px solid var(--border);border-radius:v
 .photo-thumb{position:relative;width:72px;height:54px;border-radius:8px;overflow:hidden;flex-shrink:0}
 .photo-thumb img{width:100%;height:100%;object-fit:cover}
 .photo-del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.75);color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;border:none}
-.photo-add-row{display:flex;gap:8px;margin-top:4px}
-.photo-url-inp{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:7px 10px;font-size:12px;font-family:inherit}
+.photo-add-row{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center}
+.photo-url-inp{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:7px 10px;font-size:12px;font-family:inherit;min-width:120px}
 .btn-add-photo{background:var(--accent);color:#fff;padding:7px 12px;border-radius:var(--radius-sm);font-weight:700;font-size:12px;border:none;cursor:pointer}
+.photo-thumb{position:relative;width:90px;height:68px;border-radius:8px;overflow:hidden;flex-shrink:0}
+.photo-cover-badge{position:absolute;bottom:2px;left:2px;background:rgba(255,193,7,.9);color:#000;font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;pointer-events:none}
+.photo-actions{position:absolute;bottom:2px;right:2px;display:flex;gap:2px}
+.photo-btn{width:18px;height:18px;border-radius:50%;font-size:9px;cursor:pointer;border:none;display:flex;align-items:center;justify-content:center;line-height:1}
+.photo-btn-cover{background:rgba(255,193,7,.85);color:#000}
+.photo-btn-del{background:rgba(200,50,50,.85);color:#fff}
+.photo-upload-spinner{font-size:11px;color:var(--text3);padding:4px 8px}
 /* External bookings */
 .ext-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
 .ext-logo{font-size:28px;flex-shrink:0}
@@ -1541,7 +1548,46 @@ function dismissSync(i){
    ══════════════════════════════════════════════════════ */
 var _settings   = {};
 var _editUnitId = null;   // null = nouvelle unité, string = edition
-var _editPhotos = [];     // photos en cours d'edition
+var _editPhotos = [];     // [{id, url, is_cover, active, sort_order, caption}] depuis veraluz_photos
+
+/* ── Photos DB — charge veraluz_photos pour une unité ── */
+function loadUnitPhotosDB(unitId, cb){
+  fetch(SB+'/rest/v1/veraluz_photos?unit_id=eq.'+encodeURIComponent(unitId)+'&active=eq.true&order=sort_order.asc',{
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}
+  })
+  .then(function(r){ return r.ok ? r.json() : []; })
+  .then(function(rows){ cb(null, rows||[]); })
+  .catch(function(e){ cb(e, []); });
+}
+
+/* ── Upload binaire vers Supabase Storage bucket "veraluz" ── */
+function uploadPhotoToStorage(unitId, file, cb){
+  var ext = (file.name||'photo').split('.').pop().toLowerCase();
+  if(!['jpg','jpeg','png','webp','gif'].includes(ext)) ext='jpg';
+  var path = 'units/'+unitId+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.'+ext;
+  fetch(SB+'/storage/v1/object/veraluz/'+path,{
+    method:'POST',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':file.type||'image/jpeg'},
+    body: file
+  })
+  .then(function(r){ if(!r.ok) throw new Error('storage:'+r.status); return r.json(); })
+  .then(function(){ cb(null, SB+'/storage/v1/object/public/veraluz/'+path); })
+  .catch(function(e){ cb(e, null); });
+}
+
+/* ── Insérer une photo dans veraluz_photos ── */
+function insertPhotoRecord(unitId, url, isCover, cb){
+  var maxOrder = _editPhotos.length ? Math.max.apply(null,_editPhotos.map(function(p){return p.sort_order||0;})) : 0;
+  var row = {unit_id:unitId, url:url, is_cover:isCover, active:true, sort_order:maxOrder+1, caption:null};
+  fetch(SB+'/rest/v1/veraluz_photos',{
+    method:'POST',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'},
+    body:JSON.stringify(row)
+  })
+  .then(function(r){ return r.ok ? r.json() : null; })
+  .then(function(d){ cb(null, Array.isArray(d)?d[0]:d); })
+  .catch(function(e){ cb(e, null); });
+}
 
 var AMENITIES = [
   {k:'clim',   icon:'❄️',  label:'Climatisation'},
@@ -1570,10 +1616,10 @@ function renderParams(){
     try{ amens = JSON.parse(u.amenities||'[]'); if(!Array.isArray(amens)) amens=[]; }catch(e){}
     if(Array.isArray(u.amenities)) amens = u.amenities;
     var photos = [];
-    try{ photos = JSON.parse(u.images||'[]'); if(!Array.isArray(photos)) photos=[]; }catch(e){}
-    if(Array.isArray(u.images)) photos = u.images;
-    photos = photos.concat(u._images||[]).filter(function(x,i,a){return x&&a.indexOf(x)===i;});
-    var img = photos[0] || '';
+    try{ photos = Array.isArray(u.images)?u.images:JSON.parse(u.images||'[]'); if(!Array.isArray(photos)) photos=[]; }catch(e){}
+    /* Filtrer base64 — on ne compte/affiche que les URLs http */
+    var httpPhotos = photos.filter(function(x){return x&&typeof x==='string'&&x.startsWith('http');});
+    var img = u._canonicalPhoto || (httpPhotos.length?httpPhotos[0]:'') || '';
     var stCss = u.status==='active'?'rs-available':u.status==='maintenance'?'rs-maintenance':'rs-out_of_service';
     var stLbl = u.status==='active'?'Actif':u.status==='maintenance'?'Maintenance':'Hors service';
     var amHtml = amens.slice(0,5).map(function(k){
@@ -1585,7 +1631,7 @@ function renderParams(){
       (img?'<img class="unit-p-img" src="'+esc(img)+'" onerror="this.style.display=\'none\'">':'<div class="unit-p-img" style="display:flex;align-items:center;justify-content:center;font-size:24px">🛏</div>')+
       '<div class="unit-p-info">'+
         '<div class="unit-p-name">'+esc(u.name||'Unité')+' <span class="room-sbadge '+stCss+'" style="font-size:9px">'+stLbl+'</span></div>'+
-        '<div class="unit-p-meta">'+(u.type||'chambre')+' · '+(u.capacity||2)+' pers. · '+fmtMoney(u.price||0)+'/nuit · '+(photos.length)+' photo(s)</div>'+
+        '<div class="unit-p-meta">'+(u.type||'chambre')+' · '+(u.capacity||2)+' pers. · '+fmtMoney(u.price||0)+'/nuit · '+(httpPhotos.length)+' photo(s)</div>'+
         (amHtml?'<div class="unit-p-amenities">'+amHtml+'</div>':'')+
       '</div>'+
       '<div class="unit-p-actions">'+
@@ -1658,15 +1704,23 @@ function openNewUnit(){
 function openEditUnit(uid){
   var u = _rooms.find(function(r){return r.id===uid;}); if(!u) return;
   _editUnitId = uid;
-  /* Fusionner images DB + localStorage */
-  var photos = [];
-  try{ photos = Array.isArray(u.images) ? u.images : JSON.parse(u.images||'[]'); }catch(e){}
-  var stored = [];
-  try{ stored = JSON.parse(localStorage.getItem('vlz_room_images_'+uid)||'[]'); }catch(e){}
-  _editPhotos = photos.concat(stored).filter(function(x,i,a){return x&&a.indexOf(x)===i;});
+  _editPhotos = [];
   var amens = [];
   try{ amens = Array.isArray(u.amenities)?u.amenities:JSON.parse(u.amenities||'[]'); }catch(e){}
   renderUnitForm(u, amens);
+  /* Charger photos depuis veraluz_photos (source canonique) */
+  loadUnitPhotosDB(uid, function(err, photos){
+    if(!err && photos && photos.length){
+      _editPhotos = photos;
+    } else {
+      /* Fallback: URLs http uniquement de units.images */
+      var imgs = [];
+      try{ imgs = Array.isArray(u.images)?u.images:JSON.parse(u.images||'[]'); }catch(e){}
+      imgs = imgs.filter(function(x){ return x&&typeof x==='string'&&x.startsWith('http'); });
+      _editPhotos = imgs.map(function(url,i){ return {id:null,url:url,is_cover:i===0,active:true,sort_order:i+1,caption:null}; });
+    }
+    refreshEditPhotosGrid();
+  });
 }
 
 function renderUnitForm(u, selectedAmens){
@@ -1691,14 +1745,7 @@ function renderUnitForm(u, selectedAmens){
     return '<label class="amenity-cb"><input type="checkbox" id="am-'+a.k+'" value="'+a.k+'" '+checked+'> '+a.icon+' '+a.label+'</label>';
   }).join('');
 
-  var photosHtml = _editPhotos.map(function(url,i){
-    return '<div class="photo-thumb">'+
-      '<img src="'+esc(url)+'" onerror="this.style.display=\'none\'">'+
-      '<button class="photo-del" onclick="removeEditPhoto('+i+')">×</button>'+
-    '</div>';
-  }).join('');
-
-  wrap.innerHTML =
+    wrap.innerHTML =
     '<div class="unit-form">'+
     '<div class="unit-form-title">'+(_editUnitId?'✏️ Modifier l\'unité':'➕ Nouvelle unité')+
     '<button onclick="closeUnitForm()" style="margin-left:auto;background:var(--bg4);border:none;color:var(--text2);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:14px">×</button></div>'+
@@ -1718,13 +1765,21 @@ function renderUnitForm(u, selectedAmens){
     '<div class="form-group"><label class="form-label-p">Équipements & Options</label>'+
     '<div class="amenity-grid">'+amenHtml+'</div></div>'+
 
-    '<div class="form-group"><label class="form-label-p">Photos</label>'+
-    '<div class="photos-grid" id="edit-photos-grid">'+photosHtml+'</div>'+
-    '<div class="photo-add-row">'+
-    '<input class="photo-url-inp" id="edit-photo-url" placeholder="Coller une URL de photo…">'+
-    '<button class="btn-add-photo" onclick="addEditPhoto()">+ URL</button>'+
-    '<label class="btn-add-photo" style="cursor:pointer;background:#5a6474;margin-left:4px">📁 Fichier<input type="file" accept="image/*" style="display:none" onchange="addEditPhotoFile(this)"></label>'+
-    '</div></div>'+
+    '<div class="form-group"><label class="form-label-p">Photos'+
+    (_editUnitId ? '' : ' <span style="color:var(--text3);font-weight:400;font-size:11px">(disponibles après création)</span>')+
+    '</label>'+
+    '<div class="photos-grid" id="edit-photos-grid"></div>'+
+    (_editUnitId ?
+      '<div class="photo-add-row">'+
+      '<input class="photo-url-inp" id="edit-photo-url" placeholder="Coller une URL de photo…">'+
+      '<button class="btn-add-photo" onclick="addEditPhotoByUrl()">+ URL</button>'+
+      '<label class="btn-add-photo" style="cursor:pointer;background:#5a6474;margin-left:4px" id="photo-upload-label">📁 Ajouter'+
+        '<input type="file" accept="image/*" style="display:none" id="photo-file-input" onchange="addEditPhotoFileDB(this)">'+
+      '</label>'+
+      '</div>'
+      : '<p style="font-size:11px;color:var(--text3);margin:6px 0 0">Enregistrez d\'abord l\'unité pour ajouter des photos.</p>'
+    )+
+    '</div>'+
 
     '<div style="display:flex;gap:8px;margin-top:14px">'+
     '<button class="btn-save-p" style="flex:1;margin-top:0" onclick="saveUnitFull()">'+(_editUnitId?'✓ Enregistrer les modifications':'✓ Créer l\'unité')+'</button>'+
@@ -1732,27 +1787,99 @@ function renderUnitForm(u, selectedAmens){
     '</div>';
 }
 
-function addEditPhoto(){
-  var inp = document.getElementById('edit-photo-url'); if(!inp||!inp.value.trim()) return;
-  _editPhotos.push(inp.value.trim()); inp.value='';
-  refreshEditPhotosGrid();
+/* ── Photo management (DB-backed) ── */
+function addEditPhotoByUrl(){
+  if(!_editUnitId){ toast('Créez d\'abord l\'unité','warning'); return; }
+  var inp = document.getElementById('edit-photo-url');
+  if(!inp||!inp.value.trim()) return;
+  var url = inp.value.trim(); inp.value='';
+  var isCover = _editPhotos.filter(function(p){return p.active!==false;}).length === 0;
+  insertPhotoRecord(_editUnitId, url, isCover, function(err, photo){
+    if(err||!photo){ toast('Erreur ajout photo','danger'); return; }
+    _editPhotos.push(photo);
+    refreshEditPhotosGrid();
+    toast('Photo ajoutée ✓','success');
+  });
 }
-function addEditPhotoFile(inp){
+
+function addEditPhotoFileDB(inp){
+  if(!_editUnitId){ toast('Créez d\'abord l\'unité','warning'); return; }
   if(!inp||!inp.files||!inp.files[0]) return;
-  var reader=new FileReader();
-  reader.onload=function(e){ _editPhotos.push(e.target.result); refreshEditPhotosGrid(); inp.value=''; };
-  reader.readAsDataURL(inp.files[0]);
+  var file = inp.files[0];
+  inp.value='';
+  var lbl = document.getElementById('photo-upload-label');
+  if(lbl){ lbl.style.opacity='0.5'; lbl.style.pointerEvents='none'; }
+  var g = document.getElementById('edit-photos-grid');
+  var spinner = document.createElement('span');
+  spinner.className='photo-upload-spinner'; spinner.textContent='⬆️ Envoi…'; spinner.id='upload-spin';
+  if(g) g.appendChild(spinner);
+
+  uploadPhotoToStorage(_editUnitId, file, function(err, url){
+    var sp2 = document.getElementById('upload-spin'); if(sp2) sp2.remove();
+    if(lbl){ lbl.style.opacity=''; lbl.style.pointerEvents=''; }
+    if(err||!url){ toast('Erreur upload: '+(err&&err.message||'réseau'),'danger'); return; }
+    var isCover = _editPhotos.filter(function(p){return p.active!==false;}).length === 0;
+    insertPhotoRecord(_editUnitId, url, isCover, function(err2, photo){
+      if(err2||!photo){ toast('Erreur enregistrement photo','danger'); return; }
+      _editPhotos.push(photo);
+      refreshEditPhotosGrid();
+      toast('Photo uploadée ✓','success');
+    });
+  });
 }
-function removeEditPhoto(i){
-  _editPhotos.splice(i,1);
-  refreshEditPhotosGrid();
+
+function setPhotoCoverDB(photoId){
+  fetch(SB+'/rest/v1/veraluz_photos?unit_id=eq.'+encodeURIComponent(_editUnitId),{
+    method:'PATCH',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},
+    body:JSON.stringify({is_cover:false})
+  }).then(function(){
+    return fetch(SB+'/rest/v1/veraluz_photos?id=eq.'+encodeURIComponent(photoId),{
+      method:'PATCH',
+      headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({is_cover:true})
+    });
+  }).then(function(){
+    _editPhotos.forEach(function(p){ p.is_cover = (p.id===photoId); });
+    refreshEditPhotosGrid();
+    toast('Photo de couverture définie ✓','success');
+  }).catch(function(){ toast('Erreur set cover','danger'); });
 }
+
+function removePhotoFromDB(photoId){
+  if(!confirm('Supprimer cette photo ?')) return;
+  fetch(SB+'/rest/v1/veraluz_photos?id=eq.'+encodeURIComponent(photoId),{
+    method:'DELETE',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}
+  }).then(function(){
+    _editPhotos = _editPhotos.filter(function(p){ return p.id!==photoId; });
+    refreshEditPhotosGrid();
+    toast('Photo supprimée','success');
+  }).catch(function(){ toast('Erreur suppression photo','danger'); });
+}
+
 function refreshEditPhotosGrid(){
   var g = document.getElementById('edit-photos-grid'); if(!g) return;
-  g.innerHTML = _editPhotos.map(function(url,i){
-    return '<div class="photo-thumb"><img src="'+esc(url)+'" onerror="this.style.display=\'none\'"><button class="photo-del" onclick="removeEditPhoto('+i+')">×</button></div>';
+  var active = _editPhotos.filter(function(p){return p.active!==false;});
+  if(!active.length){
+    g.innerHTML='<span style="color:var(--text3);font-size:12px">Aucune photo — ajoutez-en via URL ou fichier</span>';
+    return;
+  }
+  g.innerHTML = active.map(function(photo){
+    var url = photo.url || '';
+    var pid = photo.id || '';
+    var isCover = photo.is_cover || false;
+    return '<div class="photo-thumb">'+
+      '<img src="'+esc(url)+'" onerror="this.parentNode.style.background=\'#333\';this.style.display=\'none\'">'+
+      (isCover?'<span class="photo-cover-badge">★ Cover</span>':'')+
+      '<div class="photo-actions">'+
+      (pid&&!isCover?'<button class="photo-btn photo-btn-cover" title="Définir cover" onclick="setPhotoCoverDB(\''+pid+'\')">★</button>':'')+
+      (pid?'<button class="photo-btn photo-btn-del" title="Supprimer" onclick="removePhotoFromDB(\''+pid+'\')">×</button>':'')+
+      '</div>'+
+    '</div>';
   }).join('');
 }
+
 function closeUnitForm(){
   var w = document.getElementById('unit-form-wrap');
   if(w){ w.style.display='none'; w.innerHTML=''; }
@@ -1788,7 +1915,9 @@ function saveUnitFull(){
   var body = {
     name:name.trim(), type:type, price:price, capacity:cap,
     floor:floor, status:status, description:desc,
-    amenities:amens, images:_editPhotos
+    amenities:amens,
+    /* Synchroniser images avec les URLs canoniques des photos actives (pas de base64) */
+    images:_editPhotos.filter(function(p){return p.active!==false && p.url && p.url.startsWith('http');}).map(function(p){return p.url;})
   };
 
   var btn = document.querySelector('#unit-form-wrap .btn-save-p');
@@ -1798,8 +1927,9 @@ function saveUnitFull(){
     /* PATCH */
     sbPatch('veraluz_units?id=eq.'+_editUnitId, body).then(function(){
       var r=_rooms.find(function(r){return r.id===_editUnitId;});
-      if(r){ Object.assign(r,body); r._images=_editPhotos.slice(); r.images=_editPhotos.slice(); }
-      try{localStorage.setItem('vlz_room_images_'+_editUnitId,JSON.stringify(_editPhotos));}catch(e){}
+      if(r){ Object.assign(r,body);
+        var canonImgs=_editPhotos.filter(function(p){return p.active!==false&&p.url&&p.url.startsWith('http');}).map(function(p){return p.url;});
+        r.images=canonImgs; r._images=canonImgs; r._canonicalPhoto=canonImgs[0]||null; }
       syncRoomsCache();
       toast('Unité mise à jour ✓','success');
       closeUnitForm(); renderParams(); renderRooms();
@@ -1812,9 +1942,9 @@ function saveUnitFull(){
     sbPost('veraluz_units', body).then(function(data){
       var saved=Array.isArray(data)?data[0]:data;
       if(saved&&saved.id){
-        saved._images=_editPhotos.slice(); saved.images=_editPhotos.slice(); saved._dynStatus='available';
+        var canonImgs2=_editPhotos.filter(function(p){return p.active!==false&&p.url&&p.url.startsWith('http');}).map(function(p){return p.url;});
+        saved._images=canonImgs2; saved.images=canonImgs2; saved._canonicalPhoto=canonImgs2[0]||null; saved._dynStatus='available';
         seedRoomImages(saved); _rooms.push(saved);
-        try{localStorage.setItem('vlz_room_images_'+saved.id,JSON.stringify(_editPhotos));}catch(e){}
         syncRoomsCache();
         toast('Unité créée ✓','success');
         closeUnitForm(); renderParams(); renderRooms(); updateBadges();

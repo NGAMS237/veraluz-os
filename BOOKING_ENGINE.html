@@ -1192,10 +1192,14 @@ var AM_LABELS = {
 
 /* ── ROOM PHOTO MAP ── */
 function getBEPhoto(r){
-  /* Priorité: images Supabase/Paramètres (cache) → ROOM_PHOTOS par type → défaut */
+  /* Priorité 0: veraluz_photos canonique (Storage Supabase, cross-device) */
+  if(r._canonicalPhoto) return r._canonicalPhoto;
+  /* Priorité 1: images validées depuis veraluz_units (URLs http uniquement, pas base64) */
   var imgs = r.images || r._images || [];
   if(typeof imgs==='string'){try{imgs=JSON.parse(imgs);}catch(e){imgs=[];}}
-  if(Array.isArray(imgs)&&imgs.length&&imgs[0]) return imgs[0];
+  var validImgs = Array.isArray(imgs) ? imgs.filter(function(u){return u&&u.startsWith('http');}) : [];
+  if(validImgs.length) return validImgs[0];
+  /* Priorité 2: ROOM_PHOTOS par type → image générique */
   return ROOM_PHOTOS[r.type]||'https://ngams237.github.io/veraluz-os/assets/img/site_main.jpg';
 }
 var ROOM_PHOTOS = {
@@ -1699,27 +1703,43 @@ function loadRooms(){
   .then(function(data){
     var active=(data||[]).filter(function(r){return r.status==='active'||r.status==='available';});
     if(!active.length){ loadFromCache(); return; }
-    _rooms=active.map(function(r){
-      /* Fusionner images Supabase + localStorage per-room */
+    /* Préparer rooms — normaliser images */
+    var rooms=active.map(function(r){
       var imgs = r.images||[];
       if(typeof imgs==='string'){try{imgs=JSON.parse(imgs);}catch(e){imgs=[];}}
-      try{
-        var stored=JSON.parse(localStorage.getItem('vlz_room_images_'+r.id)||'[]');
-        imgs=imgs.concat(stored).filter(function(x,i,a){return x&&a.indexOf(x)===i;});
-      }catch(e){}
+      /* Filtrer les base64 (>200 chars sans http) — trop lourds, non cross-device */
+      imgs = imgs.filter(function(u){ return typeof u==='string' && (u.startsWith('http')||u.startsWith('/')); });
       r.images=imgs; r._images=imgs;
       if(typeof r.amenities==='string'){try{r.amenities=JSON.parse(r.amenities);}catch(e){r.amenities=[];}}
       return r;
     });
-    /* Mettre à jour le cache pour les autres modules */
-    try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms)); }catch(e){}
-    renderBkRooms();
+    /* Niveau 0 — veraluz_photos : source canonique cross-device */
+    fetch(SB+'/rest/v1/veraluz_photos?active=eq.true&is_cover=eq.true&select=unit_id,url',{
+      headers:{'apikey':SK,'Authorization':'Bearer '+SK}
+    })
+    .then(function(pr){ return pr.ok ? pr.json() : []; })
+    .then(function(photos){
+      var photoMap={};
+      (photos||[]).forEach(function(p){ photoMap[p.unit_id]=p.url; });
+      _rooms=rooms.map(function(r){
+        r._canonicalPhoto = photoMap[r.id] || null;
+        return r;
+      });
+      try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms)); }catch(e){}
+      renderBkRooms();
+    })
+    .catch(function(){
+      _rooms=rooms;
+      try{ localStorage.setItem('vlz_cache_rooms',JSON.stringify(_rooms)); }catch(e){}
+      renderBkRooms();
+    });
   })
   .catch(function(){ loadFromCache(); });
 }
 
 function renderFallbackRooms(){
   /* Fallback si Supabase indisponible — utilise UNIT_DATA comme source de vérité */
+  console.warn('[BOOKING] fallback unit catalog active — Supabase indisponible ou aucune unité active');
   _rooms=[
     {id:'fallback-std',   type:'std',       price:35000,  price_per_night:35000,  capacity:2},
     {id:'fallback-sea',   type:'sea',       price:50000,  price_per_night:50000,  capacity:2},

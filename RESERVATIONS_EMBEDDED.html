@@ -1692,7 +1692,21 @@ function renderParams(){
     '<div class="p-section">'+
     '<div class="p-section-hdr"><span class="p-section-title">⚙️ Paramètres généraux & Tarifs</span></div>'+
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px">'+genHtml+'</div>'+
-    '</div>';
+    '</div>'+
+    /* 011C-2B — Réservation */
+    '<div class="p-section"><div class="p-section-hdr"><span class="p-section-title">📅 Règles de réservation</span></div>'+
+    '<div id="p-booking-wrap" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px">'+
+    '<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px">Chargement…</div></div></div>'+
+    /* 011C-2B — Wi-Fi */
+    '<div class="p-section"><div class="p-section-hdr"><span class="p-section-title">📶 Wi-Fi client</span></div>'+
+    '<div id="p-wifi-wrap" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px">'+
+    '<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px">Chargement…</div></div></div>'+
+    /* 011C-2B — Restaurant */
+    '<div class="p-section"><div class="p-section-hdr"><span class="p-section-title">🍽️ Restaurant & Room Service</span></div>'+
+    '<div id="p-restaurant-wrap" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px">'+
+    '<div style="color:var(--text3);font-size:12px;text-align:center;padding:8px">Chargement…</div></div></div>';
+  /* Load DB settings asynchronously, render cards when ready */
+  loadSettingsFromDB();
 }
 
 /* ── Formulaire unité ── */
@@ -1978,6 +1992,130 @@ function sbFetch(path,opts){
   return fetch(SB+'/rest/v1/'+path,Object.assign({headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'}},opts||{}));
 }
 
+/* ══════════════════════════════════════════
+   011C-2B — Settings DB-backed
+   ══════════════════════════════════════════ */
+var _dbSettings = {};
+
+function sbPatchSettings(key, obj, cb){
+  fetch(SB+'/rest/v1/veraluz_settings?key=eq.'+encodeURIComponent(key),{
+    method:'PATCH',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({value:obj})
+  })
+  .then(function(r){ if(cb) cb(r.ok?null:new Error(r.status)); })
+  .catch(function(e){ if(cb) cb(e); });
+}
+
+function loadSettingsFromDB(){
+  fetch(SB+'/rest/v1/veraluz_settings?key=in.(booking,wifi,restaurant,contact)',{
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}
+  })
+  .then(function(r){ return r.ok?r.json():[]; })
+  .then(function(rows){
+    rows.forEach(function(row){ _dbSettings[row.key]=row.value; });
+    renderBookingCard();
+    renderWifiCard();
+    renderRestaurantCard();
+  })
+  .catch(function(e){ console.warn('[RES] settings load failed',e); });
+}
+
+function renderBookingCard(){
+  var w=document.getElementById('p-booking-wrap'); if(!w) return;
+  var bk=_dbSettings.booking||{};
+  w.innerHTML=
+    '<div class="param-row-p"><span class="param-lbl-p">Heure check-in</span>'+
+    '<input class="param-inp-p" id="db-ci-time" value="'+esc(bk.checkin_time||'15:00')+'"></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Heure check-out</span>'+
+    '<input class="param-inp-p" id="db-co-time" value="'+esc(bk.checkout_time||'11:00')+'"></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Acompte (%)</span>'+
+    '<input class="param-inp-p" type="number" id="db-dep-pct" value="'+(bk.deposit_pct||30)+'" min="0" max="100"></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Durée du hold (heures)</span>'+
+    '<input class="param-inp-p" type="number" id="db-hold-h" value="'+(bk.hold_duration_hours||24)+'" min="1" max="168"></div>'+
+    '<button class="btn-save-p" onclick="saveBookingSettings()">✓ Enregistrer</button>';
+}
+
+function saveBookingSettings(){
+  var obj={
+    checkin_time: (document.getElementById('db-ci-time')||{}).value||'15:00',
+    checkout_time:(document.getElementById('db-co-time')||{}).value||'11:00',
+    deposit_pct:  parseInt((document.getElementById('db-dep-pct')||{}).value||30),
+    hold_duration_hours: parseInt((document.getElementById('db-hold-h')||{}).value||24)
+  };
+  sbPatchSettings('booking', obj, function(err){
+    if(err){ toast('Erreur sauvegarde réservation','danger'); return; }
+    _dbSettings.booking=obj;
+    toast('Règles réservation sauvegardées ✓','success');
+  });
+}
+
+function renderWifiCard(){
+  var w=document.getElementById('p-wifi-wrap'); if(!w) return;
+  var wf=_dbSettings.wifi||{};
+  w.innerHTML=
+    '<div class="param-row-p"><span class="param-lbl-p">Réseau (SSID)</span>'+
+    '<input class="param-inp-p" id="db-wifi-ssid" value="'+esc(wf.ssid||'')+'"></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Mot de passe</span>'+
+    '<div style="display:flex;gap:8px;align-items:center;flex:1">'+
+    '<input class="param-inp-p" type="password" id="db-wifi-pw" value="'+esc(wf.password||'')+'" style="flex:1">'+
+    '<button onclick="toggleWifiPw()" style="border:1px solid var(--border);background:var(--bg);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px" id="db-wifi-toggle">👁</button>'+
+    '</div></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Wi-Fi actif</span>'+
+    '<input type="checkbox" id="db-wifi-enabled"'+(wf.enabled!==false?' checked':'')+'></div>'+
+    '<button class="btn-save-p" onclick="saveWifiSettings()">✓ Enregistrer</button>';
+}
+
+function toggleWifiPw(){
+  var inp=document.getElementById('db-wifi-pw');
+  var btn=document.getElementById('db-wifi-toggle');
+  if(!inp) return;
+  inp.type=(inp.type==='password')?'text':'password';
+  if(btn) btn.textContent=(inp.type==='password')?'👁':'🙈';
+}
+
+function saveWifiSettings(){
+  var obj={
+    ssid:    (document.getElementById('db-wifi-ssid')||{}).value||'',
+    password:(document.getElementById('db-wifi-pw')||{}).value||'',
+    enabled: !!(document.getElementById('db-wifi-enabled')||{}).checked
+  };
+  sbPatchSettings('wifi', obj, function(err){
+    if(err){ toast('Erreur sauvegarde Wi-Fi','danger'); return; }
+    _dbSettings.wifi=obj;
+    toast('Wi-Fi sauvegardé ✓','success');
+  });
+}
+
+function renderRestaurantCard(){
+  var w=document.getElementById('p-restaurant-wrap'); if(!w) return;
+  var rs=_dbSettings.restaurant||{};
+  w.innerHTML=
+    '<div class="param-row-p"><span class="param-lbl-p">Restaurant actif</span>'+
+    '<input type="checkbox" id="db-resto-enabled"'+(rs.enabled!==false?' checked':'')+'></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Heure ouverture</span>'+
+    '<input class="param-inp-p" id="db-resto-open" value="'+esc(rs.opening_time||'')+'"></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Heure fermeture</span>'+
+    '<input class="param-inp-p" id="db-resto-close" value="'+esc(rs.closing_time||'')+'"></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Room service actif</span>'+
+    '<input type="checkbox" id="db-rs-enabled"'+(rs.room_service_enabled!==false?' checked':'')+'></div>'+
+    '<button class="btn-save-p" onclick="saveRestaurantSettings()">✓ Enregistrer</button>';
+}
+
+function saveRestaurantSettings(){
+  var obj={
+    enabled:              !!(document.getElementById('db-resto-enabled')||{}).checked,
+    opening_time:         (document.getElementById('db-resto-open')||{}).value||'',
+    closing_time:         (document.getElementById('db-resto-close')||{}).value||'',
+    room_service_enabled: !!(document.getElementById('db-rs-enabled')||{}).checked
+  };
+  sbPatchSettings('restaurant', obj, function(err){
+    if(err){ toast('Erreur sauvegarde restaurant','danger'); return; }
+    _dbSettings.restaurant=obj;
+    toast('Restaurant sauvegardé ✓','success');
+  });
+}
+
 function saveSettings(){
   _settings.hotel_name   =(document.getElementById('p-hotel')||{}).value||'Veraluz';
   _settings.checkin_time =(document.getElementById('p-ci-time')||{}).value||'14:00';
@@ -1988,7 +2126,7 @@ function saveSettings(){
   _settings.transfer_price =parseFloat((document.getElementById('p-trf')||{}).value||0);
   _settings.tax_pct        =parseFloat((document.getElementById('p-tax')||{}).value||0);
   try{localStorage.setItem('vlz_settings',JSON.stringify(_settings));}catch(e){}
-  toast('Paramètres sauvegardés ✓','success');
+  toast('Paramètres généraux sauvegardés ✓','success');
 }
 
 

@@ -1685,6 +1685,27 @@ function loadFromCache(){
   showCatalogUnavailable();
 }
 
+/* 011C-2B — Public booking settings from DB */
+var _bkCfg={deposit_pct:30,checkin_time:'15:00',checkout_time:'11:00'};
+
+function loadBookingSettings(){
+  if(!SB||!SK) return;
+  fetch(SB+'/rest/v1/rpc/get_public_booking_settings',{
+    method:'POST',
+    headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},
+    body:'{}'
+  })
+  .then(function(r){ return r.ok?r.json():null; })
+  .then(function(d){
+    if(d&&typeof d==='object'){
+      if(d.deposit_pct)   _bkCfg.deposit_pct   = parseInt(d.deposit_pct)||30;
+      if(d.checkin_time)  _bkCfg.checkin_time   = d.checkin_time;
+      if(d.checkout_time) _bkCfg.checkout_time  = d.checkout_time;
+    }
+  })
+  .catch(function(e){ console.warn('[BOOKING] settings unavailable:',e&&e.message); });
+}
+
 function loadRooms(){
   var cont=document.getElementById('bk-rooms');
   if(!cont) return;
@@ -1856,7 +1877,7 @@ function calcTotal(){
   if(nights<1){ showToast('Le départ doit être après l\'arrivée','warn'); if(btn) btn.disabled=true; return; }
   var ppn=(_selRoom&&(_selRoom.price_per_night||_selRoom.price))||0;
   var total=nights*ppn;
-  var acompte=Math.round(total*0.3);
+  var acompte=Math.round(total*(_bkCfg.deposit_pct/100));
   if(tw){
     tw.style.display='block';
     setText('bk-nights-label',nights+(nights>1?' nuits':' nuit'));
@@ -2133,6 +2154,9 @@ document.addEventListener('DOMContentLoaded',function(){
   // Apply hotel info + CMS
   applyHotelInfo();
   applyCMS();
+
+  // 011C-2B: load booking settings from DB
+  loadBookingSettings();
 
   // Init default reviews (merge with saved user reviews)
   var saved=[];

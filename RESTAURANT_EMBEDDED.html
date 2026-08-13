@@ -1125,6 +1125,9 @@ function H(x){return Object.assign({apikey:SK,Authorization:'Bearer '+SK,'Conten
 function GET(p){return fetch(SB+p,{headers:H({Accept:'application/json'})}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
 function POST(t,d){return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:H({Prefer:'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
 /* PROMPT 028 : PATCH enrichi — capture erreur Supabase */
+function RPC(name,params){
+  return fetch(SB+'/rest/v1/rpc/'+name,{method:'POST',headers:H({'Content-Type':'application/json'}),body:JSON.stringify(params)}).then(function(r){if(!r.ok)return r.json().then(function(e){throw e;});return r.json();});
+}
 function PATCH(t,id,d){
   return fetch(SB+'/rest/v1/'+t+'?id=eq.'+id,{
     method:'PATCH',
@@ -1829,6 +1832,7 @@ function _doSendKitchen(){
     var tblN=cartTbl&&!cartTbl.id.startsWith('room_')?cartTbl.name:null;
     var data={id:gid(),table_id:cartTbl&&!cartTbl.id.startsWith('room_')?cartTbl.id:null,
       table_name:tblN,type:cartType,room_number:cartRoom||null,
+      reservation_id:cartGuestId||null,unit_id:(cartGuestId&&(ACTIVE_HOTEL_GUESTS||[]).find(function(x){return x.id===cartGuestId;})||{}).unit_id||null,
       items_json:newItems,items_count:ict,total:tot,total_amount:tot,
       status:'ouvert',notes:document.getElementById('cnote').value.trim()||null};
     POST('veraluz_restaurant_orders',data).then(function(r){
@@ -1839,27 +1843,8 @@ function _doSendKitchen(){
       var _savedOrder=saved,_gid=cartGuestId;
       clearCart();cartTbl=null;cartRoom='';cartGuestId=null;payOid=null;updCartH();
       updateBdg();renderTables();
-      /* Si commande chambre_client → créer charge sur le folio hôtel */
-      if(_gid&&_savedOrder){
-        var _g=(ACTIVE_HOTEL_GUESTS||[]).find(function(x){return x.id===_gid;});
-        var _del=cartDelivery||'chambre';
-        var _charge={
-          id:gid(),reservation_id:_gid,
-          unit_id:_g?_g.unit_id:'',client_name:_g?_g.client_name:'',
-          room_name:'Chambre '+(_g?_g.unit_id:'?'),
-          amount:_savedOrder.total||_savedOrder.total_amount||0,
-          description:'Restaurant — '+(_savedOrder.items_json||[]).slice(0,3).map(function(i){return i.qty+'×'+i.name;}).join(', '),
-          charge_type:'restaurant',restaurant_order_id:_savedOrder.id,
-          delivery_location:_del,settled:false,
-          created_at:new Date().toISOString()
-        };
-        POST('veraluz_room_charges',_charge).then(function(){
-          ROOM_CHARGES.push(_charge);
-          toast('&#127974; Facturé à la chambre '+(_g?_g.unit_id:'?')+' — livraison: '+_del,'ok');
-        }).catch(function(){toast('Commande envoyée ✅ (charge hôtel non enregistrée)','warn');});
-      } else {
-        toast('Commande envoy&#233;e &#9989;','ok');
-      }
+      /* 011D-2D: reservation_id+unit_id saved on order — folio posted at finalization (kdsUpd) */
+      toast('Commande envoyée ✅'+(cartGuestId?' — sera facturée au séjour à livraison':''),'ok');
     }).catch(function(e){toast('Erreur: '+e,'er');});
   }
 }
@@ -2209,8 +2194,16 @@ function kdsCard(o){
 function kdsUpd(oid,st){
   PATCH('veraluz_restaurant_orders',oid,{status:st}).then(function(){
     var o=ORDERS.find(function(x){return x.id===oid;});if(o)o.status=st;
-    renderKDS();updateBdg();toast('&#10003; '+st,'ok');
-  }).catch(function(){toast('Erreur mise &#224; jour','er');});
+    renderKDS();updateBdg();
+    /* 011D-2D: post to folio when room service order finalized */
+    if(st==='remis'&&o&&o.type==='room'&&o.reservation_id){
+      RPC('post_restaurant_order_to_folio',{p_order_id:oid}).then(function(charge){
+        toast('&#10003; Remis + &#127968; Facturé séjour '+fmt(charge&&charge.amount||0),'ok');
+      }).catch(function(e){toast('&#10003; Remis (folio: '+(e&&e.message||'erreur')+')','warn');});
+    } else {
+      toast('&#10003; '+st,'ok');
+    }
+  }).catch(function(){toast('Erreur mise à jour','er');});
 }
 
 /* PROMPT 028 : kdsFoodUpd — statuts + horodatages complets + erreurs détaillées */
@@ -4387,31 +4380,21 @@ function confirmRoomCharge(){
   var o=ORDERS.find(function(x){return x.id===payOid;});if(!o)return;
   var g=ACTIVE_HOTEL_GUESTS.find(function(x){return x.id===_rcGuestId;});if(!g)return;
   var now=new Date().toISOString();
-  var charge={
-    id:gid(),reservation_id:_rcGuestId,unit_id:g.unit_id||'',
-    client_name:g.client_name||'',room_name:'Chambre '+g.unit_id,
-    amount:o.total||o.total_amount||0,
-    description:'Restaurant — commande #'+payOid.slice(-6)+' — '+(o.items||[]).slice(0,2).map(function(i){return i.name;}).join(', ')+(o.items&&o.items.length>2?'...':''),
-    charge_type:'restaurant',restaurant_order_id:payOid,
-    settled:false,created_at:now
-  };
-  Promise.all([
-    POST('veraluz_room_charges',charge),
-    PATCH('veraluz_restaurant_orders',payOid,{status:'paye',payment_method:'chambre',paid_at:now})
-  ]).then(function(){
+  /* 011D-2D: PATCH order with reservation_id+unit_id+status, then RPC posts to folio */
+  PATCH('veraluz_restaurant_orders',payOid,{reservation_id:_rcGuestId,unit_id:g.unit_id||'',status:'paye',payment_method:'chambre',paid_at:now}).then(function(){
     var ord=ORDERS.find(function(x){return x.id===payOid;});
-    if(ord){
-      ord.status='paye';ord.payment_method='chambre';
-      if(ord.table_id)PATCH('veraluz_restaurant_tables',ord.table_id,{status:'libre'}).then(function(){
-        var t=TABLES.find(function(x){return x.id===ord.table_id;});if(t)t.status='libre';renderTables();
-      });
-    }
-    ROOM_CHARGES.push(charge);
+    if(ord){ord.reservation_id=_rcGuestId;ord.unit_id=g.unit_id||'';ord.status='paye';ord.payment_method='chambre';}
+    if(o.table_id)PATCH('veraluz_restaurant_tables',o.table_id,{status:'libre'}).then(function(){
+      var t=TABLES.find(function(x){return x.id===o.table_id;});if(t)t.status='libre';renderTables();
+    });
+    return RPC('post_restaurant_order_to_folio',{p_order_id:payOid});
+  }).then(function(charge){
+    if(charge)ROOM_CHARGES.push(charge);
     clearCart();cartTbl=null;cartOrd=null;
     closeMd('md-room-charge');
     renderTables();updateBdg();
-    toast('🏨 Facturé à la chambre '+g.unit_id+' — '+esc(g.client_name||''),'ok');
-  }).catch(function(e){toast('Erreur: '+e,'er');});
+    toast('&#127968; Facturé à la chambre '+g.unit_id+' — '+esc(g.client_name||''),'ok');
+  }).catch(function(e){toast('Erreur: '+(e&&(e.message||e)||'inconnue'),'er');});
 }
 
 

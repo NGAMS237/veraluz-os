@@ -1269,9 +1269,7 @@ function openRezModal(rezId,_tab){
     '<div style="display:flex;gap:8px;flex-wrap:wrap">'+actions+'</div>'+
     '</div>'+
     '<div id="rzpane-facture" style="display:none">'+
-    '<div class="inv-line"><span>Nuitées ('+nights+' × '+fmtMoney(Math.round(ppu))+')</span><strong>'+fmtMoney(r.total||0)+'</strong></div>'+
-    '<div class="inv-line"><span style="color:var(--success)">Acompte versé</span><strong style="color:var(--success)">- '+fmtMoney(r.paid||0)+'</strong></div>'+
-    '<div class="inv-total"><span>Solde restant</span><span class="'+balCls+'">'+balLbl+'</span></div>'+
+    '<div id="folio-summary" style="margin-bottom:10px"><div style="text-align:center;padding:16px;color:var(--text2);font-size:12px;">Calcul du folio en cours…</div></div>'+
     '<div style="margin-top:14px"><div class="param-section-title">Historique des paiements</div>'+
     '<div id="pay-history-lst">Chargement…</div></div>'+
     '<div id="room-charges-lst"></div>'+
@@ -1279,7 +1277,7 @@ function openRezModal(rezId,_tab){
     '<div id="rzpane-paiement" style="display:none">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
     '<span style="font-size:13px;color:var(--text2)">Solde dû</span>'+
-    '<span style="font-size:18px;font-weight:800" class="'+balCls+'">'+balLbl+'</span></div>'+
+    '<span style="font-size:18px;font-weight:800" id="folio-balance-paiement" class="'+balCls+'">'+balLbl+'</span></div>'+
     '<div class="pay-form">'+
     '<label class="form-label">Méthode</label>'+
     '<div class="pay-method-btns">'+
@@ -1317,42 +1315,70 @@ function selPayMethod(btn){
 function loadPayHistory(rezId){
   var el = document.getElementById('pay-history-lst'); if(!el) return;
   var rcEl = document.getElementById('room-charges-lst');
+  var r = _rez.find(function(x){return x.id===rezId;});
   Promise.all([
     sbGet('veraluz_payments?reservation_id=eq.'+rezId+'&order=created_at.desc'),
     sbGet('veraluz_room_charges?reservation_id=eq.'+rezId+'&order=created_at.desc')
   ]).then(function(res){
     var data=res[0]||[], charges=res[1]||[];
+    /* 011D-2D: canonical folio calculation */
+    var accommodation = r ? (r.total||0) : 0;
+    var nights = r ? (r.nights||1) : 1;
+    var origCharges = charges.filter(function(c){return !c.reversal_of_charge_id;});
+    var reversalCharges = charges.filter(function(c){return !!c.reversal_of_charge_id;});
+    var restaurant = origCharges.filter(function(c){return (c.charge_type||'restaurant')==='restaurant';}).reduce(function(s,c){return s+(c.amount||0);},0)
+                   + reversalCharges.filter(function(c){return (c.charge_type||'restaurant')==='restaurant';}).reduce(function(s,c){return s+(c.amount||0);},0);
+    var other = origCharges.filter(function(c){return (c.charge_type||'restaurant')!=='restaurant';}).reduce(function(s,c){return s+(c.amount||0);},0)
+              + reversalCharges.filter(function(c){return (c.charge_type||'restaurant')!=='restaurant';}).reduce(function(s,c){return s+(c.amount||0);},0);
+    var stayTotal = accommodation + restaurant + other;
+    var paid = r ? (r.paid||0) : 0;
+    var balance = stayTotal - paid;
+    var balCls = balance<=0?'balance-ok':'balance-due';
+    var balLbl = balance<=0?'Soldée ✓':fmtMoney(balance)+' restant';
+    /* update folio summary */
+    var folioEl = document.getElementById('folio-summary');
+    if(folioEl){
+      folioEl.innerHTML =
+        '<div class="inv-line"><span>🏨 Hébergement ('+nights+' nuit'+(nights>1?'s':'')+')</span><strong>'+fmtMoney(accommodation)+'</strong></div>'+
+        (restaurant!==0?'<div class="inv-line"><span>🍴 Restaurant</span><strong style="color:#f59e0b">'+fmtMoney(restaurant)+'</strong></div>':'')+
+        (other!==0?'<div class="inv-line"><span>🛎 Autres services</span><strong>'+fmtMoney(other)+'</strong></div>':'')+
+        '<div class="inv-line" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px;font-weight:700"><span>Total séjour</span><strong>'+fmtMoney(stayTotal)+'</strong></div>'+
+        '<div class="inv-line"><span style="color:var(--success)">Paiements reçus</span><strong style="color:var(--success)">- '+fmtMoney(paid)+'</strong></div>'+
+        '<div class="inv-total"><span>Solde restant</span><span class="'+balCls+'">'+balLbl+'</span></div>';
+    }
+    /* update balance in Paiement tab */
+    var bEl=document.getElementById('folio-balance-paiement');
+    if(bEl){bEl.textContent=balLbl;bEl.className=balCls;}
+    /* payment history list */
     if(!el) return;
     if(!Array.isArray(data)||!data.length){
       el.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:10px">Aucun paiement enregistré</div>';
     } else {
       var mLbl={cash:'Espèces',card:'Carte',mobile_money:'Mobile Money',transfer:'Virement'};
       el.innerHTML=data.map(function(p){
-        var d=p.created_at?new Date(p.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+        var d=p.created_at?new Date(p.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'--';
         return '<div class="inv-hist-item">'+
           '<div style="display:flex;justify-content:space-between"><strong style="color:var(--success)">+'+fmtMoney(p.amount||0)+'</strong><span style="color:var(--text3)">'+d+'</span></div>'+
-          '<div style="color:var(--text2);margin-top:2px">'+(mLbl[p.method]||p.method||'—')+(p.notes?' — '+esc(p.notes):'')+' </div></div>';
+          '<div style="color:var(--text2);margin-top:2px">'+(mLbl[p.method]||p.method||'--')+(p.notes?' — '+esc(p.notes):'')+' </div></div>';
       }).join('');
     }
+    /* charges history */
     if(rcEl){
       if(!charges.length){rcEl.innerHTML='';return;}
-      var unsettled=charges.filter(function(c){return !c.settled;});
-      var totCharges=unsettled.reduce(function(s,c){return s+(c.amount||0);},0);
-      rcEl.innerHTML='<div style="margin-top:14px"><div class="param-section-title">🍽️ Charges restaurant (folio)</div>'+
+      rcEl.innerHTML='<div style="margin-top:14px"><div class="param-section-title">📋 Historique des charges (folio)</div>'+
         charges.map(function(c){
-          var d=c.created_at?new Date(c.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'—';
-          var badge=c.settled
-            ?'<span style="font-size:10px;background:var(--success);color:#fff;border-radius:4px;padding:1px 5px;margin-left:4px;">Réglé</span>'
-            :'<span style="font-size:10px;background:var(--danger);color:#fff;border-radius:4px;padding:1px 5px;margin-left:4px;">À payer</span>';
-          return '<div class="inv-hist-item" style="border-left:3px solid #f59e0b;padding-left:8px;">'+
+          var d=c.created_at?new Date(c.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'--';
+          var isRev=!!c.reversal_of_charge_id;
+          var badge=isRev
+            ?'<span style="font-size:10px;background:var(--bg4);color:var(--text2);border-radius:4px;padding:1px 5px;margin-left:4px;">Annulée</span>'
+            :'<span style="font-size:10px;background:#f59e0b;color:#000;border-radius:4px;padding:1px 5px;margin-left:4px;">'+(c.charge_type||'restaurant')+'</span>';
+          return '<div class="inv-hist-item" style="border-left:3px solid '+(isRev?'var(--border)':'#f59e0b')+';padding-left:8px;opacity:'+(isRev?'0.5':'1')+';">'+
             '<div style="display:flex;justify-content:space-between;align-items:center">'+
-            '<strong style="color:#f59e0b;">+'+fmtMoney(c.amount||0)+' (Restaurant)</strong>'+badge+
+            '<strong style="color:'+(isRev?'var(--success)':'#f59e0b')+'">'+(isRev?'':'+')+''+fmtMoney(c.amount||0)+'</strong>'+badge+
             '<span style="color:var(--text3)">'+d+'</span></div>'+
-            '<div style="color:var(--text2);margin-top:2px;font-size:12px;">'+esc(c.description||'Commande restaurant')+'</div>'+
-            (!c.settled?'<button onclick="settleCharge(\''+c.id+'\',\''+rezId+'\')" style="margin-top:5px;font-size:11px;padding:3px 8px;border:none;border-radius:5px;background:var(--accent);color:#fff;cursor:pointer;">✓ Marquer réglé</button>':'')+'</div>';
-        }).join('')+
-        (totCharges>0?'<div class="inv-line" style="border-top:1px dashed var(--border);margin-top:8px;padding-top:8px;font-weight:700;color:#f59e0b;">'+
-          '<span>Total charges restaurant non réglées</span><strong>'+fmtMoney(totCharges)+'</strong></div>':'')+'</div>';
+            '<div style="color:var(--text2);margin-top:2px;font-size:12px;">'+esc(c.description||'Charge')+'</div>'+
+            '</div>';
+        }).join('')+'</div>';
     }
   }).catch(function(){
     if(el) el.innerHTML='<div style="color:var(--text3);font-size:12px;padding:8px">Impossible de charger l\'historique</div>';

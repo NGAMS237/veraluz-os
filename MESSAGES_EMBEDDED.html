@@ -262,6 +262,18 @@ html.vl-dark #toast{background:#e2e8f0;color:#1e293b;}
       </div>
     </div>
     <div class="divider"></div>
+    <div class="sb-section" id="sb-admin-section" style="display:none;">
+      <div class="sb-lbl">Communication</div>
+      <div class="sb-row" id="sb-modeles" onclick="showModeles()">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        <span class="sb-txt">Modèles</span>
+      </div>
+      <div class="sb-row" id="sb-journal" onclick="showJournal()">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span class="sb-txt">Journal</span>
+      </div>
+    </div>
+    <div class="divider"></div>
     <div class="sb-section">
       <div class="sb-lbl">Étiquettes</div>
       <div class="tag-row" onclick="filterLabel('urgent')"><div class="tag-dot" style="background:#ef4444;"></div><span class="tag-txt">Urgent</span></div>
@@ -354,6 +366,81 @@ html.vl-dark #toast{background:#e2e8f0;color:#1e293b;}
       </div>
     </div>
   </div>
+</div>
+
+<!-- ── MODÈLES PANEL ──────────────────────────────────────────────── -->
+<div id="modeles-panel" style="display:none;flex:1;overflow:auto;padding:20px;background:var(--bg);">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <h2 style="font-size:16px;font-weight:700;color:var(--text);margin:0;">Modèles de communication</h2>
+    <button onclick="showModeleForm(null)" style="margin-left:auto;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;cursor:pointer;">+ Nouveau modèle</button>
+    <button onclick="closeAdminPanel()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;color:var(--text);">✕ Fermer</button>
+  </div>
+  <div id="modeles-list" style="display:block;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead><tr style="color:var(--text3);border-bottom:1px solid var(--border2);">
+        <th style="text-align:left;padding:6px 8px;">Nom</th>
+        <th style="text-align:left;padding:6px 8px;">Événement</th>
+        <th style="text-align:left;padding:6px 8px;">Audience</th>
+        <th style="text-align:left;padding:6px 8px;">Canal</th>
+        <th style="text-align:center;padding:6px 8px;">Actif</th>
+        <th style="text-align:center;padding:6px 8px;">Actions</th>
+      </tr></thead>
+      <tbody id="modeles-tbody">
+        <tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text3);">Chargement…</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="modele-form" style="display:none;max-width:680px;margin-top:8px;">
+    <h3 style="font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text);" id="modele-form-title">Nouveau modèle</h3>
+    <input type="hidden" id="mf-id" value="">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div><label style="font-size:11px;color:var(--text3);">Nom</label><input id="mf-name" type="text" style="width:100%;margin-top:2px;padding:6px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--bg2);color:var(--text);font-size:12px;" placeholder="Ex: Réservation confirmée"></div>
+      <div><label style="font-size:11px;color:var(--text3);">Canal</label><select id="mf-channel" style="width:100%;margin-top:2px;padding:6px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--bg2);color:var(--text);font-size:12px;"><option value="email">Email</option><option value="internal">Interne</option><option value="future_whatsapp">WhatsApp (futur)</option><option value="future_sms">SMS (futur)</option></select></div>
+    </div>
+    <div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text3);">Objet</label><input id="mf-subject" type="text" style="width:100%;margin-top:2px;padding:6px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--bg2);color:var(--text);font-size:12px;" placeholder="Objet du message…"></div>
+    <div style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text3);">Corps du message</label><textarea id="mf-body" rows="8" style="width:100%;margin-top:2px;padding:8px;border:1px solid var(--border2);border-radius:5px;background:var(--bg2);color:var(--text);font-size:12px;font-family:monospace;resize:vertical;" placeholder="Bonjour {{guest.first_name}},…"></textarea></div>
+    <div style="margin-bottom:12px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:5px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">Variables disponibles :</div>
+      <div style="font-size:11px;color:var(--accent);font-family:monospace;line-height:1.8;">{{guest.first_name}} {{guest.full_name}} {{reservation.id}} {{reservation.check_in}} {{reservation.check_out}} {{unit.name}} {{property.name}} {{reception.phone}} {{wifi.ssid}} {{wifi.password}} {{restaurant.opening_time}} {{restaurant.closing_time}} {{order.number}} {{order.total}} {{order.status}}</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="saveModele()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:7px 16px;font-size:12px;cursor:pointer;">Enregistrer</button>
+      <button onclick="previewModele()" style="background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:12px;cursor:pointer;color:var(--text);">Prévisualiser</button>
+      <button onclick="cancelModeleForm()" style="background:transparent;border:none;color:var(--text3);font-size:12px;cursor:pointer;padding:7px 10px;">Annuler</button>
+    </div>
+    <div id="modele-preview-box" style="display:none;margin-top:16px;padding:14px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;">PRÉVISUALISATION (données de démonstration)</div>
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;" id="preview-subject-out"></div>
+      <pre style="font-size:12px;color:var(--text);white-space:pre-wrap;font-family:inherit;margin:0;" id="preview-body-out"></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ── JOURNAL PANEL ───────────────────────────────────────────────── -->
+<div id="journal-panel" style="display:none;flex:1;overflow:auto;padding:20px;background:var(--bg);">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+    <h2 style="font-size:16px;font-weight:700;color:var(--text);margin:0;">Journal des communications</h2>
+    <button onclick="closeAdminPanel()" style="margin-left:auto;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:12px;cursor:pointer;color:var(--text);">✕ Fermer</button>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;">
+    <button class="jf-btn active" onclick="setJournalFilter(this,'')" style="padding:4px 10px;border-radius:12px;border:1px solid var(--border2);font-size:11px;cursor:pointer;background:var(--accent);color:#fff;">Tous</button>
+    <button class="jf-btn" onclick="setJournalFilter(this,'prepared')" style="padding:4px 10px;border-radius:12px;border:1px solid var(--border2);font-size:11px;cursor:pointer;background:var(--bg2);color:var(--text);">Préparés</button>
+    <button class="jf-btn" onclick="setJournalFilter(this,'sent')" style="padding:4px 10px;border-radius:12px;border:1px solid var(--border2);font-size:11px;cursor:pointer;background:var(--bg2);color:var(--text);">Envoyés</button>
+    <button class="jf-btn" onclick="setJournalFilter(this,'failed')" style="padding:4px 10px;border-radius:12px;border:1px solid var(--border2);font-size:11px;cursor:pointer;background:var(--bg2);color:var(--text);">Échecs</button>
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="color:var(--text3);border-bottom:1px solid var(--border2);">
+      <th style="text-align:left;padding:6px 8px;">Date</th>
+      <th style="text-align:left;padding:6px 8px;">Destinataire</th>
+      <th style="text-align:left;padding:6px 8px;">Événement</th>
+      <th style="text-align:left;padding:6px 8px;">Canal</th>
+      <th style="text-align:center;padding:6px 8px;">Statut</th>
+      <th style="text-align:left;padding:6px 8px;">Objet</th>
+    </tr></thead>
+    <tbody id="journal-tbody">
+      <tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text3);">Chargement…</td></tr>
+    </tbody>
+  </table>
 </div>
 
 <script>
@@ -855,6 +942,248 @@ function toggleVlTheme() {
   try { window.parent.postMessage({ type: 'vl-theme', theme: dark ? 'light' : 'dark' }, '*'); } catch (e) {}
 }
 window.addEventListener('message', function (e) { if (e.data && e.data.type === 'vl-theme') applyVlTheme(); });
+
+/* ════════════════════════════════════════════════════════════════════════════
+   011E-2B — COMMUNICATIONS-SECURE BROKER
+   ════════════════════════════════════════════════════════════════════════════ */
+function commReq(action, payload) {
+  if (typeof window.parent !== 'undefined' &&
+      typeof window.parent.veraluzSecureRequest === 'function') {
+    var p = Object.assign({}, payload || {});
+    p.action = action;
+    return window.parent.veraluzSecureRequest('communications-secure', p);
+  }
+  return Promise.resolve({ status: 401, body: { ok: false, error: 'not_in_core_iframe' } });
+}
+
+/* ── View manager ────────────────────────────────────────────────────────── */
+var ADMIN_COMM_ROLES = ['superadmin','admin','manager','direction','directeur','gerant','directrice'];
+
+function isAdminComm() {
+  return _actor && ADMIN_COMM_ROLES.indexOf((_actor.role || '').toLowerCase()) !== -1;
+}
+
+function showMsgView() {
+  document.getElementById('list-col').style.display = '';
+  document.getElementById('detail-col').style.display = '';
+  document.getElementById('modeles-panel').style.display = 'none';
+  document.getElementById('journal-panel').style.display = 'none';
+  // reset sidebar active
+  document.querySelectorAll('.sb-row').forEach(function(r){ r.classList.remove('active'); });
+}
+
+function closeAdminPanel() { showMsgView(); }
+
+/* ── MODÈLES ─────────────────────────────────────────────────────────────── */
+function showModeles() {
+  if (!isAdminComm()) { toast('Accès réservé aux administrateurs.'); return; }
+  document.getElementById('list-col').style.display = 'none';
+  document.getElementById('detail-col').style.display = 'none';
+  document.getElementById('journal-panel').style.display = 'none';
+  document.getElementById('modeles-panel').style.display = 'flex';
+  document.getElementById('modeles-panel').style.flexDirection = 'column';
+  // highlight sidebar
+  document.querySelectorAll('.sb-row').forEach(function(r){ r.classList.remove('active'); });
+  document.getElementById('sb-modeles').classList.add('active');
+  loadModeles();
+}
+
+var _modeles = [];
+
+function loadModeles() {
+  commReq('list_templates', {}).then(function(res) {
+    _modeles = (res.body && res.body.templates) || [];
+    renderModelesList();
+  }).catch(function(){ document.getElementById('modeles-tbody').innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#ef4444;">Erreur de chargement</td></tr>'; });
+}
+
+var AUDIENCE_LABELS = { guest: 'Client', internal: 'Interne', system: 'Système' };
+var CHANNEL_LABELS  = { email: '📧 Email', internal: '🔔 Interne', future_whatsapp: '💬 WhatsApp', future_sms: '📱 SMS' };
+
+function renderModelesList() {
+  var tbody = document.getElementById('modeles-tbody');
+  if (!_modeles.length) { tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text3);">Aucun modèle</td></tr>'; return; }
+  tbody.innerHTML = _modeles.map(function(t) {
+    return '<tr style="border-bottom:1px solid var(--border2);cursor:pointer;" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">' +
+      '<td style="padding:7px 8px;font-weight:500;color:var(--text);">' + esc(t.name) + '</td>' +
+      '<td style="padding:7px 8px;color:var(--text3);">' + esc(t.event_type) + '</td>' +
+      '<td style="padding:7px 8px;"><span style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:2px 7px;font-size:10px;">' + (AUDIENCE_LABELS[t.audience] || t.audience) + '</span></td>' +
+      '<td style="padding:7px 8px;font-size:11px;color:var(--text3);">' + (CHANNEL_LABELS[t.channel] || t.channel) + '</td>' +
+      '<td style="padding:7px 8px;text-align:center;"><span style="color:' + (t.active ? '#10b981' : '#9ca3af') + ';font-size:16px;">' + (t.active ? '●' : '○') + '</span></td>' +
+      '<td style="padding:7px 8px;text-align:center;">' +
+        '<button onclick="showModeleForm('' + t.id + '')" style="background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--text);">Modifier</button> ' +
+        '<button onclick="toggleTemplate('' + t.id + '',' + !t.active + ')" style="background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--text);">' + (t.active ? 'Désactiver' : 'Activer') + '</button>' +
+      '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function showModeleForm(templateId) {
+  document.getElementById('modeles-list').style.display = 'none';
+  document.getElementById('modele-form').style.display = 'block';
+  document.getElementById('modele-preview-box').style.display = 'none';
+  document.getElementById('preview-subject-out').textContent = '';
+  document.getElementById('preview-body-out').textContent = '';
+  if (!templateId) {
+    document.getElementById('modele-form-title').textContent = 'Nouveau modèle';
+    document.getElementById('mf-id').value = '';
+    document.getElementById('mf-name').value = '';
+    document.getElementById('mf-channel').value = 'email';
+    document.getElementById('mf-subject').value = '';
+    document.getElementById('mf-body').value = '';
+    return;
+  }
+  var t = _modeles.find(function(m){ return m.id === templateId; });
+  if (!t) {
+    commReq('get_template', { template_key: templateId }).then(function(res) {
+      if (res.body && res.body.template) populateModeleForm(res.body.template);
+    });
+    return;
+  }
+  populateModeleForm(t);
+}
+
+function populateModeleForm(t) {
+  document.getElementById('modele-form-title').textContent = 'Modifier : ' + t.name;
+  document.getElementById('mf-id').value = t.id || '';
+  document.getElementById('mf-name').value = t.name || '';
+  document.getElementById('mf-channel').value = t.channel || 'email';
+  document.getElementById('mf-subject').value = t.subject_template || '';
+  document.getElementById('mf-body').value = t.body_template || '';
+}
+
+function saveModele() {
+  var id      = document.getElementById('mf-id').value;
+  var name    = document.getElementById('mf-name').value.trim();
+  var channel = document.getElementById('mf-channel').value;
+  var subj    = document.getElementById('mf-subject').value.trim();
+  var body    = document.getElementById('mf-body').value.trim();
+  if (!name || !body) { toast('Nom et corps requis.'); return; }
+  if (id) {
+    commReq('update_template', { template_id: id, name: name, subject_template: subj, body_template: body }).then(function(res) {
+      if (res.body && res.body.ok) { toast('Modèle mis à jour.'); cancelModeleForm(); loadModeles(); }
+      else toast('Erreur : ' + ((res.body || {}).error || 'inconnue'));
+    });
+  } else {
+    toast('Création de modèles via l'UI non implémentée dans ce lot (utilisez le panel admin).');
+  }
+}
+
+function cancelModeleForm() {
+  document.getElementById('modeles-list').style.display = 'block';
+  document.getElementById('modele-form').style.display = 'none';
+}
+
+var DEMO_VARS = {
+  'guest.first_name': 'Jean', 'guest.full_name': 'Jean Dupont',
+  'reservation.id': 'RES-2026-0142', 'reservation.check_in': '14 août 2026', 'reservation.check_out': '17 août 2026',
+  'unit.name': 'Studio Horizon', 'property.name': 'Résidences Veraluz',
+  'reception.phone': '+237 6XX XXX XXX',
+  'wifi.ssid': 'VERALUZ-GUEST', 'wifi.password': '••••••••',
+  'restaurant.opening_time': '07h00', 'restaurant.closing_time': '22h00',
+  'order.number': 'CMD-4892', 'order.total': '8 500', 'order.status': 'En préparation'
+};
+
+function previewModele() {
+  var key = '';
+  var id  = document.getElementById('mf-id').value;
+  var t   = id ? _modeles.find(function(m){ return m.id === id; }) : null;
+  if (t) key = t.template_key;
+  if (!key) { toast('Sauvegardez d'abord le modèle pour prévisualiser.'); return; }
+  commReq('preview', { template_key: key, variables: DEMO_VARS }).then(function(res) {
+    var pv = (res.body && res.body.preview) || {};
+    if (!pv.ok) {
+      toast('Prévisualisation : variables manquantes — ' + (pv.missing_variables || []).join(', '));
+      return;
+    }
+    document.getElementById('preview-subject-out').textContent = pv.subject || '(sans objet)';
+    document.getElementById('preview-body-out').textContent = pv.body || '';
+    document.getElementById('modele-preview-box').style.display = 'block';
+  });
+}
+
+function toggleTemplate(templateId, activate) {
+  commReq('toggle_template', { template_id: templateId, active: activate }).then(function(res) {
+    if (res.body && res.body.ok) { toast(activate ? 'Modèle activé.' : 'Modèle désactivé.'); loadModeles(); }
+    else toast('Erreur : ' + ((res.body || {}).error || 'inconnue'));
+  });
+}
+
+/* ── JOURNAL ─────────────────────────────────────────────────────────────── */
+var _journalFilter = '';
+
+function showJournal() {
+  if (!isAdminComm()) { toast('Accès réservé aux administrateurs.'); return; }
+  document.getElementById('list-col').style.display = 'none';
+  document.getElementById('detail-col').style.display = 'none';
+  document.getElementById('modeles-panel').style.display = 'none';
+  document.getElementById('journal-panel').style.display = 'flex';
+  document.getElementById('journal-panel').style.flexDirection = 'column';
+  document.querySelectorAll('.sb-row').forEach(function(r){ r.classList.remove('active'); });
+  document.getElementById('sb-journal').classList.add('active');
+  loadJournal();
+}
+
+function setJournalFilter(btn, status) {
+  _journalFilter = status;
+  document.querySelectorAll('.jf-btn').forEach(function(b){
+    b.style.background = 'var(--bg2)'; b.style.color = 'var(--text)';
+    b.classList.remove('active');
+  });
+  btn.style.background = 'var(--accent)'; btn.style.color = '#fff';
+  btn.classList.add('active');
+  loadJournal();
+}
+
+function loadJournal() {
+  var payload = {};
+  if (_journalFilter) payload.status = _journalFilter;
+  commReq('list_comm_log', payload).then(function(res) {
+    var logs = (res.body && res.body.logs) || [];
+    renderJournal(logs);
+  }).catch(function(){ document.getElementById('journal-tbody').innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:#ef4444;">Erreur de chargement</td></tr>'; });
+}
+
+var STATUS_STYLE = {
+  prepared:        { bg: '#e0f2fe', color: '#0369a1', label: 'Préparé' },
+  pending_channel: { bg: '#fef3c7', color: '#92400e', label: 'En attente' },
+  sent:            { bg: '#d1fae5', color: '#065f46', label: 'Envoyé' },
+  delivered:       { bg: '#d1fae5', color: '#047857', label: 'Livré' },
+  failed:          { bg: '#fee2e2', color: '#991b1b', label: 'Échec' },
+  cancelled:       { bg: '#f3f4f6', color: '#6b7280', label: 'Annulé' },
+  draft:           { bg: '#f3f4f6', color: '#6b7280', label: 'Brouillon' }
+};
+
+function renderJournal(logs) {
+  var tbody = document.getElementById('journal-tbody');
+  if (!logs.length) { tbody.innerHTML = '<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text3);">Aucune entrée</td></tr>'; return; }
+  tbody.innerHTML = logs.map(function(l) {
+    var st = STATUS_STYLE[l.status] || { bg: '#f3f4f6', color: '#6b7280', label: l.status };
+    var dt = l.created_at ? new Date(l.created_at).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
+    return '<tr style="border-bottom:1px solid var(--border2);">' +
+      '<td style="padding:6px 8px;color:var(--text3);white-space:nowrap;">' + esc(dt) + '</td>' +
+      '<td style="padding:6px 8px;color:var(--text);">' + esc(l.recipient_address_masked || l.recipient_type || '—') + '</td>' +
+      '<td style="padding:6px 8px;font-size:11px;color:var(--text3);">' + esc(l.event_type) + '</td>' +
+      '<td style="padding:6px 8px;font-size:11px;color:var(--text3);">' + (CHANNEL_LABELS[l.channel] || l.channel) + '</td>' +
+      '<td style="padding:6px 8px;text-align:center;"><span style="background:' + st.bg + ';color:' + st.color + ';border-radius:10px;padding:2px 8px;font-size:10px;font-weight:600;">' + st.label + '</span></td>' +
+      '<td style="padding:6px 8px;color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(l.subject_snapshot || '') + '">' + esc((l.subject_snapshot || '').substring(0,60)) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+/* ── Reveal admin section when actor loaded ──────────────────────────────── */
+var _origSetActor = typeof setActor === 'function' ? setActor : null;
+function setActorAndAdminUI(a) {
+  if (_origSetActor) _origSetActor(a);
+  if (ADMIN_COMM_ROLES.indexOf(((a || {}).role || '').toLowerCase()) !== -1) {
+    var s = document.getElementById('sb-admin-section');
+    if (s) s.style.display = '';
+  }
+}
+// Override setActor if it exists, else wrap DOMContentLoaded
+if (typeof setActor !== 'undefined') {
+  setActor = setActorAndAdminUI;
+}
 
 /* ════════════════════════════════════════════════════════════════════════════
    INIT

@@ -2198,8 +2198,14 @@ function kdsUpd(oid,st){
     renderKDS();updateBdg();
     /* 011D-2D: post to folio when room service order finalized */
     if(st==='remis'&&o&&o.type==='room'&&o.reservation_id){
-      RPC('post_restaurant_order_to_folio',{p_order_id:oid,p_employee_id:_vzEmpId}).then(function(charge){
-        toast('&#10003; Remis + &#127968; Facturé séjour '+fmt(charge&&charge.amount||0),'ok');
+      /* 011D-2F: broker sécurisé — session validée côté serveur */
+      window.parent.veraluzSecureRequest('post-restaurant-folio',{order_id:oid}).then(function(res){
+        var body=res&&res.body||{};
+        if(res&&res.status===200&&body.ok){
+          toast('&#10003; Remis + &#127968; Facturé séjour '+fmt(body.amount||0),'ok');
+        } else {
+          toast('&#10003; Remis (folio: '+(body.error||'erreur')+')','warn');
+        }
       }).catch(function(e){toast('&#10003; Remis (folio: '+(e&&e.message||'erreur')+')','warn');});
     } else {
       toast('&#10003; '+st,'ok');
@@ -4399,7 +4405,11 @@ function confirmRoomCharge(){
     if(o.table_id)PATCH('veraluz_restaurant_tables',o.table_id,{status:'libre'}).then(function(){
       var t=TABLES.find(function(x){return x.id===o.table_id;});if(t)t.status='libre';renderTables();
     });
-    return RPC('post_restaurant_order_to_folio',{p_order_id:payOid,p_employee_id:_vzEmpId});
+    /* 011D-2F: broker sécurisé — employee_id tiré de la session serveur */
+    return window.parent.veraluzSecureRequest('post-restaurant-folio',{order_id:payOid}).then(function(res){
+      if(!res||res.status!==200||!(res.body&&res.body.ok)){throw new Error((res&&res.body&&res.body.error)||'folio_erreur');}
+      return res.body;
+    });
   }).then(function(charge){
     if(charge)ROOM_CHARGES.push(charge);
     clearCart();cartTbl=null;cartOrd=null;

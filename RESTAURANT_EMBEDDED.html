@@ -1174,6 +1174,7 @@ var LIVREURS=[], _assignOid=null;
 /* PROMPT 034 — Livraisons */
 var _curLiv='jour', _livDate='', _curLivDetailId=null, _livMsgInterval=null;
 var RESTAURANT_BUILD = 'v034-livraisons-2026-08-04';
+var _vzEmpId = null; /* 011D-2E: employee_id from CORE auth-context */
 
 /* ══════════════════════════════════════════
    NORMALIZE UTILS — VERALUZ CORE v0.3.0
@@ -2197,7 +2198,7 @@ function kdsUpd(oid,st){
     renderKDS();updateBdg();
     /* 011D-2D: post to folio when room service order finalized */
     if(st==='remis'&&o&&o.type==='room'&&o.reservation_id){
-      RPC('post_restaurant_order_to_folio',{p_order_id:oid}).then(function(charge){
+      RPC('post_restaurant_order_to_folio',{p_order_id:oid,p_employee_id:_vzEmpId}).then(function(charge){
         toast('&#10003; Remis + &#127968; Facturé séjour '+fmt(charge&&charge.amount||0),'ok');
       }).catch(function(e){toast('&#10003; Remis (folio: '+(e&&e.message||'erreur')+')','warn');});
     } else {
@@ -2646,6 +2647,17 @@ function syncStockFromFood(order){
 }
 
 /* Auto-refresh polling */
+/* ── 011D-2E: Écoute auth-context de CORE (employee_id) ── */
+window.addEventListener('message',function(ev){
+  try{
+    var d=ev.data;
+    if(!d||d.source!=='veraluz-core'||d.type!=='auth-context')return;
+    if(d.data&&d.data.employee_id){
+      _vzEmpId=d.data.employee_id;
+    }
+  }catch(e){}
+});
+
 /* ── Écoute postMessage de FOOD_LOUNGE (notification immédiate) ── */
 window.addEventListener('message',function(ev){
   try{
@@ -4387,7 +4399,7 @@ function confirmRoomCharge(){
     if(o.table_id)PATCH('veraluz_restaurant_tables',o.table_id,{status:'libre'}).then(function(){
       var t=TABLES.find(function(x){return x.id===o.table_id;});if(t)t.status='libre';renderTables();
     });
-    return RPC('post_restaurant_order_to_folio',{p_order_id:payOid});
+    return RPC('post_restaurant_order_to_folio',{p_order_id:payOid,p_employee_id:_vzEmpId});
   }).then(function(charge){
     if(charge)ROOM_CHARGES.push(charge);
     clearCart();cartTbl=null;cartOrd=null;

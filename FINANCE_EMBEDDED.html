@@ -461,6 +461,7 @@ function closeMd(id){document.getElementById(id).classList.remove('on');}
 
 /* State */
 var EXPENSES=[],PAYMENTS=[],REST_ORDERS=[],CAISSE=[],RAPPROCHEMENTS=[],SUPPLIER_ORDERS=[];
+var RS_CHARGES=[]; /* 011D-2E: room_charges type=restaurant (source financière RS) */
 var revFilter='all',depFilter='all',jPeriod='month';
 var curTab='dash';
 
@@ -496,8 +497,10 @@ function loadAll(){
     GET('/rest/v1/veraluz_caisse?select=*&order=created_at.desc&limit=200'),
     GET('/rest/v1/veraluz_rapprochements?select=*&order=date.desc&limit=50'),
     GET('/rest/v1/veraluz_restaurant_supplier_orders?select=*&status=in.(envoye,recu)&order=created_at.desc&limit=200'),
+    /* 011D-2E: source financière RS — room_charges uniquement (évite double comptage) */
+    GET('/rest/v1/veraluz_room_charges?select=*&charge_type=eq.restaurant&order=created_at.desc&limit=200'),
   ]).then(function(r){
-    EXPENSES=r[0]||[];PAYMENTS=r[1]||[];REST_ORDERS=r[2]||[];CAISSE=r[3]||[];RAPPROCHEMENTS=r[4]||[];SUPPLIER_ORDERS=r[5]||[];
+    EXPENSES=r[0]||[];PAYMENTS=r[1]||[];REST_ORDERS=r[2]||[];CAISSE=r[3]||[];RAPPROCHEMENTS=r[4]||[];SUPPLIER_ORDERS=r[5]||[];RS_CHARGES=r[6]||[];
     renderDash();renderRev();renderDep();renderCaisse();renderJournal();renderRapprochements();
   }).catch(function(e){toast('Erreur chargement: '+e,'err');});
 }
@@ -508,9 +511,12 @@ function loadAll(){
 function getMonthRev(){
   var m=new Date().toISOString().slice(0,7);
   var fromPay=PAYMENTS.filter(function(p){return p.status==='validated'&&(p.created_at||'').slice(0,7)===m;}).reduce(function(s,p){return s+(p.amount||0);},0);
-  var fromRest=REST_ORDERS.filter(function(o){return(o.paid_at||o.created_at||'').slice(0,7)===m;}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
+  /* 011D-2E: exclure REST_ORDERS paiement=chambre (comptés via RS_CHARGES) */
+  var fromRest=REST_ORDERS.filter(function(o){return(o.paid_at||o.created_at||'').slice(0,7)===m&&o.payment_method!=='chambre';}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0);
+  var fromRS=RS_CHARGES.filter(function(c){return(c.posted_at||c.created_at||'').slice(0,7)===m&&!c.reversal_of_charge_id;}).reduce(function(s,c){return s+(c.amount||0);},0);
+  var fromRSRev=RS_CHARGES.filter(function(c){return(c.posted_at||c.created_at||'').slice(0,7)===m&&c.reversal_of_charge_id;}).reduce(function(s,c){return s+(c.amount||0);},0);
   var fromCai=CAISSE.filter(function(c){return c.type==='entree'&&(c.created_at||'').slice(0,7)===m;}).reduce(function(s,c){return s+(c.montant||0);},0);
-  return fromPay+fromRest+fromCai;
+  return fromPay+fromRest+(fromRS+fromRSRev)+fromCai;
 }
 function getMonthDep(){
   var m=new Date().toISOString().slice(0,7);
@@ -544,7 +550,9 @@ function renderCashflowChart(){
   var maxVal=1;
   var data=months.map(function(m){
     var rev=PAYMENTS.filter(function(p){return p.status==='validated'&&(p.created_at||'').slice(0,7)===m;}).reduce(function(s,p){return s+(p.amount||0);},0)
-      +REST_ORDERS.filter(function(o){return(o.paid_at||o.created_at||'').slice(0,7)===m;}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0)
+      /* 011D-2E: exclure chambre, ajouter RS_CHARGES net */
+      +REST_ORDERS.filter(function(o){return(o.paid_at||o.created_at||'').slice(0,7)===m&&o.payment_method!=='chambre';}).reduce(function(s,o){return s+(o.total||o.total_amount||0);},0)
+      +RS_CHARGES.filter(function(c){return(c.posted_at||c.created_at||'').slice(0,7)===m;}).reduce(function(s,c){return s+(c.amount||0);},0)
       +CAISSE.filter(function(c){return c.type==='entree'&&(c.created_at||'').slice(0,7)===m;}).reduce(function(s,c){return s+(c.montant||0);},0);
     var dep=EXPENSES.filter(function(e){return(e.date||'').slice(0,7)===m;}).reduce(function(s,e){return s+(e.amount||0);},0)
       +SUPPLIER_ORDERS.filter(function(o){return o.status==='recu'&&(o.received_at||o.created_at||'').slice(0,7)===m;}).reduce(function(s,o){return s+(o.total_amount||0);},0);
@@ -603,8 +611,14 @@ function allRevenus(){
   PAYMENTS.filter(function(p){return p.status==='validated';}).forEach(function(p){
     res.push({id:p.id,date:p.created_at,desc:'R&#233;servation #'+(p.reservation_id||'').slice(-6),amount:p.amount,method:p.method,src:'reservation'});
   });
-  REST_ORDERS.forEach(function(o){
+  /* 011D-2E: exclure RS facturés chambre (comptés dans RS_CHARGES) */
+  REST_ORDERS.filter(function(o){return o.payment_method!=='chambre';}).forEach(function(o){
     res.push({id:o.id,date:o.paid_at||o.created_at,desc:'Vente restaurant #'+(o.id||'').slice(-6),amount:o.total||o.total_amount||0,method:o.payment_method||'cash',src:'restaurant'});
+  });
+  /* 011D-2E: RS facturés séjour — source room_charges (financière) */
+  RS_CHARGES.forEach(function(c){
+    var lbl=c.label||c.description||('Room Service #'+(c.id||'').slice(-6));
+    res.push({id:c.id,date:c.posted_at||c.created_at,desc:lbl,amount:c.amount||0,method:'chambre',src:'room_service'});
   });
   CAISSE.filter(function(c){return c.type==='entree';}).forEach(function(c){
     res.push({id:c.id,date:c.created_at,desc:c.libelle||'Entr&#233;e de caisse',amount:c.montant,method:'cash',src:c.source||'manuel'});
@@ -629,7 +643,7 @@ function renderRev(){
   if(!list.length){el.innerHTML='<div class="empty"><div class="empty-ico">&#128176;</div>Aucun revenu trouv&#233;</div>';return;}
   var total=list.reduce(function(s,r){return s+(r.amount||0);},0);
   var methIco={cash:'&#128181;',momo:'&#128242;',virement:'&#128717;',carte:'&#128179;'};
-  var srcBadge={reservation:'&#128716; R&#233;sa',restaurant:'&#127869; Resto',manuel:'&#9998; Manuel',autre:'&#9734; Autre'};
+  var srcBadge={reservation:'&#128716; R&#233;sa',restaurant:'&#127869; Resto',room_service:'&#127968; Room Svc',manuel:'&#9998; Manuel',autre:'&#9734; Autre'};
   el.innerHTML='<div style="text-align:right;font-size:13px;font-weight:700;color:var(--ok);padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:8px;">Total: '+fmt(total)+'</div>'
     +list.map(function(r){
       return '<div class="entry">'
@@ -805,8 +819,14 @@ function buildJournal(){
   PAYMENTS.filter(function(p){return p.status==='validated';}).forEach(function(p){
     all.push({date:p.created_at,type:'revenu',desc:'Paiement r&#233;servation #'+(p.reservation_id||'?').slice(-6),amount:p.amount,src:'R&#233;servation',method:p.method});
   });
-  REST_ORDERS.forEach(function(o){
+  /* 011D-2E: exclure RS facturés chambre */
+  REST_ORDERS.filter(function(o){return o.payment_method!=='chambre';}).forEach(function(o){
     all.push({date:o.paid_at||o.created_at,type:'revenu',desc:'Vente restaurant #'+(o.id||'').slice(-6),amount:o.total||o.total_amount||0,src:'Restaurant',method:o.payment_method||'cash'});
+  });
+  /* 011D-2E: RS séjour — room_charges source canonique */
+  RS_CHARGES.forEach(function(c){
+    var lbl=c.label||c.description||('Room Service #'+(c.id||'').slice(-6));
+    all.push({date:c.posted_at||c.created_at,type:'revenu',desc:lbl,amount:c.amount||0,src:'Room Service',method:'chambre'});
   });
   EXPENSES.forEach(function(e){
     all.push({date:e.date+'T12:00:00Z',type:'depense',desc:e.description||e.category,amount:e.amount,src:'D&#233;pense '+esc(e.category),method:e.payment_method});

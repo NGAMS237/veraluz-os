@@ -1704,7 +1704,10 @@ function renderOrdersEncours(){
 async function advOrderStatus(src,id,nxt){
   try{
     if(src==='rest'){await PATCH('veraluz_restaurant_orders',id,{status:nxt});var r=await GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60');ORDERS=r||ORDERS;}
-    else{await PATCH('veraluz_food_orders',id,{status:nxt,updated_at:new Date().toISOString()});var r2=await GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50');FOOD_ORDERS=r2||FOOD_ORDERS;}
+    else{await PATCH('veraluz_food_orders',id,{status:nxt,updated_at:new Date().toISOString()});var r2=await GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50');FOOD_ORDERS=r2||FOOD_ORDERS;
+      /* MICRO 011E-2D2 — email client food order (fire-and-forget) */
+      var _em={confirmed:'restaurant_order_confirmed',preparing:'restaurant_order_preparing',ready:'restaurant_order_ready',out_for_delivery:'restaurant_order_out_for_delivery'};
+      if(_em[nxt])try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-restaurant',type:'dispatch-restaurant-order-email',data:{event:_em[nxt],order_id:id}},'*');}catch(_){}}
     renderOrdersEncours();updateBdg();toast('Statut mis a jour','ok');
   }catch(e){toast('Erreur: '+(e.message||e),'er');}
 }
@@ -2246,6 +2249,9 @@ function kdsFoodUpd(oid,st){
       _logRestEvent(oid,st);
       /* MICRO 011E-2C — EventBus restaurant-ready */
       if(st==='ready'){try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-restaurant',type:'restaurant-ready',data:{order_id:oid,status:'ready',livreur_id:o&&o.livreur_id||null,items_summary:o&&Array.isArray(o.items)?o.items.slice(0,3).map(function(i){return i.name||i.product_name||'';}).filter(Boolean).join(', '):''}},'*');}catch(e){}}
+      /* MICRO 011E-2D2 — email client food order (fire-and-forget) */
+      var _foodEvt={confirmed:'restaurant_order_confirmed',preparing:'restaurant_order_preparing',ready:'restaurant_order_ready',out_for_delivery:'restaurant_order_out_for_delivery',delivered:'restaurant_order_delivered'};
+      if(_foodEvt[st])try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-restaurant',type:'dispatch-restaurant-order-email',data:{event:_foodEvt[st],order_id:oid}},'*');}catch(_){}
     })
     .catch(function(e){
       /* PROMPT 028 : si colonne manquante (PGRST204), fallback statut seulement */

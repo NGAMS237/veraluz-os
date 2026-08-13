@@ -1631,6 +1631,8 @@ function pickStatus(oid,status,elBtn){
       _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
       updateSyncStrip();
       toast('Statut → '+status,'ok');
+      /* MICRO 011E-2D2 — email client (out_for_delivery, fire-and-forget) */
+      if(status==='out_for_delivery')try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-livreur',type:'dispatch-restaurant-order-email',data:{event:'restaurant_order_out_for_delivery',order_id:oid}},'*');}catch(_){}
     })
     .catch(function(){
       /* PROMPT 005: file d'attente */
@@ -1698,6 +1700,7 @@ function confirmDeliveryWithPhoto(){
             _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
             updateSyncStrip();
             toast('✅ Livraison + photo confirmées','ok');
+            /* MICRO 011E-2D2 */try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-livreur',type:'dispatch-restaurant-order-email',data:{event:'restaurant_order_delivered',order_id:oid}},'*');}catch(_){}
           })
           .catch(function(){queueAction('patch_order',oid,payload);});
       })
@@ -1707,6 +1710,7 @@ function confirmDeliveryWithPhoto(){
         sbPatch('veraluz_food_orders',oid,payload)
           .then(function(){
             toast('✅ Livraison confirmée (photo non envoyée — Storage indisponible)','ok');
+            /* MICRO 011E-2D2 */try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-livreur',type:'dispatch-restaurant-order-email',data:{event:'restaurant_order_delivered',order_id:oid}},'*');}catch(_){}
           })
           .catch(function(){queueAction('patch_order',oid,payload);});
       });
@@ -1717,6 +1721,7 @@ function confirmDeliveryWithPhoto(){
         _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
         updateSyncStrip();
         toast('✅ Livraison confirmée','ok');
+        /* MICRO 011E-2D2 */try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-livreur',type:'dispatch-restaurant-order-email',data:{event:'restaurant_order_delivered',order_id:oid}},'*');}catch(_){}
       })
       .catch(function(){queueAction('patch_order',oid,payload);});
   }
@@ -1738,6 +1743,7 @@ function confirmDeliveryNoPhoto(){
     .then(function(){
       _lastSync=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
       updateSyncStrip();
+      /* MICRO 011E-2D2 */try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-livreur',type:'dispatch-restaurant-order-email',data:{event:'restaurant_order_delivered',order_id:oid}},'*');}catch(_){}
       toast('✅ Livraison confirmée','ok');
     })
     .catch(function(){queueAction('patch_order',oid,payload);});

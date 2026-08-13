@@ -3818,6 +3818,26 @@ var EventBus = {
       });
     }
 
+    /* ── MICRO 011E-2D2 — dispatch-restaurant-order-email (fire-and-forget) ── */
+    /* Producteurs: RESTAURANT_EMBEDDED (advOrderStatus, kdsFoodUpd), LIVREUR (confirmDelivery*) */
+    if (type === 'dispatch-restaurant-order-email' && data && data.event && data.order_id) {
+      window.veraluzSecureRequest('communications-secure', {
+        action: 'dispatch_restaurant_order_email',
+        event_type: data.event,
+        order_id: data.order_id
+        /* recipient_email JAMAIS accepté depuis le frontend — résolution serveur uniquement */
+      }).then(function(res) {
+        /* Statuts: sent / failed / pending_channel / skipped_duplicate / skipped_no_email */
+        /* skipped_no_email = livraison externe ou lounge (email non résolvable) — normal */
+        if (res) {
+          console.log('[Core] dispatch_restaurant_order_email:', res.status, res.log_id || '', res.error_code || '');
+        }
+      }).catch(function(e) {
+        /* Fire-and-forget — statut commande jamais bloqué par email */
+        console.warn('[Core] dispatch_restaurant_order_email (non-bloquant):', e);
+      });
+    }
+
         /* ── Logo mis à jour depuis Settings ── */
     if (source === 'veraluz-settings' && type === 'logo-updated' && data.logo_url) {
       var logoImg   = document.getElementById('sb-logo-img');

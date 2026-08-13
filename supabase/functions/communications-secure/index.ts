@@ -1,13 +1,12 @@
 /**
- * MICRO 011E-2D1.1 — communications-secure Edge Function v6
- * Hardening transport email production:
- *   - resend_api_key: Deno.env.get('RESEND_API_KEY') — plus jamais depuis veraluz_settings
- *   - Statuts canoniques: pending_channel / failed / sent / delivered (webhook only)
- *   - Zéro fallback navigateur (EmailJS supprimé côté EF)
- *   - provider + provider_message_id capturés dans comm_log
- *   - Idempotence retry: blocked only on sent/delivered (pending_channel + failed = retryable)
- *   - 403 Resend = sender_domain_not_verified
- *   - Aucune donnée de rendu renvoyée dans la réponse (body_html supprimé)
+ * MICRO 011E-2D2 — communications-secure Edge Function v7
+ * Ajout: dispatch_restaurant_order_email — 5 événements food orders client
+ *   - Résolution email serveur: room_number → veraluz_units → veraluz_reservations
+ *   - Idempotence: (event_type, order_id, template_key, recipient_email) on sent/delivered
+ *   - Fire-and-forget: statut commande jamais bloqué par le provider email
+ *   - skipped_no_email si email non résolvable (livraison externe, lounge)
+ *
+ * v6: dispatch_client_email — hardening RESEND_API_KEY EF secret, provider columns
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -41,6 +40,21 @@ const TEMPLATE_KEY_MAP: Record<string,string> = {
 const CLIENT_EXPECTED_STATUS: Record<string,string> = {
   'reservation_confirmed': 'confirmed',
   'checkin':               'checkedin',
+};
+// ── MICRO 011E-2D2 ──
+const ALLOWED_RESTAURANT_ORDER_EVENTS = new Set([
+  'restaurant_order_confirmed',
+  'restaurant_order_preparing',
+  'restaurant_order_ready',
+  'restaurant_order_out_for_delivery',
+  'restaurant_order_delivered',
+]);
+const RESTAURANT_STATUS_LABELS: Record<string,string> = {
+  confirmed:          'Confirmée',
+  preparing:          'En préparation',
+  ready:              'Prête',
+  out_for_delivery:   'En livraison',
+  delivered:          'Livrée',
 };
 
 function corsHeaders(origin: string) {
@@ -139,6 +153,9 @@ function maskAddress(addr: string): string {
   const digits = addr.replace(/\D/g,'');
   if (digits.length >= 6) return addr.slice(0,4) + '***' + addr.slice(-2);
   return addr.slice(0,2) + '***';
+}
+function formatXAF(amount: number): string {
+  return new Intl.NumberFormat('fr-FR').format(amount) + ' XAF';
 }
 
 Deno.serve(async (req: Request) => {
@@ -305,7 +322,6 @@ Deno.serve(async (req: Request) => {
       const providerName: string | null = resendKey ? 'resend' : null;
 
       if (!resendKey) {
-        // Secret not configured in EF environment
         emailStatus = 'pending_channel';
         errorCode   = 'resend_not_configured';
         console.warn('[dispatch_client_email] RESEND_API_KEY not set — email queued as pending_channel');
@@ -346,7 +362,7 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Comm log — provider + provider_message_id captured
+      // Comm log
       const { data: logRow } = await admin.from('veraluz_comm_log').insert({
         tenant_id:                TENANT,
         event_type,
@@ -371,7 +387,225 @@ Deno.serve(async (req: Request) => {
         provider_message_id:      providerMsgId,
       }).select('id').single();
 
-      // Response — no body_html, no to_email (no auto-fallback data)
+      return json({
+        ok:      true,
+        status:  emailStatus,
+        log_id:  (logRow as Record<string,unknown>)?.id,
+        ...(errorCode ? { error_code: errorCode } : {}),
+      }, 200, cors);
+    }
+
+    // ─────────────────────────────────────────────────
+    // ACTION: dispatch_restaurant_order_email  (MICRO 011E-2D2)
+    // ─────────────────────────────────────────────────
+    if (action === 'dispatch_restaurant_order_email') {
+      const { event_type, order_id } = body;
+
+      if (!event_type || !ALLOWED_RESTAURANT_ORDER_EVENTS.has(event_type))
+        return json({ ok: false, error: 'unknown_event_type', allowed: [...ALLOWED_RESTAURANT_ORDER_EVENTS] }, 400, cors);
+      if (!order_id)
+        return json({ ok: false, error: 'order_id_required' }, 400, cors);
+
+      const template_key = event_type; // 1:1 mapping
+
+      // Fetch food order from DB — never trust email from payload
+      const { data: orderRaw } = await admin.from('veraluz_food_orders')
+        .select('id, order_number, status, delivery_type, room_number, customer_name, total, items')
+        .eq('id', String(order_id))
+        .maybeSingle();
+      if (!orderRaw)
+        return json({ ok: false, error: 'order_not_found', order_id }, 404, cors);
+      const o = orderRaw as Record<string,unknown>;
+
+      // ── Server-side email resolution: room_number → veraluz_units → veraluz_reservations ──
+      // Only room service orders can have a guest email via reservation
+      let guestEmail: string | null = null;
+      let guestFirstName: string = String(o.customer_name || 'Client').split(' ')[0];
+      let resolvedResId: string | null = null;
+
+      if (o.delivery_type === 'room' && o.room_number) {
+        const roomNum = String(o.room_number);
+        // Try 1: room_number is the unit ID directly
+        let unitId: string | null = null;
+        const { data: unitById } = await admin.from('veraluz_units')
+          .select('id').eq('id', roomNum).maybeSingle();
+        if (unitById) {
+          unitId = (unitById as Record<string,string>).id;
+        } else {
+          // Try 2: room_number matches in unit name (e.g. "104" in "Chambre 104")
+          const { data: unitByName } = await admin.from('veraluz_units')
+            .select('id').ilike('name', `%${roomNum}%`).maybeSingle();
+          if (unitByName) unitId = (unitByName as Record<string,string>).id;
+        }
+
+        if (unitId) {
+          const today = new Date().toISOString().slice(0, 10);
+          const { data: rez } = await admin.from('veraluz_reservations')
+            .select('id, client_email, client_name')
+            .eq('unit_id', unitId)
+            .lte('check_in', today)
+            .gte('check_out', today)
+            .not('status', 'in', '("cancelled","annule")')
+            .order('check_in', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (rez && (rez as Record<string,unknown>).client_email) {
+            guestEmail     = String((rez as Record<string,unknown>).client_email);
+            guestFirstName = String((rez as Record<string,unknown>).client_name || o.customer_name || 'Client').split(' ')[0];
+            resolvedResId  = String((rez as Record<string,unknown>).id);
+          }
+        }
+      }
+
+      // If no email resolved → skip gracefully (fire-and-forget, never block order workflow)
+      if (!guestEmail) {
+        console.info(`[dispatch_restaurant_order_email] No email resolved for order ${order_id} (type=${o.delivery_type}, room=${o.room_number}) — skipped`);
+        return json({
+          ok:     true,
+          status: 'skipped_no_email',
+          order_id,
+          event_type,
+          reason: 'no_guest_email_for_delivery_type',
+        }, 200, cors);
+      }
+
+      // Fetch template
+      const { data: tplRaw } = await admin.from('veraluz_comm_templates')
+        .select('id, subject_template, body_template, variables_schema')
+        .eq('tenant_id', TENANT).eq('template_key', template_key)
+        .eq('channel', 'email').eq('locale', 'fr').eq('active', true)
+        .maybeSingle();
+      if (!tplRaw) return json({ ok: false, error: 'template_not_found', template_key }, 404, cors);
+      const t = tplRaw as Record<string,unknown>;
+      const schema: string[] = Array.isArray(t.variables_schema) ? t.variables_schema as string[] : [];
+
+      // Fetch settings
+      const { data: allSettings } = await admin.from('veraluz_settings')
+        .select('key, value').in('key', ['property','email']);
+      const S: Record<string, Record<string,string>> = {};
+      for (const s of (allSettings || [])) S[(s as Record<string,string>).key] = (s as Record<string,unknown>).value as Record<string,string>;
+      const propName  = S.property?.name || 'Résidences Veraluz';
+      const emailFrom = (S.email as Record<string,string>)?.from || 'Résidences Veraluz <onboarding@resend.dev>';
+      const resendKey: string = Deno.env.get('RESEND_API_KEY') || '';
+
+      // Build variables
+      const orderTotal  = typeof o.total === 'number' ? formatXAF(o.total) : String(o.total || '');
+      const orderStatus = RESTAURANT_STATUS_LABELS[String(o.status)] || String(o.status);
+      const variables: Record<string,string> = {
+        'guest.first_name': guestFirstName,
+        'order.number':     String(o.order_number || order_id),
+        'order.total':      orderTotal,
+        'order.status':     orderStatus,
+        'property.name':    propName,
+      };
+
+      // Idempotence: skip if already sent/delivered for this order+event+recipient
+      const { data: existing } = await admin.from('veraluz_comm_log')
+        .select('id, status')
+        .eq('tenant_id', TENANT)
+        .eq('event_type', event_type)
+        .eq('context_id', String(order_id))
+        .eq('template_key', template_key)
+        .eq('recipient_id', guestEmail)
+        .in('status', ['sent','delivered'])
+        .maybeSingle();
+      if (existing)
+        return json({ ok: true, status: 'skipped_duplicate', log_id: (existing as Record<string,unknown>).id }, 200, cors);
+
+      // Render
+      const renderResult = renderTemplate(
+        t.subject_template as string,
+        t.body_template    as string,
+        variables,
+        schema
+      );
+      if (!renderResult.ok) {
+        // Log render failure then return — order must never be blocked
+        await admin.from('veraluz_comm_log').insert({
+          tenant_id: TENANT, event_type, template_id: String(t.id), template_key,
+          channel: 'email', recipient_type: 'guest', recipient_id: guestEmail,
+          recipient_address_masked: maskAddress(guestEmail),
+          order_id: String(order_id), context_type: event_type, context_id: String(order_id),
+          reservation_id: resolvedResId,
+          status: 'failed', subject_snapshot: '', body_snapshot_redacted: '',
+          created_by: actor.employee_id, prepared_at: new Date().toISOString(),
+          error_code: 'render_failed',
+          error_message: (renderResult.missing_variables || []).join(', '),
+        });
+        return json({ ok: true, status: 'failed', error_code: 'render_failed', order_id }, 200, cors);
+      }
+
+      // ── Transport Resend ──
+      const now = new Date().toISOString();
+      let emailStatus: 'sent' | 'failed' | 'pending_channel' = 'pending_channel';
+      let errorCode: string | null = null;
+      let errorMessage: string | null = null;
+      let providerMsgId: string | null = null;
+      const providerName: string | null = resendKey ? 'resend' : null;
+
+      if (!resendKey) {
+        emailStatus = 'pending_channel';
+        errorCode   = 'resend_not_configured';
+        console.warn('[dispatch_restaurant_order_email] RESEND_API_KEY not set');
+      } else {
+        try {
+          const resendResp = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from:    emailFrom,
+              to:      [guestEmail],
+              subject: renderResult.subject,
+              html:    renderResult.body,
+            })
+          });
+          if (resendResp.ok) {
+            emailStatus = 'sent';
+            const resendData = await resendResp.json().catch(() => ({}));
+            providerMsgId = (resendData as Record<string,string>).id || null;
+          } else {
+            emailStatus  = 'failed';
+            const errText = await resendResp.text().catch(() => '');
+            errorMessage  = errText.slice(0, 400);
+            errorCode = resendResp.status === 403 ? 'sender_domain_not_verified' : `resend_${resendResp.status}`;
+            console.error('[dispatch_restaurant_order_email] Resend:', resendResp.status, errText.slice(0,200));
+          }
+        } catch(e) {
+          emailStatus  = 'failed';
+          errorCode    = 'resend_network_error';
+          errorMessage = String(e).slice(0, 400);
+        }
+      }
+
+      // Comm log
+      const { data: logRow } = await admin.from('veraluz_comm_log').insert({
+        tenant_id:                TENANT,
+        event_type,
+        template_id:              String(t.id),
+        template_key,
+        channel:                  'email',
+        recipient_type:           'guest',
+        recipient_id:             guestEmail,
+        recipient_address_masked: maskAddress(guestEmail),
+        order_id:                 String(order_id),
+        reservation_id:           resolvedResId,
+        context_type:             event_type,
+        context_id:               String(order_id),
+        status:                   emailStatus,
+        subject_snapshot:         renderResult.subject || '',
+        body_snapshot_redacted:   renderResult.body_redacted || '',
+        created_by:               actor.employee_id,
+        prepared_at:              now,
+        sent_at:                  emailStatus === 'sent' ? now : null,
+        error_code:               errorCode,
+        error_message:            errorMessage,
+        provider:                 providerName,
+        provider_message_id:      providerMsgId,
+      }).select('id').single();
+
       return json({
         ok:      true,
         status:  emailStatus,

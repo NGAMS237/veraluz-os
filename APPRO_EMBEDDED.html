@@ -983,6 +983,10 @@ async function saveMvt(itemId,type){
   if(type==='in') i.quantity+=qty; else i.quantity=Math.max(0,i.quantity-qty);
   await sbPost('vz_inventory_movements',mvt);
   await sbPatch('vz_inventory_items',itemId,{quantity:i.quantity});
+  /* MICRO 011E-2C — EventBus stock-alert si stock bas */
+  if(type==='out'&&i.quantity<=i.min_quantity){
+    try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-restaurant',type:'stock-alert',data:{item_id:String(itemId),item_name:i.name,quantity:i.quantity,min_quantity:i.min_quantity,unit:i.unit||'',category:i.category||''}},'*');}catch(e){}
+  }
   closeModal(); render();
 }
 

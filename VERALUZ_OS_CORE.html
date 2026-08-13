@@ -3697,6 +3697,9 @@ var EventBus = {
     { trigger:'room-ready',           from:'veraluz-housekeeping', targets:['veraluz-reservations','veraluz-audit'] },
     { trigger:'order-placed',         from:'veraluz-restaurant',   targets:['veraluz-finance','veraluz-audit'] },
     { trigger:'stock-alert',          from:'veraluz-restaurant',   targets:['veraluz-notifications','veraluz-audit'] },
+    /* MICRO 011E-2C — automatisations internes (dispatch via __core__ broker) */
+    { trigger:'restaurant-ready',      from:'veraluz-restaurant',   targets:['veraluz-notifications'] },
+    { trigger:'delivery-assigned',     from:'veraluz-restaurant',   targets:['veraluz-notifications'] },
     { trigger:'employee-added',       from:'veraluz-rh',           targets:['veraluz-notifications','veraluz-audit'] },
     { trigger:'employee-updated',     from:'veraluz-rh',           targets:['veraluz-audit'] },
     { trigger:'payroll-processed',    from:'veraluz-rh',           targets:['veraluz-finance','veraluz-notifications','veraluz-audit'] },
@@ -3853,6 +3856,33 @@ var EventBus = {
     if (type === 'expense-created' && data) {
       console.log('[Core] Dépense enregistrée:', data);
     }
+
+    /* ── MICRO 011E-2C — Automatisations internes → communications-secure ── */
+    /* Chaque handler appelle le broker CORE (session_token jamais exposé).    */
+    /* Fire-and-forget — erreur silencieuse pour ne pas bloquer le flux UI.   */
+    (function(){
+      var _dispatchMap = {
+        'checkout-completed':  { event_type: 'checkout_housekeeping',    ctx: function(d){ return { unit_id: d.unit_id||'', guest_name: d.guest_name||d.client||'' }; }, cid: function(d){ return d.rez_id||d.reservation_id||''; } },
+        'restaurant-ready':    { event_type: 'restaurant_ready_driver',  ctx: function(d){ return { items_summary: d.items_summary||'' }; },                              cid: function(d){ return d.order_id||''; } },
+        'delivery-assigned':   { event_type: 'delivery_assigned_driver', ctx: function(d){ return { room_number: d.room_number||'', client_name: d.client_name||'' }; },  cid: function(d){ return d.order_id||''; } },
+        'stock-alert':         { event_type: 'stock_low_manager',        ctx: function(d){ return { item_name: d.item_name||'', current_quantity: String(d.quantity??''), min_quantity: String(d.min_quantity??''), unit: d.unit||'', category: d.category||'' }; }, cid: function(d){ return d.item_id||d.item_name||''; } }
+      };
+      var rule = _dispatchMap[type];
+      if (rule && data) {
+        var cid = rule.cid(data);
+        if (cid) {
+          try {
+            window.veraluzSecureRequest('communications-secure', {
+              action:       'dispatch_internal_event',
+              event_type:   rule.event_type,
+              context_id:   String(cid),
+              context_data: rule.ctx(data)
+            }).then(function(r){ console.log('[EventBus→Comms]', rule.event_type, r&&r.body); })
+              .catch(function(e){ console.warn('[EventBus→Comms] erreur silencieuse:', rule.event_type, e); });
+          } catch(e) { console.warn('[EventBus→Comms] exception:', e); }
+        }
+      }
+    })();
 
     /* ── Log entry ── */
     this.stats.total++;

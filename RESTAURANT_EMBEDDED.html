@@ -2244,6 +2244,8 @@ function kdsFoodUpd(oid,st){
       if(st==='delivered')syncStockFromFood(o);
       /* PROMPT 028 : log delivery event */
       _logRestEvent(oid,st);
+      /* MICRO 011E-2C — EventBus restaurant-ready */
+      if(st==='ready'){try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-restaurant',type:'restaurant-ready',data:{order_id:oid,status:'ready',livreur_id:o&&o.livreur_id||null,items_summary:o&&Array.isArray(o.items)?o.items.slice(0,3).map(function(i){return i.name||i.product_name||'';}).filter(Boolean).join(', '):''}},'*');}catch(e){}}
     })
     .catch(function(e){
       /* PROMPT 028 : si colonne manquante (PGRST204), fallback statut seulement */
@@ -2347,6 +2349,8 @@ function pickLivreur(btn){
       if(o){o.assigned_to=lnom;o.livreur_id=lid;o.assigned_at=lid?now027:null;}
       renderKDS();
       toast(lnom?'&#128667; '+lnom+' assign&#233;':'Livreur retiré','ok');
+      /* MICRO 011E-2C — EventBus delivery-assigned */
+      if(lid){try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-restaurant',type:'delivery-assigned',data:{order_id:oid,livreur_id:lid,assigned_to:lnom,order_number:o&&o.order_number||oid.slice(0,8).toUpperCase(),client_name:o&&(o.client_name||o.guest_name)||'',room_number:o&&o.delivery_address||''}},'*');}catch(e){}}
     })
     .catch(function(e){
       console.error('[Restaurant] Erreur assignation:', {

@@ -1113,6 +1113,8 @@ function doCheckOut(id){
     try{localStorage.setItem('vlz_rez_updated',String(Date.now()));localStorage.setItem('vlz_hk_checkout',JSON.stringify({unit_id:r.unit_id,date:new Date().toISOString().slice(0,10),client:r.client_name||'',rez_id:id}));}catch(e){}
     var room=_rooms.find(function(x){return x.id===r.unit_id;});
     if(room) room._dynStatus='cleaning';
+    /* MICRO 011E-2C — EventBus checkout-completed */
+    try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-reservations',type:'checkout-completed',data:{rez_id:id,unit_id:r.unit_id,guest_name:r.guest_name||r.client_name||'',client:r.client_name||''}},'*');}catch(e){}
     refresh(); toast('Check-out — ménage requis','success');
   }).catch(function(){ r.status='checkedout'; refresh(); toast('Check-out (hors ligne)'); });
 }

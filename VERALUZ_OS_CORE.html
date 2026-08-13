@@ -3799,7 +3799,7 @@ var EventBus = {
     }
 
 
-    /* ── MICRO 011E-2D1 — dispatch-client-email (email client via EF) ── */
+    /* ── MICRO 011E-2D1.1 — dispatch-client-email (fire-and-forget, no auto-fallback) ── */
     if (type === 'dispatch-client-email' && data && data.event) {
       window.veraluzSecureRequest('communications-secure', {
         action: 'dispatch_client_email',
@@ -3807,19 +3807,10 @@ var EventBus = {
         reservation_id: data.reservation_id || null,
         payment_id: data.payment_id || null
       }).then(function(res) {
-        if (res && res.pending_channel === 'emailjs_browser' && res.to_email) {
-          /* Fallback navigateur si Resend non dispo */
-          VZ_Email.send(
-            res.to_email,
-            res.to_name || res.to_email,
-            res.subject  || '',
-            res.body_html || '',
-            function(){ console.log('[Core] Email client (fallback) envoyé à', res.to_email); },
-            function(err){ console.warn('[Core] Email client fallback erreur:', err); }
-          );
-        }
-        if (res && (res.status === 'sent' || res.status === 'skipped_duplicate')) {
-          console.log('[Core] dispatch_client_email:', res.status, res.log_id);
+        /* Statuts canoniques: sent / skipped_duplicate / pending_channel / failed */
+        /* Aucun fallback navigateur — transport serveur uniquement (Resend via EF secret) */
+        if (res) {
+          console.log('[Core] dispatch_client_email:', res.status, res.log_id || '', res.error_code || '');
         }
       }).catch(function(e) {
         /* Fire-and-forget — ne bloque jamais l'action métier */

@@ -3865,7 +3865,7 @@ var EventBus = {
         'checkout-completed':  { event_type: 'checkout_housekeeping',    ctx: function(d){ return { unit_id: d.unit_id||'', guest_name: d.guest_name||d.client||'' }; }, cid: function(d){ return d.rez_id||d.reservation_id||''; } },
         'restaurant-ready':    { event_type: 'restaurant_ready_driver',  ctx: function(d){ return { items_summary: d.items_summary||'' }; },                              cid: function(d){ return d.order_id||''; } },
         'delivery-assigned':   { event_type: 'delivery_assigned_driver', ctx: function(d){ return { room_number: d.room_number||'', client_name: d.client_name||'' }; },  cid: function(d){ return d.order_id||''; } },
-        'stock-alert':         { event_type: 'stock_low_manager',        ctx: function(d){ return { item_name: d.item_name||'', current_quantity: String(d.quantity??''), min_quantity: String(d.min_quantity??''), unit: d.unit||'', category: d.category||'' }; }, cid: function(d){ return d.item_id||d.item_name||''; } }
+        'stock-alert':         { event_type: 'stock_low_manager',        ctx: function(d){ return { item_name: d.item_name||'', current_quantity: String(d.quantity??''), min_quantity: String(d.min_quantity??''), unit: d.unit||'', category: d.category||'' }; }, cid: function(d){ return (d.item_id||d.item_name||'')+'_mvt_'+(d.movement_id||Date.now()); } }
       };
       var rule = _dispatchMap[type];
       if (rule && data) {

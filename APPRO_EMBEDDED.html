@@ -978,14 +978,18 @@ async function saveMvt(itemId,type){
   var qty=parseInt(document.getElementById('mv_qty').value)||1;
   var note=document.getElementById('mv_note').value;
   var i=allItems.find(function(x){return x.id==itemId;}); if(!i) return;
+  var oldQty=i.quantity; /* MICRO 011E-2C.1 — capturer avant mise à jour */
   var mvt={id:Date.now(),item_id:itemId,item_name:i.name,type:type,quantity:type==='out'?-qty:qty,note:note,user_name:getCurrentUser(),created_at:new Date().toISOString()};
   allMovements.unshift(mvt);
   if(type==='in') i.quantity+=qty; else i.quantity=Math.max(0,i.quantity-qty);
   await sbPost('vz_inventory_movements',mvt);
   await sbPatch('vz_inventory_items',itemId,{quantity:i.quantity});
-  /* MICRO 011E-2C — EventBus stock-alert si stock bas */
-  if(type==='out'&&i.quantity<=i.min_quantity){
-    try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-restaurant',type:'stock-alert',data:{item_id:String(itemId),item_name:i.name,quantity:i.quantity,min_quantity:i.min_quantity,unit:i.unit||'',category:i.category||''}},'*');}catch(e){}
+  /* MICRO 011E-2C.1 — stock-alert uniquement au franchissement du seuil
+     Condition: oldQty > min ET newQty <= min (évite les alertes répétées)
+     context_id = item_id + movement_id (chaque mouvement = clé unique)
+     SOURCE = LEGACY/MOCK APPRO (non canonique, vz_inventory_items) */
+  if(type==='out'&&oldQty>i.min_quantity&&i.quantity<=i.min_quantity){
+    try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-restaurant',type:'stock-alert',data:{item_id:String(itemId),movement_id:String(mvt.id),item_name:i.name,quantity:i.quantity,min_quantity:i.min_quantity,unit:i.unit||'',category:i.category||''}},'*');}catch(e){}
   }
   closeModal(); render();
 }

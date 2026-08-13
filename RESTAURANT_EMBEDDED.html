@@ -407,6 +407,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);
 .liv-name{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .liv-role{font-size:11px;color:var(--text3);margin-top:1px;}
 /* PROMPT 034 — Livraisons onglet */
+/* 011D-2B POS type selector + cmd sub-tabs */
+.pos-types{display:flex;gap:6px;padding:8px 10px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.pos-type{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 4px;border-radius:9px;border:2px solid var(--border);background:var(--bg3);cursor:pointer;font-size:11px;font-weight:700;color:var(--text2);transition:all .15s;}
+.pos-type:hover{border-color:var(--accent);color:var(--accent);}
+.pos-type.sel{border-color:var(--accent);background:rgba(56,189,248,.12);color:var(--accent);}
+.pos-type .pt-ico{font-size:20px;line-height:1;}
+.cmd-stabs{display:flex;gap:4px;padding:6px 8px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.cmd-stab{padding:5px 12px;border-radius:7px;border:none;background:var(--bg3);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;}
+.cmd-stab.on{background:var(--bg4);color:var(--accent);}
+.encours-list{flex:1;overflow-y:auto;padding:8px;}
+.eoc-card{background:var(--bg2);border-radius:10px;border:1px solid var(--border);margin-bottom:8px;padding:10px 12px;}
+.eoc-hdr{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+.eoc-src{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;}
+.eoc-src.rest{background:rgba(56,189,248,.15);color:#38bdf8;}
+.eoc-src.food{background:rgba(251,146,60,.15);color:#fb923c;}
+.eoc-badge{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;}
+.eoc-badge.ouvert,.eoc-badge.pending,.eoc-badge.confirmed{background:rgba(251,146,60,.2);color:#fb923c;}
+.eoc-badge.en_preparation,.eoc-badge.preparing{background:rgba(56,189,248,.2);color:#38bdf8;}
+.eoc-badge.pret,.eoc-badge.ready{background:rgba(16,185,129,.2);color:#10b981;}
+.eoc-badge.out_for_delivery{background:rgba(139,92,246,.2);color:#8b5cf6;}
+.eoc-badge.paye,.eoc-badge.delivered{background:var(--bg3);color:var(--text3);}
+.eoc-badge.annule,.eoc-badge.cancelled{background:rgba(239,68,68,.1);color:var(--err);}
 .dlv-card{background:var(--bg3);border:1.5px solid var(--border);border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:border-color .15s;}
 .dlv-card:hover{border-color:var(--acc1);}
 .dlv-card-head{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
@@ -536,8 +558,35 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
     </div>
   </div>
 
-  <!-- COMMANDE -->
-  <div class="pane-flex" id="pane-cmd">
+  <!-- COMMANDE 011D-2B -->
+  <div class="pane-flex" id="pane-cmd" style="flex-direction:column;">
+    <div class="cmd-stabs">
+      <button class="cmd-stab on" id="cstab-new" onclick="goCmd('new',this)">&#127869;&#65039; Nouvelle</button>
+      <button class="cmd-stab" id="cstab-enc" onclick="goCmd('enc',this)">&#128203; En cours <span class="bdg" id="bdg-encours" style="font-size:10px;margin-left:2px;"></span></button>
+    </div>
+    <div class="pos-types" id="pos-types">
+      <button class="pos-type sel" id="ptype-table" onclick="setPosType('table')"><span class="pt-ico">&#127968;</span><span class="pt-lbl">Sur Place</span></button>
+      <button class="pos-type" id="ptype-room" onclick="setPosType('room')"><span class="pt-ico">&#127974;</span><span class="pt-lbl">Room Svc</span></button>
+      <button class="pos-type" id="ptype-emporter" onclick="setPosType('emporter')"><span class="pt-ico">&#128137;</span><span class="pt-lbl">Emporter</span></button>
+      <button class="pos-type" id="ptype-livraison" onclick="setPosType('livraison')"><span class="pt-ico">&#128666;</span><span class="pt-lbl">Livraison</span></button>
+    </div>
+    <div id="cmd-enc-view" style="display:none;flex:1;overflow:hidden;flex-direction:column;">
+      <div style="padding:6px 8px;display:flex;gap:6px;flex-wrap:wrap;background:var(--bg2);border-bottom:1px solid var(--border);">
+        <button class="btn bg bs" style="font-size:11px;padding:3px 8px;" onclick="renderOrdersEncours()">&#8635;</button>
+        <select id="eoc-filter" onchange="renderOrdersEncours()" style="font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg3);color:var(--text1);">
+          <option value="all">Tous actifs</option>
+          <option value="ouvert">Ouvert</option>
+          <option value="en_preparation">En prep</option>
+          <option value="pret">Pret</option>
+          <option value="pending">Pending (app)</option>
+          <option value="preparing">En prep (app)</option>
+          <option value="ready">Pret (app)</option>
+          <option value="out_for_delivery">En livraison</option>
+        </select>
+      </div>
+      <div class="encours-list" id="encours-list"></div>
+    </div>
+    <div id="cmd-pos-view" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
     <div class="split">
       <div class="menu-side">
         <div class="mcats" id="mcats"></div>
@@ -561,7 +610,8 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
         </div>
       </div>
     </div>
-  </div>
+    </div><!-- /cmd-pos-view -->
+  </div><!-- /pane-cmd -->
 
   <!-- KDS — Centre Opérationnel Cuisine -->
   <div class="pane-flex" id="pane-kds" style="flex-direction:column;">
@@ -676,6 +726,7 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
       <button class="stab" onclick="goStk('mvt',this)">&#128202; Mouvements</button>
       <button class="stab" onclick="goStk('cmd',this)">&#128666; Fournisseurs</button>
       <button class="stab" onclick="goStk('tarif',this)">&#128176; Tarifs</button>
+      <button class="stab" onclick="goStk('prod',this)">&#127869;&#65039; Carte &amp; Produits</button>
       <button class="stab" onclick="printMenu()" style="margin-left:auto;background:var(--accent);color:#fff;border-radius:8px;padding:5px 10px;font-size:12px;">&#128247; Imprimer carte</button>
     </div>
     <div style="flex:1;position:relative;">
@@ -694,6 +745,7 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
         </div>
         <div id="tarif-list" style="padding:8px;"></div>
       </div>
+      <div class="spane" id="sp-prod" style="position:absolute;inset:0;overflow-y:auto;"></div>
     </div>
   </div>
 
@@ -711,7 +763,7 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
         <div class="atbar"><h3>Tables</h3><button class="btn bp bs" onclick="openTblMd(null)">+ Ajouter</button></div>
         <div id="adm-tbl"></div>
       </div>
-      <div class="apane" id="ap-mnu" style="position:absolute;inset:0;">
+      <div class="apane" id="ap-mnu" style="position:absolute;inset:0;padding:24px;text-align:center;"><div style="font-size:44px;margin-bottom:14px;">&#127869;&#65039;</div><p style="font-weight:700;font-size:15px;margin-bottom:8px;">Gestion de la Carte</p><p style="color:var(--text2);margin-bottom:16px;line-height:1.5;">La carte se gere depuis<br><b>Stock &gt; Carte &amp; Produits</b></p><button class="btn bp" onclick="goTab('stock');setTimeout(function(){goStk('prod',document.querySelectorAll('#pane-stock .stab')[4]);},120);" style="font-size:14px;padding:10px 22px;">&#127869;&#65039; Ouvrir Carte &amp; Produits</button><p style="font-size:11px;color:var(--text3);margin-top:14px;">Source unique: veraluz_restaurant_products</p><div style="display:none;">
         <div class="atbar"><h3>Menu</h3><button class="btn bp bs" onclick="openProdMd(null)">+ Ajouter</button></div>
         <div id="adm-mnu"></div>
       </div>
@@ -914,18 +966,29 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
 <div class="ov" id="md-prod">
   <div class="md">
     <div class="mdh"><span class="mdt" id="prod-md-t">Nouveau produit</span><button class="mdc" onclick="closeMd('md-prod')">&#10005;</button></div>
-    <div class="mdb">
+    <div class="mdb" style="overflow-y:auto;max-height:70vh;">
       <input type="hidden" id="prod-id">
-      <div class="fg"><label class="fl">Nom</label><input class="fi" id="prod-n" placeholder="Poisson bras&#233;"></div>
-      <div class="fr">
-        <div class="fg"><label class="fl">Prix (FCFA)</label><input class="fi" id="prod-p" type="number" placeholder="3500"></div>
+      <div class="fg"><label class="fl">Nom *</label><input class="fi" id="prod-n" placeholder="Ex: Poulet DG"></div>
+      <div class="fg" style="margin-top:8px;"><label class="fl">Description</label><textarea class="fi" id="prod-desc" rows="2" placeholder="Description courte…" style="resize:vertical;font-size:12px;"></textarea></div>
+      <div class="fr" style="margin-top:8px;">
+        <div class="fg"><label class="fl">Prix (FCFA) *</label><input class="fi" id="prod-p" type="number" placeholder="3500" min="0"></div>
         <div class="fg"><label class="fl">Station</label>
-          <select class="fs" id="prod-st"><option value="cuisine">Cuisine</option><option value="bar">Bar</option></select></div>
+          <select class="fs" id="prod-st"><option value="cuisine">&#128371; Cuisine</option><option value="bar">&#127864; Bar</option></select></div>
       </div>
-      <div class="fr">
+      <div class="fr" style="margin-top:8px;">
         <div class="fg"><label class="fl">Cat&#233;gorie</label><select class="fs" id="prod-cat"></select></div>
-        <div class="fg"><label class="fl">Disponible</label>
-          <select class="fs" id="prod-av"><option value="true">Oui</option><option value="false">Non</option></select></div>
+        <div class="fg"><label class="fl">Ordre affichage</label><input class="fi" id="prod-order" type="number" placeholder="0" min="0" value="0"></div>
+      </div>
+      <div class="fr" style="margin-top:8px;align-items:center;gap:12px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;"><input type="checkbox" id="prod-av" checked> Disponible</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;"><input type="checkbox" id="prod-vis" checked> Visible client</label>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;white-space:nowrap;"><input type="checkbox" id="prod-rs" checked> Room service</label>
+      </div>
+      <div class="fg" style="margin-top:8px;">
+        <label class="fl">Photo produit</label>
+        <div id="prod-img-wrap" style="display:none;margin-bottom:6px;"><img id="prod-img-preview" style="width:72px;height:72px;object-fit:cover;border-radius:7px;"></div>
+        <input type="file" id="prod-photo" accept="image/*" onchange="previewProdPhoto(this)" style="font-size:12px;width:100%;">
+        <div id="prod-upload-status" style="font-size:11px;color:var(--acc2);margin-top:3px;"></div>
       </div>
     </div>
     <div class="mdf">
@@ -1370,6 +1433,9 @@ function loadSOs(){GET('/rest/v1/veraluz_restaurant_supplier_orders?select=*&ord
 /* Badges */
 function updateBdg(){
   document.getElementById('bdg-tbl').textContent=TABLES.filter(function(t){return t.status==='occupee';}).length;
+  var aR=['ouvert','en_preparation','pret'],aF=['pending','confirmed','preparing','ready','out_for_delivery'];
+  var eCnt=(ORDERS||[]).filter(function(o){return aR.includes(o.status);}).length+(FOOD_ORDERS||[]).filter(function(o){return aF.includes(o.status);}).length;
+  var bdgE=document.getElementById('bdg-encours');if(bdgE)bdgE.textContent=eCnt||'';
   var kdsRest=ORDERS.filter(function(o){return o.status==='ouvert'||o.status==='en_preparation';}).length;
   /* Statuts food déjà normalisés au chargement — confirmed = en attente cuisine */
   var kdsFood=(FOOD_ORDERS||[]).filter(function(o){return o.status==='pending'||o.status==='confirmed'||o.status==='preparing';}).length;
@@ -1509,9 +1575,68 @@ function renderCart(){
       +'<div class="ci-p">'+fmt(c.p.price*c.q)+'</div></div>';
   }).join('');
 }
+/* 011D-2B — POS navigation */
+function goCmd(t,btn){
+  document.querySelectorAll('.cmd-stab').forEach(function(b){b.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  var pv=document.getElementById('cmd-pos-view');
+  var ev=document.getElementById('cmd-enc-view');
+  var pt=document.getElementById('pos-types');
+  if(t==='new'){pv.style.display='flex';ev.style.display='none';if(pt)pt.style.display='flex';}
+  else{pv.style.display='none';ev.style.display='flex';if(pt)pt.style.display='none';renderOrdersEncours();}
+}
+function setPosType(type){
+  cartType=type;
+  document.querySelectorAll('.pos-type').forEach(function(b){b.classList.remove('sel');});
+  var el=document.getElementById('ptype-'+type);if(el)el.classList.add('sel');
+  if(type==='room'){openPickChambre();}
+  else if(type==='livraison'){cartTbl={id:'liv_'+Date.now(),name:'Livraison'};updCartH();}
+  else if(type==='emporter'){cartTbl={id:'emp_'+Date.now(),name:'A emporter'};updCartH();}
+  else{openPickTbl();}
+}
+function renderOrdersEncours(){
+  var el=document.getElementById('encours-list');if(!el)return;
+  var fv=(document.getElementById('eoc-filter')||{}).value||'all';
+  var aR=['ouvert','en_preparation','pret'],aF=['pending','confirmed','preparing','ready','out_for_delivery'];
+  var items=[];
+  var lbR={ouvert:'Ouvert',en_preparation:'En prep.',pret:'Pret',paye:'Paye',annule:'Annule'};
+  var lbF={pending:'En attente',confirmed:'Confirmee',preparing:'En prep.',ready:'Prete',out_for_delivery:'En livraison',delivered:'Livree',cancelled:'Annulee'};
+  var nxR={ouvert:{lbl:'Prep.',nxt:'en_preparation'},en_preparation:{lbl:'Pret',nxt:'pret'},pret:{lbl:'Encaisser',nxt:'_pay'}};
+  var nxF={pending:{lbl:'Confirmer',nxt:'confirmed'},confirmed:{lbl:'Preparer',nxt:'preparing'},preparing:{lbl:'Prete',nxt:'ready'},ready:{lbl:'Livraison',nxt:'out_for_delivery'}};
+  (ORDERS||[]).forEach(function(o){if(fv==='all'?aR.includes(o.status):o.status===fv)items.push({src:'rest',id:o.id,status:o.status,lbl:lbR[o.status]||o.status,title:(o.table_name||('Room '+(o.room_number||''))||o.type||'?'),body:(o.items||o.items_json||[]).slice(0,3).map(function(it){return (it.qty||1)+'x '+it.name;}).join(', '),total:o.total||o.total_amount||0,time:o.created_at,note:o.notes||'',nxt:nxR[o.status]});});
+  (FOOD_ORDERS||[]).forEach(function(o){if(fv==='all'?aF.includes(o.status):o.status===fv){var src2=o.delivery_type==='delivery'?'Livraison '+(o.delivery_zone||''):o.delivery_type==='room'?'Room '+(o.room_number||o.customer_name||''):'Lounge';items.push({src:'food',id:o.id,status:o.status,lbl:lbF[o.status]||o.status,title:src2,body:(o.items||[]).slice(0,3).map(function(it){return (it.qty||it.quantity||1)+'x '+it.name;}).join(', '),total:o.total||o.total_amount||0,time:o.created_at,note:o.notes||'',nxt:nxF[o.status]});}});
+  items.sort(function(a,b){return new Date(b.time)-new Date(a.time);});
+  var bdg=document.getElementById('bdg-encours');if(bdg)bdg.textContent=items.length||'';
+  if(!items.length){el.innerHTML='<div class="empty" style="margin-top:40px;">Aucune commande active</div>';return;}
+  el.innerHTML=items.map(function(o){
+    var srcBdg='<span class="eoc-src '+o.src+'">'+(o.src==='rest'?'REST':'APP')+'</span>';
+    var nBtn=o.nxt?(o.nxt.nxt==='_pay'?'<button onclick="openPayMd(\''+o.id+'\')" style="background:var(--accent);color:#fff;padding:4px 10px;font-size:11px;border-radius:6px;border:none;cursor:pointer;font-weight:700;">'+o.nxt.lbl+'</button>':'<button onclick="advOrderStatus(\''+o.src+'\',\''+o.id+'\',\''+o.nxt.nxt+'\')" style="background:var(--accent);color:#fff;padding:4px 10px;font-size:11px;border-radius:6px;border:none;cursor:pointer;font-weight:700;">'+o.nxt.lbl+'</button>'):'';
+    var cBtn=(o.status!=='paye'&&o.status!=='delivered'&&o.status!=='annule'&&o.status!=='cancelled')?'<button onclick="cancelOrder(\''+o.src+'\',\''+o.id+'\')" style="background:var(--bg3);color:var(--err);padding:4px 10px;font-size:11px;border-radius:6px;border:none;cursor:pointer;">Annuler</button>':'';
+    return '<div class="eoc-card"><div class="eoc-hdr">'+srcBdg+'<b>'+esc(o.title)+'</b><span class="eoc-badge '+o.status+'">'+o.lbl+'</span><span style="margin-left:auto;font-size:11px;color:var(--text3);">'+elapsed(o.time)+'</span></div><div style="font-size:12px;color:var(--text2);margin-bottom:6px;">'+esc(o.body)+(o.note?'<em style="color:var(--text3);"> · '+esc(o.note)+'</em>':'')+'</div><div style="display:flex;align-items:center;gap:6px;"><b style="font-size:12px;">'+fmt(o.total)+'</b><div style="margin-left:auto;display:flex;gap:6px;">'+nBtn+cBtn+'</div></div></div>';
+  }).join('');
+}
+async function advOrderStatus(src,id,nxt){
+  try{
+    if(src==='rest'){await PATCH('veraluz_restaurant_orders',id,{status:nxt});var r=await GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60');ORDERS=r||ORDERS;}
+    else{await PATCH('veraluz_food_orders',id,{status:nxt,updated_at:new Date().toISOString()});var r2=await GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50');FOOD_ORDERS=r2||FOOD_ORDERS;}
+    renderOrdersEncours();updateBdg();toast('Statut mis a jour','ok');
+  }catch(e){toast('Erreur: '+(e.message||e),'er');}
+}
+async function cancelOrder(src,id){
+  if(!confirm('Annuler cette commande ?'))return;
+  try{
+    if(src==='rest')await PATCH('veraluz_restaurant_orders',id,{status:'annule'});
+    else await PATCH('veraluz_food_orders',id,{status:'cancelled',updated_at:new Date().toISOString()});
+    toast('Commande annulee','ok');
+    var r=src==='rest'?await GET('/rest/v1/veraluz_restaurant_orders?select=*&order=created_at.desc&limit=60'):await GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50');
+    if(src==='rest')ORDERS=r||ORDERS;else FOOD_ORDERS=r||FOOD_ORDERS;
+    renderOrdersEncours();updateBdg();
+  }catch(e){toast('Erreur annulation','er');}
+}
 function updCartH(){
+  var tL={table:'Sur place',bar:'Bar',room:'Room Service',chambre_client:'Chambre hotel',emporter:'A emporter',livraison:'Livraison'};
   document.getElementById('cart-title').textContent=cartTbl?cartTbl.name:'Nouvelle commande';
-  var sub=cartTbl?(cartType==='room'?'Room '+cartRoom:cartTbl.section||''):'Aucune table';
+  var sub=cartTbl?(cartType==='room'?'Room Service - '+cartRoom:(cartTbl.section||tL[cartType]||cartType)):(tL[cartType]||'Choisir un type');
   document.getElementById('cart-sub').textContent=sub+(cartOrd?' • Commande en cours':'');
   var sendBtn=document.getElementById('send-btn');
   if(sendBtn)sendBtn.textContent=cartOrd?'+ Ajouter à la commande':'✅ Envoyer en cuisine';
@@ -2564,16 +2689,25 @@ function renderTix(){
 /* Room Service */
 function openRSModal(){cartType='room';cartTbl=null;cartRoom='';document.getElementById('pk-type').value='room';togglePkRoom();openMd('md-pick');}
 function renderRS(){
-  var list=ORDERS.filter(function(o){return o.type==='room';});
   var el=document.getElementById('rs-list');
-  var lb={ouvert:'Ouvert',en_preparation:'En pr&#233;p.',pret:'Pr&#234;t',paye:'Livr&#233;',annule:'Annul&#233;'};
-  el.innerHTML=list.length?list.map(function(o){
-    return '<div class="tkcard"><div class="tkh"><span class="tkt">&#128718; Chambre '+esc(o.room_number||'?')+'</span>'
-      +'<span class="tkbdg '+o.status+'">'+(lb[o.status]||o.status)+'</span></div>'
-      +'<div class="tkits">'+((o.items||o.items_json||[]).map(function(it){return it.qty+'&#215; '+esc(it.name);}).join(', '))+'</div>'
-      +'<div class="tkacts">'+(o.status!=='paye'&&o.status!=='annule'?'<button class="btn bp bs" data-id="'+o.id+'" onclick="openPayMd(this.dataset.id)">&#128179; Encaisser</button>':'')+'</div>'
-      +'</div>';
-  }).join(''):'<div class="empty"><div class="eico">&#128718;</div>Aucun room service</div>';
+  var lbR={ouvert:'Ouvert',en_preparation:'En prep.',pret:'Pret',paye:'Livre',annule:'Annule'};
+  var lbF={pending:'En attente',confirmed:'Confirmee',preparing:'En prep.',ready:'Prete',delivered:'Livree',cancelled:'Annulee',out_for_delivery:'En route'};
+  var restRS=(ORDERS||[]).filter(function(o){return o.type==='room';});
+  var foodRS=(FOOD_ORDERS||[]).filter(function(o){return o.delivery_type==='room';});
+  var all=[];
+  restRS.forEach(function(o){all.push({src:'rest',id:o.id,room:o.room_number||'?',status:o.status,lbl:lbR[o.status]||o.status,items:(o.items||o.items_json||[]),total:o.total||o.total_amount||0,time:o.created_at,guest:o.guest_name||''});});
+  foodRS.forEach(function(o){all.push({src:'food',id:o.id,room:o.room_number||o.customer_name||'?',status:o.status,lbl:lbF[o.status]||o.status,items:(o.items||[]),total:o.total||o.total_amount||0,time:o.created_at,guest:o.customer_name||''});});
+  all.sort(function(a,b){return new Date(b.time)-new Date(a.time);});
+  if(!all.length){el.innerHTML='<div class="empty"><div class="eico">&#128718;</div>Aucun room service</div>';return;}
+  el.innerHTML=all.map(function(o){
+    var done=o.status==='paye'||o.status==='delivered'||o.status==='annule'||o.status==='cancelled';
+    var sBdg=o.src==='rest'?'<span style="font-size:9px;background:rgba(56,189,248,.15);color:#38bdf8;padding:1px 5px;border-radius:3px;font-weight:700;margin-right:4px;">REST</span>':'<span style="font-size:9px;background:rgba(251,146,60,.15);color:#fb923c;padding:1px 5px;border-radius:3px;font-weight:700;margin-right:4px;">APP</span>';
+    var acts='';
+    if(!done){acts=o.src==='rest'?'<button class="btn bp bs" data-id="'+o.id+'" onclick="openPayMd(this.dataset.id)">Encaisser</button>':'<button class="btn bp bs" data-id="'+o.id+'" onclick="openRoomChargeMd(this.dataset.id)">Debiter chambre</button>';}
+    return '<div class="tkcard"><div class="tkh">'+sBdg+'<span class="tkt">Chambre '+esc(o.room)+(o.guest?' - '+esc(o.guest):'')+'</span><span class="tkbdg '+o.status+'">'+o.lbl+'</span><span style="font-size:10px;color:var(--text3);margin-left:auto;">'+elapsed(o.time)+'</span></div>'
+      +'<div class="tkits">'+o.items.slice(0,4).map(function(it){return (it.qty||it.quantity||1)+'x '+esc(it.name);}).join(', ')+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-top:6px;"><span style="font-size:12px;font-weight:700;color:var(--accent);">'+fmt(o.total)+'</span><div class="tkacts" style="margin-left:auto;">'+acts+'</div></div></div>';
+  }).join('');
 }
 
 /* Stock */
@@ -2588,6 +2722,7 @@ function goStk(t,btn){
   if(t==='mvt')renderMvts();
   if(t==='cmd')renderSOs();
   if(t==='tarif')renderTarifs();
+  if(t==='prod')renderCarteProduits();
 }
 function renderStock(){
   var el=document.getElementById('sp-inv');
@@ -3085,28 +3220,106 @@ function renderAdmTbl(){
 function openProdMd(id){
   var p=id?PRODS.find(function(x){return x.id===id;}):null;
   document.getElementById('prod-id').value=id||'';
-  document.getElementById('prod-md-t').textContent=p?'Modifier produit':'Nouveau produit';
+  document.getElementById('prod-md-t').textContent=p?'&#9999;&#65039; Modifier: '+(p.name||''):'+ Nouveau produit';
   document.getElementById('prod-n').value=p?p.name:'';
   document.getElementById('prod-p').value=p?p.price:'';
-  document.getElementById('prod-st').value=p?p.station:'cuisine';
-  document.getElementById('prod-av').value=p&&p.available===false?'false':'true';
-  document.getElementById('prod-cat').innerHTML=CATS.filter(function(c){return c.id!=='all';})
-    .map(function(c){return'<option value="'+c.id+'"'+(p&&p.category===c.id?' selected':'')+'>'+c.ico+' '+c.n+'</option>';}).join('');
-  if(p)document.getElementById('prod-cat').value=p.category;
+  document.getElementById('prod-st').value=p&&p.station?p.station:'cuisine';
+  /* checkboxes for new fields */
+  var avEl=document.getElementById('prod-av');if(avEl)avEl.checked=!p||(p.available!==false);
+  var visEl=document.getElementById('prod-vis');if(visEl)visEl.checked=!p||(p.app_visible!==false);
+  var rsEl=document.getElementById('prod-rs');if(rsEl)rsEl.checked=!p||(p.room_service_enabled!==false);
+  var descEl=document.getElementById('prod-desc');if(descEl)descEl.value=p&&p.description?p.description:'';
+  var orderEl=document.getElementById('prod-order');if(orderEl)orderEl.value=p&&p.sort_order!=null?p.sort_order:0;
+  /* photo preview */
+  var imgW=document.getElementById('prod-img-wrap');var imgP=document.getElementById('prod-img-preview');
+  var photoEl=document.getElementById('prod-photo');if(photoEl)photoEl.value='';
+  var statusEl=document.getElementById('prod-upload-status');if(statusEl)statusEl.textContent='';
+  if(p&&p.image_url&&imgW&&imgP){imgP.src=safeUrl(p.image_url);imgW.style.display='';}
+  else if(imgW){imgW.style.display='none';}
+  /* categories: use DB categories from PRODS + standard list */
+  var cats=CATS.filter(function(c){return c.id!=='all';}).map(function(c){return c.id;});
+  var extraCats=PRODS.map(function(x){return x.category;}).filter(function(c){return c&&!cats.includes(c);});
+  extraCats.forEach(function(c){if(!cats.includes(c))cats.push(c);});
+  var catEl=document.getElementById('prod-cat');
+  if(catEl)catEl.innerHTML=cats.map(function(cid){
+    var cat=CATS.find(function(c){return c.id===cid;});
+    var label=cat?cat.ico+' '+cat.n:cid;
+    return'<option value="'+cid+'"'+(p&&p.category===cid?' selected':'')+'>'+label+'</option>';
+  }).join('');
+  if(p&&catEl)catEl.value=p.category;
   document.getElementById('prod-del').style.display=p?'':'none';
   openMd('md-prod');
 }
-function saveProd(){
+async function saveProd(){
   var id=document.getElementById('prod-id').value;
-  var d={name:document.getElementById('prod-n').value.trim(),price:parseFloat(document.getElementById('prod-p').value)||0,station:document.getElementById('prod-st').value,category:document.getElementById('prod-cat').value,available:document.getElementById('prod-av').value==='true'};
-  if(!d.name){toast('Nom requis','er');return;}
-  if(id){PATCH('veraluz_restaurant_products',id,d).then(function(){var p=PRODS.find(function(x){return x.id===id;});if(p)Object.assign(p,d);closeMd('md-prod');renderMenu();renderAdmMnu();toast('Mis &#224; jour','ok');});}
-  else{d.id=gid();POST('veraluz_restaurant_products',d).then(function(r){PRODS.push(r[0]||d);closeMd('md-prod');renderMenu();renderAdmMnu();toast('Cr&#233;&#233;','ok');});}
+  var nameVal=(document.getElementById('prod-n').value||'').trim();
+  if(!nameVal){toast('Nom requis','er');return;}
+  var avEl=document.getElementById('prod-av');
+  var visEl=document.getElementById('prod-vis');
+  var rsEl=document.getElementById('prod-rs');
+  var descEl=document.getElementById('prod-desc');
+  var orderEl=document.getElementById('prod-order');
+  var d={
+    id:id||'',
+    name:nameVal,
+    price:parseFloat(document.getElementById('prod-p').value)||0,
+    station:document.getElementById('prod-st').value||'cuisine',
+    category:document.getElementById('prod-cat').value||'plat',
+    description:descEl?descEl.value.trim():'',
+    available:avEl?avEl.checked:true,
+    app_visible:visEl?visEl.checked:true,
+    room_service_enabled:rsEl?rsEl.checked:true,
+    sort_order:parseInt(orderEl?orderEl.value:0)||0,
+    active:true
+  };
+  /* Photo upload */
+  var photoEl=document.getElementById('prod-photo');
+  var statusEl=document.getElementById('prod-upload-status');
+  if(photoEl&&photoEl.files&&photoEl.files[0]){
+    if(statusEl)statusEl.textContent='&#11014;&#65039; Upload…';
+    try{
+      var ext=photoEl.files[0].name.split('.').pop().toLowerCase();
+      var pid2=id||('new_'+Date.now());
+      var path='restaurant/products/'+pid2+'/'+Date.now()+'.'+ext;
+      var upRes=await fetch(SB+'/storage/v1/object/veraluz/'+path,{
+        method:'POST',headers:{apikey:SK,Authorization:'Bearer '+SK,'Content-Type':photoEl.files[0].type},body:photoEl.files[0]});
+      if(upRes.ok){d.image_url=SB+'/storage/v1/object/public/veraluz/'+path;if(statusEl)statusEl.textContent='&#10003; Photo uploadée';}
+      else{if(statusEl)statusEl.textContent='&#9888;&#65039; Upload échoué';}
+    }catch(upErr){if(statusEl)statusEl.textContent='&#9888;&#65039; Upload échoué';}
+  }
+  /* Save via SECURITY DEFINER RPC (anon key, bypasses RLS write restriction) */
+  try{
+    var rpcRes=await fetch(SB+'/rest/v1/rpc/upsert_restaurant_product',{
+      method:'POST',
+      headers:{apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json',Accept:'application/json'},
+      body:JSON.stringify(d)
+    });
+    if(!rpcRes.ok){var errJ=await rpcRes.json().catch(function(){return{};});throw new Error(errJ.message||'HTTP '+rpcRes.status);}
+    toast(id?'Mis &#224; jour &#10003;':'Cr&#233;&#233; &#10003;','ok');
+    closeMd('md-prod');
+    /* Read-back DB */
+    var rb=await GET('/rest/v1/veraluz_restaurant_products?select=*&order=sort_order.asc,category.asc,name.asc');
+    if(Array.isArray(rb))PRODS=rb;
+    renderMenu();renderAdmMnu();
+    if(document.getElementById('sp-prod')&&document.getElementById('sp-prod').classList.contains('on'))renderCarteProduits();
+  }catch(saveErr){toast('Erreur: '+(saveErr.message||saveErr),'er');}
 }
-function delProd(){
+async function delProd(){
   var id=document.getElementById('prod-id').value;
-  if(!id||!confirm('Supprimer ce produit ?'))return;
-  DEL('veraluz_restaurant_products',id).then(function(){PRODS=PRODS.filter(function(p){return p.id!==id;});closeMd('md-prod');renderMenu();renderAdmMnu();toast('Supprim&#233;','ok');});
+  if(!id||!confirm('Désactiver ce produit ? Il restera dans l'historique des commandes mais disparaîtra de la carte.'))return;
+  try{
+    var res=await fetch(SB+'/rest/v1/rpc/upsert_restaurant_product',{
+      method:'POST',
+      headers:{apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json',Accept:'application/json'},
+      body:JSON.stringify({id:id,active:false})
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    var rb=await GET('/rest/v1/veraluz_restaurant_products?select=*&order=sort_order.asc,category.asc,name.asc');
+    if(Array.isArray(rb))PRODS=rb;
+    closeMd('md-prod');renderMenu();renderAdmMnu();
+    if(document.getElementById('sp-prod')&&document.getElementById('sp-prod').classList.contains('on'))renderCarteProduits();
+    toast('Produit d&#233;sactiv&#233; &#10003;','ok');
+  }catch(e){toast('Erreur: '+(e.message||e),'er');}
 }
 function renderAdmMnu(){
   document.getElementById('adm-mnu').innerHTML=PRODS.map(function(p){
@@ -3908,6 +4121,7 @@ function printMenu(){
   var today=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   /* Filtrer les produits en stock (qty > 0) */
   var dispo=PRODS.filter(function(p){
+    if(p.active===false)return false;
     if(!p.available)return false;
     var s=STOCK.find(function(x){return x.name&&x.name.toLowerCase()===((p.name||'').toLowerCase());});
     return !s||(s.quantity||0)>0;
@@ -3973,6 +4187,90 @@ function printMenu(){
   w.document.write(html);
   w.document.close();
   setTimeout(function(){w.print();},500);
+}
+
+/* ── 011D-2A : CARTE & PRODUITS MANAGEMENT ── */
+function previewProdPhoto(input){
+  if(!input||!input.files||!input.files[0])return;
+  var url=URL.createObjectURL(input.files[0]);
+  var imgW=document.getElementById('prod-img-wrap');
+  var imgP=document.getElementById('prod-img-preview');
+  if(imgP){imgP.src=url;imgP.style.display='';}
+  if(imgW)imgW.style.display='';
+}
+
+function renderCarteProduits(){
+  var el=document.getElementById('sp-prod');if(!el)return;
+  var prods=PRODS.filter(function(p){return p.active!==false;});
+  var bycat={};
+  prods.forEach(function(p){
+    var c=p.category||'autre';
+    if(!bycat[c])bycat[c]=[];
+    bycat[c].push(p);
+  });
+  var cats=Object.keys(bycat).sort();
+  var html='<div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg2);z-index:1;">'
+    +'<span style="font-weight:700;font-size:13px;flex:1;">&#127869;&#65039; Carte &amp; Produits ('+prods.length+' actifs)</span>'
+    +'<button onclick="openProdMd(null)" style="padding:5px 12px;background:var(--acc2);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">+ Nouveau</button>'
+    +'<button onclick="printMenu()" style="padding:5px 10px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:12px;cursor:pointer;">&#128247; Imprimer</button>'
+    +'</div>';
+  if(!prods.length){
+    html+='<div class="empty">Aucun produit actif. Cliquez sur + Nouveau.</div>';
+  } else {
+    cats.forEach(function(cat){
+      html+='<div style="padding:5px 10px 2px;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--acc2);background:var(--bg3);border-top:1px solid var(--border);">'+esc(cat)+'</div>';
+      bycat[cat].forEach(function(p){
+        var avBadge=p.available!==false
+          ?'<span style="font-size:10px;background:#22c55e20;color:#16a34a;border-radius:3px;padding:1px 5px;">&#10003; Dispo</span>'
+          :'<span style="font-size:10px;background:#ef444420;color:#dc2626;border-radius:3px;padding:1px 5px;">&#10005; Rupture</span>';
+        var visBadge=p.app_visible!==false
+          ?'<span style="font-size:10px;background:var(--bg3);color:var(--text2);border-radius:3px;padding:1px 5px;">&#128065; Client</span>'
+          :'<span style="font-size:10px;background:var(--bg3);color:var(--text3);border-radius:3px;padding:1px 5px;">&#128274; Interne</span>';
+        var rsBadge=p.room_service_enabled!==false
+          ?'<span style="font-size:10px;background:var(--bg3);color:var(--text2);border-radius:3px;padding:1px 5px;">&#127968; RS</span>':'';
+        var imgHtml=p.image_url
+          ?'<img src="'+safeUrl(p.image_url)+'" style="width:38px;height:38px;object-fit:cover;border-radius:5px;margin-right:8px;flex-shrink:0;" onerror="this.style.display='none'">'
+          :'<div style="width:38px;height:38px;border-radius:5px;background:var(--bg3);display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;font-size:16px;">&#127869;&#65039;</div>';
+        html+='<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;">'
+          +'<div style="display:flex;align-items:center;flex:1;min-width:0;">'+imgHtml
+          +'<div style="min-width:0;">'
+          +'<div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(p.name)+'</div>'
+          +(p.description?'<div style="font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(p.description)+'</div>':'')
+          +'<div style="margin-top:2px;display:flex;gap:4px;flex-wrap:wrap;">'+avBadge+visBadge+rsBadge+'</div>'
+          +'</div></div>'
+          +'<div style="font-weight:800;font-size:14px;color:var(--acc2);white-space:nowrap;">'+fmt(p.price)+'</div>'
+          +'<button onclick="openProdMd(''+p.id+'')" style="padding:4px 10px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;cursor:pointer;white-space:nowrap;">&#9999;&#65039;</button>'
+          +'</div>';
+      });
+    });
+    /* Inactive products section */
+    var inactive=PRODS.filter(function(p){return p.active===false;});
+    if(inactive.length){
+      html+='<div style="padding:5px 10px 2px;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text3);background:var(--bg3);border-top:2px dashed var(--border);margin-top:8px;">&#128683; D&#233;sactiv&#233;s ('+inactive.length+')</div>';
+      inactive.forEach(function(p){
+        html+='<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;border-bottom:1px solid var(--border);opacity:.5;">'
+          +'<div style="flex:1;font-size:12px;font-style:italic;">'+esc(p.name)+' <span style="font-size:10px;">('+esc(p.category||'')+')</span></div>'
+          +'<button onclick="reactivateProd(''+p.id+'')" style="padding:3px 8px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;cursor:pointer;">&#9654; R&#233;activer</button>'
+          +'</div>';
+      });
+    }
+  }
+  el.innerHTML=html;
+}
+
+async function reactivateProd(pid){
+  if(!pid)return;
+  try{
+    var res=await fetch(SB+'/rest/v1/rpc/upsert_restaurant_product',{
+      method:'POST',headers:{apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json',Accept:'application/json'},
+      body:JSON.stringify({id:pid,active:true})
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    var rb=await GET('/rest/v1/veraluz_restaurant_products?select=*&order=sort_order.asc,category.asc,name.asc');
+    if(Array.isArray(rb))PRODS=rb;
+    renderCarteProduits();renderMenu();
+    toast('Produit r&#233;activ&#233; &#10003;','ok');
+  }catch(e){toast('Erreur: '+(e.message||e),'er');}
 }
 
 /* ── ROOM SERVICE / FOLIO ── */

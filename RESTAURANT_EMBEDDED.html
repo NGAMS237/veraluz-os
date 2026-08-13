@@ -162,6 +162,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);
   display:flex;align-items:center;justify-content:center;}
 .qv{font-size:12px;font-weight:700;min-width:14px;text-align:center;}
 .cempty{text-align:center;padding:16px;color:var(--text3);font-size:12px;}
+/* ── POS split: cart forced to fixed width (overrides legacy global rule) ── */
+.split > .cart{width:250px !important;flex-shrink:0 !important;max-height:unset !important;}
+.split > .menu-side{flex:1 1 0% !important;min-width:0 !important;}
 /* ── POS Context panel (inline table/room/delivery picker) ── */
 #pos-context{flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--border);overflow-y:auto;max-height:220px;}
 /* ── Responsive POS split: tablet/mobile ── */

@@ -497,13 +497,22 @@ function fmtLong(d) {
 /* ── Acteur courant — peuplé depuis la réponse serveur ──────────────────── */
 /* NE JAMAIS lire la session depuis localStorage/sessionStorage ici */
 var _actor = null;
+/* MICRO 011E-UI — rôles autorisés pour Modèles + Journal */
+var ADMIN_COMM_ROLES = ['superadmin','admin','manager','direction','directeur','gerant','directrice'];
+
 function setActor(a) {
   _actor = a;
   if (!a) return;
   var init = (a.actor_name || '?').split(' ').map(function (w) { return w[0] || ''; }).join('').substring(0, 2).toUpperCase();
   var av = document.getElementById('sb-user-av');   if (av) av.textContent = init;
-  var nm = document.getElementById('sb-user-name'); if (nm) nm.textContent = a.actor_name;
-  var rl = document.getElementById('sb-user-role'); if (rl) rl.textContent = a.role;
+  var nm = document.getElementById('sb-user-name'); if (nm) nm.textContent = a.actor_name || '?';
+  var rl = document.getElementById('sb-user-role'); if (rl) rl.textContent = a.role || '';
+  /* MICRO 011E-UI — révèle la section Communication (Modèles + Journal) */
+  var role = (a.role || '').toLowerCase();
+  if (ADMIN_COMM_ROLES.indexOf(role) !== -1) {
+    var sec = document.getElementById('sb-admin-section');
+    if (sec) sec.style.display = '';
+  }
 }
 
 /* ── Couleurs avatars ────────────────────────────────────────────────────── */
@@ -941,7 +950,22 @@ function toggleVlTheme() {
   applyVlTheme();
   try { window.parent.postMessage({ type: 'vl-theme', theme: dark ? 'light' : 'dark' }, '*'); } catch (e) {}
 }
-window.addEventListener('message', function (e) { if (e.data && e.data.type === 'vl-theme') applyVlTheme(); });
+window.addEventListener('message', function (e) {
+  if (!e.data) return;
+  /* Sync thème */
+  if (e.data.type === 'vl-theme') { applyVlTheme(); return; }
+  /* MICRO 011E-UI — auth-context de CORE : peuple l'acteur immédiatement
+     même si l'EF messages-secure n'a pas encore répondu (ou a échoué).
+     Le rôle sert uniquement à l'affichage UI ; l'autorisation réelle
+     est toujours vérifiée côté serveur par les Edge Functions. */
+  if (e.data.source === 'veraluz-core' && e.data.type === 'auth-context' && e.data.data) {
+    var ctx = e.data.data;
+    if (!_actor) {
+      /* CORE mappe gerant→superadmin ; les deux sont dans ADMIN_COMM_ROLES */
+      setActor({ actor_name: ctx.name || ctx.username || '?', role: (ctx.role || '').toLowerCase(), employee_id: ctx.employee_id });
+    }
+  }
+});
 
 /* ════════════════════════════════════════════════════════════════════════════
    011E-2B — COMMUNICATIONS-SECURE BROKER
@@ -957,8 +981,6 @@ function commReq(action, payload) {
 }
 
 /* ── View manager ────────────────────────────────────────────────────────── */
-var ADMIN_COMM_ROLES = ['superadmin','admin','manager','direction','directeur','gerant','directrice'];
-
 function isAdminComm() {
   return _actor && ADMIN_COMM_ROLES.indexOf((_actor.role || '').toLowerCase()) !== -1;
 }
@@ -1171,19 +1193,7 @@ function renderJournal(logs) {
   }).join('');
 }
 
-/* ── Reveal admin section when actor loaded ──────────────────────────────── */
-var _origSetActor = typeof setActor === 'function' ? setActor : null;
-function setActorAndAdminUI(a) {
-  if (_origSetActor) _origSetActor(a);
-  if (ADMIN_COMM_ROLES.indexOf(((a || {}).role || '').toLowerCase()) !== -1) {
-    var s = document.getElementById('sb-admin-section');
-    if (s) s.style.display = '';
-  }
-}
-// Override setActor if it exists, else wrap DOMContentLoaded
-if (typeof setActor !== 'undefined') {
-  setActor = setActorAndAdminUI;
-}
+/* MICRO 011E-UI — admin reveal intégré dans setActor (voir définition de setActor) */
 
 /* ════════════════════════════════════════════════════════════════════════════
    INIT

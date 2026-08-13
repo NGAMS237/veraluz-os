@@ -3306,7 +3306,7 @@ async function saveProd(){
 }
 async function delProd(){
   var id=document.getElementById('prod-id').value;
-  if(!id||!confirm('Désactiver ce produit ? Il restera dans l'historique des commandes mais disparaîtra de la carte.'))return;
+  if(!id||!confirm("Désactiver ce produit ? Il restera dans l'historique des commandes mais disparaîtra de la carte."))return;
   try{
     var res=await fetch(SB+'/rest/v1/rpc/upsert_restaurant_product',{
       method:'POST',
@@ -4229,7 +4229,7 @@ function renderCarteProduits(){
         var rsBadge=p.room_service_enabled!==false
           ?'<span style="font-size:10px;background:var(--bg3);color:var(--text2);border-radius:3px;padding:1px 5px;">&#127968; RS</span>':'';
         var imgHtml=p.image_url
-          ?'<img src="'+safeUrl(p.image_url)+'" style="width:38px;height:38px;object-fit:cover;border-radius:5px;margin-right:8px;flex-shrink:0;" onerror="this.style.display='none'">'
+          ?'<img src="'+safeUrl(p.image_url)+'" style="width:38px;height:38px;object-fit:cover;border-radius:5px;margin-right:8px;flex-shrink:0;" onerror="this.style.display=\'none\'">'
           :'<div style="width:38px;height:38px;border-radius:5px;background:var(--bg3);display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;font-size:16px;">&#127869;&#65039;</div>';
         html+='<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;">'
           +'<div style="display:flex;align-items:center;flex:1;min-width:0;">'+imgHtml
@@ -4239,7 +4239,7 @@ function renderCarteProduits(){
           +'<div style="margin-top:2px;display:flex;gap:4px;flex-wrap:wrap;">'+avBadge+visBadge+rsBadge+'</div>'
           +'</div></div>'
           +'<div style="font-weight:800;font-size:14px;color:var(--acc2);white-space:nowrap;">'+fmt(p.price)+'</div>'
-          +'<button onclick="openProdMd(''+p.id+'')" style="padding:4px 10px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;cursor:pointer;white-space:nowrap;">&#9999;&#65039;</button>'
+          +'<button onclick="openProdMd(this.dataset.pid)" data-pid="'+p.id+'" style="padding:4px 10px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;cursor:pointer;white-space:nowrap;">&#9999;&#65039;</button>'
           +'</div>';
       });
     });
@@ -4250,7 +4250,7 @@ function renderCarteProduits(){
       inactive.forEach(function(p){
         html+='<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;border-bottom:1px solid var(--border);opacity:.5;">'
           +'<div style="flex:1;font-size:12px;font-style:italic;">'+esc(p.name)+' <span style="font-size:10px;">('+esc(p.category||'')+')</span></div>'
-          +'<button onclick="reactivateProd(''+p.id+'')" style="padding:3px 8px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;cursor:pointer;">&#9654; R&#233;activer</button>'
+          +'<button onclick="reactivateProd(this.dataset.pid)" data-pid="'+p.id+'" style="padding:3px 8px;font-size:11px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;cursor:pointer;">&#9654; R&#233;activer</button>'
           +'</div>';
       });
     }

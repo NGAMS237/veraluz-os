@@ -3359,7 +3359,9 @@ var VERALUZ_BROKER_ALLOWED_ENDPOINTS = [
   'agent-control',
   'agent-approval',
   /* 011D-2F — Folio posting sécurisé */
-  'post-restaurant-folio'
+  'post-restaurant-folio',
+  /* 011E-2A — Messages sécurisés */
+  'messages-secure'
 ];
 var VERALUZ_BROKER_EDGE_BASE = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/';
 window.veraluzSecureRequest = function (endpoint, payload) {

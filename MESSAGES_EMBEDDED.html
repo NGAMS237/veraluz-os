@@ -358,144 +358,88 @@ html.vl-dark #toast{background:#e2e8f0;color:#1e293b;}
 
 <script>
 /* ════════════════════════════════════════════════════════════════════════════
-   VERALUZ MESSAGES — PROMPT 037  (Gmail 3 colonnes)
+   VERALUZ MESSAGES — PROMPT 011E-2A (Sécurisé via Broker CORE)
+   Toutes les opérations DB passent par messages-secure Edge Function.
+   Aucun accès direct Supabase. Aucune session depuis localStorage.
    ════════════════════════════════════════════════════════════════════════════ */
 
-/* ── Config Supabase ─────────────────────────────────────────────────────── */
-var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
-var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 var TENANT = 'veraluz-001';
 
-/* ── Helpers Supabase REST ───────────────────────────────────────────────── */
-function H(){return{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json','Prefer':'return=representation'};}
-function sbQ(path){return fetch(SB+'/rest/v1/'+path,{headers:H()}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
-function sbIns(tbl,data){return fetch(SB+'/rest/v1/'+tbl,{method:'POST',headers:H(),body:JSON.stringify(data)}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
-function sbUpd(tbl,data,where){
-  var h=H();h['Prefer']='return=minimal';
-  return fetch(SB+'/rest/v1/'+tbl+'?'+where,{method:'PATCH',headers:h,body:JSON.stringify(data)}).then(function(r){if(!r.ok)throw r.status;return true;});
+/* ── Broker CORE — seul canal sécurisé ──────────────────────────────────── */
+/* session_token reste en mémoire CORE uniquement, jamais transmis à l'iframe */
+function msgReq(action, payload) {
+  if (typeof window.parent !== 'undefined' &&
+      typeof window.parent.veraluzSecureRequest === 'function') {
+    var p = Object.assign({}, payload || {});
+    p.action = action;
+    return window.parent.veraluzSecureRequest('messages-secure', p);
+  }
+  return Promise.resolve({ status: 401, body: { ok: false, error: 'not_in_core_iframe' } });
 }
-function sbDel(tbl,where){return fetch(SB+'/rest/v1/'+tbl+'?'+where,{method:'DELETE',headers:H()}).then(function(r){return r.ok;});}
 
 /* ── Escape HTML ─────────────────────────────────────────────────────────── */
-function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escH(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 /* ── Toast ───────────────────────────────────────────────────────────────── */
-var _toastT=null;
-function toast(msg,type){
-  var el=document.getElementById('toast');
-  el.textContent=msg;
-  el.style.background=type==='err'?'#dc2626':type==='ok'?'#16a34a':'#1e293b';
-  el.style.opacity='1';
+var _toastT = null;
+function toast(msg, type) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = type === 'err' ? '#dc2626' : type === 'ok' ? '#16a34a' : '#1e293b';
+  el.style.opacity = '1';
   clearTimeout(_toastT);
-  _toastT=setTimeout(function(){el.style.opacity='0';},3200);
+  _toastT = setTimeout(function () { el.style.opacity = '0'; }, 3200);
 }
 
 /* ── Format dates ────────────────────────────────────────────────────────── */
-function fmtShort(d){
-  if(!d)return'';
-  var dt=new Date(d),now=new Date(),diff=(now-dt)/1000;
-  if(diff<60)return'À l\'instant';
-  if(diff<3600)return Math.floor(diff/60)+'min';
-  if(diff<86400)return dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  var jours=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
-  if(diff<604800)return jours[dt.getDay()];
-  return dt.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+function fmtShort(d) {
+  if (!d) return '';
+  var dt = new Date(d), now = new Date(), diff = (now - dt) / 1000;
+  if (diff < 60)     return 'À l\'instant';
+  if (diff < 3600)   return Math.floor(diff / 60) + 'min';
+  if (diff < 86400)  return dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  var j = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+  if (diff < 604800) return j[dt.getDay()];
+  return dt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
 }
-function fmtLong(d){
-  if(!d)return'';
-  return new Date(d).toLocaleString('fr-FR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-}
-
-/* ── Acteur courant (session Veraluz) ────────────────────────────────────── */
-var _actor=null;
-function getCurrentMessagingActor(){
-  if(_actor)return _actor;
-  var ADMIN=['superadmin','admin','manager','direction','directeur'];
-  var CAN_VIEW_ALL=['superadmin','admin','manager','direction','directeur','rh','finance'];
-  var a={tenant_id:TENANT,actor_id:'',actor_name:'Utilisateur',actor_type:'employee',role:'staff',department:'',can_view_all_messages:false,can_send_to_departments:false,can_send_to_all:false};
-  try{
-    /* PROMPT 038 — lire veraluz_session (écrit par CORE au login) ou fallback veraluz_auth_v1 */
-    var raw=localStorage.getItem('veraluz_session')||sessionStorage.getItem('veraluz_session');
-    if(!raw){raw=localStorage.getItem('vl_session')||sessionStorage.getItem('vl_session');}
-    if(!raw){
-      /* Fallback : lire veraluz_auth_v1 directement */
-      var authRaw=localStorage.getItem('veraluz_auth_v1');
-      if(authRaw){
-        var auth=JSON.parse(authRaw);
-        raw=JSON.stringify({
-          user_id:auth.user_id||auth.employee_id||auth.username||'',
-          id:auth.user_id||auth.employee_id||auth.username||'',
-          name:auth.name||'Utilisateur',
-          role:auth.role||'staff',
-          department:auth.department||auth.role||'',
-          tenant_id:auth.tenant_id||TENANT
-        });
-      }
-    }
-    if(raw){
-      var p=JSON.parse(raw);
-      a.actor_id=p.user_id||p.id||p.actor_id||p.employee_id||'';
-      a.actor_name=p.name||p.nom||p.full_name||'Utilisateur';
-      a.role=(p.role||'staff').toLowerCase();
-      a.department=p.department||p.dept||p.team_id||'';
-      a.tenant_id=p.tenant_id||TENANT;
-      a.actor_type=ADMIN.indexOf(a.role)>=0?'admin':'employee';
-      a.can_view_all_messages=CAN_VIEW_ALL.indexOf(a.role)>=0;
-      a.can_send_to_departments=CAN_VIEW_ALL.indexOf(a.role)>=0;
-      a.can_send_to_all=a.role==='superadmin'||a.role==='admin'||a.role==='direction';
-    }
-  }catch(e){console.warn('[Messaging] Erreur lecture session:',e);}
-  _actor=a;
-  /* Sidebar user info */
-  var init=(a.actor_name||'?').split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
-  var av=document.getElementById('sb-user-av');if(av)av.textContent=init;
-  var nm=document.getElementById('sb-user-name');if(nm)nm.textContent=a.actor_name;
-  var rl=document.getElementById('sb-user-role');if(rl)rl.textContent=a.role;
-  return a;
+function fmtLong(d) {
+  if (!d) return '';
+  return new Date(d).toLocaleString('fr-FR', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
-/* ── Visibilité message pour acteur ─────────────────────────────────────── */
-function canActorSeeMessage(actor,msg){
-  if(!msg)return false;
-  if(msg.tenant_id&&msg.tenant_id!==actor.tenant_id)return false;
-  /* Admins / direction / RH / finance voient tout */
-  if(actor.can_view_all_messages)return true;
-  /* Chloé IA → administration uniquement */
-  if(msg.sender_type==='chloe')return false;
-  /* recipient_type 'admin' → administration uniquement */
-  if(msg.recipient_type==='admin')return false;
-  /* Messages envoyés par cet acteur */
-  if(msg.sender_id&&msg.sender_id===actor.actor_id)return true;
-  /* Messages reçus directement par cet acteur */
-  if(msg.recipient_id&&msg.recipient_id===actor.actor_id)return true;
-  /* Messages à tout le monde */
-  if(msg.recipient_type==='all')return true;
-  /* Messages au département de cet acteur */
-  if(msg.recipient_type==='department'&&msg.department===actor.department)return true;
-  return false;
+/* ── Acteur courant — peuplé depuis la réponse serveur ──────────────────── */
+/* NE JAMAIS lire la session depuis localStorage/sessionStorage ici */
+var _actor = null;
+function setActor(a) {
+  _actor = a;
+  if (!a) return;
+  var init = (a.actor_name || '?').split(' ').map(function (w) { return w[0] || ''; }).join('').substring(0, 2).toUpperCase();
+  var av = document.getElementById('sb-user-av');   if (av) av.textContent = init;
+  var nm = document.getElementById('sb-user-name'); if (nm) nm.textContent = a.actor_name;
+  var rl = document.getElementById('sb-user-role'); if (rl) rl.textContent = a.role;
 }
 
 /* ── Couleurs avatars ────────────────────────────────────────────────────── */
-var AV_PAL=[
+var AV_PAL = [
   {bg:'#e0f2fe',c:'#0369a1'},{bg:'#fee2e2',c:'#b91c1c'},
   {bg:'#fef3c7',c:'#92400e'},{bg:'#f3e8ff',c:'#6d28d9'},
   {bg:'#d1fae5',c:'#065f46'},{bg:'#ffe4e6',c:'#9f1239'},
   {bg:'#ffedd5',c:'#9a3412'},{bg:'#f0fdf4',c:'#166534'}
 ];
-function avColor(s){var h=0;for(var i=0;i<(s||'').length;i++){h=(h*31+s.charCodeAt(i))&0xffffff;}return AV_PAL[Math.abs(h)%AV_PAL.length];}
-function avInit(s){return(s||'?').split(' ').map(function(w){return w[0]||'';}).join('').substring(0,2).toUpperCase();}
+function avColor(s) { var h = 0; for (var i = 0; i < (s||'').length; i++) { h = (h*31 + s.charCodeAt(i)) & 0xffffff; } return AV_PAL[Math.abs(h) % AV_PAL.length]; }
+function avInit(s) { return (s||'?').split(' ').map(function(w){return w[0]||'';}).join('').substring(0,2).toUpperCase(); }
 
 /* ── Couleurs étiquettes ─────────────────────────────────────────────────── */
-var TAG_COL={
-  urgent:{bg:'#fee2e2',c:'#b91c1c'},
-  rh:{bg:'#e0f2fe',c:'#0369a1'},
-  restaurant:{bg:'#fef3c7',c:'#92400e'},
-  chloe:{bg:'#f3e8ff',c:'#6d28d9'},
-  finance:{bg:'#d1fae5',c:'#065f46'},
+var TAG_COL = {
+  urgent:      {bg:'#fee2e2',c:'#b91c1c'},
+  rh:          {bg:'#e0f2fe',c:'#0369a1'},
+  restaurant:  {bg:'#fef3c7',c:'#92400e'},
+  chloe:       {bg:'#f3e8ff',c:'#6d28d9'},
+  finance:     {bg:'#d1fae5',c:'#065f46'},
   housekeeping:{bg:'#ffe4e6',c:'#9f1239'},
-  hk:{bg:'#ffe4e6',c:'#9f1239'},
-  livreur:{bg:'#ffedd5',c:'#9a3412'},
-  livraison:{bg:'#fef3c7',c:'#92400e'}
+  hk:          {bg:'#ffe4e6',c:'#9f1239'},
+  livreur:     {bg:'#ffedd5',c:'#9a3412'},
+  livraison:   {bg:'#fef3c7',c:'#92400e'}
 };
 function miniTag(lbl){var lc=(lbl||'').toLowerCase(),col=TAG_COL[lc]||{bg:'#f1f5f9',c:'#475569'};return'<span class="mini-tag" style="background:'+col.bg+';color:'+col.c+';">'+escH(lbl)+'</span>';}
 function detTag(lbl){var lc=(lbl||'').toLowerCase(),col=TAG_COL[lc]||{bg:'#f1f5f9',c:'#475569'};return'<span class="det-tag" style="background:'+col.bg+';color:'+col.c+';">'+escH(lbl)+'</span>';}
@@ -503,522 +447,421 @@ function detTag(lbl){var lc=(lbl||'').toLowerCase(),col=TAG_COL[lc]||{bg:'#f1f5f
 /* ════════════════════════════════════════════════════════════════════════════
    ÉTAT GLOBAL
    ════════════════════════════════════════════════════════════════════════════ */
-var _allMsgs=[];
-var _currentFolder='inbox';
-var _currentFilter='all';
-var _currentLabel='';
-var _searchQ='';
-var _openId=null;
-var _openMsg=null;
-var _selectedLabels=[];
-var _lastMsgId=null;
-var _pollT=null;
+var _allMsgs = [];
+var _currentFolder = 'inbox';
+var _currentFilter = 'all';
+var _currentLabel  = '';
+var _searchQ       = '';
+var _openId        = null;
+var _openMsg       = null;
+var _selectedLabels = [];
+var _lastMsgTs     = null;   /* ISO timestamp du message le plus récent */
+var _pollT         = null;
 
 /* ════════════════════════════════════════════════════════════════════════════
-   DONNÉES MOCK (fallback si Supabase non dispo)
+   CHARGEMENT — broker sécurisé uniquement
    ════════════════════════════════════════════════════════════════════════════ */
-function getMockMsgs(){
-  var now=new Date().toISOString();
-  var h1=new Date(Date.now()-3600000).toISOString();
-  var h3=new Date(Date.now()-10800000).toISOString();
-  var d1=new Date(Date.now()-86400000).toISOString();
-  var d2=new Date(Date.now()-172800000).toISOString();
-  return [
-    /* ── Chloé IA → admin uniquement (recipient_type:'admin') ── */
-    {id:'m1',sender_name:'Chloé IA',sender_type:'chloe',sender_id:'chloe-ia',
-     recipient_type:'admin',department:'direction',
-     subject:'⚠️ Alerte — 3 livreurs sans photo ce matin',
-     body:'Bonjour,\n\nJ\'ai détecté ce matin que 3 livreurs actifs n\'ont pas effectué leur selfie de prise de service :\n\n• Jean Bello — actif depuis 08:10, aucune photo\n• Aliou Konaté — actif depuis 08:32, aucune photo\n• Paul Mbaye — actif depuis 09:05, aucune photo\n\nJe recommande de les contacter directement ou de bloquer l\'accès aux nouvelles commandes jusqu\'à régularisation.\n\n— Chloé, Assistante IA Veraluz',
-     labels:['urgent','chloe'],starred:true,read:false,archived:false,is_draft:false,created_at:now},
-    /* ── Message RH → département RH uniquement ── */
-    {id:'m2',sender_name:'Marie Koné',sender_type:'employee',sender_id:'marie-kone',
-     recipient_type:'department',department:'rh',
-     subject:'Demande de congé — 11 au 22 août 2026',
-     body:'Bonjour,\n\nJe souhaite soumettre ma demande de congé du 11 au 22 août 2026 (10 jours ouvrés).\n\nMon remplaçant sera M. Diallo conformément au planning RH en vigueur.\n\nMerci de bien vouloir valider ou me contacter si des ajustements sont nécessaires.\n\nCordialement,\nMarie Koné — Assistante RH',
-     labels:['rh'],starred:false,read:false,archived:false,is_draft:false,created_at:h1},
-    /* ── Alerte Restaurant → département restaurant uniquement ── */
-    {id:'m3',sender_name:'Système Restaurant',sender_type:'system',sender_id:'system',
-     recipient_type:'department',department:'restaurant',
-     subject:'Commande #1042 — en attente livreur (18 min)',
-     body:'La commande #1042 est prête depuis 18 minutes et aucun livreur n\'a encore été assigné.\n\nClient : Mme Nguema — Bloc B Apt 12\nTotal : 14 500 XAF\nStatut cuisine : ✅ Prête\n\nAction requise : veuillez assigner un livreur disponible.',
-     labels:['restaurant','urgent'],starred:false,read:true,archived:false,is_draft:false,created_at:h3},
-    /* ── Rapport Finance → admin uniquement ── */
-    {id:'m4',sender_name:'Finance · Dept',sender_type:'employee',sender_id:'finance-dept',
-     recipient_type:'admin',department:'finance',
-     subject:'Rapport de paie — Juillet 2026',
-     body:'Veuillez trouver ci-joint le rapport de paie pour Juillet 2026.\n\nRésumé :\n• Employés traités : 24\n• Total brut : 3 840 000 XAF\n• Retenues totales : 384 000 XAF\n• Total net versé : 3 456 000 XAF\n\nAucune anomalie détectée ce mois-ci.',
-     labels:['finance'],starred:true,read:true,archived:false,is_draft:false,created_at:d1},
-    /* ── Livreur signale un problème → administration ── */
-    {id:'m5',sender_name:'Jean Bello',sender_type:'employee',sender_id:'jean-bello',
-     recipient_type:'admin',department:'livreur',
-     subject:'Problème livraison commande #1038',
-     body:'Bonjour,\n\nJe vous contacte au sujet de la commande #1038.\n\nÀ mon arrivée à l\'adresse (Bloc C Apt 7), le client n\'était pas présent. J\'ai appelé 3 fois sans réponse.\n\nJ\'ai pris une photo du lieu de livraison et attendu 10 minutes avant de repartir.\n\nMerci de me dire comment procéder.\n\n— Jean Bello, Livreur',
-     labels:['livreur'],starred:false,read:false,archived:false,is_draft:false,created_at:d1},
-    /* ── Housekeeping → département housekeeping uniquement ── */
-    {id:'m6',sender_name:'Housekeeping · Équipe',sender_type:'employee',sender_id:'hk-team',
-     recipient_type:'department',department:'housekeeping',
-     subject:'Chambre 204 — climatiseur défectueux',
-     body:'Lors du nettoyage de la chambre 204 ce matin, l\'équipe a signalé un défaut sur le climatiseur :\n\n• Bruit anormal lors du démarrage\n• Température affichée incorrecte (23° au lieu de 18°)\n\nLa chambre a été temporairement retirée de la disponibilité.\n\nIntervention maintenance estimée : demain matin.',
-     labels:['housekeeping'],starred:false,read:true,archived:false,is_draft:false,created_at:d2},
-    /* ── Planning RH → département RH uniquement ── */
-    {id:'m7',sender_name:'Paul Kamto',sender_type:'employee',sender_id:'paul-kamto',
-     recipient_type:'department',department:'rh',
-     subject:'Re: Planning Août — modifications demandées',
-     body:'Bonjour,\n\nSuite à notre réunion de lundi, voici les modifications pour le planning d\'août :\n\n- Semaine 32 : échange Jean B. ↔ Aliou K. (jeudi/vendredi)\n- Semaine 33 : pas de livreur le 15 août (férié)\n\nMerci de valider avant vendredi.\n\nPaul',
-     labels:['rh'],starred:false,read:true,archived:false,is_draft:false,created_at:d2},
-    /* ── Annonce générale → tout le monde (recipient_type:'all') ── */
-    {id:'m0',sender_name:'Direction Veraluz',sender_type:'admin',sender_id:'direction',
-     recipient_type:'all',department:'direction',
-     subject:'Bienvenue sur la messagerie Veraluz OS',
-     body:'Bonjour à toute l\'équipe,\n\nLe nouveau module de messagerie interne est maintenant actif.\n\nChaque employé voit uniquement les messages qui le concernent :\n• Messages directs : destinés personnellement à vous\n• Messages département : adressés à votre équipe\n• Annonces générales : comme ce message\n\nLes alertes Chloé IA et les rapports de direction restent confidentiels.\n\nBonne utilisation !\n\n— La Direction, Résidences Veraluz Kribi',
-     labels:[],starred:false,read:false,archived:false,is_draft:false,created_at:d2}
-  ];
+function loadMessages() {
+  var listEl = document.getElementById('conv-list');
+  if (listEl) listEl.innerHTML = '<div style="padding:40px 16px;text-align:center;color:var(--text3);">⏳ Chargement…</div>';
+
+  msgReq('list_messages', { folder: _currentFolder, search_q: _searchQ })
+    .then(function (res) {
+      if (!res || !res.body) { showListError('Erreur de connexion.'); return; }
+      if (res.status === 401 || res.status === 403) { showListError('Session expirée — veuillez vous reconnecter.'); return; }
+      if (!res.body.ok) { showListError('Impossible de charger les messages.'); return; }
+      /* Actor info vient du serveur (source de vérité) */
+      if (res.body.actor) setActor(res.body.actor);
+      var msgs = res.body.messages || [];
+      _allMsgs = msgs;
+      _lastMsgTs = msgs.length ? msgs[0].created_at : null;
+      renderList();
+      updateBadges();
+    })
+    .catch(function () { showListError('Impossible de charger les messages.'); });
 }
 
-/* ════════════════════════════════════════════════════════════════════════════
-   CHARGEMENT
-   ════════════════════════════════════════════════════════════════════════════ */
-function loadMessages(){
-  var actor=getCurrentMessagingActor();
-  var base='veraluz_internal_messages?tenant_id=eq.'+encodeURIComponent(actor.tenant_id||TENANT)+'&order=created_at.desc&limit=80';
-  var q=base;
-
-  /* PROMPT 038 — filtre par destinataire pour les non-admins */
-  var recipientFilter='';
-  if(!actor.can_view_all_messages && actor.actor_id){
-    /* L'employé voit : ses messages directs + messages à son département + messages "tous" */
-    var filters=[];
-    filters.push('recipient_id.eq.'+actor.actor_id);
-    filters.push('recipient_type.eq.all');
-    filters.push('sender_id.eq.'+actor.actor_id);
-    if(actor.department){
-      filters.push('and(recipient_type.eq.department,department.eq.'+encodeURIComponent(actor.department)+')');
-    }
-    recipientFilter='&or=('+filters.join(',')+')';
-  }
-
-  if(_currentFolder==='starred'){q+=recipientFilter+'&starred=eq.true&is_draft=eq.false';}
-  else if(_currentFolder==='archived'){q+=recipientFilter+'&archived=eq.true&is_draft=eq.false';}
-  else if(_currentFolder==='drafts'){q+=recipientFilter+'&is_draft=eq.true';}
-  else if(_currentFolder==='sent'){
-    /* Envoyés : uniquement les messages envoyés par cet acteur */
-    if(actor.actor_id)q+='&sender_id=eq.'+encodeURIComponent(actor.actor_id);
-    q+='&is_draft=eq.false';
-  }
-  else if(_currentFolder==='chloe'){q+=recipientFilter+'&sender_type=eq.chloe&is_draft=eq.false';}
-  else{q+=recipientFilter+'&archived=eq.false&is_draft=eq.false';}
-
-  /* Pour non-admins : exclure aussi Chloé IA au niveau de la requête */
-  if(!actor.can_view_all_messages){
-    q+='&sender_type=neq.chloe';
-  }
-
-  sbQ(q).then(function(data){
-    var msgs=data||[];
-    /* Fallback mock si Supabase retourne 0 (RLS sans session JWT, table vide, etc.)
-       AVANT le filtre canActorSeeMessage pour que les mock data soient aussi filtrées */
-    if(!msgs.length && _currentFolder==='inbox'){msgs=getMockMsgs();}
-    /* Filtre frontend : chaque acteur ne voit que ses messages */
-    if(!actor.can_view_all_messages){msgs=msgs.filter(function(m){return canActorSeeMessage(actor,m);});}
-    _allMsgs=msgs;
-    if(msgs.length)_lastMsgId=msgs[0].id;
-    renderList();
-    updateBadges();
-  }).catch(function(){
-    var mock=getMockMsgs();
-    /* Appliquer le filtre sur le mock aussi */
-    if(!actor.can_view_all_messages){mock=mock.filter(function(m){return canActorSeeMessage(actor,m);});}
-    _allMsgs=mock;
-    renderList();
-    updateBadges();
-  });
+function showListError(msg) {
+  var el = document.getElementById('conv-list');
+  if (el) el.innerHTML = '<div style="padding:40px 16px;text-align:center;color:var(--text3);"><div style="font-size:28px;margin-bottom:8px;">⚠️</div><div>' + escH(msg) + '</div></div>';
 }
 
-function loadMyInbox(){_currentFolder='inbox';loadMessages();}
+function loadMyInbox() { _currentFolder = 'inbox'; loadMessages(); }
 
-/* ── Polling temps réel ──────────────────────────────────────────────────── */
-function startMsgAlertPolling(){
+/* ── Polling temps réel — check_new via broker ───────────────────────────── */
+function startMsgAlertPolling() {
   clearInterval(_pollT);
-  _pollT=setInterval(function(){
-    sbQ('veraluz_internal_messages?tenant_id=eq.'+encodeURIComponent(TENANT)+'&order=created_at.desc&limit=1&is_draft=eq.false')
-    .then(function(data){
-      if(data&&data.length&&data[0].id!==_lastMsgId){
-        loadMessages();
-        try{var ctx=new (window.AudioContext||window.webkitAudioContext)();var o=ctx.createOscillator();var g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;g.gain.setValueAtTime(0.15,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);o.start();o.stop(ctx.currentTime+0.3);}catch(e){}
-      }
-    }).catch(function(){});
-  },20000);
+  _pollT = setInterval(function () {
+    if (!_lastMsgTs) return;
+    msgReq('check_new', { since: _lastMsgTs })
+      .then(function (res) {
+        if (res && res.body && res.body.ok && res.body.latest_id) {
+          /* Nouveau message détecté → recharger */
+          loadMessages();
+          try {
+            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+            var o = ctx.createOscillator(); var g = ctx.createGain();
+            o.connect(g); g.connect(ctx.destination);
+            o.frequency.value = 880;
+            g.gain.setValueAtTime(0.15, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            o.start(); o.stop(ctx.currentTime + 0.3);
+          } catch (e) {}
+        }
+      })
+      .catch(function () {});
+  }, 20000);
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
    RENDU LISTE
    ════════════════════════════════════════════════════════════════════════════ */
-function renderList(){
-  var msgs=applyFilters(_allMsgs);
-  var el=document.getElementById('conv-list');
-  if(!msgs.length){
-    el.innerHTML='<div style="padding:40px 16px;text-align:center;color:var(--text3);"><div style="font-size:32px;margin-bottom:8px;">📭</div><div>Aucun message</div></div>';
+function renderList() {
+  var msgs = applyFilters(_allMsgs);
+  var el = document.getElementById('conv-list');
+  if (!msgs.length) {
+    el.innerHTML = '<div style="padding:40px 16px;text-align:center;color:var(--text3);"><div style="font-size:32px;margin-bottom:8px;">📭</div><div>Aucun message</div></div>';
     return;
   }
-  el.innerHTML=msgs.map(function(m){
-    var av=avColor(m.sender_name||m.department||'');
-    var init=avInit(m.sender_name||m.department||'');
-    var unread=!m.read;
-    var lbls=(m.labels||[]).slice(0,2).map(miniTag).join('');
-    var prev=(m.body||'').replace(/\n/g,' ').substring(0,70);
-    var isActive=_openId===m.id;
-    return '<div class="conv-item'+(unread?' unread':'')+(isActive?' active':'')+'" onclick="openMsg(\''+m.id+'\')" data-id="'+m.id+'">'
-      +'<div class="conv-av" style="background:'+av.bg+';color:'+av.c+';">'+escH(init)+'</div>'
-      +'<div class="conv-body">'
-        +'<div class="conv-top"><span class="conv-from">'+escH(m.sender_name||'Système')+'</span><span class="conv-time">'+fmtShort(m.created_at)+'</span></div>'
-        +'<div class="conv-sub">'+escH(m.subject||'(Sans objet)')+'</div>'
-        +'<div class="conv-prev">'+escH(prev)+'</div>'
-        +(lbls?'<div class="conv-tags">'+lbls+'</div>':'')
-      +'</div>'
-      +'<div class="conv-star'+(m.starred?' on':'')+'" onclick="event.stopPropagation();quickStar(\''+m.id+'\',this)" title="Étoiler">★</div>'
-    +'</div>';
+  el.innerHTML = msgs.map(function (m) {
+    var av = avColor(m.sender_name || m.department || '');
+    var init = avInit(m.sender_name || m.department || '');
+    var unread = !m.read;
+    var lbls = (m.labels || []).slice(0, 2).map(miniTag).join('');
+    var prev = (m.body || '').replace(/\n/g, ' ').substring(0, 70);
+    var isActive = _openId === m.id;
+    return '<div class="conv-item' + (unread ? ' unread' : '') + (isActive ? ' active' : '') + '" onclick="openMsg(\'' + m.id + '\')" data-id="' + m.id + '">'
+      + '<div class="conv-av" style="background:' + av.bg + ';color:' + av.c + ';">' + escH(init) + '</div>'
+      + '<div class="conv-body">'
+        + '<div class="conv-top"><span class="conv-from">' + escH(m.sender_name || 'Système') + '</span><span class="conv-time">' + fmtShort(m.created_at) + '</span></div>'
+        + '<div class="conv-sub">' + escH(m.subject || '(Sans objet)') + '</div>'
+        + '<div class="conv-prev">' + escH(prev) + '</div>'
+        + (lbls ? '<div class="conv-tags">' + lbls + '</div>' : '')
+      + '</div>'
+      + '<div class="conv-star' + (m.starred ? ' on' : '') + '" onclick="event.stopPropagation();quickStar(\'' + m.id + '\',this)" title="Étoiler">★</div>'
+      + '</div>';
   }).join('');
 }
 
-function applyFilters(msgs){
-  return msgs.filter(function(m){
-    if(_searchQ){
-      var q=_searchQ.toLowerCase();
-      if(!((m.subject||'').toLowerCase().includes(q)||(m.sender_name||'').toLowerCase().includes(q)||(m.body||'').toLowerCase().includes(q)))return false;
+function applyFilters(msgs) {
+  return msgs.filter(function (m) {
+    if (_searchQ) {
+      var q = _searchQ.toLowerCase();
+      if (!((m.subject||'').toLowerCase().includes(q) || (m.sender_name||'').toLowerCase().includes(q) || (m.body||'').toLowerCase().includes(q))) return false;
     }
-    if(_currentLabel){
-      if(!(m.labels||[]).includes(_currentLabel))return false;
-    }
-    if(_currentFilter==='unread')return!m.read;
-    if(_currentFilter==='starred')return m.starred;
-    if(_currentFilter==='urgent')return(m.labels||[]).includes('urgent');
-    if(_currentFilter==='chloe')return m.sender_type==='chloe';
+    if (_currentLabel) { if (!(m.labels||[]).includes(_currentLabel)) return false; }
+    if (_currentFilter === 'unread')   return !m.read;
+    if (_currentFilter === 'starred')  return m.starred;
+    if (_currentFilter === 'urgent')   return (m.labels||[]).includes('urgent');
+    if (_currentFilter === 'chloe')    return m.sender_type === 'chloe';
     return true;
   });
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   OUVRIR UN MESSAGE
+   OUVRIR UN MESSAGE — thread chargé depuis le serveur
    ════════════════════════════════════════════════════════════════════════════ */
-function openMsg(id){
-  var m=_allMsgs.find(function(x){return x.id===id;});
-  if(!m)return;
-  _openId=id;_openMsg=m;
-  m.read=true;
-  /* Passer à det-view */
-  document.getElementById('det-empty').style.display='none';
-  var dv=document.getElementById('det-view');dv.style.display='flex';dv.style.flexDirection='column';dv.style.flex='1';dv.style.minHeight='0';dv.style.overflow='hidden';
-  /* Subject */
-  document.getElementById('det-subject').textContent=m.subject||'(Sans objet)';
-  document.getElementById('det-tags').innerHTML=(m.labels||[]).map(detTag).join('');
-  /* Étoile */
+function openMsg(id) {
+  var m = _allMsgs.find(function (x) { return x.id === id; });
+  if (!m) return;
+  _openId = id; _openMsg = m;
+  m.read = true;
+
+  document.getElementById('det-empty').style.display = 'none';
+  var dv = document.getElementById('det-view');
+  dv.style.display = 'flex'; dv.style.flexDirection = 'column';
+  dv.style.flex = '1'; dv.style.minHeight = '0'; dv.style.overflow = 'hidden';
+
+  document.getElementById('det-subject').textContent = m.subject || '(Sans objet)';
+  document.getElementById('det-tags').innerHTML = (m.labels || []).map(detTag).join('');
   refreshStarBtn(m.starred);
-  /* Thread */
-  renderThread(m);
-  /* Quick replies */
-  renderQuickReplies(m);
-  /* Reply label */
-  document.getElementById('reply-to-label').textContent='Répondre à '+(m.sender_name||'Système')+'…';
-  document.getElementById('reply-input').value='';
-  /* Activer dans liste */
-  document.querySelectorAll('.conv-item').forEach(function(el){el.classList.remove('active');});
-  var row=document.querySelector('[data-id="'+id+'"]');
-  if(row){row.classList.remove('unread');row.classList.add('active');}
-  /* Marquer lu */
-  sbUpd('veraluz_internal_messages',{read:true,read_at:new Date().toISOString()},'id=eq.'+id).catch(function(){});
-  /* Scroll thread */
-  setTimeout(function(){var ta=document.getElementById('thread-area');if(ta)ta.scrollTop=ta.scrollHeight;},60);
+  document.getElementById('reply-to-label').textContent = 'Répondre à ' + (m.sender_name || 'Système') + '…';
+  document.getElementById('reply-input').value = '';
+
+  document.querySelectorAll('.conv-item').forEach(function (el) { el.classList.remove('active'); });
+  var row = document.querySelector('[data-id="' + id + '"]');
+  if (row) { row.classList.remove('unread'); row.classList.add('active'); }
+
+  /* Charger thread + replies depuis le serveur */
+  document.getElementById('thread-area').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);">⏳</div>';
+  msgReq('get_thread', { message_id: id })
+    .then(function (res) {
+      var msg = (res && res.body && res.body.ok) ? (res.body.message || m) : m;
+      var replies = (res && res.body && res.body.ok) ? (res.body.replies || []) : [];
+      if (msg) _openMsg = msg;  /* mettre à jour avec données fraîches du serveur */
+      renderThread(msg, replies);
+      renderQuickReplies(msg);
+      setTimeout(function () { var ta = document.getElementById('thread-area'); if (ta) ta.scrollTop = ta.scrollHeight; }, 60);
+    })
+    .catch(function () { renderThread(m, []); renderQuickReplies(m); });
+
+  /* Marquer lu côté serveur */
+  msgReq('mark_read', { message_id: id }).catch(function () {});
 }
 
-function renderThread(m){
-  var av=avColor(m.sender_name||'');
-  var init=avInit(m.sender_name||'');
-  var bodyHtml=escH(m.body||'').replace(/\n/g,'<br>');
-  var html='<div class="msg-card">'
-    +'<div class="msg-card-hdr">'
-      +'<div class="msg-av" style="background:'+av.bg+';color:'+av.c+';">'+escH(init)+'</div>'
-      +'<div style="flex:1;min-width:0;">'
-        +'<div class="msg-sender">'+escH(m.sender_name||'Système')+'</div>'
-        +'<div class="msg-to-line">'+escH(m.department||'')+(m.recipient_name?' → '+escH(m.recipient_name):'')+'</div>'
-      +'</div>'
-      +'<span class="msg-card-time">'+fmtLong(m.created_at)+'</span>'
-      +'<div class="msg-card-actions">'
-        +'<button class="msg-action" onclick="focusReply()" title="Répondre"><svg viewBox="0 0 24 24"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg></button>'
-        +'<button class="msg-action" onclick="forwardMsg()" title="Transférer"><svg viewBox="0 0 24 24"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 014-4h12"/></svg></button>'
-      +'</div>'
-    +'</div>'
-    +'<div class="msg-body">'+bodyHtml+'</div>'
-  +'</div>';
-  /* Réponses */
-  var replies=m.replies||[];
-  replies.forEach(function(r){
-    var rav=avColor(r.sender_name||'Moi');
-    var rInit=avInit(r.sender_name||'Moi');
-    html+='<div class="msg-card">'
-      +'<div class="msg-card-hdr">'
-        +'<div class="msg-av" style="background:'+rav.bg+';color:'+rav.c+';">'+escH(rInit)+'</div>'
-        +'<div><div class="msg-sender">'+escH(r.sender_name||'Moi')+'</div>'
-        +'<div class="msg-to-line">'+fmtLong(r.created_at)+'</div></div>'
-      +'</div>'
-      +'<div class="msg-body">'+escH(r.body||'').replace(/\n/g,'<br>')+'</div>'
-    +'</div>';
+function renderThread(m, replies) {
+  var av = avColor(m.sender_name || '');
+  var init = avInit(m.sender_name || '');
+  var bodyHtml = escH(m.body || '').replace(/\n/g, '<br>');
+  var html = '<div class="msg-card">'
+    + '<div class="msg-card-hdr">'
+      + '<div class="msg-av" style="background:' + av.bg + ';color:' + av.c + ';">' + escH(init) + '</div>'
+      + '<div style="flex:1;min-width:0;">'
+        + '<div class="msg-sender">' + escH(m.sender_name || 'Système') + '</div>'
+        + '<div class="msg-to-line">' + escH(m.department || '') + (m.recipient_name ? ' → ' + escH(m.recipient_name) : '') + '</div>'
+      + '</div>'
+      + '<span class="msg-card-time">' + fmtLong(m.created_at) + '</span>'
+      + '<div class="msg-card-actions">'
+        + '<button class="msg-action" onclick="focusReply()" title="Répondre"><svg viewBox="0 0 24 24"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/></svg></button>'
+        + '<button class="msg-action" onclick="forwardMsg()" title="Transférer (bientôt)"><svg viewBox="0 0 24 24"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 014-4h12"/></svg></button>'
+      + '</div>'
+    + '</div>'
+    + '<div class="msg-body">' + bodyHtml + '</div>'
+    + '</div>';
+  (replies || []).forEach(function (r) {
+    var rav = avColor(r.sender_name || '');
+    var rInit = avInit(r.sender_name || '');
+    html += '<div class="msg-card">'
+      + '<div class="msg-card-hdr">'
+        + '<div class="msg-av" style="background:' + rav.bg + ';color:' + rav.c + ';">' + escH(rInit) + '</div>'
+        + '<div><div class="msg-sender">' + escH(r.sender_name || '') + '</div>'
+        + '<div class="msg-to-line">' + fmtLong(r.created_at) + '</div></div>'
+      + '</div>'
+      + '<div class="msg-body">' + escH(r.body || '').replace(/\n/g, '<br>') + '</div>'
+      + '</div>';
   });
-  document.getElementById('thread-area').innerHTML=html;
+  document.getElementById('thread-area').innerHTML = html;
 }
 
-function renderQuickReplies(m){
-  var dept=(m.department||'').toLowerCase();
-  var labels=m.labels||[];
+function renderQuickReplies(m) {
+  var dept = (m.department || '').toLowerCase();
+  var labels = m.labels || [];
   var qrs;
-  if(labels.includes('rh')||dept==='rh'){
-    qrs=['✅ Congé validé','❌ Congé refusé','📋 En cours d\'examen','📞 Je vous rappelle'];
-  }else if(labels.includes('urgent')||dept==='livreur'){
-    qrs=['✅ Pris en charge','📞 Contact client','🔄 Réassignation','👍 Compris, merci'];
-  }else if(dept==='restaurant'){
-    qrs=['✅ Livreur assigné','⏳ Attente 5 min','📞 Contact client','🔄 Annuler commande'];
-  }else if(dept==='finance'){
-    qrs=['✅ Validé','🔍 À vérifier','📎 Pièce reçue','👍 Accusé de réception'];
-  }else{
-    qrs=['✅ Pris en compte','👍 Compris','📞 Je vous recontacte','🔄 En cours'];
-  }
-  var el=document.getElementById('quick-replies');
-  el.style.display='flex';
-  el.innerHTML='<span style="font-size:11px;color:var(--text3);align-self:center;flex-shrink:0;margin-right:2px;">Réponse rapide :</span>'
-    +qrs.map(function(q){return'<button class="qr-btn" onclick="quickReply(\''+escH(q.replace(/'/g,"\\'"))+'\')">'+escH(q)+'</button>';}).join('');
+  if (labels.includes('rh') || dept === 'rh')
+    qrs = ['✅ Congé validé','❌ Congé refusé','📋 En cours d\'examen','📞 Je vous rappelle'];
+  else if (labels.includes('urgent') || dept === 'livreur')
+    qrs = ['✅ Pris en charge','📞 Contact client','🔄 Réassignation','👍 Compris, merci'];
+  else if (dept === 'restaurant')
+    qrs = ['✅ Livreur assigné','⏳ Attente 5 min','📞 Contact client','🔄 Annuler commande'];
+  else if (dept === 'finance')
+    qrs = ['✅ Validé','🔍 À vérifier','📎 Pièce reçue','👍 Accusé de réception'];
+  else
+    qrs = ['✅ Pris en compte','👍 Compris','📞 Je vous recontacte','🔄 En cours'];
+  var el = document.getElementById('quick-replies');
+  el.style.display = 'flex';
+  el.innerHTML = '<span style="font-size:11px;color:var(--text3);align-self:center;flex-shrink:0;margin-right:2px;">Réponse rapide :</span>'
+    + qrs.map(function(q){return'<button class="qr-btn" onclick="quickReply(\''+escH(q.replace(/'/g,"\\'"))+'\')">'+escH(q)+'</button>';}).join('');
 }
+function quickReply(text) { document.getElementById('reply-input').value = text; document.getElementById('reply-input').focus(); }
 
-function quickReply(text){
-  document.getElementById('reply-input').value=text;
-  document.getElementById('reply-input').focus();
-}
-
-function aiQuickReply(){
-  if(!_openMsg)return;
-  var suggestions=['Bien reçu, je prends en charge ce dossier immédiatement.','Merci pour cette information. Je reviendrai vers vous d\'ici 30 minutes.','Message transmis à l\'équipe concernée pour traitement prioritaire.','Je valide cette demande. Le dossier sera traité ce jour.'];
-  var s=suggestions[Math.floor(Math.random()*suggestions.length)];
-  document.getElementById('reply-input').value=s;
+function aiQuickReply() {
+  if (!_openMsg) return;
+  var s = ['Bien reçu, je prends en charge ce dossier immédiatement.','Merci pour cette information. Je reviendrai vers vous d\'ici 30 minutes.','Message transmis à l\'équipe concernée pour traitement prioritaire.','Je valide cette demande. Le dossier sera traité ce jour.'];
+  document.getElementById('reply-input').value = s[Math.floor(Math.random() * s.length)];
   document.getElementById('reply-input').focus();
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   ACTIONS MESSAGE
+   ACTIONS — toutes via broker sécurisé
    ════════════════════════════════════════════════════════════════════════════ */
-function refreshStarBtn(starred){
-  var icon=document.getElementById('star-icon');
-  var lbl=document.getElementById('star-label');
-  if(!icon||!lbl)return;
-  if(starred){icon.style.fill='#f59e0b';icon.style.stroke='#f59e0b';}
-  else{icon.style.fill='none';icon.style.stroke='currentColor';}
-  lbl.textContent=starred?'Étoilé':'Étoiler';
+function refreshStarBtn(starred) {
+  var icon = document.getElementById('star-icon');
+  var lbl  = document.getElementById('star-label');
+  if (!icon || !lbl) return;
+  icon.style.fill   = starred ? '#f59e0b' : 'none';
+  icon.style.stroke = starred ? '#f59e0b' : 'currentColor';
+  lbl.textContent   = starred ? 'Étoilé' : 'Étoiler';
 }
-function toggleStar(){
-  if(!_openMsg)return;
-  _openMsg.starred=!_openMsg.starred;
+function toggleStar() {
+  if (!_openMsg) return;
+  _openMsg.starred = !_openMsg.starred;
   refreshStarBtn(_openMsg.starred);
-  var row=document.querySelector('[data-id="'+_openId+'"] .conv-star');
-  if(row)row.classList.toggle('on',_openMsg.starred);
-  sbUpd('veraluz_internal_messages',{starred:_openMsg.starred},'id=eq.'+_openId).catch(function(){});
-  toast(_openMsg.starred?'Message étoilé ★':'Étoile retirée');
+  var row = document.querySelector('[data-id="' + _openId + '"] .conv-star');
+  if (row) row.classList.toggle('on', _openMsg.starred);
+  msgReq('star', { message_id: _openId, starred: _openMsg.starred }).catch(function () {});
+  toast(_openMsg.starred ? 'Message étoilé ★' : 'Étoile retirée');
 }
-function quickStar(id,el){
-  var m=_allMsgs.find(function(x){return x.id===id;});if(!m)return;
-  m.starred=!m.starred;
-  el.classList.toggle('on',m.starred);
-  sbUpd('veraluz_internal_messages',{starred:m.starred},'id=eq.'+id).catch(function(){});
+function quickStar(id, el) {
+  var m = _allMsgs.find(function (x) { return x.id === id; }); if (!m) return;
+  m.starred = !m.starred;
+  el.classList.toggle('on', m.starred);
+  msgReq('star', { message_id: id, starred: m.starred }).catch(function () {});
 }
-function archiveMsg(){
-  if(!_openId)return;
-  if(_openMsg)_openMsg.archived=true;
-  _allMsgs=_allMsgs.filter(function(m){return m.id!==_openId;});
-  sbUpd('veraluz_internal_messages',{archived:true},'id=eq.'+_openId).catch(function(){});
-  closeDetail();renderList();toast('Message archivé');
+
+function archiveMsg() {
+  if (!_openId) return;
+  if (_openMsg) _openMsg.archived = true;
+  _allMsgs = _allMsgs.filter(function (m) { return m.id !== _openId; });
+  msgReq('archive', { message_id: _openId }).catch(function () { toast('Erreur archivage', 'err'); });
+  closeDetail(); renderList(); toast('Message archivé');
 }
-function deleteMsg(){
-  if(!_openId)return;
-  if(!confirm('Supprimer ce message définitivement ?'))return;
-  _allMsgs=_allMsgs.filter(function(m){return m.id!==_openId;});
-  sbDel('veraluz_internal_messages','id=eq.'+_openId).catch(function(){});
-  closeDetail();renderList();toast('Message supprimé');
+
+/* deleteMsg → soft-delete (archive) — aucune suppression physique */
+function deleteMsg() {
+  if (!_openId) return;
+  if (!confirm('Archiver ce message ?')) return;
+  archiveMsg();
 }
-function closeDetail(){
-  _openId=null;_openMsg=null;
-  document.getElementById('det-empty').style.display='flex';
-  document.getElementById('det-view').style.display='none';
-  document.querySelectorAll('.conv-item').forEach(function(el){el.classList.remove('active');});
+
+function closeDetail() {
+  _openId = null; _openMsg = null;
+  document.getElementById('det-empty').style.display = 'flex';
+  document.getElementById('det-view').style.display  = 'none';
+  document.querySelectorAll('.conv-item').forEach(function (el) { el.classList.remove('active'); });
 }
-function markMessageRead(id){
-  var m=_allMsgs.find(function(x){return x.id===id;});
-  if(m){m.read=true;sbUpd('veraluz_internal_messages',{read:true},'id=eq.'+id).catch(function(){});}
+function markMessageRead(id) {
+  var m = _allMsgs.find(function (x) { return x.id === id; });
+  if (m) { m.read = true; msgReq('mark_read', { message_id: id }).catch(function () {}); }
 }
-function archiveMessage(id){
-  if(id){var m=_allMsgs.find(function(x){return x.id===id;});if(m)m.archived=true;_allMsgs=_allMsgs.filter(function(m){return m.id!==id;});sbUpd('veraluz_internal_messages',{archived:true},'id=eq.'+id).catch(function(){});renderList();}
+function archiveMessage(id) {
+  if (!id) return;
+  var m = _allMsgs.find(function (x) { return x.id === id; });
+  if (m) m.archived = true;
+  _allMsgs = _allMsgs.filter(function (x) { return x.id !== id; });
+  msgReq('archive', { message_id: id }).catch(function () {});
+  renderList();
 }
 
 /* ── Répondre ────────────────────────────────────────────────────────────── */
-function focusReply(){document.getElementById('reply-input').focus();}
-function forwardMsg(){
-  openCompose();
-  document.getElementById('cm-subject').value='Fwd: '+((_openMsg&&_openMsg.subject)||'');
-  var fwd='\n\n--- Message transféré ---\nDe : '+((_openMsg&&_openMsg.sender_name)||'')+'\nDate : '+fmtLong((_openMsg&&_openMsg.created_at)||'')+'\n\n'+((_openMsg&&_openMsg.body)||'');
-  document.getElementById('cm-body').value=fwd;
-}
-function replyKeydown(e){if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();sendReply();}}
-function sendReply(){
-  var txt=document.getElementById('reply-input').value.trim();
-  if(!txt){toast('Écrivez votre réponse','err');return;}
-  var actor=getCurrentMessagingActor();
-  var data={
-    parent_id:_openId,
-    sender_name:actor.actor_name,sender_type:actor.actor_type,sender_id:actor.actor_id,
-    department:actor.department,
-    subject:'Re: '+((_openMsg&&_openMsg.subject)||''),
-    body:txt,labels:[],starred:false,read:false,archived:false,is_draft:false,
-    /* PROMPT 038 — destinataire = expéditeur original */
-    recipient_id:(_openMsg&&_openMsg.sender_id)||null,
-    recipient_type:'direct',
-    tenant_id:actor.tenant_id||TENANT,created_at:new Date().toISOString()
-  };
-  if(_openMsg){
-    if(!_openMsg.replies)_openMsg.replies=[];
-    _openMsg.replies.push({sender_name:actor.actor_name,body:txt,created_at:new Date().toISOString()});
-    renderThread(_openMsg);
+function focusReply() { document.getElementById('reply-input').focus(); }
+
+/* Forward — disponible prochainement */
+function forwardMsg() { toast('Transfert de message disponible prochainement.'); }
+
+function replyKeydown(e) { if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); sendReply(); } }
+function sendReply() {
+  var txt = document.getElementById('reply-input').value.trim();
+  if (!txt) { toast('Écrivez votre réponse', 'err'); return; }
+  document.getElementById('reply-input').value = '';
+  /* Optimistic UI */
+  var actor = _actor || { actor_name: 'Moi' };
+  if (_openMsg) {
+    if (!_openMsg._replies) _openMsg._replies = [];
+    _openMsg._replies.push({ sender_name: actor.actor_name, body: txt, created_at: new Date().toISOString() });
+    renderThread(_openMsg, _openMsg._replies);
+    setTimeout(function () { var ta = document.getElementById('thread-area'); if (ta) ta.scrollTop = ta.scrollHeight; }, 60);
   }
-  document.getElementById('reply-input').value='';
-  sbIns('veraluz_internal_messages',data).then(function(){toast('Réponse envoyée','ok');}).catch(function(){toast('Réponse sauvegardée localement');});
-  setTimeout(function(){var ta=document.getElementById('thread-area');if(ta)ta.scrollTop=ta.scrollHeight;},80);
+  msgReq('reply', { parent_id: _openId, body: txt })
+    .then(function (res) {
+      if (res && res.body && res.body.ok) { toast('Réponse envoyée', 'ok'); }
+      else { toast('Erreur: ' + ((res && res.body && res.body.error) || 'envoi échoué'), 'err'); }
+    })
+    .catch(function () { toast('Erreur réseau', 'err'); });
 }
 
-/* ── Chloé IA ────────────────────────────────────────────────────────────── */
-function createChloeMessage(subject,body,labels){
-  var data={
-    sender_name:'Chloé IA',sender_type:'chloe',sender_id:'chloe',
-    department:'direction',recipient_type:'all',
-    subject:subject||'Message Chloé',body:body||'',
-    labels:labels||['chloe'],starred:false,read:false,archived:false,is_draft:false,
-    tenant_id:TENANT,created_at:new Date().toISOString()
-  };
-  return sbIns('veraluz_internal_messages',data);
+/* ── Chloé IA (admin/direction — sender validé côté serveur) ─────────────── */
+function createChloeMessage(subject, body, labels) {
+  return msgReq('create_chloe_message', {
+    subject: subject || 'Message Chloé',
+    body:    body    || '',
+    labels:  labels  || ['chloe'],
+    recipient_type: 'all',
+    department:     'direction'
+  });
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
    COMPOSE (nouveau message)
    ════════════════════════════════════════════════════════════════════════════ */
-function openCompose(){
-  document.getElementById('compose-modal').classList.add('open');
-  document.getElementById('cm-to').focus();
-}
-function closeCompose(){
+function openCompose() { document.getElementById('compose-modal').classList.add('open'); document.getElementById('cm-to').focus(); }
+function closeCompose() {
   document.getElementById('compose-modal').classList.remove('open');
-  document.getElementById('cm-to').value='';
-  document.getElementById('cm-dept').value='';
-  document.getElementById('cm-subject').value='';
-  document.getElementById('cm-body').value='';
-  _selectedLabels=[];
-  updateLabelChips();
+  ['cm-to','cm-subject','cm-body'].forEach(function (id) { document.getElementById(id).value = ''; });
+  var d = document.getElementById('cm-dept'); if (d) d.value = '';
+  _selectedLabels = []; updateLabelChips();
 }
-function updateLabelChips(){
-  document.querySelectorAll('.cm-label-chip').forEach(function(c){c.classList.toggle('on',_selectedLabels.includes(c.dataset.label));});
+function updateLabelChips() {
+  document.querySelectorAll('.cm-label-chip').forEach(function (c) { c.classList.toggle('on', _selectedLabels.includes(c.dataset.label)); });
 }
-document.querySelectorAll('.cm-label-chip').forEach(function(chip){
-  chip.addEventListener('click',function(){
-    var lbl=this.dataset.label;
-    var idx=_selectedLabels.indexOf(lbl);
-    if(idx>=0)_selectedLabels.splice(idx,1);else _selectedLabels.push(lbl);
+document.querySelectorAll('.cm-label-chip').forEach(function (chip) {
+  chip.addEventListener('click', function () {
+    var lbl = this.dataset.label;
+    var idx = _selectedLabels.indexOf(lbl);
+    if (idx >= 0) _selectedLabels.splice(idx, 1); else _selectedLabels.push(lbl);
     updateLabelChips();
   });
 });
 
-function openNewMsg(){openCompose();}
-function submitNewMsg(){
-  var to=document.getElementById('cm-to').value.trim();
-  var dept=document.getElementById('cm-dept').value;
-  var subj=document.getElementById('cm-subject').value.trim();
-  var body=document.getElementById('cm-body').value.trim();
-  if(!subj){toast('Objet requis','err');document.getElementById('cm-subject').focus();return;}
-  if(!body){toast('Corps du message requis','err');document.getElementById('cm-body').focus();return;}
-  var actor=getCurrentMessagingActor();
-  /* PROMPT 038 — recipient_id si destinataire individuel identifié */
-  var recipType=dept?'department':'all';
-  var data={
-    sender_name:actor.actor_name,sender_type:actor.actor_type,sender_id:actor.actor_id,
-    department:dept||actor.department||'direction',
-    recipient_name:to||null,
-    recipient_type:recipType,
-    subject:subj,body:body,
-    labels:_selectedLabels.slice(),
-    starred:false,read:false,archived:false,is_draft:false,
-    tenant_id:actor.tenant_id||TENANT,created_at:new Date().toISOString()
-  };
-  sbIns('veraluz_internal_messages',data).then(function(rows){
-    toast('Message envoyé','ok');closeCompose();loadMessages();
-  }).catch(function(){
-    toast('Message mis en file (connexion perdue)');closeCompose();
-  });
+function openNewMsg() { openCompose(); }
+function submitNewMsg() {
+  var to   = document.getElementById('cm-to').value.trim();
+  var deptEl = document.getElementById('cm-dept');
+  var dept = deptEl ? deptEl.value : '';
+  var subj = document.getElementById('cm-subject').value.trim();
+  var body = document.getElementById('cm-body').value.trim();
+  if (!subj) { toast('Objet requis', 'err'); document.getElementById('cm-subject').focus(); return; }
+  if (!body) { toast('Corps du message requis', 'err'); document.getElementById('cm-body').focus(); return; }
+  var actor = _actor || {};
+  msgReq('create_message', {
+    subject:        subj,
+    body:           body,
+    recipient_name: to   || null,
+    recipient_type: dept ? 'department' : 'all',
+    department:     dept || actor.department || 'direction',
+    labels:         _selectedLabels.slice(),
+    priority:       _selectedLabels.includes('urgent') ? 'high' : 'normal'
+  })
+    .then(function (res) {
+      if (res && res.body && res.body.ok) { toast('Message envoyé', 'ok'); closeCompose(); loadMessages(); }
+      else { toast('Erreur: ' + ((res && res.body && res.body.error) || 'inconnue'), 'err'); }
+    })
+    .catch(function () { toast('Erreur réseau', 'err'); });
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
    NAVIGATION
    ════════════════════════════════════════════════════════════════════════════ */
-function setFolder(el,folder){
-  document.querySelectorAll('.sb-row').forEach(function(r){r.classList.remove('active');});
+function setFolder(el, folder) {
+  document.querySelectorAll('.sb-row').forEach(function (r) { r.classList.remove('active'); });
   el.classList.add('active');
-  _currentFolder=folder;_currentLabel='';
-  _currentFilter='all';
-  document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});
-  var first=document.querySelector('.chip');if(first)first.classList.add('on');
+  _currentFolder = folder; _currentLabel = ''; _currentFilter = 'all';
+  document.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('on'); });
+  var first = document.querySelector('.chip'); if (first) first.classList.add('on');
   loadMessages();
 }
-function setFilter(el,filter){
-  document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});
-  el.classList.add('on');
-  _currentFilter=filter;renderList();
+function setFilter(el, filter) {
+  document.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('on'); });
+  el.classList.add('on'); _currentFilter = filter; renderList();
 }
-function filterLabel(label){
-  _currentLabel=(_currentLabel===label?'':label);renderList();
-}
-function onSearch(q){_searchQ=q;renderList();}
+function filterLabel(label) { _currentLabel = (_currentLabel === label ? '' : label); renderList(); }
+function onSearch(q) { _searchQ = q; renderList(); }
 
 /* ── Threads (compatibilité) ─────────────────────────────────────────────── */
-function loadMessageThreads(){loadMessages();}
-function openMessageThread(id){openMsg(id);}
-function submitThreadMsg(){sendReply();}
+function loadMessageThreads() { loadMessages(); }
+function openMessageThread(id) { openMsg(id); }
+function submitThreadMsg() { sendReply(); }
 
 /* ── Badges ──────────────────────────────────────────────────────────────── */
-function updateBadges(){
-  var unread=_allMsgs.filter(function(m){return!m.read&&!m.archived&&!m.is_draft;}).length;
-  var drafts=_allMsgs.filter(function(m){return m.is_draft;}).length;
-  var bi=document.getElementById('badge-inbox');
-  if(bi){bi.textContent=unread||'';bi.style.display=unread?'':'none';}
-  var bd=document.getElementById('badge-drafts');
-  if(bd){bd.textContent=drafts||'';bd.style.display=drafts?'':'none';}
-  try{window.parent.postMessage({type:'msg-badge',count:unread},'*');}catch(e){}
+function updateBadges() {
+  var unread = _allMsgs.filter(function (m) { return !m.read && !m.archived && !m.is_draft; }).length;
+  var drafts = _allMsgs.filter(function (m) { return m.is_draft; }).length;
+  var bi = document.getElementById('badge-inbox');  if (bi) { bi.textContent = unread || ''; bi.style.display = unread ? '' : 'none'; }
+  var bd = document.getElementById('badge-drafts'); if (bd) { bd.textContent = drafts || ''; bd.style.display = drafts ? '' : 'none'; }
+  try { window.parent.postMessage({ type: 'msg-badge', count: unread }, '*'); } catch (e) {}
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
    THÈME VERALUZ
    ════════════════════════════════════════════════════════════════════════════ */
-function applyVlTheme(){
-  var dark=localStorage.getItem('vl_theme')==='dark';
-  document.documentElement.classList.toggle('vl-dark',dark);
-  var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';
+function applyVlTheme() {
+  var dark = localStorage.getItem('vl_theme') === 'dark';
+  document.documentElement.classList.toggle('vl-dark', dark);
+  var btn = document.getElementById('vl-tm-btn'); if (btn) btn.textContent = dark ? '☀️' : '🌙';
 }
-function toggleVlTheme(){
-  var dark=localStorage.getItem('vl_theme')==='dark';
-  localStorage.setItem('vl_theme',dark?'light':'dark');
+function toggleVlTheme() {
+  var dark = localStorage.getItem('vl_theme') === 'dark';
+  localStorage.setItem('vl_theme', dark ? 'light' : 'dark');
   applyVlTheme();
-  try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}
+  try { window.parent.postMessage({ type: 'vl-theme', theme: dark ? 'light' : 'dark' }, '*'); } catch (e) {}
 }
-window.addEventListener('message',function(e){
-  if(e.data&&e.data.type==='vl-theme')applyVlTheme();
-});
+window.addEventListener('message', function (e) { if (e.data && e.data.type === 'vl-theme') applyVlTheme(); });
 
 /* ════════════════════════════════════════════════════════════════════════════
    INIT
    ════════════════════════════════════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded',function(){
+document.addEventListener('DOMContentLoaded', function () {
   applyVlTheme();
-  getCurrentMessagingActor();
-  loadMessages();
+  loadMessages();         /* _actor peuplé depuis la première réponse serveur */
   startMsgAlertPolling();
 });
 </script>

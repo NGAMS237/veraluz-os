@@ -567,6 +567,7 @@ var _products = {};   // { product_id: product }
 var _activeCat = 'all';
 var _menuLoaded = false;
 var _pollingTimer = null;
+var _roomServiceEnabled = true; // set from render(stay)
 var _currentView = 'accueil';
 var _restTab = 'menu';
 
@@ -633,8 +634,7 @@ function switchView(v){
   if(restIco) restIco.setAttribute('stroke', v==='restaurant'?'var(--turq)':'var(--text-3)');
   // Cart bar only on restaurant/menu
   updateCartBar();
-  if(v==='restaurant'&&!_menuLoaded) loadMenu();
-  if(v==='restaurant') stopPolling();
+  if(v==='restaurant'){_menuLoaded=false;loadMenu();stopPolling();}
 }
 
 /* ── Restaurant tabs ── */
@@ -660,6 +660,25 @@ function setRestTab(t){
 /* ── Menu loading ── */
 function loadMenu(){
   if(_menuLoaded) return;
+  // Polish 1: Room Service disabled check
+  if(!_roomServiceEnabled){
+    document.getElementById('rest-menu-loading').style.display='none';
+    var unavail=document.getElementById('rest-menu-unavail');
+    var msg=document.getElementById('rest-unavail-msg');
+    if(unavail) unavail.classList.remove('hidden');
+    if(msg) msg.textContent='Le Room Service est actuellement indisponible.';
+    var btn=document.getElementById('btn-order'); if(btn) btn.disabled=true;
+    return;
+  }
+  // Reset UI state on each fresh load
+  var _ld=document.getElementById('rest-menu-loading');
+  var _er=document.getElementById('rest-menu-error');
+  var _un=document.getElementById('rest-menu-unavail');
+  var _ct=document.getElementById('rest-menu-content');
+  if(_ld){_ld.style.display='';}
+  if(_er){_er.classList.add('hidden');_er.textContent='';}
+  if(_un){_un.classList.add('hidden');}
+  if(_ct){_ct.classList.add('hidden');}
   callEF({action:'get_restaurant_menu'}).then(function(d){
     document.getElementById('rest-menu-loading').style.display='none';
     if(!d.ok){
@@ -1074,6 +1093,8 @@ function render(stay){
     document.getElementById('recept-phone').textContent=stay.contact.phone;
     document.getElementById('call-btn').href='tel:'+stay.contact.phone.replace(/\s/g,'');
   }
+  /* Stocker room_service_enabled pour Polish 1 */
+  _roomServiceEnabled = !!(stay.restaurant && stay.restaurant.room_service_enabled);
   /* Restaurant card (accueil) */
   var restCard=document.getElementById('rest-card');
   if(stay.restaurant&&stay.restaurant.enabled){

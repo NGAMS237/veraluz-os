@@ -1,22 +1,22 @@
 /**
- * GUEST-3 — guest-access Edge Function v3
- * Restaurant Room Service + suivi commandes
+ * GUEST-3.3 — guest-access Edge Function v6
+ * Feedback client + Usage tracking
  *
- * Nouveautés v3:
- *   get_restaurant_menu        — menu public room_service (actif + disponible)
- *   create_restaurant_order    — commande Room Service sécurisée (checkedin requis)
- *   get_my_restaurant_orders   — commandes du séjour (isolation stricte par guest_session)
- *
- * Scopes ajoutés aux nouvelles sessions:
- *   restaurant.read, restaurant.order, restaurant.orders.read
+ * Nouveautés v6:
+ *   portal_open            — première ouverture + comptage (is_new_load)
+ *   log_activity           — allowlist stricte, metadata filtrée
+ *   submit_feedback        — review/complaint, severity déterministe, employee résolu serveur
+ *   list_feedback          — direction uniquement
+ *   update_feedback_status — direction uniquement
+ *   get_usage_stats        — synthèse usage direction
  *
  * Règles sécurité:
- *   - reservation_id / unit_id jamais depuis le body client
- *   - price / total jamais depuis le body client (prix DB uniquement)
- *   - commande uniquement si reservation.status = 'checkedin'
- *   - idempotence: (guest_session_id, client_order_key) unique en DB
- *   - isolation: get_my_restaurant_orders filtre par session.reservation_id
- *   - room_service_enabled obligatoire sur le produit
+ *   - reservation_id toujours depuis session (serveur)
+ *   - related_employee_id résolu depuis food_orders (jamais depuis client)
+ *   - aucune sanction automatique employé
+ *   - event_type: allowlist stricte
+ *   - metadata: clés autorisées uniquement
+ *   - no IP, no fingerprint, no raw token logged
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -867,6 +867,340 @@ Deno.serve(async (req: Request) => {
 
     return json({ ok: true, message: 'Session guest révoquée avec succès.' }, 200, cors);
   }
+
+
+  // ══════════════════════════════════════════════════════════════════
+  // PORTAL_OPEN — premier ouverture + comptage (guest authentifié)
+  // Distingue "nouvelle ouverture" vs polling via le flag is_new_load
+  // ══════════════════════════════════════════════════════════════════
+  if (action === 'portal_open') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error, session } = await validateGuestToken(db, rawToken);
+    if (error) return json({ ok: false, error, message: guestErrorMsg(error) }, 401, cors);
+
+    const isNewLoad = body.is_new_load === true;
+    const now = new Date().toISOString();
+    const current = session!;
+
+    const updates: Record<string, any> = { last_seen_at: now };
+
+    if (!current.first_opened_at) {
+      updates.first_opened_at = now;
+      updates.open_count = 1;
+    } else if (isNewLoad) {
+      updates.open_count = (current.open_count ?? 0) + 1;
+    }
+
+    await db.from('veraluz_guest_sessions')
+      .update(updates)
+      .eq('id', current.id);
+
+    // Log event si nouvelle ouverture
+    if (!current.first_opened_at || isNewLoad) {
+      await db.from('veraluz_guest_activity').insert({
+        tenant_id:        'veraluz-001',
+        guest_session_id: current.id,
+        reservation_id:   current.reservation_id,
+        event_type:       'portal_opened',
+        metadata:         {},
+      });
+    }
+
+    return json({ ok: true, first_open: !current.first_opened_at }, 200, cors);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // LOG_ACTIVITY — allowlist stricte, metadata filtrée serveur
+  // ══════════════════════════════════════════════════════════════════
+  const ACTIVITY_ALLOWLIST = new Set([
+    'portal_opened','restaurant_viewed','restaurant_order_created',
+    'room_service_confirmed','feedback_opened','feedback_submitted',
+  ]);
+  const ACTIVITY_ALLOWED_META_KEYS = new Set(['order_id','feedback_id','view_name']);
+
+  if (action === 'log_activity') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error, session } = await validateGuestToken(db, rawToken);
+    if (error) return json({ ok: false, error, message: guestErrorMsg(error) }, 401, cors);
+
+    const eventType = body.event_type as string | undefined;
+    if (!eventType || !ACTIVITY_ALLOWLIST.has(eventType))
+      return json({ ok: false, error: 'invalid_event_type' }, 400, cors);
+
+    // Filtrer metadata — uniquement clés autorisées, valeurs string/uuid
+    const rawMeta = (body.metadata && typeof body.metadata === 'object') ? body.metadata as Record<string,any> : {};
+    const safeMeta: Record<string, string> = {};
+    for (const [k, v] of Object.entries(rawMeta)) {
+      if (ACTIVITY_ALLOWED_META_KEYS.has(k) && typeof v === 'string' && v.length < 100) {
+        safeMeta[k] = v;
+      }
+    }
+
+    // Update last_seen_at
+    await db.from('veraluz_guest_sessions')
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq('id', session!.id);
+
+    await db.from('veraluz_guest_activity').insert({
+      tenant_id:        'veraluz-001',
+      guest_session_id: session!.id,
+      reservation_id:   session!.reservation_id,
+      event_type:       eventType,
+      metadata:         safeMeta,
+    });
+
+    return json({ ok: true }, 200, cors);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // SUBMIT_FEEDBACK — guest soumet un feedback
+  // related_employee_id résolu SERVEUR depuis related_order_id
+  // Aucune donnée identité client fiable depuis body
+  // ══════════════════════════════════════════════════════════════════
+  const FEEDBACK_CATEGORIES = new Set([
+    'accueil','chambre_proprete','restaurant','room_service',
+    'maintenance','facturation','securite','autre',
+  ]);
+
+  if (action === 'submit_feedback') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error, session } = await validateGuestToken(db, rawToken);
+    if (error) return json({ ok: false, error, message: guestErrorMsg(error) }, 401, cors);
+
+    if (!(session!.scopes as string[]).includes('stay.read'))
+      return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
+
+    // Valider type
+    const feedbackType = body.feedback_type as string | undefined;
+    if (!feedbackType || !['review','complaint'].includes(feedbackType))
+      return json({ ok: false, error: 'invalid_feedback_type' }, 400, cors);
+
+    // Valider catégorie
+    const category = body.category as string | undefined;
+    if (!category || !FEEDBACK_CATEGORIES.has(category))
+      return json({ ok: false, error: 'invalid_category' }, 400, cors);
+
+    // Rating optionnel — validate range
+    const ratingRaw = body.rating;
+    let rating: number | null = null;
+    if (ratingRaw !== undefined && ratingRaw !== null) {
+      rating = Number(ratingRaw);
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5)
+        return json({ ok: false, error: 'invalid_rating' }, 400, cors);
+    }
+
+    // Commentaire optionnel — limiter longueur
+    const rawComment = body.comment as string | undefined;
+    let comment: string | null = null;
+    if (rawComment) {
+      if (rawComment.length > 2000)
+        return json({ ok: false, error: 'comment_too_long', max: 2000 }, 400, cors);
+      comment = rawComment;
+    }
+
+    const contactRequested = body.contact_requested === true;
+
+    // related_order_id — valider isolation reservation_id
+    let relatedOrderId: string | null = null;
+    let relatedEmployeeId: string | null = null;
+
+    const rawOrderId = body.related_order_id as string | undefined;
+    if (rawOrderId) {
+      const { data: ord } = await db
+        .from('veraluz_food_orders')
+        .select('id, room_service_employee_id, reservation_id')
+        .eq('id', rawOrderId)
+        .eq('reservation_id', session!.reservation_id) // isolation garantie serveur
+        .eq('source', 'guest_portal')
+        .maybeSingle();
+      if (!ord) return json({ ok: false, error: 'order_not_found' }, 404, cors);
+      relatedOrderId = ord.id;
+      // Résolution serveur — jamais depuis client
+      relatedEmployeeId = ord.room_service_employee_id ?? null;
+    }
+
+    // Calcul severity — 100% déterministe serveur
+    let severity = 'normal';
+    if (category === 'securite') {
+      severity = (rating !== null && rating <= 2) ? 'critical' : 'high';
+    } else if (rating !== null) {
+      if (rating <= 2)      severity = 'high';
+      else if (rating === 3) severity = 'attention';
+    }
+    if (contactRequested && severity === 'normal') severity = 'attention';
+
+    const { data: fb, error: insErr } = await db
+      .from('veraluz_guest_feedback')
+      .insert({
+        tenant_id:           'veraluz-001',
+        guest_session_id:    session!.id,
+        reservation_id:      session!.reservation_id, // jamais depuis client
+        feedback_type:       feedbackType,
+        category,
+        rating,
+        comment,
+        related_order_id:    relatedOrderId,
+        related_employee_id: relatedEmployeeId,
+        severity,
+        contact_requested:   contactRequested,
+        status:              'new',
+      })
+      .select('id, severity')
+      .single();
+
+    if (insErr) {
+      console.error('[guest-access] submit_feedback:', insErr.message);
+      return json({ ok: false, error: 'feedback_create_failed' }, 500, cors);
+    }
+
+    // Log activité
+    await db.from('veraluz_guest_activity').insert({
+      tenant_id: 'veraluz-001', guest_session_id: session!.id,
+      reservation_id: session!.reservation_id, event_type: 'feedback_submitted',
+      metadata: { feedback_id: fb!.id },
+    });
+
+    return json({ ok: true, feedback_id: fb!.id, severity: fb!.severity, needs_attention: ['high','critical'].includes(fb!.severity) || contactRequested }, 200, cors);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // LIST_FEEDBACK — direction uniquement
+  // ══════════════════════════════════════════════════════════════════
+  const DIRECTION_ROLES = new Set([
+    'gerant','direction','directrice','manager','admin','superadmin',
+  ]);
+
+  if (action === 'list_feedback') {
+    const sessionToken = req.headers.get('x-veraluz-session') ?? '';
+    const emp = await validateEmployeeSession(db, sessionToken);
+    if (!emp) return json({ ok: false, error: 'auth_required' }, 401, cors);
+    if (!DIRECTION_ROLES.has((emp.role ?? '').toLowerCase()))
+      return json({ ok: false, error: 'insufficient_role' }, 403, cors);
+
+    const statusFilter  = body.status  as string | undefined;
+    const severityFilter= body.severity as string | undefined;
+    const limitReq      = Math.min(Number(body.limit) || 50, 100);
+
+    let q = db.from('veraluz_guest_feedback')
+      .select('id, reservation_id, feedback_type, category, rating, comment, severity, contact_requested, status, related_employee_id, created_at, acknowledged_at, resolved_at, resolution_note')
+      .order('created_at', { ascending: false })
+      .limit(limitReq);
+
+    if (statusFilter)   q = q.eq('status', statusFilter);
+    if (severityFilter) q = q.eq('severity', severityFilter);
+
+    const { data: feedbacks, error: fErr } = await q;
+    if (fErr) return json({ ok: false, error: 'list_failed' }, 500, cors);
+
+    return json({ ok: true, feedbacks: feedbacks || [] }, 200, cors);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // UPDATE_FEEDBACK_STATUS — direction uniquement
+  // ══════════════════════════════════════════════════════════════════
+  if (action === 'update_feedback_status') {
+    const sessionToken = req.headers.get('x-veraluz-session') ?? '';
+    const emp = await validateEmployeeSession(db, sessionToken);
+    if (!emp) return json({ ok: false, error: 'auth_required' }, 401, cors);
+    if (!DIRECTION_ROLES.has((emp.role ?? '').toLowerCase()))
+      return json({ ok: false, error: 'insufficient_role' }, 403, cors);
+
+    const feedbackId   = body.feedback_id as string | undefined;
+    const newStatus    = body.status as string | undefined;
+    const resolutionNote = body.resolution_note as string | undefined;
+
+    if (!feedbackId) return json({ ok: false, error: 'feedback_id_required' }, 400, cors);
+    if (!newStatus || !['acknowledged','in_progress','resolved','closed'].includes(newStatus))
+      return json({ ok: false, error: 'invalid_status' }, 400, cors);
+    if (resolutionNote && resolutionNote.length > 1000)
+      return json({ ok: false, error: 'resolution_note_too_long' }, 400, cors);
+
+    const now = new Date().toISOString();
+    const updates: Record<string, any> = { status: newStatus };
+    if (newStatus === 'acknowledged' || newStatus === 'in_progress') {
+      updates.acknowledged_at = now;
+      updates.acknowledged_by = emp.id;
+    }
+    if (newStatus === 'resolved' || newStatus === 'closed') {
+      updates.resolved_at = now;
+      updates.resolved_by = emp.id;
+      if (resolutionNote) updates.resolution_note = resolutionNote;
+    }
+
+    const { error: updErr } = await db
+      .from('veraluz_guest_feedback')
+      .update(updates)
+      .eq('id', feedbackId);
+
+    if (updErr) return json({ ok: false, error: 'update_failed' }, 500, cors);
+
+    return json({ ok: true }, 200, cors);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // GET_USAGE_STATS — direction, synthèse usage Guest Portal
+  // ══════════════════════════════════════════════════════════════════
+  if (action === 'get_usage_stats') {
+    const sessionToken = req.headers.get('x-veraluz-session') ?? '';
+    const emp = await validateEmployeeSession(db, sessionToken);
+    if (!emp) return json({ ok: false, error: 'auth_required' }, 401, cors);
+    if (!DIRECTION_ROLES.has((emp.role ?? '').toLowerCase()))
+      return json({ ok: false, error: 'insufficient_role' }, 403, cors);
+
+    // Sessions actives
+    const { data: sessions } = await db
+      .from('veraluz_guest_sessions')
+      .select('id, reservation_id, first_opened_at, last_seen_at, open_count, status, expires_at')
+      .eq('status', 'active')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    const allSessions = sessions || [];
+    const total       = allSessions.length;
+    const neverOpened = allSessions.filter(s => !s.first_opened_at).length;
+    const opened      = total - neverOpened;
+
+    // Activités récentes
+    const cutoff24h = new Date(Date.now() - 86400000).toISOString();
+    const { data: recentActs } = await db
+      .from('veraluz_guest_activity')
+      .select('event_type, guest_session_id')
+      .gt('created_at', cutoff24h);
+
+    const acts = recentActs || [];
+    const restViewed  = new Set(acts.filter(a => a.event_type==='restaurant_viewed').map(a=>a.guest_session_id)).size;
+    const orderCreate = acts.filter(a => a.event_type==='restaurant_order_created').length;
+
+    // Feedbacks new/attention
+    const { data: fbStats } = await db
+      .from('veraluz_guest_feedback')
+      .select('id, status, severity')
+      .in('status', ['new','acknowledged','in_progress']);
+
+    const fbs       = fbStats || [];
+    const fbNew     = fbs.filter(f => f.status === 'new').length;
+    const fbHigh    = fbs.filter(f => ['high','critical'].includes(f.severity)).length;
+
+    return json({
+      ok: true,
+      stats: {
+        active_sessions:     total,
+        portal_opened:       opened,
+        never_opened:        neverOpened,
+        usage_rate_pct:      total > 0 ? Math.round((opened/total)*100) : 0,
+        restaurant_viewed:   restViewed,
+        orders_created_24h:  orderCreate,
+        feedbacks_pending:   fbNew,
+        feedbacks_high:      fbHigh,
+      },
+    }, 200, cors);
+  }
+
+
 
   return json({ error: 'unknown_action' }, 400, cors);
 });

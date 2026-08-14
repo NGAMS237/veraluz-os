@@ -265,6 +265,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .hidden{display:none!important}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .fade-in{animation:fadeUp .3s ease-out both}
+
+/* ─ Feedback overlay ─ */
+#feedback-overlay{position:fixed;inset:0;z-index:700;background:var(--ivory);overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(24px + var(--safe-bot));animation:slideUp .28s ease-out both}
+@keyframes slideUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+.fb-type-btn:active{opacity:.8}
+.fb-cat-btn{background:var(--white);border:2px solid var(--gray-2);border-radius:var(--r-sm);padding:12px 10px;text-align:center;cursor:pointer;transition:all .15s;font-size:12px;font-weight:600;color:var(--text-1);font-family:inherit}
+.fb-cat-btn.sel{border-color:var(--navy);background:rgba(10,30,53,.04)}
+.fb-star{background:none;border:none;cursor:pointer;padding:4px;font-size:30px;transition:transform .1s;line-height:1}
+.fb-star:active{transform:scale(1.2)}
 </style>
 </head>
 <body>
@@ -379,6 +388,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
         </div>
         <div class="ic-div"></div>
         <div class="ic-body" id="rest-body"></div>
+      </div>
+      <div class="sec-label">Votre avis</div>
+      <div class="info-card" style="cursor:pointer" onclick="openFeedback(null)">
+        <div class="info-card-hdr">
+          <div class="ic-ico" style="background:var(--navy)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <div style="flex:1"><div class="ic-title">Parler à la Direction</div><div class="ic-sub">Avis, suggestions, signalements</div></div>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
       </div>
       <div class="sec-label">Services</div>
       <div class="soon-card">
@@ -511,6 +528,80 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 
 </div><!-- /app -->
 
+<!-- Feedback overlay -->
+<div id="feedback-overlay" style="display:none">
+  <div style="background:var(--navy);padding:calc(16px + var(--safe-top)) 20px 20px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--turq);margin-bottom:4px">Résidences Veraluz</div>
+        <div style="font-size:19px;font-weight:700;color:#fff">Parler à la Direction</div>
+      </div>
+      <button onclick="closeFeedback()" style="width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:transparent;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">&#x2715;</button>
+    </div>
+    <div style="font-size:12px;color:rgba(255,255,255,.45)">Vos retours sont transmis directement à la direction. Confidentiels.</div>
+  </div>
+
+  <!-- Étape 1 : Type -->
+  <div id="fb-step-1" style="padding:20px 16px">
+    <div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px">Quel type de retour souhaitez-vous partager ?</div>
+    <div style="font-size:11.5px;color:var(--text-3);margin-bottom:20px">Votre message est confidentiel et réservé à la direction.</div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <button id="fbt-review" class="fb-type-btn" onclick="selectFbType('review')" style="background:var(--white);border:2px solid var(--gray-2);border-radius:var(--r-sm);padding:18px 16px;text-align:left;cursor:pointer;width:100%">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:36px;height:36px;border-radius:9px;background:var(--green-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg></div>
+          <div><div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:3px">Avis positif</div><div style="font-size:12px;color:var(--text-3)">Partagez ce qui vous a plu.</div></div>
+        </div>
+      </button>
+      <button id="fbt-complaint" class="fb-type-btn" onclick="selectFbType('complaint')" style="background:var(--white);border:2px solid var(--gray-2);border-radius:var(--r-sm);padding:18px 16px;text-align:left;cursor:pointer;width:100%">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:36px;height:36px;border-radius:9px;background:var(--danger-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+          <div><div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:3px">Signalement</div><div style="font-size:12px;color:var(--text-3)">Signalez un problème rencontré.</div></div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Étape 2 : Catégorie -->
+  <div id="fb-step-2" style="display:none;padding:20px 16px">
+    <div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px">Quel domaine concerne votre retour ?</div>
+    <div style="font-size:11.5px;color:var(--text-3);margin-bottom:16px" id="fb-step2-sub"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" id="fb-cat-grid"></div>
+    <button onclick="fbGoBack(1)" style="margin-top:18px;display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--text-3);font-size:12px;font-weight:600;cursor:pointer;padding:4px 0">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Retour
+    </button>
+  </div>
+
+  <!-- Étape 3 : Note + commentaire -->
+  <div id="fb-step-3" style="display:none;padding:20px 16px">
+    <div style="font-size:14px;font-weight:700;color:var(--text-1);margin-bottom:4px">Votre évaluation</div>
+    <div style="font-size:11.5px;color:var(--text-3);margin-bottom:16px" id="fb-step3-sub"></div>
+    <div id="fb-stars" style="display:flex;justify-content:center;gap:8px;padding:4px 0 20px"></div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-3);margin-bottom:6px">Votre message (optionnel)</div>
+    <textarea id="fb-comment" rows="4" maxlength="2000" placeholder="Décrivez votre expérience…" style="width:100%;padding:12px;border:1px solid var(--gray-2);border-radius:var(--r-xs);font-size:13px;color:var(--text-1);resize:none;font-family:inherit;background:var(--white);outline:none;min-height:96px"></textarea>
+    <label style="display:flex;align-items:flex-start;gap:10px;padding:14px 0 10px;cursor:pointer">
+      <input type="checkbox" id="fb-contact" style="width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--navy)">
+      <span style="font-size:12.5px;color:var(--text-2);line-height:1.5">Je souhaite être recontacté(e) par la direction</span>
+    </label>
+    <div id="fb-submit-err" style="font-size:12px;color:var(--danger);min-height:18px;margin-bottom:8px"></div>
+    <button id="fb-submit-btn" onclick="submitFeedback()" style="display:block;width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r-sm);font-size:14px;font-weight:700;cursor:pointer">Envoyer</button>
+    <button onclick="fbGoBack(2)" style="margin-top:10px;display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--text-3);font-size:12px;font-weight:600;cursor:pointer;padding:4px 0">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Retour
+    </button>
+  </div>
+
+  <!-- Étape 4 : Succès -->
+  <div id="fb-step-done" style="display:none;padding:48px 20px;text-align:center">
+    <div style="width:64px;height:64px;border-radius:50%;background:var(--green-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 18px">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div style="font-size:19px;font-weight:700;color:var(--text-1);margin-bottom:10px">Message envoyé</div>
+    <div id="fb-done-msg" style="font-size:13px;color:var(--text-3);line-height:1.6;max-width:260px;margin:0 auto 28px"></div>
+    <button onclick="closeFeedback()" style="display:block;width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r-sm);font-size:14px;font-weight:700;cursor:pointer">Fermer</button>
+  </div>
+</div>
+
 <!-- Bottom nav -->
 <nav class="vl-nav" id="vl-nav">
   <div class="nav-items">
@@ -570,6 +661,8 @@ var _pollingTimer = null;
 var _roomServiceEnabled = true; // set from render(stay)
 var _currentView = 'accueil';
 var _restTab = 'menu';
+var _restViewedLogged = false;
+var _fbType = null, _fbCat = null, _fbRating = null, _fbRelatedOrderId = null, _fbLogged = false;
 
 /* ── Dates ── */
 var MO=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
@@ -635,6 +728,7 @@ function switchView(v){
   // Cart bar only on restaurant/menu
   updateCartBar();
   if(v==='restaurant'){_menuLoaded=false;loadMenu();stopPolling();}
+  if(v==='restaurant'&&!_restViewedLogged){callEF({action:'log_activity',event_type:'restaurant_viewed'}).catch(function(){});_restViewedLogged=true;}
 }
 
 /* ── Restaurant tabs ── */
@@ -902,6 +996,7 @@ function submitOrder(){
     renderProductGrid(_activeCat);
     document.getElementById('cart-note').value='';
     showOrderSuccess(d);
+    callEF({action:'log_activity',event_type:'restaurant_order_created',metadata:{order_id:d.order_id||d.id||''}}).catch(function(){});
   }).catch(function(){
     btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:6px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Commander en chambre';
     errEl.textContent='Erreur de connexion. Réessayez.';
@@ -1023,6 +1118,7 @@ function renderTimeline(wrap, status, createdAt, opts){
 function doConfirmReceived(orderId, wrap, opts){
   callEF({action:'confirm_received',order_id:orderId}).then(function(d){
     if(d.ok){
+      callEF({action:'log_activity',event_type:'room_service_confirmed',metadata:{order_id:orderId}}).catch(function(){});
       var newOpts=Object.assign({},opts,{confirmed:true});
       renderTimeline(wrap, 'delivered', null, newOpts);
     }
@@ -1063,6 +1159,118 @@ function startPolling(orderId, orderNum){
   }, 20000);
 }
 function stopPolling(){if(_pollingTimer){clearInterval(_pollingTimer);_pollingTimer=null;}}
+
+/* ── GUEST-3.3: Feedback ── */
+var FB_CATS=[
+  {key:'accueil',label:'Accueil & Réception'},
+  {key:'chambre_proprete',label:'Chambre & Propreté'},
+  {key:'restaurant',label:'Restaurant'},
+  {key:'room_service',label:'Room Service'},
+  {key:'maintenance',label:'Maintenance'},
+  {key:'facturation',label:'Facturation'},
+  {key:'securite',label:'Sécurité'},
+  {key:'autre',label:'Autre'},
+];
+
+function openFeedback(relatedOrderId){
+  _fbType=null; _fbCat=null; _fbRating=null;
+  _fbRelatedOrderId=relatedOrderId||null;
+  ['fb-step-1','fb-step-2','fb-step-3','fb-step-done'].forEach(function(id,i){
+    var el=document.getElementById(id); if(el) el.style.display=i===0?'block':'none';
+  });
+  document.querySelectorAll('.fb-type-btn').forEach(function(b){b.style.borderColor='var(--gray-2)';b.style.background='var(--white)';});
+  var fc=document.getElementById('fb-comment'); if(fc) fc.value='';
+  var fck=document.getElementById('fb-contact'); if(fck) fck.checked=false;
+  var ferr=document.getElementById('fb-submit-err'); if(ferr) ferr.textContent='';
+  var btn=document.getElementById('fb-submit-btn'); if(btn){btn.disabled=false;btn.textContent='Envoyer';}
+  var ov=document.getElementById('feedback-overlay'); if(ov){ov.style.display='block';ov.scrollTop=0;}
+  if(!_fbLogged){callEF({action:'log_activity',event_type:'feedback_opened'}).catch(function(){});_fbLogged=true;}
+}
+
+function closeFeedback(){
+  var ov=document.getElementById('feedback-overlay'); if(ov) ov.style.display='none';
+  _fbLogged=false;
+}
+
+function selectFbType(type){
+  _fbType=type;
+  document.querySelectorAll('.fb-type-btn').forEach(function(b){b.style.borderColor='var(--gray-2)';b.style.background='var(--white)';});
+  var sel=document.getElementById('fbt-'+type);
+  if(sel){sel.style.borderColor='var(--navy)';sel.style.background='rgba(10,30,53,.04)';}
+  setTimeout(function(){
+    document.getElementById('fb-step-1').style.display='none';
+    document.getElementById('fb-step-2').style.display='block';
+    var sub=document.getElementById('fb-step2-sub');
+    if(sub) sub.textContent=type==='review'?"Qu'est-ce qui vous a particulièrement plu ?":'Quel aspect souhaitez-vous signaler ?';
+    renderFbCatGrid();
+  },150);
+}
+
+function renderFbCatGrid(){
+  var grid=document.getElementById('fb-cat-grid'); if(!grid) return;
+  grid.innerHTML='';
+  FB_CATS.forEach(function(c){
+    var btn=document.createElement('button');
+    btn.className='fb-cat-btn'+(_fbCat===c.key?' sel':'');
+    btn.textContent=c.label;
+    btn.addEventListener('click',function(){selectFbCat(c.key);});
+    grid.appendChild(btn);
+  });
+}
+
+function selectFbCat(cat){
+  _fbCat=cat;
+  document.getElementById('fb-step-2').style.display='none';
+  document.getElementById('fb-step-3').style.display='block';
+  var sub=document.getElementById('fb-step3-sub');
+  if(sub) sub.textContent=_fbType==='review'?'Donnez une note globale (optionnel).':'Évaluez la gravité (1 = très grave, 5 = mineur, optionnel).';
+  renderFbStars(null);
+}
+
+function renderFbStars(sel){
+  _fbRating=sel;
+  var wrap=document.getElementById('fb-stars'); if(!wrap) return;
+  wrap.innerHTML='';
+  [1,2,3,4,5].forEach(function(n){
+    var btn=document.createElement('button');
+    btn.className='fb-star';
+    btn.textContent=n<=(sel||0)?'★':'☆';
+    btn.style.color=n<=(sel||0)?'var(--gold)':'var(--gray-2)';
+    btn.addEventListener('click',function(){renderFbStars(n);});
+    wrap.appendChild(btn);
+  });
+}
+
+function fbGoBack(toStep){
+  ['fb-step-1','fb-step-2','fb-step-3','fb-step-done'].forEach(function(id,i){
+    var el=document.getElementById(id); if(el) el.style.display=(i+1===toStep)?'block':'none';
+  });
+}
+
+function submitFeedback(){
+  var comment=(document.getElementById('fb-comment').value||'').trim();
+  var contactRequested=!!(document.getElementById('fb-contact')&&document.getElementById('fb-contact').checked);
+  var errEl=document.getElementById('fb-submit-err');
+  var btn=document.getElementById('fb-submit-btn');
+  if(!_fbType||!_fbCat){if(errEl) errEl.textContent='Veuillez compléter les étapes précédentes.';return;}
+  if(btn){btn.disabled=true;btn.textContent='Envoi…';} if(errEl) errEl.textContent='';
+  var payload={action:'submit_feedback',feedback_type:_fbType,category:_fbCat,contact_requested:contactRequested};
+  if(_fbRating) payload.rating=_fbRating;
+  if(comment) payload.comment=comment;
+  if(_fbRelatedOrderId) payload.related_order_id=_fbRelatedOrderId;
+  callEF(payload).then(function(d){
+    if(btn){btn.disabled=false;btn.textContent='Envoyer';}
+    if(!d.ok){if(errEl) errEl.textContent=d.message||'Erreur. Veuillez réessayer.';return;}
+    document.getElementById('fb-step-3').style.display='none';
+    document.getElementById('fb-step-done').style.display='block';
+    var msg=document.getElementById('fb-done-msg');
+    if(msg) msg.textContent=_fbType==='review'?'Merci pour votre avis. Vos retours nous aident à améliorer votre expérience.':'Merci pour votre signalement. La direction en a été informée et prendra les mesures nécessaires.';
+    callEF({action:'log_activity',event_type:'feedback_submitted',metadata:{feedback_id:d.feedback_id||''}}).catch(function(){});
+  }).catch(function(){
+    if(btn){btn.disabled=false;btn.textContent='Envoyer';}
+    if(errEl) errEl.textContent='Erreur de connexion. Veuillez réessayer.';
+  });
+}
 
 /* ── Mes commandes ── */
 function loadMyOrders(){
@@ -1124,6 +1332,14 @@ function renderOrderDetail(o){
     var noteCard=document.createElement('div'); noteCard.className='info-card'; noteCard.style.marginTop='10px';
     noteCard.innerHTML='<div class="info-card-hdr"><div class="ic-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div><div><div class="ic-title">Note cuisine</div><div class="ic-sub">'+escH(o.notes)+'</div></div></div>';
     wrap.appendChild(noteCard);
+  }
+  /* GUEST-3.3 — feedback card for delivered orders */
+  if(o.status==='delivered'||o.room_service_status==='delivered'){
+    var fbCard=document.createElement('div');
+    fbCard.style.cssText='background:var(--white);border-radius:var(--r-sm);box-shadow:var(--sh-card);padding:14px 16px;margin-top:10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;';
+    fbCard.innerHTML='<div style="display:flex;align-items:center;gap:10px"><div style="width:34px;height:34px;border-radius:9px;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div><div style="font-size:13px;font-weight:600;color:var(--text-1)">Évaluer cette commande</div><div style="font-size:11px;color:var(--text-3);margin-top:2px">Avis transmis à la direction</div></div></div><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+    (function(oid){fbCard.addEventListener('click',function(){openFeedback(oid);});})(o.id);
+    wrap.appendChild(fbCard);
   }
 }
 
@@ -1221,12 +1437,19 @@ function render(stay){
 
   if(urlTok){
     callEF({action:'validate_token',token:urlTok}).then(function(d){
-      if(d.ok){sessionStorage.setItem(SK,urlTok);return loadStay(urlTok);}
+      if(d.ok){
+        sessionStorage.setItem(SK,urlTok);
+        callEF({action:'portal_open',token:urlTok,is_new_load:true}).catch(function(){});
+        return loadStay(urlTok);
+      }
       else{showError(d.message||'Lien invalide ou expiré.');}
     }).catch(function(){showError('Impossible de se connecter. Vérifiez votre connexion.');});
   } else if(storedTok){
     callEF({action:'resume_session',token:storedTok}).then(function(d){
-      if(d.ok){return loadStay(storedTok);}
+      if(d.ok){
+        callEF({action:'portal_open',is_new_load:true}).catch(function(){});
+        return loadStay(storedTok);
+      }
       else{sessionStorage.removeItem(SK);showError(d.message||"Ce séjour n'est plus accessible.");}
     }).catch(function(){showError('Impossible de se connecter. Vérifiez votre connexion.');});
   } else {

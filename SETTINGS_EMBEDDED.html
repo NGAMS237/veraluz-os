@@ -315,6 +315,10 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
     <svg viewBox="0 0 24 24"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>
     <span class="tab-label">Restaurant</span>
   </button>
+  <button class="tab-btn" onclick="goSection('sejour')" id="tab-sejour">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span class="tab-label">Séjour & Wi-Fi</span>
+  </button>
   <button class="tab-btn" onclick="goSection('notifs')" id="tab-notifs">
     <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
     <span class="tab-label">Notifications</span>
@@ -440,6 +444,47 @@ var DEFAULTS = {
 };
 
 var S = {};
+
+/* ══════════════════════════════════════════════════════════
+   SETTINGS-1 — Canonical DB settings (property/contact/booking/wifi/restaurant)
+   Source de vérité = veraluz_settings DB
+   Écriture via broker CORE → settings-secure EF (direction only)
+══════════════════════════════════════════════════════════ */
+var _dbSett = {};
+var _dbSettLoaded = false;
+var SB_SS = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/settings-secure';
+var AK_SS = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+
+function loadDbCanonical(cb){
+  fetch(SB_SS, {
+    method:'POST',
+    headers:{'Content-Type':'application/json','apikey':AK_SS,'Authorization':'Bearer '+AK_SS},
+    body:JSON.stringify({action:'get_settings', keys:['property','contact','booking','wifi','restaurant']})
+  })
+  .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+  .then(function(d){
+    if(d && d.ok && d.settings){ Object.assign(_dbSett, d.settings); }
+    _dbSettLoaded = true;
+    if(cb) cb();
+  })
+  .catch(function(e){ console.warn('[SETTINGS] db load failed', e); _dbSettLoaded=true; if(cb) cb(); });
+}
+
+function saveCanonical(key, obj, onDone){
+  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
+    toast('❌ Session requise pour sauvegarder', false); return;
+  }
+  window.parent.veraluzSecureRequest('settings-secure', {action:'update_settings', key:key, value:obj})
+  .then(function(r){
+    var d = r && r.body ? r.body : r;
+    if(d && d.ok){
+      Object.assign(_dbSett[key] = _dbSett[key] || {}, obj);
+      toast('✓ Enregistré (DB)');
+      if(onDone) onDone();
+    } else { toast('❌ '+(d&&d.error||'Erreur sauvegarde'), false); }
+  })
+  .catch(function(){ toast('❌ Erreur réseau', false); });
+}
 
 /* ── Load / Save ── */
 function loadSettings(){
@@ -568,37 +613,47 @@ function phIcon(d){
 /* ══════════════════ SECTION RENDERERS ══════════════════ */
 
 function renderHotel(){
-  var h=S.hotel;
+  /* SETTINGS-1: canonical values from DB (property + contact) */
+  var pr = _dbSett.property || {};
+  var ct = _dbSett.contact  || {};
+  var badge = _dbSettLoaded
+    ? '<span style="font-size:9px;background:rgba(34,211,165,.15);color:var(--acc);border:1px solid rgba(34,211,165,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">DB</span>'
+    : '<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">chargement…</span>';
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
-    'Informations Hôtel', 'Données générales de la résidence')
-  +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>Identité</div>'
-  +field('Nom de la résidence','hotel.name',h.name)
-  +field('Slogan / Tagline','hotel.tagline',h.tagline)
-  +field('Adresse complète','hotel.address',h.address)
+    'Hôtel'+badge, 'Source canonique : veraluz_settings (property + contact)')
+  +'<div class="card" style="background:rgba(34,211,165,.04);border-color:rgba(34,211,165,.2);">'
+  +'<p style="font-size:11px;color:var(--acc);">→ Ces données sont lues et écrites en DB. Partagées avec Guest Portal, Booking Engine et emails.</p>'
   +'</div>'
   +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.18 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.56-.56a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>Contact</div>'
-  +'<div class="row2">'
-  +field('Téléphone','hotel.phone',h.phone,'tel')
-  +field('Email','hotel.email',h.email,'email')
-  +'</div>'
-  +field('Site web','hotel.website',h.website,'url')
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="3"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>Identité (property)</div>'
+  +'<div class="row"><label>Nom de la résidence</label><input type="text" id="db-prop-name" value="'+escH(pr.name||'Résidences Veraluz')+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Slogan / Tagline</label><input type="text" id="db-prop-tagline" value="'+escH(pr.tagline||'')+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Adresse / Localisation</label><input type="text" id="db-prop-loc" value="'+escH(pr.location||'')+'" oninput="markDirty()"></div>'
+  +'<div class="btn-group"><button class="btn btn-p" onclick="saveHotelProperty()">Enregistrer l'identité</button></div>'
   +'</div>'
   +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Opérations</div>'
-  +'<div class="row2">'
-  +field('Check-in','hotel.checkin',h.checkin,'time')
-  +field('Check-out','hotel.checkout',h.checkout,'time')
-  +'</div>'
-  +sel('Fuseau horaire','hotel.timezone',h.timezone,[
-    ['Africa/Douala','Africa/Douala (WAT UTC+1)'],
-    ['Africa/Lagos','Africa/Lagos'],
-    ['Europe/Paris','Europe/Paris (CET)'],
-    ['America/Toronto','America/Toronto (EST)'],
-  ])
-  +field('Nombre total d\'unités','hotel.total_rooms',h.total_rooms,'number')
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.18 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.56-.56a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>Contact (contact)</div>'
+  +'<div class="row2"><div class="row"><label>Téléphone</label><input type="tel" id="db-ct-phone" value="'+escH(ct.phone||'')+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Email</label><input type="email" id="db-ct-email" value="'+escH(ct.email||'')+'" oninput="markDirty()"></div></div>'
+  +'<div class="row"><label>WhatsApp (affiché clients)</label><input type="tel" id="db-ct-wa" value="'+escH(ct.whatsappDisplay||ct.whatsapp||'')+'" oninput="markDirty()"></div>'
+  +'<div class="btn-group"><button class="btn btn-p" onclick="saveHotelContact()">Enregistrer le contact</button></div>'
   +'</div>';
+}
+function saveHotelProperty(){
+  var obj={name:(document.getElementById('db-prop-name')||{}).value||''
+    ,tagline:(document.getElementById('db-prop-tagline')||{}).value||''
+    ,location:(document.getElementById('db-prop-loc')||{}).value||''
+    ,heroImage:(_dbSett.property||{}).heroImage||''};
+  saveCanonical('property', obj, function(){ markClean(); });
+}
+function saveHotelContact(){
+  var prev=_dbSett.contact||{};
+  var obj=Object.assign({},prev,{
+    phone:(document.getElementById('db-ct-phone')||{}).value||''
+    ,email:(document.getElementById('db-ct-email')||{}).value||''
+    ,whatsappDisplay:(document.getElementById('db-ct-wa')||{}).value||''
+  });
+  saveCanonical('contact', obj, function(){ markClean(); });
 }
 
 function renderBranding(){
@@ -723,36 +778,110 @@ function renderDevises(){
 }
 
 function renderRestaurant(){
-  var r=S.restaurant;
+  /* SETTINGS-1: leading section is DB canonical (opening/closing/room_service_enabled) */
+  var rs = _dbSett.restaurant || {};
+  var r  = S.restaurant;
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>',
-    'Restaurant & Bar', 'Configuration du Mako Lounge')
-  +'<div class="card" style="background:rgba(34,211,165,.05);border-color:rgba(34,211,165,.2);">'
-  +'<p style="font-size:11px;color:var(--acc);">ℹ Ces données sont utilisées par le <strong>module Restaurant</strong> (TVA tickets, frais de service, commande min, horaires) et par le <strong>Booking Engine</strong> (services affichés aux clients).</p>'
+    'Restaurant & Bar', 'Horaires et Room Service — source DB + paramètres locaux')
+  +'<div class="card" style="background:rgba(34,211,165,.04);border-color:rgba(34,211,165,.2);">'
+  +'<p style="font-size:11px;color:var(--acc);">→ Horaires et Room Service sont la <strong>source canonique DB</strong> lue par le Guest Portal. Les autres paramètres restent en configuration locale.</p>'
   +'</div>'
+  /* ── Canonical section (DB) ── */
   +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>Identité</div>'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Horaires & Room Service (DB canonique)</div>'
+  +'<div class="row2">'
+  +'<div class="row"><label>Heure d'ouverture</label><input type="time" id="db-rs-open" value="'+escH(rs.opening_time||'07:00')+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Heure de fermeture</label><input type="time" id="db-rs-close" value="'+escH(rs.closing_time||'23:00')+'" oninput="markDirty()"></div></div>'
+  +'<div class="row"><label>Restaurant actif</label><input type="checkbox" id="db-rs-enabled"'+( rs.enabled!==false?' checked':'')+' oninput="markDirty()"> <span style="font-size:11px;color:var(--text3)">Désactiver cache le restaurant dans le Guest Portal</span></div>'
+  +'<div class="row"><label>Room Service actif</label><input type="checkbox" id="db-rss-enabled"'+( rs.room_service_enabled!==false?' checked':'')+' oninput="markDirty()"> <span style="font-size:11px;color:var(--text3)">Visible dans le Guest Portal et Booking Engine</span></div>'
+  +'<div class="btn-group"><button class="btn btn-p" onclick="saveRestaurantCanonical()">Enregistrer (DB)</button></div>'
+  +'</div>'
+  /* ── Local section (localStorage) ── */
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>Détails locaux (configuration interne)</div>'
   +field('Nom du restaurant','restaurant.name',r.name)
   +field('Capacité (couverts)','restaurant.capacity',r.capacity,'number')
-  +'</div>'
-  +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Horaires</div>'
-  +'<div class="row2">'+field('Ouverture','restaurant.open',r.open,'time')+field('Fermeture','restaurant.close',r.close,'time')+'</div>'
-  +'<div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Services</div>'
   +'<div class="row2">'+field('Petit-déj. début','restaurant.breakfast_start',r.breakfast_start,'time')+field('Petit-déj. fin','restaurant.breakfast_end',r.breakfast_end,'time')+'</div>'
   +'<div class="row2">'+field('Déjeuner début','restaurant.lunch_start',r.lunch_start,'time')+field('Déjeuner fin','restaurant.lunch_end',r.lunch_end,'time')+'</div>'
   +'<div class="row2">'+field('Dîner début','restaurant.dinner_start',r.dinner_start,'time')+field('Dîner fin','restaurant.dinner_end',r.dinner_end,'time')+'</div>'
-  +'</div>'
-  +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Options</div>'
-  +toggle('Room service actif','Commandes livraison en chambre','restaurant.room_service',r.room_service)
   +toggle('Bar Lounge actif','Espace bar indépendant','restaurant.bar_active',r.bar_active)
   +'<div class="row2">'+field('Bar ouverture','restaurant.bar_open',r.bar_open,'time')+field('Bar fermeture','restaurant.bar_close',r.bar_close,'time')+'</div>'
-  +'</div>'
-  +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Finance F&B</div>'
-  +'<div class="row2">'+field('TVA restaurant (%)','restaurant.tva',r.tva,'number')+field('Charge de service (%)','restaurant.service_charge',r.service_charge,'number')+'</div>'
+  +field('TVA restaurant (%)','restaurant.tva',r.tva,'number')
+  +field('Charge de service (%)','restaurant.service_charge',r.service_charge,'number')
   +field('Commande minimale (XAF)','restaurant.min_order',r.min_order,'number')
   +'</div>';
+}
+function saveRestaurantCanonical(){
+  var prev = _dbSett.restaurant || {};
+  var obj = Object.assign({}, prev, {
+    enabled:             !!(document.getElementById('db-rs-enabled')||{}).checked
+    ,opening_time:       (document.getElementById('db-rs-open')||{}).value||'07:00'
+    ,closing_time:       (document.getElementById('db-rs-close')||{}).value||'23:00'
+    ,room_service_enabled:!!(document.getElementById('db-rss-enabled')||{}).checked
+  });
+  saveCanonical('restaurant', obj, function(){ markClean(); });
+}
+
+function renderSejour(){
+  /* SETTINGS-1: Booking + Wifi — source canonique DB */
+  var bk = _dbSett.booking  || {};
+  var wf = _dbSett.wifi     || {};
+  var badge = _dbSettLoaded
+    ? '<span style="font-size:9px;background:rgba(34,211,165,.15);color:var(--acc);border:1px solid rgba(34,211,165,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">DB</span>'
+    : '<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">chargement…</span>';
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    'Séjour & Wi-Fi'+badge, 'Règles de réservation et accès Wi-Fi client — source canonique DB')
+  +'<div class="card" style="background:rgba(34,211,165,.04);border-color:rgba(34,211,165,.2);">'
+  +'<p style="font-size:11px;color:var(--acc);">→ Ces valeurs sont la source de vérité pour le Booking Engine, le Guest Portal et les Réservations. Modifiable depuis ici ou depuis Réservations → Paramètres.</p>'
+  +'</div>'
+  /* ── Booking ── */
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Règles de réservation (booking)</div>'
+  +'<div class="row2">'
+  +'<div class="row"><label>Heure check-in</label><input type="time" id="db-ci-time" value="'+escH(bk.checkin_time||'14:00')+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Heure check-out</label><input type="time" id="db-co-time" value="'+escH(bk.checkout_time||'12:00')+'" oninput="markDirty()"></div></div>'
+  +'<div class="row2">'
+  +'<div class="row"><label>Acompte requis (%)</label><input type="number" id="db-dep-pct" value="'+( bk.deposit_pct||30)+'" min="0" max="100" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Durée du hold (heures)</label><input type="number" id="db-hold-h" value="'+( bk.hold_duration_hours||24)+'" min="1" max="168" oninput="markDirty()"></div></div>'
+  +'<div class="btn-group"><button class="btn btn-p" onclick="saveBookingCanonical()">Enregistrer (DB)</button></div>'
+  +'</div>'
+  /* ── Wifi ── */
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0114.08 0M1.42 9a16 16 0 0121.16 0M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></svg>Wi-Fi client (wifi)</div>'
+  +'<div class="card" style="background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.25);margin-bottom:10px">'
+  +'<p style="font-size:11px;color:var(--amber);">⚠ Le mot de passe est visible aux clients check-in uniquement (Guest Portal). Ne jamais le logguer ni le copier dans un email.</p>'
+  +'</div>'
+  +'<div class="row"><label>Wi-Fi actif</label><input type="checkbox" id="db-wifi-enabled"'+( wf.enabled!==false?' checked':'')+' oninput="markDirty()"></div>'
+  +'<div class="row"><label>Réseau (SSID)</label><input type="text" id="db-wifi-ssid" value="'+escH(wf.ssid||'')+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Mot de passe Wi-Fi</label>'
+  +'<div style="display:flex;gap:8px;align-items:center;">'
+  +'<input type="password" id="db-wifi-pw" value="'+escH(wf.password||'')+'" oninput="markDirty()" style="flex:1">'
+  +'<button onclick="toggleSettWifiPw()" id="db-wifi-toggle" style="border:1px solid var(--bg4);background:var(--bg3);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px;">👁</button>'
+  +'</div></div>'
+  +'<div class="btn-group"><button class="btn btn-p" onclick="saveWifiCanonical()">Enregistrer (DB)</button></div>'
+  +'</div>';
+}
+function toggleSettWifiPw(){
+  var i=document.getElementById('db-wifi-pw');
+  var b=document.getElementById('db-wifi-toggle');
+  if(i){ i.type=i.type==='password'?'text':'password'; if(b) b.textContent=i.type==='password'?'👁':'🙈'; }
+}
+function saveBookingCanonical(){
+  var obj={
+    checkin_time: (document.getElementById('db-ci-time')||{}).value||'14:00'
+    ,checkout_time:(document.getElementById('db-co-time')||{}).value||'12:00'
+    ,deposit_pct:  parseInt((document.getElementById('db-dep-pct')||{}).value||30)
+    ,hold_duration_hours:parseInt((document.getElementById('db-hold-h')||{}).value||24)
+  };
+  saveCanonical('booking', obj, function(){ markClean(); });
+}
+function saveWifiCanonical(){
+  var obj={
+    enabled:!!(document.getElementById('db-wifi-enabled')||{}).checked
+    ,ssid:  (document.getElementById('db-wifi-ssid')||{}).value||''
+    ,password:(document.getElementById('db-wifi-pw')||{}).value||''
+  };
+  saveCanonical('wifi', obj, function(){ markClean(); });
 }
 
 function renderNotifs(){
@@ -1369,6 +1498,7 @@ function renderSection(id){
   else if(id==='tarifs')     html=renderTarifs();
   else if(id==='devises')    html=renderDevises();
   else if(id==='restaurant') html=renderRestaurant();
+  else if(id==='sejour')     html=renderSejour();
   else if(id==='notifs')     html=renderNotifs();
   else if(id==='permissions')html=renderPermissions();
   else if(id==='integrations')html=renderIntegrations();
@@ -1470,8 +1600,11 @@ window.addEventListener('message', function(ev){
 /* ── Init ── */
 window.addEventListener('load', function(){
   loadSettings();
-  goSection('hotel');
-  emit('module-ready', {module:'settings', version:'3.0'});
+  /* SETTINGS-1: load canonical DB settings then render */
+  loadDbCanonical(function(){
+    goSection('hotel');
+    emit('module-ready', {module:'settings', version:'3.1'});
+  });
 });
 </script>
 

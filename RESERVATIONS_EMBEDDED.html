@@ -2266,14 +2266,15 @@ function sbFetch(path,opts){
 var _dbSettings = {};
 
 function sbPatchSettings(key, obj, cb){
-  /* 011C-2C: write via secure RPC — never direct REST PATCH (blocked by RLS) */
-  fetch(SB+'/rest/v1/rpc/update_settings_safe',{
-    method:'POST',
-    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},
-    body:JSON.stringify({p_key:key, p_value:obj})
+  /* SETTINGS-1: write via broker CORE (employee session required) */
+  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
+    if(cb) cb(new Error('broker_unavailable')); return;
+  }
+  window.parent.veraluzSecureRequest('settings-secure', {action:'update_settings', key:key, value:obj})
+  .then(function(r){
+    var d = r && r.body ? r.body : r;
+    if(cb) cb(d && d.ok ? null : new Error((d&&d.error)||'update_failed'));
   })
-  .then(function(r){ return r.ok?r.json():Promise.reject(new Error(r.status)); })
-  .then(function(d){ if(cb) cb(d&&d.ok?null:new Error(d&&d.error||'rpc_error')); })
   .catch(function(e){ if(cb) cb(e); });
 }
 

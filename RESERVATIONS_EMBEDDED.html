@@ -757,7 +757,8 @@ function enrichStatuses(){
   _rooms.forEach(function(room){
     if(room.status==='maintenance'||room.status==='out_of_service'){ room._dynStatus=room.status; return; }
     var active = _rez.find(function(r){
-      return r.unit_id===room.id && (r.status==='checkedin'||r.status==='checked_in'||(r.status==='confirmed'&&r.check_in===today));
+      /* RES-LIFECYCLE-1/B3: confirmed ≠ physically occupied — only checkedin counts */
+      return r.unit_id===room.id && (r.status==='checkedin'||r.status==='checked_in');
     });
     room._dynStatus = active ? (active.status==='checkedin'||active.status==='checked_in'?'occupied':'reserved') : 'available';
   });
@@ -1092,26 +1093,59 @@ function sendConfirmEmail(rid){
 }
 
 function doConfirm(id){
+  /* RES-LIFECYCLE-1/B2+B11: via broker EF, no fake offline success */
   var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
-  sbPatch('veraluz_reservations?id=eq.'+id,{status:'confirmed'}).then(function(){
+  if(!window.parent || typeof window.parent.veraluzSecureRequest!=='function'){
+    toast('Session requise pour confirmer','err'); return;
+  }
+  window.parent.veraluzSecureRequest('reservation-workflow',{action:'confirm',reservation_id:id})
+  .then(function(res){
+    var d=res&&res.body?res.body:res;
+    if(!d||!d.ok){ toast('Erreur: '+(d&&d.error||'confirmation échouée'),'err'); return; }
     r.status='confirmed'; refresh(); toast('Réservation confirmée','success');
     try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-reservations',type:'dispatch-client-email',data:{event:'reservation_confirmed',reservation_id:id}},'*');}catch(e){}
-  }).catch(function(){ r.status='confirmed'; refresh(); toast('Confirmée (hors ligne)'); });
+  })
+  .catch(function(){ toast('Erreur réseau — confirmation non effectuée','err'); });
 }
 function doCheckIn(id){
+  /* RES-LIFECYCLE-1/B5+B6+B11: via broker EF, early warning, no fake offline */
   var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
   if(!confirm('Check-in pour '+r.guest_name+' ?')) return;
-  sbPatch('veraluz_reservations?id=eq.'+id,{status:'checkedin'}).then(function(){
-    r.status='checkedin';
-    try{localStorage.setItem('vlz_rez_updated',String(Date.now()));localStorage.setItem('vlz_hk_checkin',JSON.stringify({unit_id:r.unit_id,check_in:r.check_in,client:r.client_name||'',rez_id:id}));}catch(e){}
-    try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-reservations',type:'dispatch-client-email',data:{event:'checkin',reservation_id:id}},'*');}catch(e){}
-    refresh(); toast('Check-in effectué','success');
-  }).catch(function(){ r.status='checkedin'; refresh(); toast('Check-in (hors ligne)'); });
+  if(!window.parent || typeof window.parent.veraluzSecureRequest!=='function'){
+    toast('Session requise pour le check-in','err'); return;
+  }
+  var today=todayStr();
+  var payload={action:'checkin',reservation_id:id};
+  if(r.check_in && r.check_in>today){
+    var ok=confirm('⚠ Arrivée prévue le '+r.check_in+'.\nConfirmer le check-in anticipé ?');
+    if(!ok) return;
+    payload.confirm_early=true;
+  }
+  window.parent.veraluzSecureRequest('reservation-workflow',payload)
+  .then(function(res){
+    var d=res&&res.body?res.body:res;
+    if(!d||!d.ok){ toast('Erreur: '+(d&&d.error||'check-in échoué'),'err'); return; }
+    _doCheckinSuccess(id,r);
+  })
+  .catch(function(){ toast('Erreur réseau — check-in non effectué','err'); });
+}
+function _doCheckinSuccess(id,r){
+  r.status='checkedin';
+  try{localStorage.setItem('vlz_rez_updated',String(Date.now()));localStorage.setItem('vlz_hk_checkin',JSON.stringify({unit_id:r.unit_id,check_in:r.check_in,client:r.client_name||'',rez_id:id}));}catch(e){}
+  try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-reservations',type:'dispatch-client-email',data:{event:'checkin',reservation_id:id}},'*');}catch(e){}
+  refresh(); toast('Check-in effectué','success');
 }
 function doCheckOut(id){
+  /* RES-LIFECYCLE-1/B10+B11: via broker EF, no fake offline */
   var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
   if(!confirm('Check-out pour '+r.guest_name+' ?')) return;
-  sbPatch('veraluz_reservations?id=eq.'+id,{status:'checkedout'}).then(function(){
+  if(!window.parent || typeof window.parent.veraluzSecureRequest!=='function'){
+    toast('Session requise pour le check-out','err'); return;
+  }
+  window.parent.veraluzSecureRequest('reservation-workflow',{action:'checkout',reservation_id:id})
+  .then(function(res){
+    var d=res&&res.body?res.body:res;
+    if(!d||!d.ok){ toast('Erreur: '+(d&&d.error||'check-out échoué'),'err'); return; }
     r.status='checkedout';
     try{localStorage.setItem('vlz_rez_updated',String(Date.now()));localStorage.setItem('vlz_hk_checkout',JSON.stringify({unit_id:r.unit_id,date:new Date().toISOString().slice(0,10),client:r.client_name||'',rez_id:id}));}catch(e){}
     var room=_rooms.find(function(x){return x.id===r.unit_id;});
@@ -1119,14 +1153,23 @@ function doCheckOut(id){
     /* MICRO 011E-2C — EventBus checkout-completed */
     try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-reservations',type:'checkout-completed',data:{rez_id:id,unit_id:r.unit_id,guest_name:r.guest_name||r.client_name||'',client:r.client_name||''}},'*');}catch(e){}
     refresh(); toast('Check-out — ménage requis','success');
-  }).catch(function(){ r.status='checkedout'; refresh(); toast('Check-out (hors ligne)'); });
+  })
+  .catch(function(){ toast('Erreur réseau — check-out non effectué','err'); });
 }
 function doCancel(id){
+  /* RES-LIFECYCLE-1/B11: via broker EF, no fake offline */
   var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
   if(!confirm('Annuler la réservation ?')) return;
-  sbPatch('veraluz_reservations?id=eq.'+id,{status:'cancelled'}).then(function(){
+  if(!window.parent || typeof window.parent.veraluzSecureRequest!=='function'){
+    toast('Session requise pour annuler','err'); return;
+  }
+  window.parent.veraluzSecureRequest('reservation-workflow',{action:'cancel',reservation_id:id})
+  .then(function(res){
+    var d=res&&res.body?res.body:res;
+    if(!d||!d.ok){ toast('Erreur: '+(d&&d.error||'annulation échouée'),'err'); return; }
     r.status='cancelled'; closeModal('rezModal'); refresh(); toast('Réservation annulée');
-  }).catch(function(){ r.status='cancelled'; closeModal('rezModal'); refresh(); });
+  })
+  .catch(function(){ toast('Erreur réseau — annulation non effectuée','err'); });
 }
 
 /* ── Statut chambre ── */

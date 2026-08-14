@@ -571,8 +571,8 @@ function saveAll(){
       tax_service: S.tarifs.tax_service,
       ts: new Date().toISOString()
     });
-    /* Propager permissions */
-    if(S.permissions){
+    /* Propager permissions — RES-LIFECYCLE-1/A4: uniquement depuis onglet Permissions */
+    if(S.permissions && currentSection === 'permissions'){
       emit('permissions-updated', {permissions:S.permissions, ts:new Date().toISOString()});
     }
   }catch(e){ toast('❌ Erreur sauvegarde', false); }

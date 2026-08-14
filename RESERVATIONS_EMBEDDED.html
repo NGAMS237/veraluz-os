@@ -1347,7 +1347,7 @@ function renderGuestAccess(el,rezId,sessions){
       var exp=s.expires_at?new Date(s.expires_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
       h+='<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">'+
         '<div><div style="font-size:11px;color:var(--text2)">Exp. '+escH(exp)+'</div></div>'+
-        '<button onclick="revokeGuestSession(''+escH(s.id)+'',''+escH(rezId)+'')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--danger,#e53e3e);background:transparent;color:var(--danger,#e53e3e);font-size:11px;cursor:pointer">Révoquer</button>'+
+        '<button data-gsid="'+escH(s.id)+'" data-rezid="'+escH(rezId)+'" onclick="revokeGuestSession(this.dataset.gsid,this.dataset.rezid)" style="padding:4px 10px;border-radius:6px;border:1px solid var(--danger,#e53e3e);background:transparent;color:var(--danger,#e53e3e);font-size:11px;cursor:pointer">Révoquer</button>'+
         '</div>';
     });
   } else {
@@ -1355,7 +1355,7 @@ function renderGuestAccess(el,rezId,sessions){
   }
   h+='</div>';
   // Generate button (only if <3 active or will auto-revoke oldest)
-  h+='<button onclick="generateGuestLink(''+escH(rezId)+'')" style="width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer">🔗 Générer un lien client</button>';
+  h+='<button data-rezid="'+escH(rezId)+'" onclick="generateGuestLink(this.dataset.rezid)" style="width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer">🔗 Générer un lien client</button>';
   h+='<div id="guest-link-result" style="margin-top:12px"></div>';
   el.innerHTML=h;
 }
@@ -1369,7 +1369,7 @@ function generateGuestLink(rezId){
     var url=d.guest_url||'';
     res.innerHTML=
       '<div style="background:rgba(56,161,105,.08);border:1px solid rgba(56,161,105,.3);border-radius:8px;padding:12px">'+
-      '<div style="font-size:11px;color:var(--text2);margin-bottom:6px">⚠️ Ce lien n'est affiché qu'une seule fois</div>'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:6px">⚠️ Ce lien n\'est affiché qu\'une seule fois</div>'+
       '<div style="display:flex;gap:8px;align-items:center">'+
       '<input id="guest-url-inp" readonly value="'+escH(url)+'" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;background:var(--bg3);color:var(--text1)">'+
       '<button onclick="copyGuestUrl()" style="padding:6px 12px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:600;cursor:pointer" id="guest-copy-btn">Copier</button>'+

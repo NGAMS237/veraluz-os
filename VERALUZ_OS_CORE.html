@@ -1093,6 +1093,7 @@ html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
         <div id="emp-pointage-card" class="emp-card"><div class="emp-card-title">⏱ Pointage du jour</div><div class="emp-empty">Chargement...</div></div>
         <div id="emp-tasks-card" class="emp-card"><div class="emp-card-title">📋 Mes tâches</div><div class="emp-empty">Chargement...</div></div>
         <div id="emp-paie-card" class="emp-card"><div class="emp-card-title">💰 Ma paie</div><div class="emp-empty">Chargement...</div></div>
+        <div id="emp-rs-card" class="emp-card" style="display:none"><div class="emp-card-title">&#127837; Room Service</div><div id="emp-rs-content"><div class="emp-empty">Chargement…</div></div></div>
         <div id="emp-modules-card" class="emp-card"><div class="emp-card-title">🧩 Mes modules</div><div id="emp-modules-grid" class="emp-modules-grid"></div></div>
         <div id="emp-notif-card" class="emp-card"><div class="emp-card-title">🔔 Notifications</div><div class="emp-empty">Aucune notification pour le moment.</div></div>
       </div>
@@ -1439,6 +1440,7 @@ function loadModuleFrame(mod) {
   iframe.onerror = null;
   var _authIframe = iframe;
   if (loadTimer){ clearTimeout(loadTimer); loadTimer = null; }
+  stopRsPolling();
   document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
   document.getElementById('mod-error').classList.remove('show');
   document.getElementById('ld-text').textContent = 'Chargement '+mod.label+'…';
@@ -2937,6 +2939,108 @@ function getAllowedModules(role) {
 }
 
 /* Mission 7 — Rendu Espace Employé principal */
+/* ──────────────────────────────────────────────────────────────
+   GUEST-3.2 — Room Service tâches employé dans Mon Espace
+   ────────────────────────────────────────────────────────────── */
+var _rsTasksTimer = null;
+
+var RS_STATUS_LBL = {
+  assigned:   'Assigné — à prendre en charge',
+  accepted:   'Pris en charge',
+  on_the_way: 'En route vers la chambre',
+  delivered:  'Servi',
+  unassigned: '',
+};
+
+function loadRoomServiceTasks(employeeId) {
+  if (!employeeId) return;
+  var card    = document.getElementById('emp-rs-card');
+  var content = document.getElementById('emp-rs-content');
+  if (!card || !content) return;
+
+  window.veraluzSecureRequest('room-service', { action: 'get_my_room_service_tasks' })
+    .then(function (res) {
+      var tasks = (res.body && res.body.tasks) || [];
+      if (!tasks.length) {
+        card.style.display = 'none';
+        stopRsPolling();
+        return;
+      }
+      card.style.display = '';
+      content.innerHTML = tasks.map(function (t) {
+        var rsLbl  = RS_STATUS_LBL[t.room_service_status] || t.room_service_status || '';
+        var items  = [];
+        try { items = JSON.parse(t.items || '[]'); } catch(e){}
+        var body   = items.slice(0, 3).map(function (it) {
+          return (it.qty || it.quantity || 1) + '× ' + (it.name || it.product_name || '');
+        }).join(', ');
+        var actions = renderRsTaskActions(t);
+        return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;">'
+          + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">'
+          + '<div style="font-weight:700;font-size:14px;color:var(--text1);">'
+          + (t.order_number || t.id.slice(0, 8).toUpperCase())
+          + ' &mdash; Ch. ' + esc(t.room_number || t.customer_name || '?')
+          + '</div>'
+          + '<span style="font-size:11px;color:#a78bfa;font-weight:700;">' + esc(rsLbl) + '</span>'
+          + '</div>'
+          + (body ? '<div style="font-size:12px;color:var(--text3);margin-bottom:8px;">' + esc(body) + '</div>' : '')
+          + (t.notes ? '<div style="font-size:11px;color:var(--text2);background:var(--bg2);border-radius:6px;padding:4px 8px;margin-bottom:8px;">'
+            + '&#128221; ' + esc(t.notes) + '</div>' : '')
+          + actions
+          + '</div>';
+      }).join('');
+      startRsPolling(employeeId);
+    })
+    .catch(function () {
+      if (card) card.style.display = 'none';
+    });
+}
+
+function renderRsTaskActions(t) {
+  var id  = esc(t.id);
+  var st  = t.room_service_status;
+  var btn = function (label, action, color) {
+    return '<button onclick="doRsAction(''+id+'',''+action+'')" '
+      + 'style="flex:1;padding:9px 10px;border-radius:9px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:' + color + ';color:#fff;">'
+      + label + '</button>';
+  };
+  if (st === 'assigned')   return '<div style="display:flex;gap:6px;">' + btn('&#9989; Prendre en charge', 'accept_room_service', '#7c3aed') + '</div>';
+  if (st === 'accepted')   return '<div style="display:flex;gap:6px;">' + btn('&#128664; Je pars', 'depart_room_service', '#d97706') + '</div>';
+  if (st === 'on_the_way') return '<div style="display:flex;gap:6px;">' + btn('&#127381; Servi en chambre', 'deliver_room_service', '#059669') + '</div>';
+  return '';
+}
+
+function doRsAction(orderId, action) {
+  var btn = event.currentTarget;
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+  window.veraluzSecureRequest('room-service', { action: action, order_id: orderId })
+    .then(function (res) {
+      if (res.body && res.body.ok) {
+        var user = currentUser;
+        if (user && user.employee_id) loadRoomServiceTasks(user.employee_id);
+      } else {
+        if (btn) { btn.disabled = false; }
+        var msg = { not_your_task: 'Cette tâche ne vous est pas assignée.', invalid_status: 'Statut invalide pour cette action.', session_required: 'Session expirée.' };
+        alert(msg[res.body && res.body.error] || 'Erreur: ' + ((res.body && res.body.error) || 'inconnue'));
+      }
+    })
+    .catch(function () {
+      if (btn) { btn.disabled = false; }
+      alert('Erreur réseau.');
+    });
+}
+
+function startRsPolling(employeeId) {
+  if (_rsTasksTimer) return; // déjà actif
+  _rsTasksTimer = setInterval(function () {
+    loadRoomServiceTasks(employeeId);
+  }, 20000);
+}
+
+function stopRsPolling() {
+  if (_rsTasksTimer) { clearInterval(_rsTasksTimer); _rsTasksTimer = null; }
+}
+
 function renderEmployeeHome(user) {
   if (!user) return;
   var rd = ROLES[user.role] || {};
@@ -3172,6 +3276,9 @@ function loadEmployeePersonalData(employeeId) {
       +'<div class="emp-empty">Donnees indisponibles.</div>';
   });
 
+  /* 4.5 Room Service — tâches assignées */
+  loadRoomServiceTasks(employeeId);
+
   /* 4. Paie personnelle — filtre employee_id uniquement */
   /* SECURITE : ne jamais charger toute la paie — filtrer par employee_id */
   var paieCard=document.getElementById('emp-paie-card');
@@ -3365,7 +3472,9 @@ var VERALUZ_BROKER_ALLOWED_ENDPOINTS = [
   /* 011E-2B — Templates + Journal communications */
   'communications-secure',
   /* GUEST-2 — Portail client */
-  'guest-access'
+  'guest-access',
+  /* GUEST-3.2 — Room Service interne */
+  'room-service'
 ];
 var VERALUZ_BROKER_EDGE_BASE = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/';
 window.veraluzSecureRequest = function (endpoint, payload) {

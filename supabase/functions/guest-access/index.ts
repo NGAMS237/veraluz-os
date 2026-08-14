@@ -1,16 +1,22 @@
 /**
- * GUEST-2 — guest-access Edge Function v2
- * Accueil séjour enrichi: settings wifi/property/restaurant/contact + photo unité
+ * GUEST-3 — guest-access Edge Function v3
+ * Restaurant Room Service + suivi commandes
  *
- * Nouveautés v2:
- *   list_sessions     — employé auth → liste sessions actives pour une réservation
- *   get_my_stay       — enrichi: settings, photo, wifi conditionnel (checkedin uniquement)
+ * Nouveautés v3:
+ *   get_restaurant_menu        — menu public room_service (actif + disponible)
+ *   create_restaurant_order    — commande Room Service sécurisée (checkedin requis)
+ *   get_my_restaurant_orders   — commandes du séjour (isolation stricte par guest_session)
  *
- * Règle wifi.password:
- *   - Retourné UNIQUEMENT si reservation.status = 'checkedin'
- *   - confirmed → ssid exposé, password = null
- *   - checkedout / cancelled / expired → password = null
- *   - Jamais dans logs, URLs, comm_log, analytics
+ * Scopes ajoutés aux nouvelles sessions:
+ *   restaurant.read, restaurant.order, restaurant.orders.read
+ *
+ * Règles sécurité:
+ *   - reservation_id / unit_id jamais depuis le body client
+ *   - price / total jamais depuis le body client (prix DB uniquement)
+ *   - commande uniquement si reservation.status = 'checkedin'
+ *   - idempotence: (guest_session_id, client_order_key) unique en DB
+ *   - isolation: get_my_restaurant_orders filtre par session.reservation_id
+ *   - room_service_enabled obligatoire sur le produit
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -33,6 +39,16 @@ const TENANT              = 'veraluz-001';
 const PROPERTY_NAME       = 'Résidences Veraluz';
 const MAX_ACTIVE_SESSIONS = 3;
 const POST_CHECKOUT_GRACE = 6; // heures
+const MAX_ITEM_QTY        = 20;
+const MAX_ITEMS_PER_ORDER = 15;
+
+// Scopes accordés à toutes les sessions guest
+const GUEST_DEFAULT_SCOPES = [
+  'stay.read',
+  'restaurant.read',
+  'restaurant.order',
+  'restaurant.orders.read',
+];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -60,9 +76,15 @@ async function hashToken(raw: string): Promise<string> {
 }
 
 function generateToken(): string {
-  const bytes = new Uint8Array(32); // 256 bits
+  const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function generateOrderNumber(): string {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rnd = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `RS-${ts}-${rnd}`;
 }
 
 // ── Auth employé ──────────────────────────────────────────────────────────────
@@ -138,7 +160,7 @@ function guestErrorMsg(error: string): string {
   return M[error] ?? 'Lien invalide ou expiré.';
 }
 
-// ── Chargement settings ──────────────────────────────────────────────────────
+// ── Settings ─────────────────────────────────────────────────────────────────
 
 async function loadSettings(db: any) {
   const { data } = await db
@@ -148,6 +170,29 @@ async function loadSettings(db: any) {
   const S: Record<string, any> = {};
   for (const row of (data || [])) S[row.key] = row.value;
   return S;
+}
+
+// ── Status label (FR) ────────────────────────────────────────────────────────
+
+function orderStatusLabel(status: string): string {
+  const L: Record<string,string> = {
+    pending:          'Reçue',
+    confirmed:        'Reçue',
+    preparing:        'En préparation',
+    ready:            'Prête',
+    out_for_delivery: 'En livraison',
+    delivered:        'Livrée',
+    cancelled:        'Annulée',
+  };
+  return L[status] ?? status;
+}
+
+function orderStatusStep(status: string): number {
+  const S: Record<string,number> = {
+    pending: 1, confirmed: 1, preparing: 2, ready: 3,
+    out_for_delivery: 4, delivered: 5, cancelled: 0,
+  };
+  return S[status] ?? 0;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -169,7 +214,9 @@ Deno.serve(async (req: Request) => {
 
   const { action } = body;
 
-  // ── CREATE_INVITATION ────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  // CREATE_INVITATION (employé → crée session guest)
+  // ══════════════════════════════════════════════════════════════════
   if (action === 'create_invitation') {
     const sessionToken = req.headers.get('x-veraluz-session') ?? '';
     const emp = await validateEmployeeSession(db, sessionToken);
@@ -217,7 +264,7 @@ Deno.serve(async (req: Request) => {
         unit_id:        res.unit_id ?? '',
         token_hash:     tokenHash,
         status:         'active',
-        scopes:         ['stay.read'],
+        scopes:         GUEST_DEFAULT_SCOPES,
         valid_from:     new Date().toISOString(),
         expires_at:     expiresAt.toISOString(),
         created_by:     emp.id,
@@ -227,7 +274,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (insErr) {
-      console.error('[guest-access] insert:', insErr.message);
+      console.error('[guest-access] insert session:', insErr.message);
       return json({ ok: false, error: 'session_create_failed' }, 500, cors);
     }
 
@@ -237,13 +284,15 @@ Deno.serve(async (req: Request) => {
       ok:               true,
       guest_session_id: gs!.id,
       guest_url:        guestUrl,
-      token:            rawToken,   // retourné UNE seule fois
+      token:            rawToken,
       expires_at:       expiresAt.toISOString(),
       note:             'Token retourné une seule fois. Non stocké en DB.',
     }, 200, cors);
   }
 
-  // ── LIST_SESSIONS (employé) ──────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  // LIST_SESSIONS (employé)
+  // ══════════════════════════════════════════════════════════════════
   if (action === 'list_sessions') {
     const sessionToken = req.headers.get('x-veraluz-session') ?? '';
     const emp = await validateEmployeeSession(db, sessionToken);
@@ -254,7 +303,6 @@ Deno.serve(async (req: Request) => {
     const reservationId = body.reservation_id as string | undefined;
     if (!reservationId) return json({ ok: false, error: 'reservation_id_required' }, 400, cors);
 
-    // Retourner sans token_hash (jamais exposé côté client)
     const { data: sessions } = await db
       .from('veraluz_guest_sessions')
       .select('id, status, scopes, created_at, expires_at, last_used_at, revoked_at, created_by')
@@ -265,7 +313,9 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, sessions: sessions || [] }, 200, cors);
   }
 
-  // ── VALIDATE_TOKEN / RESUME_SESSION ──────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  // VALIDATE_TOKEN / RESUME_SESSION
+  // ══════════════════════════════════════════════════════════════════
   if (action === 'validate_token' || action === 'resume_session') {
     const rawToken = (body.token as string | undefined)
       ?? req.headers.get('x-guest-token') ?? '';
@@ -279,8 +329,9 @@ Deno.serve(async (req: Request) => {
     }, 200, cors);
   }
 
-  // ── GET_MY_STAY (enrichi v2) ──────────────────────────────────────────────────
-  // Le client ne fournit PAS reservation_id — résolution serveur uniquement
+  // ══════════════════════════════════════════════════════════════════
+  // GET_MY_STAY (enrichi v2 — inchangé)
+  // ══════════════════════════════════════════════════════════════════
   if (action === 'get_my_stay') {
     const rawToken = (body.token as string | undefined)
       ?? req.headers.get('x-guest-token') ?? '';
@@ -290,7 +341,6 @@ Deno.serve(async (req: Request) => {
     if (!(session!.scopes as string[]).includes('stay.read'))
       return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
 
-    // Charger en parallèle: réservation, unité, photo, settings
     const [resResult, unitResult, photoResult, settingsData] = await Promise.all([
       db.from('veraluz_reservations')
         .select('client_name, check_in, check_out, status, guests')
@@ -320,7 +370,6 @@ Deno.serve(async (req: Request) => {
     const firstName = (res.client_name ?? '').split(' ')[0] || 'Cher client';
     const resStatus = res.status as string;
 
-    // Settings
     const S        = settingsData;
     const wifi     = S['wifi']       || {};
     const property = S['property']   || {};
@@ -328,64 +377,468 @@ Deno.serve(async (req: Request) => {
     const contact  = S['contact']    || {};
     const rest     = S['restaurant'] || {};
 
-    // WiFi: password UNIQUEMENT si checkedin
-    const wifiEnabled = wifi.enabled !== false;
+    const wifiEnabled    = wifi.enabled !== false;
     const canSeePassword = resStatus === 'checkedin';
-    const wifiPayload = wifiEnabled ? {
+    const wifiPayload    = wifiEnabled ? {
       enabled:            true,
       ssid:               wifi.ssid || null,
       password:           canSeePassword ? (wifi.password || null) : null,
       password_available: canSeePassword,
-      hint: !canSeePassword
-        ? "Le code Wi-Fi sera disponible après votre arrivée."
-        : null,
+      hint: !canSeePassword ? "Le code Wi-Fi sera disponible après votre arrivée." : null,
     } : { enabled: false };
-
-    // Restaurant
-    const restaurantPayload = {
-      enabled:             rest.enabled !== false,
-      opening_time:        rest.opening_time  || null,
-      closing_time:        rest.closing_time  || null,
-      room_service_enabled: rest.room_service_enabled === true,
-    };
 
     return json({
       ok: true,
       stay: {
-        // Identité
-        property_name:       property.name     || PROPERTY_NAME,
-        property_tagline:    property.tagline  || '',
-        property_location:   property.location || 'Kribi, Cameroun',
-        guest_first_name:    firstName,
-        // Unité
-        unit_name:           unit?.name  ?? session!.unit_id,
-        unit_type:           unit?.type  ?? '',
-        unit_emoji:          unit?.emoji ?? '🏨',
-        unit_photo_url:      photo?.url  ?? null,
-        // Dates & statut
-        check_in:            res.check_in,
-        check_out:           res.check_out,
-        checkin_time:        booking.checkin_time  || '15:00',
-        checkout_time:       booking.checkout_time || '11:00',
-        reservation_status:  resStatus,
-        guests:              res.guests,
-        // Contact réception
+        property_name:     property.name     || PROPERTY_NAME,
+        property_tagline:  property.tagline  || '',
+        property_location: property.location || 'Kribi, Cameroun',
+        guest_first_name:  firstName,
+        unit_name:         unit?.name  ?? session!.unit_id,
+        unit_type:         unit?.type  ?? '',
+        unit_emoji:        unit?.emoji ?? '🏨',
+        unit_photo_url:    photo?.url  ?? null,
+        check_in:          res.check_in,
+        check_out:         res.check_out,
+        checkin_time:      booking.checkin_time  || '15:00',
+        checkout_time:     booking.checkout_time || '11:00',
+        reservation_status: resStatus,
+        guests:            res.guests,
         contact: {
-          phone:     contact.phone    || null,
-          email:     contact.email    || null,
-          whatsapp:  contact.whatsapp || null,
+          phone:    contact.phone    || null,
+          email:    contact.email    || null,
+          whatsapp: contact.whatsapp || null,
         },
-        // Wi-Fi (conditionnel)
         wifi: wifiPayload,
-        // Restaurant
-        restaurant: restaurantPayload,
-        // EXCLUS: notes, paid, total, client_phone, client_email, employee_ids,
-        //         audit_logs, commission, marges, autres réservations/clients
+        restaurant: {
+          enabled:              rest.enabled !== false,
+          opening_time:         rest.opening_time  || null,
+          closing_time:         rest.closing_time  || null,
+          room_service_enabled: rest.room_service_enabled === true,
+        },
       },
     }, 200, cors);
   }
 
-  // ── REVOKE_SESSION ────────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════
+  // GET_RESTAURANT_MENU — scope restaurant.read
+  // Lecture publique menu room service (actif + room_service_enabled)
+  // ══════════════════════════════════════════════════════════════════
+  if (action === 'get_restaurant_menu') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error, session } = await validateGuestToken(db, rawToken);
+    if (error) return json({ ok: false, error, message: guestErrorMsg(error) }, 401, cors);
+
+    if (!(session!.scopes as string[]).includes('restaurant.read'))
+      return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
+
+    const { data: products, error: pErr } = await db
+      .from('veraluz_restaurant_products')
+      .select('id, name, category, price, description, available, image_url, sort_order')
+      .eq('active', true)
+      .eq('room_service_enabled', true)
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true });
+
+    if (pErr) {
+      console.error('[guest-access] get_restaurant_menu:', pErr.message);
+      return json({ ok: false, error: 'menu_load_failed' }, 500, cors);
+    }
+
+    // Grouper par catégorie
+    const categories: string[] = [];
+    const byCategory: Record<string, any[]> = {};
+    for (const p of (products || [])) {
+      if (!byCategory[p.category]) {
+        categories.push(p.category);
+        byCategory[p.category] = [];
+      }
+      byCategory[p.category].push({
+        id:          p.id,
+        name:        p.name,
+        description: p.description || '',
+        price:       Number(p.price),
+        available:   p.available,
+        image_url:   p.image_url || null,
+        category:    p.category,
+      });
+    }
+
+    return json({
+      ok:         true,
+      categories,
+      by_category: byCategory,
+      products:   (products || []).map(p => ({
+        id:          p.id,
+        name:        p.name,
+        description: p.description || '',
+        price:       Number(p.price),
+        available:   p.available,
+        image_url:   p.image_url || null,
+        category:    p.category,
+      })),
+    }, 200, cors);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // CREATE_RESTAURANT_ORDER — scope restaurant.order
+  // CHECKEDIN OBLIGATOIRE
+  // Prix calculés serveur uniquement
+  // ══════════════════════════════════════════════════════════════════
+  if (action === 'create_restaurant_order') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error, session, reservationStatus } = await validateGuestToken(db, rawToken);
+    if (error) return json({ ok: false, error, message: guestErrorMsg(error) }, 401, cors);
+
+    if (!(session!.scopes as string[]).includes('restaurant.order'))
+      return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
+
+    // CHECKEDIN OBLIGATOIRE pour commande Room Service
+    if (reservationStatus !== 'checkedin') {
+      return json({
+        ok:      false,
+        error:   'checkedin_required',
+        message: 'Le Room Service est disponible pendant votre séjour.',
+      }, 403, cors);
+    }
+
+    // Valider items
+    const rawItems = body.items;
+    if (!Array.isArray(rawItems) || rawItems.length === 0)
+      return json({ ok: false, error: 'items_required', message: 'Votre commande est vide.' }, 400, cors);
+    if (rawItems.length > MAX_ITEMS_PER_ORDER)
+      return json({ ok: false, error: 'too_many_items' }, 400, cors);
+
+    // Valider quantités
+    for (const item of rawItems) {
+      const qty = Number(item.quantity);
+      if (!item.product_id) return json({ ok: false, error: 'product_id_required' }, 400, cors);
+      if (!Number.isInteger(qty) || qty <= 0)
+        return json({ ok: false, error: 'invalid_quantity', product_id: item.product_id }, 400, cors);
+      if (qty > MAX_ITEM_QTY)
+        return json({ ok: false, error: 'quantity_too_large', max: MAX_ITEM_QTY }, 400, cors);
+    }
+
+    const clientOrderKey = (body.client_order_key as string | undefined) || null;
+    const note           = (body.note as string | undefined)?.slice(0, 300) || null;
+
+    // Idempotence: déjà créée avec cette clé?
+    if (clientOrderKey) {
+      const { data: existing } = await db
+        .from('veraluz_food_orders')
+        .select('id, order_number, status, total')
+        .eq('guest_session_id', session!.id)
+        .eq('client_order_key', clientOrderKey)
+        .maybeSingle();
+      if (existing) {
+        return json({
+          ok:           true,
+          order_id:     existing.id,
+          order_number: existing.order_number,
+          status:       existing.status,
+          total:        existing.total,
+          idempotent:   true,
+          message:      'Commande déjà enregistrée.',
+        }, 200, cors);
+      }
+    }
+
+    // Charger les produits depuis DB (jamais depuis le client)
+    const productIds = rawItems.map((i: any) => i.product_id);
+    const { data: products, error: pErr } = await db
+      .from('veraluz_restaurant_products')
+      .select('id, name, price, available, active, room_service_enabled')
+      .in('id', productIds);
+
+    if (pErr) return json({ ok: false, error: 'product_load_failed' }, 500, cors);
+
+    const productMap: Record<string, any> = {};
+    for (const p of (products || [])) productMap[p.id] = p;
+
+    // Vérifier chaque produit
+    for (const item of rawItems) {
+      const p = productMap[item.product_id];
+      if (!p)                       return json({ ok: false, error: 'product_not_found',    product_id: item.product_id, message: 'Produit introuvable.' }, 400, cors);
+      if (!p.active)                return json({ ok: false, error: 'product_inactive',     product_id: item.product_id, message: 'Ce produit n\'est plus disponible.' }, 400, cors);
+      if (!p.available)             return json({ ok: false, error: 'product_unavailable',  product_id: item.product_id, message: `${p.name} est momentanément indisponible.` }, 400, cors);
+      if (!p.room_service_enabled)  return json({ ok: false, error: 'not_room_service',     product_id: item.product_id, message: `${p.name} n'est pas disponible en Room Service.` }, 400, cors);
+    }
+
+    // Calculer prix SERVEUR (jamais client)
+    const resolvedItems: any[] = [];
+    let subtotal = 0;
+    for (const item of rawItems) {
+      const p   = productMap[item.product_id];
+      const qty = Number(item.quantity);
+      const dbPrice   = Number(p.price);
+      const lineTotal = Math.round(dbPrice * qty);
+      subtotal += lineTotal;
+      resolvedItems.push({
+        product_id: p.id,
+        name:       p.name,
+        quantity:   qty,
+        unit_price: dbPrice,
+        subtotal:   lineTotal,
+      });
+    }
+    const total = subtotal; // Room Service: delivery_fee = 0
+
+    // Charger room_number depuis l'unité
+    const { data: unitRow } = await db
+      .from('veraluz_units')
+      .select('name, number')
+      .eq('id', session!.unit_id)
+      .maybeSingle();
+    const roomNumber = unitRow?.number ?? unitRow?.name ?? session!.unit_id;
+
+    const orderNumber = generateOrderNumber();
+
+    const { data: newOrder, error: insErr } = await db
+      .from('veraluz_food_orders')
+      .insert({
+        order_number:     orderNumber,
+        delivery_type:    'room',
+        source:           'guest_portal',
+        room_number:      String(roomNumber),
+        // Résolution serveur — jamais depuis le client
+        reservation_id:   session!.reservation_id,
+        unit_id:          session!.unit_id,
+        guest_session_id: session!.id,
+        client_order_key: clientOrderKey,
+        notes:            note,
+        payment_method:   'room_charge',
+        payment_status:   'pending',
+        items:            JSON.stringify(resolvedItems),
+        subtotal:         subtotal,
+        delivery_fee:     0,
+        total:            total,
+        status:           'pending',
+      })
+      .select('id, order_number, status, total, created_at')
+      .single();
+
+    if (insErr) {
+      // Vérifie si c'est un conflit d'idempotence (code 23505)
+      if (insErr.code === '23505' && clientOrderKey) {
+        const { data: dup } = await db
+          .from('veraluz_food_orders')
+          .select('id, order_number, status, total')
+          .eq('guest_session_id', session!.id)
+          .eq('client_order_key', clientOrderKey)
+          .maybeSingle();
+        if (dup) {
+          return json({
+            ok:           true,
+            order_id:     dup.id,
+            order_number: dup.order_number,
+            status:       dup.status,
+            total:        dup.total,
+            idempotent:   true,
+            message:      'Commande déjà enregistrée.',
+          }, 200, cors);
+        }
+      }
+      console.error('[guest-access] create_restaurant_order:', insErr.message);
+      return json({ ok: false, error: 'order_create_failed', message: 'Erreur lors de la création de la commande.' }, 500, cors);
+    }
+
+    return json({
+      ok:           true,
+      order_id:     newOrder!.id,
+      order_number: newOrder!.order_number,
+      status:       newOrder!.status,
+      status_label: orderStatusLabel(newOrder!.status),
+      status_step:  orderStatusStep(newOrder!.status),
+      total:        newOrder!.total,
+      items:        resolvedItems,
+      created_at:   newOrder!.created_at,
+      folio_ready:  true,
+    }, 200, cors);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // GET_MY_RESTAURANT_ORDERS — scope restaurant.orders.read
+  // Isolation stricte: filtre par session.reservation_id (serveur)
+  // ══════════════════════════════════════════════════════════════════
+  if (action === 'get_my_restaurant_orders') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error, session } = await validateGuestToken(db, rawToken);
+    if (error) return json({ ok: false, error, message: guestErrorMsg(error) }, 401, cors);
+
+    if (!(session!.scopes as string[]).includes('restaurant.orders.read'))
+      return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
+
+    // Isolation: reservation_id résolu depuis la session — jamais depuis body
+    const { data: orders, error: oErr } = await db
+      .from('veraluz_food_orders')
+      .select('id, order_number, status, delivery_type, total, items, notes, created_at, delivered_at, room_service_employee_id, room_service_status, room_service_assigned_at, room_service_departed_at, room_service_delivered_at, guest_confirmed_at')
+      .eq('reservation_id', session!.reservation_id)
+      .eq('source', 'guest_portal')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (oErr) {
+      console.error('[guest-access] get_my_restaurant_orders:', oErr.message);
+      return json({ ok: false, error: 'orders_load_failed' }, 500, cors);
+    }
+
+    const mapped = (orders || []).map((o: any) => {
+      let parsedItems: any[] = [];
+      try { parsedItems = JSON.parse(o.items || '[]'); } catch { /* ignore */ }
+      return {
+        id:           o.id,
+        order_number: o.order_number,
+        status:       o.status,
+        status_label: orderStatusLabel(o.status),
+        status_step:  orderStatusStep(o.status),
+        total:        o.total,
+        items:        parsedItems,
+        notes:        o.notes,
+        created_at:   o.created_at,
+        delivered_at: o.delivered_at,
+      };
+    });
+
+    return json({ ok: true, orders: mapped }, 200, cors);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // GET_ORDER_STATUS — scope restaurant.orders.read
+  // Suivi temps réel d'une commande (isolation par reservation_id)
+  // ══════════════════════════════════════════════════════════════════
+  if (action === 'get_order_status') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error, session } = await validateGuestToken(db, rawToken);
+    if (error) return json({ ok: false, error, message: guestErrorMsg(error) }, 401, cors);
+
+    if (!(session!.scopes as string[]).includes('restaurant.orders.read'))
+      return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
+
+    const orderId = body.order_id as string | undefined;
+    if (!orderId) return json({ ok: false, error: 'order_id_required' }, 400, cors);
+
+    const { data: order } = await db
+      .from('veraluz_food_orders')
+      .select('id, order_number, status, delivery_type, total, items, notes, created_at, delivered_at, room_service_employee_id, room_service_status, room_service_assigned_at, room_service_departed_at, room_service_delivered_at, guest_confirmed_at')
+      .eq('id', orderId)
+      .eq('reservation_id', session!.reservation_id) // isolation garantie serveur
+      .eq('source', 'guest_portal')
+      .maybeSingle();
+
+    if (!order)
+      return json({ ok: false, error: 'order_not_found', message: 'Commande introuvable.' }, 404, cors);
+
+    let parsedItems: any[] = [];
+    try { parsedItems = JSON.parse(order.items || '[]'); } catch { /* ignore */ }
+
+    return json({
+      ok:                    true,
+      id:                    order.id,
+      order_number:          order.order_number,
+      status:                order.status,
+      status_label:          orderStatusLabel(order.status),
+      status_step:           orderStatusStep(order.status),
+      total:                 order.total,
+      items:                 parsedItems,
+      notes:                 order.notes,
+      created_at:            order.created_at,
+      delivered_at:          order.delivered_at,
+      delivery_type:         order.delivery_type,
+      room_service_status:       order.room_service_status,
+      room_service_employee_id:  order.room_service_employee_id,
+      room_service_assigned_at:  order.room_service_assigned_at,
+      room_service_departed_at:  order.room_service_departed_at,
+      room_service_delivered_at: order.room_service_delivered_at,
+      guest_confirmed_at:        order.guest_confirmed_at,
+    }, 200, cors);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // GET_RS_EMPLOYEE_INFO — identité employé Room Service pour le guest
+  // ══════════════════════════════════════════════════════════════════
+  if (action === 'get_rs_employee_info') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error, session } = await validateGuestToken(db, rawToken);
+    if (error) return json({ ok: false, error, message: guestErrorMsg(error) }, 401, cors);
+
+    if (!(session!.scopes as string[]).includes('restaurant.orders.read'))
+      return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
+
+    const orderId = body.order_id as string | undefined;
+    if (!orderId) return json({ ok: false, error: 'order_id_required' }, 400, cors);
+
+    const { data: order } = await db
+      .from('veraluz_food_orders')
+      .select('id, room_service_employee_id, room_service_status')
+      .eq('id', orderId)
+      .eq('reservation_id', session!.reservation_id)
+      .eq('source', 'guest_portal')
+      .maybeSingle();
+
+    if (!order) return json({ ok: false, error: 'order_not_found' }, 404, cors);
+    if (!order.room_service_employee_id)
+      return json({ ok: true, employee: null, room_service_status: order.room_service_status ?? 'unassigned' }, 200, cors);
+
+    const { data: emp } = await db
+      .from('veraluz_employees')
+      .select('public_display_name, public_role_label, full_name')
+      .eq('id', order.room_service_employee_id)
+      .maybeSingle();
+
+    return json({
+      ok:                  true,
+      room_service_status: order.room_service_status,
+      employee: emp ? {
+        display_name: emp.public_display_name || emp.full_name || 'Employé',
+        role_label:   emp.public_role_label   || '',
+      } : null,
+    }, 200, cors);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // CONFIRM_RECEIVED — guest confirme réception Room Service
+  // ══════════════════════════════════════════════════════════════════
+  if (action === 'confirm_received') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error, session } = await validateGuestToken(db, rawToken);
+    if (error) return json({ ok: false, error, message: guestErrorMsg(error) }, 401, cors);
+
+    if (!(session!.scopes as string[]).includes('restaurant.orders.read'))
+      return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
+
+    const orderId = body.order_id as string | undefined;
+    if (!orderId) return json({ ok: false, error: 'order_id_required' }, 400, cors);
+
+    const { data: order } = await db
+      .from('veraluz_food_orders')
+      .select('id, room_service_status, guest_confirmed_at')
+      .eq('id', orderId)
+      .eq('reservation_id', session!.reservation_id)
+      .eq('source', 'guest_portal')
+      .maybeSingle();
+
+    if (!order) return json({ ok: false, error: 'order_not_found' }, 404, cors);
+    if (order.room_service_status !== 'delivered')
+      return json({ ok: false, error: 'not_delivered_yet' }, 400, cors);
+    if (order.guest_confirmed_at)
+      return json({ ok: true, already_confirmed: true }, 200, cors); // idempotent
+
+    await db.from('veraluz_food_orders')
+      .update({ guest_confirmed_at: new Date().toISOString() })
+      .eq('id', orderId);
+
+    return json({ ok: true }, 200, cors);
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // REVOKE_SESSION (employé)
+  // ══════════════════════════════════════════════════════════════════
   if (action === 'revoke_session') {
     const sessionToken = req.headers.get('x-veraluz-session') ?? '';
     const emp = await validateEmployeeSession(db, sessionToken);

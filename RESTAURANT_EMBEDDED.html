@@ -825,6 +825,18 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
   </div>
 </div>
 
+<!-- GUEST-3.2 ROOM SERVICE PICKER MODAL -->
+<div class="ov" id="md-rs-assign">
+  <div class="md" style="max-height:82vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <span style="font-size:15px;font-weight:800;">&#127837; Assigner au service</span>
+      <button class="mdc" onclick="closeMd('md-rs-assign')">&#10005;</button>
+    </div>
+    <div id="rs-order-ref" style="font-size:11px;color:var(--text3);margin-bottom:14px;"></div>
+    <div id="rs-emp-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
 <!-- LIVREUR PICKER MODAL -->
 <div class="ov" id="md-livreur">
   <div class="md" style="max-height:82vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px;">
@@ -1424,6 +1436,8 @@ function loadAll(){
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
     RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];APP_PROMOS=r[9]||[];
+      /* GUEST-3.2 — résoudre nom employé RS */
+      resolveRsEmployeeNames(FOOD_ORDERS);
     /* Filtre livreurs via isDeliveryEmployee() : équipe OU rôle */
     LIVREURS=(r[10]||[]).filter(isDeliveryEmployee).map(normalizeEmployee);
     /* P0 FIX: normalise les statuts food à la source — tout le code aval utilise o.status directement */
@@ -1690,7 +1704,7 @@ function renderOrdersEncours(){
   var nxR={ouvert:{lbl:'Prep.',nxt:'en_preparation'},en_preparation:{lbl:'Pret',nxt:'pret'},pret:{lbl:'Encaisser',nxt:'_pay'}};
   var nxF={pending:{lbl:'Confirmer',nxt:'confirmed'},confirmed:{lbl:'Preparer',nxt:'preparing'},preparing:{lbl:'Prete',nxt:'ready'},ready:{lbl:'Livraison',nxt:'out_for_delivery'}};
   (ORDERS||[]).forEach(function(o){if(fv==='all'?aR.includes(o.status):o.status===fv)items.push({src:'rest',id:o.id,status:o.status,lbl:lbR[o.status]||o.status,title:(o.table_name||('Room '+(o.room_number||''))||o.type||'?'),body:(o.items||o.items_json||[]).slice(0,3).map(function(it){return (it.qty||1)+'x '+it.name;}).join(', '),total:o.total||o.total_amount||0,time:o.created_at,note:o.notes||'',nxt:nxR[o.status]});});
-  (FOOD_ORDERS||[]).forEach(function(o){if(fv==='all'?aF.includes(o.status):o.status===fv){var src2=o.delivery_type==='delivery'?'Livraison '+(o.delivery_zone||''):o.delivery_type==='room'?'Room '+(o.room_number||o.customer_name||''):'Lounge';items.push({src:'food',id:o.id,status:o.status,lbl:lbF[o.status]||o.status,title:src2,body:(o.items||[]).slice(0,3).map(function(it){return (it.qty||it.quantity||1)+'x '+it.name;}).join(', '),total:o.total||o.total_amount||0,time:o.created_at,note:o.notes||'',nxt:nxF[o.status]});}});
+  (FOOD_ORDERS||[]).forEach(function(o){if(fv==='all'?aF.includes(o.status):o.status===fv){var src2=o.delivery_type==='delivery'?'Livraison '+(o.delivery_zone||''):o.delivery_type==='room'?'Room '+(o.room_number||o.customer_name||''):'Lounge';items.push({src:'food',id:o.id,status:o.status,lbl:lbF[o.status]||o.status,title:src2,body:(o.items||[]).slice(0,3).map(function(it){return (it.qty||it.quantity||1)+'x '+it.name;}).join(', '),total:o.total||o.total_amount||0,time:o.created_at,note:o.notes||'',nxt:nxF[o.status],room_service_employee_id:o.room_service_employee_id||null,room_service_status:o.room_service_status||null,rs_employee_name:o.rs_employee_name||null});}});
   items.sort(function(a,b){return new Date(b.time)-new Date(a.time);});
   var bdg=document.getElementById('bdg-encours');if(bdg)bdg.textContent=items.length||'';
   if(!items.length){el.innerHTML='<div class="empty" style="margin-top:40px;">Aucune commande active</div>';return;}
@@ -2162,10 +2176,23 @@ function kdsCard(o){
     else if(o._kst==='prep')
       acts='<button class="btn bp bs" style="flex:1;font-size:11px" data-id="'+o._id+'" data-st="ready" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Pr&#234;te</button>';
     else if(o._kst==='ready'){
-      var livLabel=o.assigned_to?'&#128667; '+esc(o.assigned_to):'&#128100; Livreur';
-      acts='<button class="btn bp bs" style="flex:2;font-size:11px" data-id="'+o._id+'" data-st="out_for_delivery" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#8599; Remis livreur</button>';
-      if(o._src==='livraison')
-        acts+='<button class="btn '+(o.assigned_to?'bw':'bg')+' bs" style="flex:1;font-size:10px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-id="'+o._id+'" onclick="kdsAssignLivreur(this.dataset.id)">'+livLabel+'</button>';
+      if(o._src==='room'){
+        /* GUEST-3.2 — Room Service interne : assigner un employé en service */
+        if(o.room_service_employee_id){
+          var rsLbl={assigned:'Assigné',accepted:'Accepté',on_the_way:'En route',delivered:'Livré'}[o.room_service_status]||o.room_service_status||'';
+          acts='<div style="font-size:11px;color:#a78bfa;padding:4px 0;display:flex;align-items:center;gap:4px;">'
+            +'<span>&#127837;</span>'
+            +'<strong>'+esc(o.rs_employee_name||'Employé')+'</strong>'
+            +' &middot; '+esc(rsLbl)+'</div>';
+        }else{
+          acts='<button class="btn bg bs" style="flex:1;font-size:11px" data-id="'+o._id+'" onclick="kdsAssignRoomService(this.dataset.id)">&#127837; Assigner au service</button>';
+        }
+      }else{
+        var livLabel=o.assigned_to?'&#128667; '+esc(o.assigned_to):'&#128100; Livreur';
+        acts='<button class="btn bp bs" style="flex:2;font-size:11px" data-id="'+o._id+'" data-st="out_for_delivery" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#8599; Remis livreur</button>';
+        if(o._src==='livraison')
+          acts+='<button class="btn '+(o.assigned_to?'bw':'bg')+' bs" style="flex:1;font-size:10px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" data-id="'+o._id+'" onclick="kdsAssignLivreur(this.dataset.id)">'+livLabel+'</button>';
+      }
     }else if(o._kst==='handed')
       acts='<button class="btn bg bs" style="flex:1;font-size:10px;color:var(--text3)" data-id="'+o._id+'" data-st="delivered" onclick="kdsFoodUpd(this.dataset.id,this.dataset.st)">&#10003; Confirm&#233;e</button>';
   }
@@ -2276,6 +2303,84 @@ function kdsFoodUpd(oid,st){
 }
 
 /* Assign deliverer — modal avec cartes livreurs */
+/* GUEST-3.2 — Résoudre noms employés RS depuis veraluz_employees */
+function resolveRsEmployeeNames(orders){
+  var ids=(orders||[]).filter(function(o){return o.room_service_employee_id&&!o.rs_employee_name;}).map(function(o){return o.room_service_employee_id;});
+  if(!ids.length)return;
+  var unique=[...new Set(ids)];
+  GET('/rest/v1/veraluz_employees?id=in.('+unique.map(encodeURIComponent).join(',')+')'
+    +'&select=id,public_display_name,public_role_label').then(function(rows){
+    var map={};(rows||[]).forEach(function(e){map[e.id]=e;});
+    (orders||[]).forEach(function(o){
+      if(o.room_service_employee_id&&map[o.room_service_employee_id]){
+        o.rs_employee_name=map[o.room_service_employee_id].public_display_name||o.room_service_employee_id;
+      }
+    });
+    renderKds();
+  }).catch(function(){});
+}
+
+/* GUEST-3.2 — Ouvrir modal assignment Room Service */
+var _rsAssignOid=null;
+function kdsAssignRoomService(oid){
+  _rsAssignOid=oid;
+  var o=FOOD_ORDERS.find(function(x){return x.id===oid;});
+  var hdr=document.getElementById('rs-order-ref');
+  var lst=document.getElementById('rs-emp-list');
+  if(!lst)return;
+  if(hdr&&o)hdr.textContent='Commande '+(o.order_number||o.id.slice(0,8).toUpperCase())+' — Ch. '+(o.room_number||o.customer_name||'?');
+  lst.innerHTML='<div style="padding:12px;text-align:center;color:var(--text3);font-size:13px;">Chargement des employés en service…</div>';
+  openMd('md-rs-assign');
+  /* Appel via broker CORE (session_token injecté par CORE) */
+  if(window.parent&&window.parent.veraluzSecureRequest){
+    window.parent.veraluzSecureRequest('room-service',{action:'list_on_duty_employees'}).then(function(res){
+      var employees=(res.body&&res.body.employees)||[];
+      if(!employees.length){
+        lst.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);">Aucun employé en service actuellement.<br><small>Les employés doivent avoir pointé (shift_start) aujourd'hui.</small></div>';
+        return;
+      }
+      lst.innerHTML=employees.map(function(emp){
+        var initials=(emp.display_name||'E').charAt(0).toUpperCase();
+        return '<button onclick="pickRsEmployee(''+esc(emp.employee_id)+'',''+esc(emp.display_name)+'')" '
+          +'style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bord2);border-radius:12px;cursor:pointer;width:100%;text-align:left;">'
+          +'<div style="width:38px;height:38px;border-radius:50%;background:#a78bfa;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;">'+initials+'</div>'
+          +'<div style="flex:1;min-width:0;">'
+            +'<div style="font-size:13px;font-weight:700;color:var(--text1);">'+esc(emp.display_name)+'</div>'
+            +'<div style="font-size:11px;color:var(--text3);">'+esc(emp.role_label)+'</div>'
+          +'</div>'
+          +'<span style="color:#a78bfa;font-size:18px;">&#8250;</span>'
+          +'</button>';
+      }).join('');
+    }).catch(function(){
+      lst.innerHTML='<div style="padding:12px;color:var(--danger);font-size:13px;">Erreur de chargement. Vérifiez la connexion.</div>';
+    });
+  }else{
+    lst.innerHTML='<div style="padding:12px;color:var(--danger);font-size:13px;">Broker non disponible. Actualisez la page.</div>';
+  }
+}
+
+function pickRsEmployee(empId,empName){
+  var oid=_rsAssignOid;
+  closeMd('md-rs-assign');
+  if(!oid||!empId)return;
+  if(!window.parent||!window.parent.veraluzSecureRequest){alert('Broker non disponible.');return;}
+  window.parent.veraluzSecureRequest('room-service',{
+    action:'assign_room_service',
+    order_id:oid,
+    target_employee_id:empId
+  }).then(function(res){
+    if(res.body&&res.body.ok){
+      /* Mise à jour locale optimiste */
+      var o=FOOD_ORDERS.find(function(x){return x.id===oid;});
+      if(o){o.room_service_employee_id=empId;o.rs_employee_name=empName;o.room_service_status='assigned';}
+      renderKds();
+    }else{
+      var errs={already_assigned:'Déjà assigné.',employee_not_on_duty:'Employé non en service.',order_not_ready:'Commande pas encore prête.',session_required:'Session expirée.'};
+      alert(errs[res.body&&res.body.error]||'Erreur: '+(res.body&&res.body.error||'inconnue'));
+    }
+  }).catch(function(){alert('Erreur réseau. Réessayez.');});
+}
+
 function kdsAssignLivreur(oid){
   _assignOid=oid;
   var o=FOOD_ORDERS.find(function(x){return x.id===oid;});

@@ -918,12 +918,33 @@ var TIMELINE_STEPS=[
 ];
 var STATUS_STEP={pending:1,confirmed:1,preparing:2,ready:3,out_for_delivery:4,delivered:5,cancelled:0};
 
+/* GUEST-3.2 — Room Service interne (6 étapes) */
+var TIMELINE_STEPS_RS=[
+  {key:'pending',    label:'Reçue'},
+  {key:'preparing',  label:'En préparation'},
+  {key:'ready',      label:'Prête'},
+  {key:'assigned',   label:'Prise en charge'},
+  {key:'on_the_way', label:'En route'},
+  {key:'delivered',  label:'Servie'},
+];
+/* mapping status food_order + room_service_status → step RS */
+function rsStatusStep(status, rsStatus){
+  if(status==='cancelled') return 0;
+  if(rsStatus==='delivered'||status==='delivered') return 6;
+  if(rsStatus==='on_the_way') return 5;
+  if(rsStatus==='accepted'||rsStatus==='assigned')  return 4;
+  if(status==='ready')    return 3;
+  if(status==='preparing'||status==='confirmed') return 2;
+  return 1;
+}
+
 function showOrderSuccess(order){
   var pm=document.getElementById('rest-pane-menu');
   var os=document.getElementById('order-success');
   pm.style.display='none';
   document.getElementById('os-order-num').textContent='Commande '+escH(order.order_number||'');
-  renderTimeline(document.getElementById('os-timeline-wrap'), order.status||'pending', order.created_at);
+  var osRsOpts=order.delivery_type==='room'?{rs:true,rsStatus:order.room_service_status||'',orderId:order.id,confirmed:!!order.guest_confirmed_at,rsEmployee:null}:null;
+  renderTimeline(document.getElementById('os-timeline-wrap'), order.status||'pending', order.created_at, osRsOpts);
   os.classList.add('show');
   // Start polling this order
   startPolling(order.order_id||order.id, order.order_number);
@@ -937,8 +958,11 @@ function showRestMenu(){
   stopPolling();
 }
 
-function renderTimeline(wrap, status, createdAt){
-  var step=STATUS_STEP[status]||1;
+function renderTimeline(wrap, status, createdAt, opts){
+  /* opts: {rs: true, rsStatus, rsEmployee, orderId, confirmed} */
+  var rs=opts&&opts.rs;
+  var steps=rs?TIMELINE_STEPS_RS:TIMELINE_STEPS;
+  var step=rs?rsStatusStep(status,opts.rsStatus||''):(STATUS_STEP[status]||1);
   var cancelled=status==='cancelled';
   wrap.innerHTML='';
   if(cancelled){
@@ -946,7 +970,7 @@ function renderTimeline(wrap, status, createdAt){
     return;
   }
   var list=document.createElement('div'); list.className='os-timeline';
-  TIMELINE_STEPS.forEach(function(s,i){
+  steps.forEach(function(s,i){
     var snum=i+1;
     var done=step>snum;
     var active=step===snum;
@@ -966,6 +990,55 @@ function renderTimeline(wrap, status, createdAt){
     list.appendChild(row);
   });
   wrap.appendChild(list);
+  /* GUEST-3.2 — Employé RS + bouton confirmation */
+  if(rs&&opts.rsEmployee&&(opts.rsStatus==='assigned'||opts.rsStatus==='accepted'||opts.rsStatus==='on_the_way'||opts.rsStatus==='delivered')){
+    var empDiv=document.createElement('div');
+    empDiv.style.cssText='margin-top:10px;padding:10px 12px;background:rgba(0,163,180,.1);border-radius:10px;display:flex;align-items:center;gap:10px;';
+    var av=document.createElement('div');
+    av.style.cssText='width:32px;height:32px;border-radius:50%;background:var(--turq);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;';
+    av.textContent=(opts.rsEmployee.display_name||'E').charAt(0).toUpperCase();
+    var info=document.createElement('div');
+    info.innerHTML='<div style="font-size:12px;font-weight:700;color:var(--navy);">'+escH(opts.rsEmployee.display_name||'')+'</div>'
+      +'<div style="font-size:11px;color:var(--text-3);">'+escH(opts.rsEmployee.role_label||'')+'</div>';
+    empDiv.appendChild(av); empDiv.appendChild(info);
+    wrap.appendChild(empDiv);
+  }
+  if(rs&&opts.rsStatus==='delivered'&&!opts.confirmed){
+    var confirmBtn=document.createElement('button');
+    confirmBtn.textContent='Confirmer la réception';
+    confirmBtn.style.cssText='width:100%;margin-top:10px;padding:11px;background:var(--turq);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;';
+    confirmBtn.onclick=function(){doConfirmReceived(opts.orderId,wrap,opts);};
+    wrap.appendChild(confirmBtn);
+  }
+  if(rs&&opts.confirmed){
+    var confBadge=document.createElement('div');
+    confBadge.style.cssText='margin-top:8px;text-align:center;font-size:12px;color:var(--green,#2E7D52);font-weight:700;';
+    confBadge.textContent='Réception confirmée';
+    wrap.appendChild(confBadge);
+  }
+}
+
+
+/* GUEST-3.2 — Confirmer réception Room Service */
+function doConfirmReceived(orderId, wrap, opts){
+  callEF({action:'confirm_received',order_id:orderId}).then(function(d){
+    if(d.ok){
+      var newOpts=Object.assign({},opts,{confirmed:true});
+      renderTimeline(wrap, 'delivered', null, newOpts);
+    }
+  }).catch(function(){});
+}
+
+/* GUEST-3.2 — Résoudre identité employé RS */
+function fetchRsEmployeeInfo(orderId, wrap, status, createdAt, baseOpts){
+  callEF({action:'get_rs_employee_info',order_id:orderId}).then(function(d){
+    if(!d.ok) return;
+    var newOpts=Object.assign({},baseOpts,{
+      rsStatus:  d.room_service_status||baseOpts.rsStatus,
+      rsEmployee:d.employee||null,
+    });
+    renderTimeline(wrap, status, createdAt, newOpts);
+  }).catch(function(){});
 }
 
 /* ── Polling ── */
@@ -975,7 +1048,15 @@ function startPolling(orderId, orderNum){
     callEF({action:'get_order_status',order_id:orderId}).then(function(d){
       if(!d.ok) return;
       var wrap=document.getElementById('os-timeline-wrap');
-      if(wrap) renderTimeline(wrap, d.status, d.created_at);
+      if(wrap){
+        if(d.delivery_type==='room'){
+          var rsOpts={rs:true,rsStatus:d.room_service_status||'',orderId:d.id,confirmed:!!d.guest_confirmed_at,rsEmployee:null};
+          renderTimeline(wrap,d.status,d.created_at,rsOpts);
+          if(d.room_service_employee_id) fetchRsEmployeeInfo(d.id,wrap,d.status,d.created_at,rsOpts);
+        }else{
+          renderTimeline(wrap,d.status,d.created_at);
+        }
+      }
       document.getElementById('os-order-num').textContent='Commande '+escH(orderNum||'');
       if(d.status==='delivered'||d.status==='cancelled') stopPolling();
     }).catch(function(){/* ignore polling errors */});
@@ -1032,7 +1113,13 @@ function renderOrderDetail(o){
   wrap.innerHTML=h+'</div>';
   var osCardEl=wrap.querySelector('.os-card');
   osCardEl.appendChild(tlWrap);
-  renderTimeline(tlWrap, o.status, o.created_at);
+  if(o.delivery_type==='room'){
+    var rsOpts={rs:true,rsStatus:o.room_service_status||'',orderId:o.id,confirmed:!!o.guest_confirmed_at,rsEmployee:null};
+    renderTimeline(tlWrap,o.status,o.created_at,rsOpts);
+    if(o.room_service_employee_id) fetchRsEmployeeInfo(o.id,tlWrap,o.status,o.created_at,rsOpts);
+  }else{
+    renderTimeline(tlWrap,o.status,o.created_at);
+  }
   if(o.notes){
     var noteCard=document.createElement('div'); noteCard.className='info-card'; noteCard.style.marginTop='10px';
     noteCard.innerHTML='<div class="info-card-hdr"><div class="ic-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div><div><div class="ic-title">Note cuisine</div><div class="ic-sub">'+escH(o.notes)+'</div></div></div>';

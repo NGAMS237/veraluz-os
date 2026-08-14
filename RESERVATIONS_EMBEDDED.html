@@ -1342,17 +1342,35 @@ function loadGuestAccess(rezId){
 
 function renderGuestAccess(el,rezId,sessions){
   var active=sessions.filter(function(s){return s.status==='active';});
+  /* Usage stats summary */
+  var opened=active.filter(function(s){return !!s.first_opened_at;}).length;
   var h='<div style="margin-bottom:14px">';
-  h+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Sessions actives : <strong style="color:var(--text1)">'+active.length+'/3</strong></div>';
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
+     '<div style="font-size:12px;color:var(--text2)">Sessions actives : <strong style="color:var(--text1)">'+active.length+'/3</strong></div>'+
+     (active.length?'<div style="font-size:11px;color:var(--text3)">'+opened+' ouvert'+(opened!==1?'s':'')+'</div>':'')+
+     '</div>';
+  function fmtGAts(iso){if(!iso)return '—';var d=new Date(iso);return d.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}
   if(active.length){
     active.forEach(function(s){
-      var exp=s.expires_at?new Date(s.expires_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
-      h+='<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">'+
+      var exp=s.expires_at?fmtGAts(s.expires_at):'—';
+      var neverOpened=!s.first_opened_at;
+      var openBadge=neverOpened
+        ?'<span style="display:inline-block;padding:2px 7px;border-radius:8px;background:#FEF3C7;color:#92400E;font-size:9.5px;font-weight:700">Jamais ouvert</span>'
+        :'<span style="display:inline-block;padding:2px 7px;border-radius:8px;background:#D1FAE5;color:#065F46;font-size:9.5px;font-weight:700">Ouvert '+( s.open_count||1)+'x</span>';
+      var lastSeen=s.last_seen_at?'<div style="font-size:9.5px;color:var(--text3);margin-top:1px">Dernière activité : '+fmtGAts(s.last_seen_at)+'</div>':'';
+      var firstOpen=(!neverOpened&&s.first_opened_at)?'<div style="font-size:9.5px;color:var(--text3)">Premier accès : '+fmtGAts(s.first_opened_at)+'</div>':'';
+      h+='<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:8px;gap:8px">'+
+        '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">'+
         '<div>'+
+        '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'+
         '<div style="font-size:11px;font-weight:600;color:var(--text1)">Lien actif</div>'+
-        '<div style="font-size:10px;color:var(--text3)">Expire le '+escH(exp)+'</div>'+
+        openBadge+
         '</div>'+
-        '<button data-gsid="'+escH(s.id)+'" data-rezid="'+escH(rezId)+'" onclick="revokeGuestSession(this.dataset.gsid,this.dataset.rezid)" style="padding:4px 10px;border-radius:6px;border:1px solid var(--danger,#e53e3e);background:transparent;color:var(--danger,#e53e3e);font-size:11px;cursor:pointer;white-space:nowrap">Révoquer</button>'+
+        '<div style="font-size:9.5px;color:var(--text3)">Expire le '+escH(exp)+'</div>'+
+        firstOpen+lastSeen+
+        '</div>'+
+        '<button data-gsid="'+escH(s.id)+'" data-rezid="'+escH(rezId)+'" onclick="revokeGuestSession(this.dataset.gsid,this.dataset.rezid)" style="padding:4px 10px;border-radius:6px;border:1px solid var(--danger,#e53e3e);background:transparent;color:var(--danger,#e53e3e);font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0">Révoquer</button>'+
+        '</div>'+
         '</div>';
     });
   } else {

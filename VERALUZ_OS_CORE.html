@@ -3196,7 +3196,7 @@ function loadDirectionFeedback(){
         var contactFlag=f.contact_requested?'<span style="font-size:9.5px;background:#DBEAFE;color:#1E3A8A;padding:1px 6px;border-radius:6px;font-weight:600">Rappeler</span>':'';
         var nextSt=FB_NEXT_STATUS[f.status];
         var nextLbl=FB_NEXT_LABEL[f.status];
-        var actionBtn=nextSt?'<button onclick="updateFbStatus(''+esc(f.id)+'',''+nextSt+'')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border,#e2e8f0);background:transparent;color:var(--text2);font-size:10.5px;cursor:pointer;white-space:nowrap">'+nextLbl+'</button>':'';
+        var actionBtn=nextSt?'<button onclick="updateFbStatus(\'' + esc(f.id) + '\',\'' + nextSt + '\')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border,#e2e8f0);background:transparent;color:var(--text2);font-size:10.5px;cursor:pointer;white-space:nowrap">'+nextLbl+'</button>':'';
         return '<div style="border:1px solid var(--border,#e2e8f0);border-radius:8px;padding:10px 12px;margin-bottom:8px">'
           +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">'
           +'<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">'

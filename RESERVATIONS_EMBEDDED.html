@@ -292,6 +292,7 @@ form-select{background:var(--bg3);border:1px solid var(--border);border-radius:v
 .param-lbl-p{color:var(--text2);font-size:12px;flex:1}
 .param-inp-p{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-size:12px;width:145px;text-align:right;font-family:inherit}
 .btn-save-p{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;padding:9px 18px;border-radius:var(--radius-sm);font-size:12px;width:100%;margin-top:12px;border:none;cursor:pointer;font-family:inherit}
+@keyframes glmFadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 </style>
 <style id="veraluz-theme">
 /* ═══ VERALUZ THEME PROMPT 036C ══════════════════════════════════
@@ -1317,7 +1318,7 @@ function switchRezTab(tab){
     if(btn) btn.className='mtab-btn'+(t===tab?' active':'');
   });
 }
-/* ── GUEST-2 — Accès Client ── */
+/* ── GUEST-2.2 — Accès Client + Modal lien one-time ── */
 function guestBroker(payload){
   if(!window.parent||typeof window.parent.veraluzSecureRequest!=='function')
     return Promise.reject(new Error('broker_unavailable'));
@@ -1326,7 +1327,8 @@ function guestBroker(payload){
   });
 }
 
-var _guestLinkRezId=null;
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
 function loadGuestAccess(rezId){
   var el=document.getElementById('guest-access-inner'); if(!el) return;
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text2);font-size:12px">Chargement des accès…</div>';
@@ -1337,66 +1339,112 @@ function loadGuestAccess(rezId){
     el.innerHTML='<div style="color:var(--danger);font-size:12px;padding:12px">Impossible de contacter le serveur.</div>';
   });
 }
-function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
 function renderGuestAccess(el,rezId,sessions){
   var active=sessions.filter(function(s){return s.status==='active';});
   var h='<div style="margin-bottom:14px">';
-  h+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Sessions actives: <strong style="color:var(--text1)">'+active.length+'/3</strong></div>';
+  h+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Sessions actives : <strong style="color:var(--text1)">'+active.length+'/3</strong></div>';
   if(active.length){
     active.forEach(function(s){
       var exp=s.expires_at?new Date(s.expires_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
       h+='<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">'+
-        '<div><div style="font-size:11px;color:var(--text2)">Exp. '+escH(exp)+'</div></div>'+
-        '<button data-gsid="'+escH(s.id)+'" data-rezid="'+escH(rezId)+'" onclick="revokeGuestSession(this.dataset.gsid,this.dataset.rezid)" style="padding:4px 10px;border-radius:6px;border:1px solid var(--danger,#e53e3e);background:transparent;color:var(--danger,#e53e3e);font-size:11px;cursor:pointer">Révoquer</button>'+
+        '<div>'+
+        '<div style="font-size:11px;font-weight:600;color:var(--text1)">Lien actif</div>'+
+        '<div style="font-size:10px;color:var(--text3)">Expire le '+escH(exp)+'</div>'+
+        '</div>'+
+        '<button data-gsid="'+escH(s.id)+'" data-rezid="'+escH(rezId)+'" onclick="revokeGuestSession(this.dataset.gsid,this.dataset.rezid)" style="padding:4px 10px;border-radius:6px;border:1px solid var(--danger,#e53e3e);background:transparent;color:var(--danger,#e53e3e);font-size:11px;cursor:pointer;white-space:nowrap">Révoquer</button>'+
         '</div>';
     });
   } else {
-    h+='<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Aucun lien actif</div>';
+    h+='<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Aucun lien actif pour cette réservation</div>';
   }
   h+='</div>';
-  // Generate button (only if <3 active or will auto-revoke oldest)
-  h+='<button data-rezid="'+escH(rezId)+'" onclick="generateGuestLink(this.dataset.rezid)" style="width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer">🔗 Générer un lien client</button>';
-  h+='<div id="guest-link-result" style="margin-top:12px"></div>';
+  h+='<button data-rezid="'+escH(rezId)+'" onclick="generateGuestLink(this.dataset.rezid,this)" style="width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Générer un lien client</button>';
+  h+='<div id="guest-link-error" style="margin-top:8px"></div>';
   el.innerHTML=h;
 }
 
-function generateGuestLink(rezId){
-  var btn=event.currentTarget||event.target; btn.disabled=true; btn.textContent='Génération…';
+/* ── Modal lien one-time ──────────────────────────────────────────────────── */
+var _guestModalUrl='';
+var _glmRezId='';
+function showGuestLinkModal(url,rezId){
+  _guestModalUrl=url;
+  _glmRezId=rezId||'';
+  var existing=document.getElementById('guest-link-modal');
+  if(existing) existing.remove();
+  var waText='Voici votre lien de connexion R\u00e9sidences Veraluz\u00a0: '+url;
+  var wa='https://wa.me/?text='+encodeURIComponent(waText);
+  var m=document.createElement('div');
+  m.id='guest-link-modal';
+  m.setAttribute('style','position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;');
+  var card=document.createElement('div');
+  card.setAttribute('style','background:var(--bg1,#fff);border-radius:16px;padding:24px;max-width:420px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.25);animation:glmFadeIn .25s ease-out;box-sizing:border-box;');
+  card.innerHTML=
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px">'+
+      '<div>'+
+        '<div style="font-size:15px;font-weight:700;color:var(--text1,#1a2b3c)">Lien client</div>'+
+        '<div style="font-size:11px;color:var(--text3,#8a9bb0);margin-top:3px">Valide jusqu&#x27;au d&#233;part&#x202f;+&#x202f;6h</div>'+
+      '</div>'+
+      '<button id="glm-close-btn" title="Fermer" style="width:28px;height:28px;border-radius:50%;border:1px solid var(--border,#e2e8f0);background:transparent;cursor:pointer;font-size:16px;line-height:1;color:var(--text2,#4a5568);flex-shrink:0;">&#x2715;</button>'+
+    '</div>'+
+    '<div style="background:#fef9ec;border:1px solid #e8c96a;border-radius:10px;padding:12px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start;">'+
+      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9b7e32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>'+
+      '<div style="font-size:12px;color:#7c5e10;line-height:1.5;">Ce lien n&#x27;est affich&#233; <strong>qu&#x27;une seule fois</strong>. Copiez-le avant de fermer.<br>La session reste active si vous fermez cette fen&#234;tre.</div>'+
+    '</div>'+
+    '<div style="margin-bottom:16px;">'+
+      '<div style="font-size:10px;font-weight:700;color:var(--text2,#4a5568);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px;">Lien de connexion</div>'+
+      '<input id="glm-url-inp" readonly style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border,#e2e8f0);font-size:11px;font-family:monospace;background:var(--bg3,#f8f5f0);color:var(--text1,#1a2b3c);box-sizing:border-box;cursor:text;">'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">'+
+      '<button id="glm-copy-btn" style="padding:10px;border-radius:8px;border:none;background:var(--accent,#0D2340);color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Copier le lien</button>'+
+      '<a id="glm-open-a" href="#" target="_blank" rel="noopener" style="padding:10px;border-radius:8px;border:1px solid var(--border,#e2e8f0);background:transparent;color:var(--text1,#1a2b3c);font-size:12px;font-weight:600;text-decoration:none;text-align:center;display:block;box-sizing:border-box;">Ouvrir</a>'+
+    '</div>'+
+    '<a id="glm-wa-a" href="#" target="_blank" rel="noopener" style="display:block;width:100%;padding:10px;border-radius:8px;background:#25d366;color:#fff;font-size:12px;font-weight:600;text-decoration:none;text-align:center;box-sizing:border-box;">Partager WhatsApp</a>';
+  m.appendChild(card);
+  document.body.appendChild(m);
+  var inp=document.getElementById('glm-url-inp');
+  if(inp){inp.value=url;setTimeout(function(){try{inp.select();}catch(e){}},100);}
+  var oa=document.getElementById('glm-open-a'); if(oa) oa.href=url;
+  var wa2=document.getElementById('glm-wa-a'); if(wa2) wa2.href=wa;
+  var cb=document.getElementById('glm-close-btn'); if(cb) cb.addEventListener('click',closeGuestLinkModal);
+  var cpb=document.getElementById('glm-copy-btn'); if(cpb) cpb.addEventListener('click',copyGuestLinkModal);
+  m.addEventListener('click',function(e){if(e.target===m)closeGuestLinkModal();});
+}
+function closeGuestLinkModal(){
+  _guestModalUrl='';
+  var m=document.getElementById('guest-link-modal'); if(m) m.remove();
+  var rid=_glmRezId; _glmRezId='';
+  if(rid){_guestAccessLoaded=false;loadGuestAccess(rid);}
+}
+function copyGuestLinkModal(){
+  var inp=document.getElementById('glm-url-inp'); if(!inp||!inp.value) return;
+  var btn=document.getElementById('glm-copy-btn');
+  var val=inp.value;
+  function ok(){if(btn){btn.textContent='Copié !';btn.style.background='#38a169';setTimeout(function(){if(btn){btn.textContent='Copier le lien';btn.style.background='';}},2500);}}
+  if(navigator.clipboard){navigator.clipboard.writeText(val).then(ok).catch(function(){try{inp.select();document.execCommand('copy');ok();}catch(e){}});}
+  else{inp.select();try{document.execCommand('copy');ok();}catch(e){}}
+}
+
+function generateGuestLink(rezId,btnEl){
+  var btn=btnEl||(event&&(event.currentTarget||event.target));
+  if(btn){btn.disabled=true;btn.textContent='Génération…';}
+  var errEl=document.getElementById('guest-link-error');
   guestBroker({action:'create_invitation',reservation_id:rezId}).then(function(d){
-    btn.disabled=false; btn.textContent='🔗 Générer un lien client';
-    var res=document.getElementById('guest-link-result'); if(!res) return;
-    if(!d.ok){res.innerHTML='<div style="color:var(--danger);font-size:12px;padding:8px">'+escH(d.message||'Erreur génération')+'</div>';return;}
-    var url=d.guest_url||'';
-    res.innerHTML=
-      '<div style="background:rgba(56,161,105,.08);border:1px solid rgba(56,161,105,.3);border-radius:8px;padding:12px">'+
-      '<div style="font-size:11px;color:var(--text2);margin-bottom:6px">⚠️ Ce lien n\'est affiché qu\'une seule fois</div>'+
-      '<div style="display:flex;gap:8px;align-items:center">'+
-      '<input id="guest-url-inp" readonly value="'+escH(url)+'" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;background:var(--bg3);color:var(--text1)">'+
-      '<button onclick="copyGuestUrl()" style="padding:6px 12px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:600;cursor:pointer" id="guest-copy-btn">Copier</button>'+
-      '</div></div>';
-    // Reload session list after short delay
-    setTimeout(function(){loadGuestAccess(rezId);},800);
+    if(btn){btn.disabled=false;btn.textContent='Générer un lien client';}
+    if(!d.ok){
+      if(errEl) errEl.innerHTML='<div style="color:var(--danger);font-size:12px;padding:6px 0">'+escH(d.message||'Erreur génération')+'</div>';
+      return;
+    }
+    if(errEl) errEl.innerHTML='';
+    showGuestLinkModal(d.guest_url||'',rezId);
   }).catch(function(){
-    btn.disabled=false; btn.textContent='🔗 Générer un lien client';
-    var res=document.getElementById('guest-link-result'); if(res) res.innerHTML='<div style="color:var(--danger);font-size:12px">Erreur réseau.</div>';
+    if(btn){btn.disabled=false;btn.textContent='Générer un lien client';}
+    if(errEl) errEl.innerHTML='<div style="color:var(--danger);font-size:12px;padding:6px 0">Erreur réseau.</div>';
   });
 }
 
-function copyGuestUrl(){
-  var inp=document.getElementById('guest-url-inp'); if(!inp||!inp.value) return;
-  var btn=document.getElementById('guest-copy-btn');
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(inp.value).then(function(){
-      if(btn){btn.textContent='✓ Copié';setTimeout(function(){if(btn)btn.textContent='Copier';},2000);}
-    });
-  } else {
-    inp.select(); document.execCommand('copy');
-    if(btn){btn.textContent='✓ Copié';setTimeout(function(){if(btn)btn.textContent='Copier';},2000);}
-  }
-}
-
 function revokeGuestSession(gsId,rezId){
-  if(!confirm('Révoquer ce lien client? Le client ne pourra plus accéder au portail.')) return;
+  if(!confirm('Révoquer ce lien client ? Le client ne pourra plus accéder au portail.')) return;
   guestBroker({action:'revoke_session',session_id:gsId}).then(function(d){
     if(!d.ok) toast(d.message||'Erreur révocation','danger');
     else toast('Lien client révoqué','success');
@@ -1404,7 +1452,7 @@ function revokeGuestSession(gsId,rezId){
     loadGuestAccess(rezId);
   }).catch(function(){toast('Erreur réseau','danger');});
 }
-/* ── fin GUEST-2 ── */
+/* ── fin GUEST-2.2 ── */
 
 function selPayMethod(btn){
   document.querySelectorAll('.pmb').forEach(function(b){b.classList.remove('sel');});

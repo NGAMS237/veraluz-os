@@ -314,6 +314,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
   font-size:13px; margin-bottom:14px; display:none;
 }
 .auth-error.show { display:block; }
+/* MICRO CORE BOOT — reconnect banner */
+#reconnect-banner {
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  gap:16px; padding:32px 0; text-align:center;
+}
+#reconnect-banner.show { display:flex; }
+.reconnect-spinner {
+  width:40px; height:40px; border:3px solid rgba(34,211,165,.2);
+  border-top-color:var(--acc,#22d3a5); border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.reconnect-msg { font-size:14px; color:var(--fg2,#94a3b8); }
 .auth-hint { text-align:center; margin-top:12px; font-size:11px; color:var(--fg2); }
 .auth-mode-toggle {
   text-align:center; margin-top:10px; font-size:12px; color:var(--fg2);
@@ -1127,6 +1140,12 @@ html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
 
     <div id="auth-error" class="auth-error"></div>
 
+    <!-- MICRO CORE BOOT — reconnecting state (F5 resume) -->
+    <div id="reconnect-banner">
+      <div class="reconnect-spinner"></div>
+      <div class="reconnect-msg">Reconnexion à VERALUZ OS…</div>
+    </div>
+
     <!-- Mode Employé (PIN) -->
     <div id="auth-emp-mode">
       <div class="auth-emp-pick">
@@ -1678,6 +1697,9 @@ function loadDashboardData(){
     ['st-rez','st-pay','st-units','st-rev'].forEach(function(id){
       document.getElementById(id).textContent='—';
     });
+    /* MICRO CORE BOOT — éviter "Chargement…" permanent en cas d'erreur */
+    var list = document.getElementById('recent-list');
+    if (list) list.innerHTML = '<div class="rec-item"><div class="rec-dot" style="background:#64748b"></div><div class="rec-text" style="color:var(--fg2,#94a3b8)">Données indisponibles — vérifiez la connexion</div></div>';
   });
 }
 
@@ -1956,6 +1978,30 @@ function updatePinHint() {
   hint.textContent = 'PIN à 6 chiffres saisi.'; hint.className = 'auth-pin-hint ok';
 }
 
+/* MICRO CORE BOOT — Reconnexion en cours (pendant reprise async après F5) */
+function showReconnecting() {
+  var ov = document.getElementById('auth-overlay');
+  if (ov) ov.classList.remove('hidden');
+  var rb = document.getElementById('reconnect-banner');
+  if (rb) rb.classList.add('show');
+  var em = document.getElementById('auth-emp-mode');
+  if (em) em.style.display = 'none';
+  var am = document.getElementById('auth-admin-mode');
+  if (am) am.style.display = 'none';
+  var errEl = document.getElementById('auth-error');
+  if (errEl) errEl.classList.remove('show');
+}
+function hideReconnecting() {
+  var rb = document.getElementById('reconnect-banner');
+  if (rb) rb.classList.remove('show');
+  var em = document.getElementById('auth-emp-mode');
+  if (em) em.style.display = '';
+  var am = document.getElementById('auth-admin-mode');
+  if (am) am.style.display = '';
+  var ov = document.getElementById('auth-overlay');
+  if (ov) ov.classList.add('hidden');
+}
+
 /* PROMPT 008A — showAuthOverlay avec messages d'erreur distincts */
 /* PROMPT 010C — Bouton DEV MODE + erreur réseau non-bloquante en mode développement */
 function showAuthOverlay() {
@@ -2022,12 +2068,25 @@ function checkAuth() {
       var sessionStr0 = localStorage.getItem('veraluz_auth_v1');
       if (resumeToken && sessionStr0) {
         try { var s0=JSON.parse(sessionStr0); if(!s0||s0.expires<Date.now())throw'x'; } catch(e){ localStorage.removeItem('vz_resume'); showAuthOverlay(); return; }
+        if (_isResuming) return; /* MICRO CORE BOOT — empêcher appels concurrents */
+        _isResuming = true;
+        showReconnecting(); /* MICRO CORE BOOT — masquer CORE vide pendant reprise */
+        var _resumeTimer = setTimeout(function() { /* MICRO CORE BOOT — timeout 9s */
+          if (!_isResuming) return;
+          _isResuming = false;
+          localStorage.removeItem('vz_resume');
+          hideReconnecting();
+          showAuthOverlay();
+        }, 9000);
         fetch(EDGE_RESUME_SESSION_URL, {
           method: 'POST',
           headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY },
           body: JSON.stringify({ resume_token: resumeToken })
         }).then(function(r){ return r.json(); })
           .then(function(d){
+            clearTimeout(_resumeTimer);
+            _isResuming = false;
+            hideReconnecting();
             if (d && d.session_token) {
               setSessionToken(d.session_token, d.expires_at);
               if (d.resume_token) localStorage.setItem('vz_resume', d.resume_token);
@@ -2037,7 +2096,12 @@ function checkAuth() {
               localStorage.removeItem('vz_resume');
               showAuthOverlay();
             }
-          }).catch(function(){ showAuthOverlay(); });
+          }).catch(function(){
+            clearTimeout(_resumeTimer);
+            _isResuming = false;
+            hideReconnecting();
+            showAuthOverlay();
+          });
         return; /* attendre la réponse async */
       }
     }
@@ -2760,6 +2824,7 @@ var _pendingPinSession = null;
    Perdu au rechargement de page, ce qui est le comportement voulu. */
 var _sessionToken  = null;
 var _sessionExpiry = null;
+var _isResuming    = false; /* MICRO CORE BOOT — guard concurrent resume */
 function setSessionToken(t, exp) { _sessionToken = t || null; _sessionExpiry = exp || null; }
 function clearSessionToken()     { _sessionToken = null; _sessionExpiry = null; }
 function getSessionToken()       { return _sessionToken; }

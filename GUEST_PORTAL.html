@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Résidences Veraluz</title>
 <style>
-/* GUEST-2.2 — redesign premium monochrome */
+/* GUEST-3 — Restaurant Room Service */
 :root{
   --navy:#0A1E35;--navy-2:#13294B;--navy-3:#1A3560;
   --turq:#00A3B4;--turq-pale:#E6F7F9;
@@ -17,7 +17,7 @@
   --gray-1:#EEE9E2;--gray-2:#D5CEC5;--gray-3:#9A9389;
   --text-1:#1A1410;--text-2:#4A443E;--text-3:#9A9389;
   --green:#2E7D52;--green-pale:#E6F4ED;
-  --danger:#C0392B;
+  --danger:#C0392B;--danger-pale:#FDECEA;
   --r:14px;--r-sm:10px;--r-xs:6px;
   --sh-card:0 2px 12px rgba(10,30,53,.07);
   --sh-modal:0 8px 40px rgba(10,30,53,.18);
@@ -46,6 +46,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 /* ─ App shell ─ */
 #app{display:none;min-height:100dvh;padding-bottom:calc(72px + var(--safe-bot))}
 
+/* ─ Views ─ */
+.view{display:none}
+.view.active{display:block}
+
 /* ─ Header ─ */
 .vl-hdr{background:var(--navy);padding:calc(16px + var(--safe-top)) 20px 28px;position:relative;overflow:hidden}
 .vl-hdr-inner{position:relative;z-index:1}
@@ -57,6 +61,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .vl-greet-name{font-size:26px;font-weight:700;color:var(--gold);letter-spacing:-.3px;line-height:1.1}
 .vl-hdr-decor{position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;border:1px solid rgba(255,255,255,.05);pointer-events:none}
 .vl-hdr-decor2{position:absolute;bottom:-60px;left:-30px;width:140px;height:140px;border-radius:50%;border:1px solid rgba(0,163,180,.12);pointer-events:none}
+
+/* ─ Restaurant header simple ─ */
+.rest-hdr{background:var(--navy);padding:calc(16px + var(--safe-top)) 20px 20px;position:relative;overflow:hidden}
+.rest-hdr-inner{position:relative;z-index:1}
+.rest-hdr-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.rest-hdr-ico{width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rest-hdr-title{font-size:18px;font-weight:700;color:#fff}
+.rest-hdr-sub{font-size:11px;color:var(--turq);margin-top:2px;font-weight:500}
+.rest-hdr-hours{font-size:11.5px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:6px}
+.rest-hdr-decor{position:absolute;top:-30px;right:-30px;width:120px;height:120px;border-radius:50%;border:1px solid rgba(255,255,255,.04);pointer-events:none}
 
 /* ─ Hero card ─ */
 .hero-lift{margin:-16px 14px 0;position:relative;z-index:10}
@@ -70,7 +84,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .unit-ico svg{opacity:.9}
 .unit-name-txt{font-size:15px;font-weight:700;color:var(--text-1);line-height:1.2}
 .unit-type-txt{font-size:10.5px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
-/* Stay dates grid */
 .stay-grid{background:var(--ivory);border-radius:var(--r-sm);padding:12px 14px;display:grid;grid-template-columns:1fr 24px 1fr}
 .stay-blk{display:flex;flex-direction:column;gap:2px}
 .stay-blk.right{text-align:right}
@@ -79,7 +92,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .stay-day{font-size:11px;color:var(--text-3)}
 .stay-time{font-size:10.5px;color:var(--turq);font-weight:600;margin-top:1px}
 .stay-arrow{display:flex;align-items:center;justify-content:center;opacity:.3}
-/* Status + nights */
 .status-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:6px}
 .st-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;font-size:10.5px;font-weight:600;letter-spacing:.3px}
 .st-badge .st-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
@@ -91,7 +103,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 /* ─ Sections ─ */
 .sec{padding:0 14px}
 .sec-label{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-3);padding:20px 0 10px}
-/* Info card */
 .info-card{background:var(--white);border-radius:var(--r-sm);box-shadow:var(--sh-card);overflow:hidden;margin-bottom:10px}
 .info-card-hdr{display:flex;align-items:center;gap:12px;padding:14px 16px}
 .ic-ico{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--ivory)}
@@ -103,7 +114,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .ic-row:last-child{border-bottom:none}
 .ic-row-lbl{font-size:11.5px;color:var(--text-3)}
 .ic-row-val{font-size:11.5px;font-weight:600;color:var(--text-1);text-align:right}
-/* WiFi */
 .wifi-ssid-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0 6px}
 .wifi-ssid-lbl{font-size:11px;color:var(--text-3)}
 .wifi-ssid-val{font-size:12px;font-weight:700;color:var(--text-1);font-family:monospace}
@@ -112,14 +122,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .pwd-field{font-size:14px;font-weight:700;color:var(--text-1);font-family:monospace;letter-spacing:2px;flex:1}
 .wifi-btns{display:flex;gap:6px;padding-bottom:2px}
 .wifi-hint{font-size:11.5px;color:var(--text-3);line-height:1.5;padding:8px 0 4px;font-style:italic}
-/* Btn styles */
 .btn-pill{padding:7px 14px;border-radius:20px;border:none;font-size:11.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:opacity .15s}
 .btn-pill:active{opacity:.75}
 .btn-show{background:var(--ivory);color:var(--text-2);border:1px solid var(--gray-2)}
 .btn-copy{background:var(--green-pale);color:var(--green);border:1px solid rgba(46,125,82,.18)}
 .btn-copy.copied{background:var(--green);color:#fff}
 .btn-call{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;padding:12px;background:var(--navy);border:none;border-radius:var(--r-xs);color:#fff;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;margin-top:8px}
-/* Restaurant */
 .avail-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;background:var(--green-pale);color:var(--green)}
 .soon-card{background:var(--white);border-radius:var(--r-sm);box-shadow:var(--sh-card);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
 .soon-card-left{display:flex;align-items:center;gap:10px}
@@ -127,6 +135,120 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .soon-title{font-size:13px;font-weight:600;color:var(--text-1)}
 .soon-sub{font-size:11px;color:var(--text-3);margin-top:2px}
 .soon-badge{font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;background:var(--gray-1);color:var(--text-3);padding:4px 8px;border-radius:6px;flex-shrink:0}
+
+/* ── RESTAURANT STYLES ─────────────────────────────────────────── */
+#view-restaurant{padding-bottom:calc(80px + var(--safe-bot))}
+
+/* Category pills */
+.cat-strip{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:14px 14px 6px;display:flex;gap:7px;white-space:nowrap}
+.cat-strip::-webkit-scrollbar{display:none}
+.cat-pill{padding:6px 14px;border-radius:20px;font-size:11.5px;font-weight:600;border:none;cursor:pointer;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.cat-pill.active{background:var(--navy);color:#fff}
+.cat-pill:not(.active){background:var(--white);color:var(--text-2);border:1px solid var(--gray-2)}
+
+/* Product grid */
+.prod-grid{padding:6px 14px;display:flex;flex-direction:column;gap:10px}
+.prod-card{background:var(--white);border-radius:var(--r-sm);box-shadow:var(--sh-card);display:flex;align-items:stretch;overflow:hidden;min-height:88px}
+.prod-img{width:88px;flex-shrink:0;object-fit:cover;display:block}
+.prod-ph{width:88px;flex-shrink:0;background:var(--ivory);display:flex;align-items:center;justify-content:center}
+.prod-ph svg{opacity:.25}
+.prod-body{flex:1;padding:12px 12px 12px 14px;display:flex;flex-direction:column;justify-content:space-between;min-width:0}
+.prod-name{font-size:13px;font-weight:700;color:var(--text-1);line-height:1.3;margin-bottom:2px}
+.prod-desc{font-size:11px;color:var(--text-3);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px}
+.prod-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.prod-price{font-size:14px;font-weight:700;color:var(--navy)}
+.prod-unavail{font-size:10px;font-weight:600;color:var(--text-3);background:var(--gray-1);padding:3px 8px;border-radius:10px}
+.btn-add{width:28px;height:28px;border-radius:8px;background:var(--navy);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:opacity .15s}
+.btn-add:active{opacity:.7}
+.btn-add:disabled{background:var(--gray-2);cursor:not-allowed}
+.prod-qty-row{display:flex;align-items:center;gap:8px}
+.prod-qty-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--gray-2);background:transparent;font-size:14px;font-weight:600;color:var(--text-1);cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.prod-qty-val{font-size:13px;font-weight:700;color:var(--navy);min-width:20px;text-align:center}
+
+/* Empty state */
+.rest-empty{padding:48px 20px;text-align:center;color:var(--text-3)}
+.rest-empty-ico{width:48px;height:48px;border-radius:50%;background:var(--gray-1);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.rest-empty-txt{font-size:13px;line-height:1.6}
+
+/* ── CART ────────────────────────────────────────────────────── */
+#cart-bar{position:fixed;bottom:calc(60px + var(--safe-bot));left:50%;transform:translateX(-50%);width:calc(100% - 28px);max-width:452px;background:var(--navy);color:#fff;border-radius:12px;padding:12px 16px;display:none;align-items:center;justify-content:space-between;gap:10px;z-index:200;box-shadow:0 4px 24px rgba(10,30,53,.3);cursor:pointer}
+#cart-bar.show{display:flex}
+.cart-bar-left{display:flex;align-items:center;gap:10px}
+.cart-badge{width:22px;height:22px;background:var(--gold);border-radius:50%;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cart-bar-lbl{font-size:13px;font-weight:600}
+.cart-bar-total{font-size:14px;font-weight:700;color:var(--gold)}
+
+/* Cart drawer */
+#cart-drawer{position:fixed;inset:0;z-index:500;display:none}
+#cart-drawer.open{display:block}
+#cart-backdrop{position:absolute;inset:0;background:rgba(10,30,53,.5)}
+#cart-sheet{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--white);border-radius:20px 20px 0 0;max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:var(--safe-bot)}
+.cart-sheet-hdr{padding:16px 16px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray-1);position:sticky;top:0;background:var(--white);z-index:1}
+.cart-sheet-title{font-size:16px;font-weight:700;color:var(--text-1)}
+.cart-close{width:28px;height:28px;border-radius:50%;border:1px solid var(--gray-2);background:transparent;cursor:pointer;font-size:15px;color:var(--text-2);display:flex;align-items:center;justify-content:center}
+#cart-items{padding:0 16px}
+.cart-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-1)}
+.cart-item:last-child{border-bottom:none}
+.ci-info{flex:1;min-width:0}
+.ci-name{font-size:13px;font-weight:600;color:var(--text-1)}
+.ci-price{font-size:11.5px;color:var(--text-3);margin-top:2px}
+.ci-qty{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.ci-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--gray-2);background:transparent;font-size:14px;color:var(--text-1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:600}
+.ci-val{font-size:13px;font-weight:700;color:var(--navy);min-width:18px;text-align:center}
+.cart-note-wrap{padding:12px 16px 0}
+.cart-note-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-3);margin-bottom:6px}
+.cart-note-inp{width:100%;padding:10px 12px;border:1px solid var(--gray-2);border-radius:var(--r-xs);font-size:13px;color:var(--text-1);resize:none;font-family:inherit;background:var(--white)}
+.cart-note-inp:focus{outline:none;border-color:var(--turq)}
+.cart-footer{padding:16px}
+.cart-total-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-top:8px}
+.cart-total-lbl{font-size:13px;font-weight:600;color:var(--text-2)}
+.cart-total-val{font-size:20px;font-weight:800;color:var(--navy)}
+.btn-order{display:block;width:100%;padding:15px;background:var(--navy);color:#fff;border:none;border-radius:var(--r-sm);font-size:15px;font-weight:700;cursor:pointer;text-align:center;transition:opacity .15s}
+.btn-order:active{opacity:.8}
+.btn-order:disabled{opacity:.5;cursor:not-allowed}
+.cart-err{font-size:12px;color:var(--danger);text-align:center;padding:6px 0;min-height:20px}
+
+/* ── ORDER SUCCESS ────────────────────────────────────────────── */
+#order-success{display:none;padding:24px 16px;text-align:center}
+#order-success.show{display:block}
+.os-ico{width:56px;height:56px;border-radius:50%;background:var(--green-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.os-title{font-size:18px;font-weight:700;color:var(--text-1);margin-bottom:6px}
+.os-num{font-size:13px;color:var(--text-3);margin-bottom:20px}
+.os-card{background:var(--white);border-radius:var(--r-sm);box-shadow:var(--sh-card);padding:16px;margin-bottom:16px;text-align:left}
+.os-timeline{display:flex;flex-direction:column;gap:0}
+.tl-step{display:flex;align-items:flex-start;gap:12px;padding:10px 0;position:relative}
+.tl-step:not(:last-child)::after{content:'';position:absolute;left:11px;top:32px;width:2px;height:calc(100% - 10px);background:var(--gray-1)}
+.tl-dot{width:24px;height:24px;border-radius:50%;border:2px solid var(--gray-2);background:var(--white);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;z-index:1;transition:all .2s}
+.tl-dot.done{border-color:var(--turq);background:var(--turq)}
+.tl-dot.done svg{stroke:#fff}
+.tl-dot.active{border-color:var(--navy);background:var(--navy)}
+.tl-dot.active svg{stroke:#fff}
+.tl-dot.active::before{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid rgba(0,163,180,.3);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.15)}}
+.tl-info{flex:1;padding-top:3px}
+.tl-lbl{font-size:13px;font-weight:600;color:var(--text-1)}
+.tl-lbl.dim{color:var(--text-3);font-weight:500}
+.tl-time{font-size:10.5px;color:var(--text-3);margin-top:2px}
+.btn-back{display:block;width:100%;padding:12px;background:transparent;border:1px solid var(--gray-2);border-radius:var(--r-sm);font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;margin-top:8px}
+
+/* ── MES COMMANDES ────────────────────────────────────────────── */
+.orders-section{padding:0 14px 16px}
+.order-card{background:var(--white);border-radius:var(--r-sm);box-shadow:var(--sh-card);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s}
+.order-card:active{box-shadow:none}
+.oc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.oc-num{font-size:12px;font-weight:700;color:var(--navy)}
+.oc-date{font-size:10.5px;color:var(--text-3)}
+.oc-status{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:10px}
+.oc-s-pending,.oc-s-confirmed{background:var(--gold-pale);color:var(--gold)}
+.oc-s-preparing{background:var(--turq-pale);color:var(--turq)}
+.oc-s-ready{background:#EDF7FF;color:#1A6FAB}
+.oc-s-out_for_delivery{background:var(--gold-pale);color:var(--gold)}
+.oc-s-delivered{background:var(--green-pale);color:var(--green)}
+.oc-s-cancelled{background:var(--gray-1);color:var(--text-3)}
+.oc-items{font-size:11.5px;color:var(--text-2);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oc-bottom{display:flex;align-items:center;justify-content:space-between}
+.oc-total{font-size:13px;font-weight:700;color:var(--text-1)}
+.oc-arrow{color:var(--text-3)}
 
 /* ─ Bottom nav ─ */
 .vl-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--white);border-top:1px solid var(--gray-1);display:none;padding-bottom:var(--safe-bot);z-index:100;box-shadow:0 -2px 16px rgba(10,30,53,.06)}
@@ -167,165 +289,241 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 
 <!-- App -->
 <div id="app">
-  <!-- Header -->
-  <header class="vl-hdr">
-    <div class="vl-hdr-decor"></div>
-    <div class="vl-hdr-decor2"></div>
-    <div class="vl-hdr-inner">
-      <div class="vl-hdr-brand">
-        <div class="vl-logo">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+
+  <!-- ══ VIEW: ACCUEIL ══════════════════════════════════════════════ -->
+  <div id="view-accueil" class="view active">
+    <header class="vl-hdr">
+      <div class="vl-hdr-decor"></div>
+      <div class="vl-hdr-decor2"></div>
+      <div class="vl-hdr-inner">
+        <div class="vl-hdr-brand">
+          <div class="vl-logo">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div class="vl-brand-text">
+            <div class="prop" id="hdr-prop">Résidences Veraluz</div>
+            <div class="loc" id="hdr-loc">Kribi · Cameroun</div>
+          </div>
         </div>
-        <div class="vl-brand-text">
-          <div class="prop" id="hdr-prop">Résidences Veraluz</div>
-          <div class="loc" id="hdr-loc">Kribi · Cameroun</div>
+        <div class="vl-greet-label" id="greet-sup">Bonjour,</div>
+        <div class="vl-greet-name" id="greet-name">Bienvenue</div>
+      </div>
+    </header>
+
+    <div class="hero-lift fade-in">
+      <div class="hero-card">
+        <div id="unit-photo-wrap"></div>
+        <div class="hero-info">
+          <div class="hero-info-top">
+            <div class="unit-ico" id="unit-ico-wrap">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div>
+              <div class="unit-name-txt" id="unit-name">—</div>
+              <div class="unit-type-txt" id="unit-type"></div>
+            </div>
+          </div>
+          <div class="stay-grid">
+            <div class="stay-blk">
+              <div class="stay-lbl">Arrivée</div>
+              <div class="stay-date" id="ci-val">—</div>
+              <div class="stay-day" id="ci-day"></div>
+              <div class="stay-time" id="ci-time"></div>
+            </div>
+            <div class="stay-arrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </div>
+            <div class="stay-blk right">
+              <div class="stay-lbl">Départ</div>
+              <div class="stay-date" id="co-val">—</div>
+              <div class="stay-day" id="co-day"></div>
+              <div class="stay-time" id="co-time"></div>
+            </div>
+          </div>
+          <div class="status-row">
+            <div class="st-badge" id="st-badge"><span class="st-dot"></span><span id="st-lbl">—</span></div>
+            <div class="nights-pill hidden" id="nights-pill"></div>
+          </div>
         </div>
       </div>
-      <div class="vl-greet-label" id="greet-sup">Bonjour,</div>
-      <div class="vl-greet-name" id="greet-name">Bienvenue</div>
     </div>
-  </header>
 
-  <!-- Hero -->
-  <div class="hero-lift fade-in">
-    <div class="hero-card">
-      <div id="unit-photo-wrap"></div>
-      <div class="hero-info">
-        <div class="hero-info-top">
-          <div class="unit-ico" id="unit-ico-wrap">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <div class="sec fade-in" style="animation-delay:.08s">
+      <div class="sec-label">Informations séjour</div>
+      <div class="info-card hidden" id="wifi-card">
+        <div class="info-card-hdr">
+          <div class="ic-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--turq)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg></div>
+          <div><div class="ic-title">Wi-Fi</div><div class="ic-sub" id="wifi-ssid-sub">Réseau sans fil</div></div>
+        </div>
+        <div class="ic-div"></div>
+        <div class="ic-body" id="wifi-body"></div>
+      </div>
+      <div class="info-card hidden" id="recept-card">
+        <div class="info-card-hdr">
+          <div class="ic-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.06 6.06l1.27-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+          <div><div class="ic-title">Réception</div><div class="ic-sub">Disponible 24h/24</div></div>
+        </div>
+        <div class="ic-div"></div>
+        <div class="ic-body">
+          <div class="ic-row"><span class="ic-row-lbl">Téléphone</span><span class="ic-row-val" id="recept-phone">—</span></div>
+          <a id="call-btn" class="btn-call" href="#">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.06 6.06l1.27-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Appeler la réception
+          </a>
+        </div>
+      </div>
+      <div class="info-card hidden" id="rest-card">
+        <div class="info-card-hdr">
+          <div class="ic-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg></div>
+          <div><div class="ic-title">Restaurant</div><div class="ic-sub" id="rest-hours-sub">—</div></div>
+        </div>
+        <div class="ic-div"></div>
+        <div class="ic-body" id="rest-body"></div>
+      </div>
+      <div class="sec-label">Services</div>
+      <div class="soon-card">
+        <div class="soon-card-left">
+          <div class="soon-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M21 12h-3M3 12H0M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 21v-3M12 0v3"/></svg></div>
+          <div><div class="soon-title">Services</div><div class="soon-sub">Ménage · Linge · Demandes</div></div>
+        </div>
+        <span class="soon-badge">Bientôt</span>
+      </div>
+      <div class="soon-card">
+        <div class="soon-card-left">
+          <div class="soon-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <div><div class="soon-title">Messages</div><div class="soon-sub">Contactez la réception</div></div>
+        </div>
+        <span class="soon-badge">Bientôt</span>
+      </div>
+      <div style="height:6px"></div>
+    </div>
+  </div><!-- /view-accueil -->
+
+  <!-- ══ VIEW: RESTAURANT ═══════════════════════════════════════════ -->
+  <div id="view-restaurant" class="view">
+    <header class="rest-hdr">
+      <div class="rest-hdr-decor"></div>
+      <div class="rest-hdr-inner">
+        <div class="rest-hdr-top">
+          <div class="rest-hdr-ico">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.75)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
           </div>
           <div>
-            <div class="unit-name-txt" id="unit-name">—</div>
-            <div class="unit-type-txt" id="unit-type"></div>
+            <div class="rest-hdr-title">Restaurant</div>
+            <div class="rest-hdr-sub" id="rest-rs-sub">Room Service disponible</div>
           </div>
         </div>
-        <div class="stay-grid">
-          <div class="stay-blk">
-            <div class="stay-lbl">Arrivée</div>
-            <div class="stay-date" id="ci-val">—</div>
-            <div class="stay-day" id="ci-day"></div>
-            <div class="stay-time" id="ci-time"></div>
-          </div>
-          <div class="stay-arrow">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </div>
-          <div class="stay-blk right">
-            <div class="stay-lbl">Départ</div>
-            <div class="stay-date" id="co-val">—</div>
-            <div class="stay-day" id="co-day"></div>
-            <div class="stay-time" id="co-time"></div>
-          </div>
+        <div class="rest-hdr-hours" id="rest-hdr-hours"></div>
+      </div>
+    </header>
+
+    <!-- Menu / Orders tabs -->
+    <div id="rest-tabs" style="display:flex;border-bottom:1px solid var(--gray-1);background:var(--white)">
+      <div id="tab-menu" onclick="setRestTab('menu')" style="flex:1;padding:11px 6px;text-align:center;font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid var(--navy);color:var(--navy)">Commander</div>
+      <div id="tab-orders" onclick="setRestTab('orders')" style="flex:1;padding:11px 6px;text-align:center;font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-3)">Mes commandes</div>
+    </div>
+
+    <!-- Menu pane -->
+    <div id="rest-pane-menu">
+      <div id="rest-menu-loading" style="padding:40px;text-align:center">
+        <div class="vl-spinner" style="margin:0 auto;border-top-color:var(--navy);border-color:var(--gray-1)"></div>
+      </div>
+      <div id="rest-menu-error" class="hidden" style="padding:24px;text-align:center;color:var(--danger);font-size:13px"></div>
+      <div id="rest-menu-unavail" class="hidden" style="padding:32px 20px;text-align:center">
+        <div class="rest-empty-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+        <div class="rest-empty-txt" id="rest-unavail-msg">Le Room Service est disponible pendant votre séjour.</div>
+      </div>
+      <div id="rest-menu-content" class="hidden">
+        <div class="cat-strip" id="cat-strip"></div>
+        <div class="prod-grid" id="prod-grid"></div>
+      </div>
+    </div><!-- /rest-pane-menu -->
+
+    <!-- Orders pane -->
+    <div id="rest-pane-orders" class="hidden">
+      <div id="orders-loading" style="padding:40px;text-align:center">
+        <div class="vl-spinner" style="margin:0 auto;border-top-color:var(--navy);border-color:var(--gray-1)"></div>
+      </div>
+      <div id="orders-list" class="orders-section hidden"></div>
+      <div id="orders-empty" class="hidden" style="padding:48px 20px;text-align:center">
+        <div class="rest-empty-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg></div>
+        <div class="rest-empty-txt">Aucune commande pour ce séjour.</div>
+      </div>
+      <!-- Order detail (timeline) -->
+      <div id="order-detail" class="hidden" style="padding:0 14px">
+        <button onclick="closeOrderDetail()" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--text-3);font-size:12px;font-weight:600;cursor:pointer;padding:12px 0;margin-bottom:4px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          Retour
+        </button>
+        <div id="order-detail-inner"></div>
+      </div>
+    </div><!-- /rest-pane-orders -->
+
+    <!-- Order success -->
+    <div id="order-success">
+      <div class="os-ico">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div class="os-title">Commande envoyée</div>
+      <div class="os-num" id="os-order-num">—</div>
+      <div id="os-timeline-wrap" class="os-card"></div>
+      <button class="btn-order" style="background:var(--ivory);color:var(--text-1);border:1px solid var(--gray-2);font-weight:600;margin-bottom:8px" onclick="showRestMenu()">Commander autre chose</button>
+      <button class="btn-back" onclick="setRestTab('orders');loadMyOrders()">Voir toutes mes commandes</button>
+    </div>
+
+  </div><!-- /view-restaurant -->
+
+  <!-- Cart bar -->
+  <div id="cart-bar" onclick="openCart()">
+    <div class="cart-bar-left">
+      <div class="cart-badge" id="cart-count">0</div>
+      <span class="cart-bar-lbl">Voir le panier</span>
+    </div>
+    <span class="cart-bar-total" id="cart-bar-total">0 FCFA</span>
+  </div>
+
+  <!-- Cart drawer -->
+  <div id="cart-drawer">
+    <div id="cart-backdrop" onclick="closeCart()"></div>
+    <div id="cart-sheet">
+      <div class="cart-sheet-hdr">
+        <div class="cart-sheet-title">Votre panier</div>
+        <button class="cart-close" onclick="closeCart()">&#x2715;</button>
+      </div>
+      <div id="cart-items"></div>
+      <div class="cart-note-wrap">
+        <div class="cart-note-lbl">Instructions pour la cuisine</div>
+        <textarea id="cart-note" class="cart-note-inp" rows="2" placeholder="Sans piment, peu salé…" maxlength="300"></textarea>
+      </div>
+      <div class="cart-footer">
+        <div class="cart-total-row">
+          <span class="cart-total-lbl">Total</span>
+          <span class="cart-total-val" id="cart-total-display">0 FCFA</span>
         </div>
-        <div class="status-row">
-          <div class="st-badge" id="st-badge"><span class="st-dot"></span><span id="st-lbl">—</span></div>
-          <div class="nights-pill hidden" id="nights-pill" id="nights-txt"></div>
-        </div>
+        <div class="cart-err" id="cart-err"></div>
+        <button class="btn-order" id="btn-order" onclick="submitOrder()">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:6px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Commander en chambre
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Cards -->
-  <div class="sec fade-in" style="animation-delay:.08s">
-    <div class="sec-label">Informations séjour</div>
-
-    <!-- WiFi -->
-    <div class="info-card hidden" id="wifi-card">
-      <div class="info-card-hdr">
-        <div class="ic-ico">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--turq)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-        </div>
-        <div>
-          <div class="ic-title">Wi-Fi</div>
-          <div class="ic-sub" id="wifi-ssid-sub">Réseau sans fil</div>
-        </div>
-      </div>
-      <div class="ic-div"></div>
-      <div class="ic-body" id="wifi-body"></div>
-    </div>
-
-    <!-- Réception -->
-    <div class="info-card hidden" id="recept-card">
-      <div class="info-card-hdr">
-        <div class="ic-ico">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.06 6.06l1.27-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        </div>
-        <div>
-          <div class="ic-title">Réception</div>
-          <div class="ic-sub">Disponible 24h/24</div>
-        </div>
-      </div>
-      <div class="ic-div"></div>
-      <div class="ic-body">
-        <div class="ic-row">
-          <span class="ic-row-lbl">Téléphone</span>
-          <span class="ic-row-val" id="recept-phone">—</span>
-        </div>
-        <a id="call-btn" class="btn-call" href="#">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6.06 6.06l1.27-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          Appeler la réception
-        </a>
-      </div>
-    </div>
-
-    <!-- Restaurant -->
-    <div class="info-card hidden" id="rest-card">
-      <div class="info-card-hdr">
-        <div class="ic-ico">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
-        </div>
-        <div>
-          <div class="ic-title">Restaurant</div>
-          <div class="ic-sub" id="rest-hours-sub">—</div>
-        </div>
-      </div>
-      <div class="ic-div"></div>
-      <div class="ic-body" id="rest-body"></div>
-    </div>
-
-    <!-- Services à venir -->
-    <div class="sec-label">Services</div>
-    <div class="soon-card">
-      <div class="soon-card-left">
-        <div class="soon-ico">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M21 12h-3M3 12H0M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 21v-3M12 0v3"/></svg>
-        </div>
-        <div>
-          <div class="soon-title">Services</div>
-          <div class="soon-sub">Ménage · Linge · Demandes</div>
-        </div>
-      </div>
-      <span class="soon-badge">Bientôt</span>
-    </div>
-    <div class="soon-card">
-      <div class="soon-card-left">
-        <div class="soon-ico">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </div>
-        <div>
-          <div class="soon-title">Messages</div>
-          <div class="soon-sub">Contactez la réception</div>
-        </div>
-      </div>
-      <span class="soon-badge">Bientôt</span>
-    </div>
-    <div style="height:6px"></div>
-  </div>
-</div>
+</div><!-- /app -->
 
 <!-- Bottom nav -->
 <nav class="vl-nav" id="vl-nav">
   <div class="nav-items">
-    <div class="ni active">
+    <div class="ni active" id="ni-accueil" onclick="switchView('accueil')">
       <div class="ni-dot"></div>
       <div class="ni-ico-wrap">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--turq)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </div>
       <span class="ni-lbl">Accueil</span>
     </div>
-    <div class="ni disabled">
+    <div class="ni" id="ni-restaurant" onclick="switchView('restaurant')">
       <div class="ni-ico-wrap">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="ni-rest-ico"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
       </div>
       <span class="ni-lbl">Restaurant</span>
     </div>
@@ -351,30 +549,47 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 </nav>
 
 <script>
-/* GUEST-2.2 — GUEST_PORTAL premium redesign
-   Logique auth identique à v2 — seul le visuel change.
+/* GUEST-3 — Restaurant Room Service
    Sécurité:
-   - Token retiré URL via replaceState immédiatement
-   - sessionStorage('vl_gt'), jamais localStorage ni URL persistante
-   - wifi.password: jamais loggé, dans _wifiPwd uniquement
+   - Token: sessionStorage uniquement, jamais localStorage ni URL persistante
+   - reservation_id/unit_id: jamais envoyés côté client
+   - price/total: jamais envoyés côté client (calcul serveur)
+   - wifi.password: _wifiPwd var JS uniquement
 */
-var EF  = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/guest-access';
-var AK  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
-var SK  = 'vl_gt';
+var EF = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/guest-access';
+var AK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+var SK = 'vl_gt';
 
+/* State */
+var _stayStatus = null;
+var _cart = {};       // { product_id: {product, qty} }
+var _products = {};   // { product_id: product }
+var _activeCat = 'all';
+var _menuLoaded = false;
+var _pollingTimer = null;
+var _currentView = 'accueil';
+var _restTab = 'menu';
+
+/* ── Dates ── */
 var MO=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
 var DO=['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 function fmtDate(s){if(!s)return '—';var d=new Date(s+'T12:00:00');return d.getDate()+' '+MO[d.getMonth()];}
 function fmtDay(s){if(!s)return '';var d=new Date(s+'T12:00:00');return DO[d.getDay()];}
+function fmtTs(s){if(!s)return '';var d=new Date(s);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
+function fmtDateFull(s){if(!s)return '';var d=new Date(s);return d.getDate()+' '+MO[d.getMonth()]+' '+fmtTs(s);}
 function calcN(a,b){return Math.round((new Date(b)-new Date(a))/86400000);}
 function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function fmt(n){return Number(n||0).toLocaleString('fr-FR')+' FCFA';}
 
-function callEF(payload,guestToken){
+/* ── EF call ── */
+function callEF(payload){
+  var tok=sessionStorage.getItem(SK)||'';
   var h={'Content-Type':'application/json','apikey':AK,'Authorization':'Bearer '+AK};
-  if(guestToken) h['x-guest-token']=guestToken;
+  if(tok) h['x-guest-token']=tok;
   return fetch(EF,{method:'POST',headers:h,body:JSON.stringify(payload)}).then(function(r){return r.json();});
 }
 
+/* ── Error ── */
 function showError(msg){
   document.getElementById('sl').style.display='none';
   document.getElementById('app').style.display='none';
@@ -400,51 +615,443 @@ function copyPwd(){
   else{var ta=document.createElement('textarea');ta.value=_wifiPwd;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);ok();}
 }
 
-/* ── Render ── */
+/* ── View switching ── */
+function switchView(v){
+  _currentView=v;
+  document.querySelectorAll('.view').forEach(function(el){el.classList.remove('active');});
+  var el=document.getElementById('view-'+v);
+  if(el) el.classList.add('active');
+  document.querySelectorAll('.ni').forEach(function(ni){ni.classList.remove('active');ni.querySelector('.ni-dot')&&ni.querySelector('.ni-dot').remove();});
+  var ni=document.getElementById('ni-'+v);
+  if(ni){
+    ni.classList.add('active');
+    var dot=document.createElement('div'); dot.className='ni-dot'; ni.insertBefore(dot,ni.firstChild);
+    var ico=ni.querySelector('svg'); if(ico) ico.setAttribute('stroke','var(--turq)');
+  }
+  // Reset restaurant icon when leaving
+  var restIco=document.getElementById('ni-rest-ico');
+  if(restIco) restIco.setAttribute('stroke', v==='restaurant'?'var(--turq)':'var(--text-3)');
+  // Cart bar only on restaurant/menu
+  updateCartBar();
+  if(v==='restaurant'&&!_menuLoaded) loadMenu();
+  if(v==='restaurant') stopPolling();
+}
+
+/* ── Restaurant tabs ── */
+function setRestTab(t){
+  _restTab=t;
+  var m=document.getElementById('tab-menu'),o=document.getElementById('tab-orders');
+  var pm=document.getElementById('rest-pane-menu'),po=document.getElementById('rest-pane-orders');
+  var os=document.getElementById('order-success');
+  if(t==='menu'){
+    m.style.borderBottomColor='var(--navy)'; m.style.color='var(--navy)'; m.style.fontWeight='700';
+    o.style.borderBottomColor='transparent'; o.style.color='var(--text-3)'; o.style.fontWeight='600';
+    pm.style.display=''; po.classList.add('hidden'); if(os) os.classList.remove('show');
+    updateCartBar();
+  } else {
+    o.style.borderBottomColor='var(--navy)'; o.style.color='var(--navy)'; o.style.fontWeight='700';
+    m.style.borderBottomColor='transparent'; m.style.color='var(--text-3)'; m.style.fontWeight='600';
+    pm.style.display='none'; po.classList.remove('hidden'); if(os) os.classList.remove('show');
+    document.getElementById('cart-bar').classList.remove('show');
+    loadMyOrders();
+  }
+}
+
+/* ── Menu loading ── */
+function loadMenu(){
+  if(_menuLoaded) return;
+  callEF({action:'get_restaurant_menu'}).then(function(d){
+    document.getElementById('rest-menu-loading').style.display='none';
+    if(!d.ok){
+      if(d.error==='checkedin_required'||d.error==='insufficient_scope'){
+        document.getElementById('rest-menu-unavail').classList.remove('hidden');
+        document.getElementById('rest-unavail-msg').textContent='Le Room Service est disponible pendant votre séjour.';
+      } else {
+        document.getElementById('rest-menu-error').classList.remove('hidden');
+        document.getElementById('rest-menu-error').textContent='Impossible de charger le menu. Veuillez réessayer.';
+      }
+      return;
+    }
+    _products={};
+    (d.products||[]).forEach(function(p){_products[p.id]=p;});
+    renderMenu(d.categories||[], d.by_category||{});
+    _menuLoaded=true;
+  }).catch(function(){
+    document.getElementById('rest-menu-loading').style.display='none';
+    document.getElementById('rest-menu-error').classList.remove('hidden');
+    document.getElementById('rest-menu-error').textContent='Erreur de connexion.';
+  });
+}
+
+var _categories=[], _byCategory={};
+function renderMenu(cats, bycat){
+  _categories=cats; _byCategory=bycat;
+  var allProducts=[];
+  cats.forEach(function(c){(bycat[c]||[]).forEach(function(p){allProducts.push(p);});});
+  if(allProducts.length===0){
+    document.getElementById('rest-menu-unavail').classList.remove('hidden');
+    document.getElementById('rest-unavail-msg').textContent='Aucun produit disponible pour le Room Service actuellement.';
+    return;
+  }
+  document.getElementById('rest-menu-content').classList.remove('hidden');
+  renderCategoryPills(cats);
+  renderProductGrid(_activeCat);
+}
+
+var CAT_LABELS={'entree':'Entrées','plat':'Plats','dessert':'Desserts','boisson':'Boissons','snack':'Snacks'};
+function catLabel(c){return CAT_LABELS[c]||(c.charAt(0).toUpperCase()+c.slice(1));}
+
+function renderCategoryPills(cats){
+  var strip=document.getElementById('cat-strip');
+  strip.innerHTML='';
+  var all=document.createElement('button');
+  all.className='cat-pill'+(_activeCat==='all'?' active':'');
+  all.textContent='Tout';
+  all.addEventListener('click',function(){filterCat('all');});
+  strip.appendChild(all);
+  cats.forEach(function(c){
+    var btn=document.createElement('button');
+    btn.className='cat-pill'+(_activeCat===c?' active':'');
+    btn.textContent=catLabel(c);
+    btn.addEventListener('click',function(){filterCat(c);});
+    strip.appendChild(btn);
+  });
+}
+
+function filterCat(c){
+  _activeCat=c;
+  renderCategoryPills(_categories);
+  renderProductGrid(c);
+}
+
+function renderProductGrid(cat){
+  var grid=document.getElementById('prod-grid');
+  grid.innerHTML='';
+  var prods=[];
+  if(cat==='all'){
+    _categories.forEach(function(c){(_byCategory[c]||[]).forEach(function(p){prods.push(p);});});
+  } else {
+    prods=_byCategory[cat]||[];
+  }
+  if(prods.length===0){
+    grid.innerHTML='<div class="rest-empty" style="padding:32px 0"><div class="rest-empty-ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div><div class="rest-empty-txt">Aucun produit dans cette catégorie.</div></div>';
+    return;
+  }
+  prods.forEach(function(p){grid.appendChild(buildProductCard(p));});
+}
+
+function buildProductCard(p){
+  var card=document.createElement('div'); card.className='prod-card';
+  var imgEl;
+  if(p.image_url){
+    imgEl=document.createElement('img'); imgEl.className='prod-img'; imgEl.src=p.image_url; imgEl.alt=p.name;
+    imgEl.onerror=function(){this.parentNode.replaceChild(buildProdPh(),this);};
+  } else {imgEl=buildProdPh();}
+  card.appendChild(imgEl);
+  var body=document.createElement('div'); body.className='prod-body';
+  var nameEl=document.createElement('div'); nameEl.className='prod-name'; nameEl.textContent=p.name;
+  body.appendChild(nameEl);
+  if(p.description){var desc=document.createElement('div');desc.className='prod-desc';desc.textContent=p.description;body.appendChild(desc);}
+  var footer=document.createElement('div'); footer.className='prod-footer';
+  var price=document.createElement('div'); price.className='prod-price'; price.textContent=fmt(p.price);
+  footer.appendChild(price);
+  if(!p.available){
+    var unavail=document.createElement('div'); unavail.className='prod-unavail'; unavail.textContent='Indisponible';
+    footer.appendChild(unavail);
+  } else {
+    var qty=_cart[p.id]?_cart[p.id].qty:0;
+    if(qty>0){
+      var qrow=document.createElement('div'); qrow.className='prod-qty-row';
+      var bMinus=document.createElement('button'); bMinus.className='prod-qty-btn'; bMinus.textContent='−';
+      bMinus.addEventListener('click',function(){updateCart(p,-1);refreshProductCard(p.id);});
+      var qval=document.createElement('span'); qval.className='prod-qty-val'; qval.id='pqv-'+p.id; qval.textContent=qty;
+      var bPlus=document.createElement('button'); bPlus.className='prod-qty-btn'; bPlus.textContent='+';
+      bPlus.addEventListener('click',function(){updateCart(p,1);refreshProductCard(p.id);});
+      qrow.appendChild(bMinus); qrow.appendChild(qval); qrow.appendChild(bPlus);
+      footer.appendChild(qrow);
+    } else {
+      var bAdd=document.createElement('button'); bAdd.className='btn-add';
+      bAdd.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+      bAdd.addEventListener('click',function(){updateCart(p,1);refreshProductCard(p.id);});
+      footer.appendChild(bAdd);
+    }
+  }
+  body.appendChild(footer);
+  card.appendChild(body);
+  card.id='pcard-'+p.id;
+  return card;
+}
+
+function buildProdPh(){
+  var ph=document.createElement('div'); ph.className='prod-ph';
+  ph.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gray-3)" stroke-width="1.5" stroke-linecap="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>';
+  return ph;
+}
+
+function refreshProductCard(pid){
+  var old=document.getElementById('pcard-'+pid);
+  if(!old||!_products[pid]) return;
+  var neo=buildProductCard(_products[pid]);
+  old.parentNode.replaceChild(neo,old);
+}
+
+/* ── Cart ── */
+function updateCart(product,delta){
+  var id=product.id;
+  if(!_cart[id]) _cart[id]={product:product,qty:0};
+  _cart[id].qty=Math.max(0,_cart[id].qty+delta);
+  if(_cart[id].qty===0) delete _cart[id];
+  updateCartBar();
+}
+
+function cartCount(){return Object.values(_cart).reduce(function(s,c){return s+c.qty;},0);}
+function cartTotal(){return Object.values(_cart).reduce(function(s,c){return s+(c.product.price*c.qty);},0);}
+
+function updateCartBar(){
+  var bar=document.getElementById('cart-bar');
+  if(!bar) return;
+  var cnt=cartCount();
+  if(cnt>0&&_currentView==='restaurant'&&_restTab==='menu'){
+    bar.classList.add('show');
+    document.getElementById('cart-count').textContent=cnt;
+    document.getElementById('cart-bar-total').textContent=fmt(cartTotal());
+  } else {
+    bar.classList.remove('show');
+  }
+}
+
+function openCart(){
+  if(cartCount()===0) return;
+  renderCartItems();
+  document.getElementById('cart-drawer').classList.add('open');
+}
+function closeCart(){document.getElementById('cart-drawer').classList.remove('open');}
+
+function renderCartItems(){
+  var wrap=document.getElementById('cart-items');
+  wrap.innerHTML='';
+  Object.values(_cart).forEach(function(c){
+    var p=c.product, qty=c.qty;
+    var row=document.createElement('div'); row.className='cart-item';
+    row.innerHTML='<div class="ci-info"><div class="ci-name">'+escH(p.name)+'</div><div class="ci-price">'+fmt(p.price)+' × '+qty+' = '+fmt(p.price*qty)+'</div></div>';
+    var qw=document.createElement('div'); qw.className='ci-qty';
+    var bm=document.createElement('button'); bm.className='ci-btn'; bm.textContent='−';
+    var vv=document.createElement('span'); vv.className='ci-val'; vv.id='cqv-'+p.id; vv.textContent=qty;
+    var bp=document.createElement('button'); bp.className='ci-btn'; bp.textContent='+';
+    bm.addEventListener('click',function(){updateCart(p,-1);updateCartItem(p.id);refreshProductCard(p.id);});
+    bp.addEventListener('click',function(){updateCart(p,1);updateCartItem(p.id);refreshProductCard(p.id);});
+    qw.appendChild(bm); qw.appendChild(vv); qw.appendChild(bp);
+    row.appendChild(qw);
+    wrap.appendChild(row);
+  });
+  document.getElementById('cart-total-display').textContent=fmt(cartTotal());
+  document.getElementById('cart-err').textContent='';
+}
+
+function updateCartItem(pid){
+  var vv=document.getElementById('cqv-'+pid);
+  if(_cart[pid]&&_cart[pid].qty>0){
+    if(vv) vv.textContent=_cart[pid].qty;
+  } else {
+    renderCartItems(); // rebuild if item removed
+  }
+  document.getElementById('cart-total-display').textContent=fmt(cartTotal());
+  updateCartBar();
+}
+
+/* ── Order submission ── */
+function generateClientKey(){
+  var a=new Uint8Array(16); crypto.getRandomValues(a);
+  return Array.from(a).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+}
+
+function submitOrder(){
+  var btn=document.getElementById('btn-order');
+  var errEl=document.getElementById('cart-err');
+  var items=Object.values(_cart).filter(function(c){return c.qty>0;}).map(function(c){return {product_id:c.product.id,quantity:c.qty};});
+  if(items.length===0){errEl.textContent='Votre panier est vide.';return;}
+  if(_stayStatus!=='checkedin'){errEl.textContent='Le Room Service est disponible pendant votre séjour.';return;}
+  btn.disabled=true; btn.textContent='Envoi en cours…'; errEl.textContent='';
+  var note=document.getElementById('cart-note').value.trim()||null;
+  var key=generateClientKey();
+  callEF({action:'create_restaurant_order',items:items,note:note,client_order_key:key}).then(function(d){
+    btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:6px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Commander en chambre';
+    if(!d.ok){errEl.textContent=d.message||'Erreur lors de la commande.';return;}
+    closeCart();
+    _cart={};
+    updateCartBar();
+    renderProductGrid(_activeCat);
+    document.getElementById('cart-note').value='';
+    showOrderSuccess(d);
+  }).catch(function(){
+    btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:6px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Commander en chambre';
+    errEl.textContent='Erreur de connexion. Réessayez.';
+  });
+}
+
+/* ── Order success + timeline ── */
+var TIMELINE_STEPS=[
+  {key:'pending',   label:'Reçue'},
+  {key:'preparing', label:'En préparation'},
+  {key:'ready',     label:'Prête'},
+  {key:'out_for_delivery', label:'En livraison'},
+  {key:'delivered', label:'Livrée'},
+];
+var STATUS_STEP={pending:1,confirmed:1,preparing:2,ready:3,out_for_delivery:4,delivered:5,cancelled:0};
+
+function showOrderSuccess(order){
+  var pm=document.getElementById('rest-pane-menu');
+  var os=document.getElementById('order-success');
+  pm.style.display='none';
+  document.getElementById('os-order-num').textContent='Commande '+escH(order.order_number||'');
+  renderTimeline(document.getElementById('os-timeline-wrap'), order.status||'pending', order.created_at);
+  os.classList.add('show');
+  // Start polling this order
+  startPolling(order.order_id||order.id, order.order_number);
+}
+
+function showRestMenu(){
+  var os=document.getElementById('order-success');
+  var pm=document.getElementById('rest-pane-menu');
+  os.classList.remove('show');
+  pm.style.display='';
+  stopPolling();
+}
+
+function renderTimeline(wrap, status, createdAt){
+  var step=STATUS_STEP[status]||1;
+  var cancelled=status==='cancelled';
+  wrap.innerHTML='';
+  if(cancelled){
+    wrap.innerHTML='<div style="text-align:center;padding:12px;color:var(--danger);font-size:13px;font-weight:600">Commande annulée</div>';
+    return;
+  }
+  var list=document.createElement('div'); list.className='os-timeline';
+  TIMELINE_STEPS.forEach(function(s,i){
+    var snum=i+1;
+    var done=step>snum;
+    var active=step===snum;
+    var row=document.createElement('div'); row.className='tl-step';
+    var dot=document.createElement('div'); dot.className='tl-dot'+(done?' done':active?' active':'');
+    if(done||active){
+      dot.innerHTML='<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    }
+    var info=document.createElement('div'); info.className='tl-info';
+    var lbl=document.createElement('div'); lbl.className='tl-lbl'+((!done&&!active)?' dim':'');
+    lbl.textContent=s.label;
+    info.appendChild(lbl);
+    if(active&&snum===1&&createdAt){
+      var t=document.createElement('div'); t.className='tl-time'; t.textContent=fmtTs(createdAt); info.appendChild(t);
+    }
+    row.appendChild(dot); row.appendChild(info);
+    list.appendChild(row);
+  });
+  wrap.appendChild(list);
+}
+
+/* ── Polling ── */
+function startPolling(orderId, orderNum){
+  stopPolling();
+  _pollingTimer=setInterval(function(){
+    callEF({action:'get_order_status',order_id:orderId}).then(function(d){
+      if(!d.ok) return;
+      var wrap=document.getElementById('os-timeline-wrap');
+      if(wrap) renderTimeline(wrap, d.status, d.created_at);
+      document.getElementById('os-order-num').textContent='Commande '+escH(orderNum||'');
+      if(d.status==='delivered'||d.status==='cancelled') stopPolling();
+    }).catch(function(){/* ignore polling errors */});
+  }, 20000);
+}
+function stopPolling(){if(_pollingTimer){clearInterval(_pollingTimer);_pollingTimer=null;}}
+
+/* ── Mes commandes ── */
+function loadMyOrders(){
+  var listEl=document.getElementById('orders-list');
+  var emptyEl=document.getElementById('orders-empty');
+  var loadEl=document.getElementById('orders-loading');
+  var detailEl=document.getElementById('order-detail');
+  listEl.classList.add('hidden'); emptyEl.classList.add('hidden'); detailEl.classList.add('hidden');
+  loadEl.style.display='';
+  callEF({action:'get_my_restaurant_orders'}).then(function(d){
+    loadEl.style.display='none';
+    if(!d.ok||!d.orders||d.orders.length===0){emptyEl.classList.remove('hidden');return;}
+    listEl.innerHTML='';
+    d.orders.forEach(function(o){listEl.appendChild(buildOrderCard(o));});
+    listEl.classList.remove('hidden');
+  }).catch(function(){loadEl.style.display='none';emptyEl.classList.remove('hidden');});
+}
+
+function buildOrderCard(o){
+  var card=document.createElement('div'); card.className='order-card';
+  var items=o.items||[]; var itemsStr=items.slice(0,3).map(function(i){return i.name+(i.quantity>1?' ×'+i.quantity:'');}).join(', ')+(items.length>3?' + '+(items.length-3)+' autre(s)':'');
+  var sCls='oc-s-'+(o.status||'pending');
+  card.innerHTML='<div class="oc-top"><span class="oc-num">'+escH(o.order_number||'')+'</span><span class="oc-status '+sCls+'">'+escH(o.status_label||o.status||'')+'</span></div><div class="oc-items">'+escH(itemsStr)+'</div><div class="oc-bottom"><span class="oc-total">'+fmt(o.total)+'</span><div class="oc-arrow"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div></div>';
+  card.addEventListener('click',function(){openOrderDetail(o);});
+  return card;
+}
+
+function openOrderDetail(order){
+  document.getElementById('orders-list').classList.add('hidden');
+  document.getElementById('orders-empty').classList.add('hidden');
+  var detailEl=document.getElementById('order-detail');
+  detailEl.classList.remove('hidden');
+  renderOrderDetail(order);
+}
+
+function closeOrderDetail(){
+  document.getElementById('order-detail').classList.add('hidden');
+  loadMyOrders();
+}
+
+function renderOrderDetail(o){
+  var wrap=document.getElementById('order-detail-inner');
+  var items=o.items||[];
+  var itemsHtml=items.map(function(i){return '<div class="ic-row"><span class="ic-row-lbl">'+escH(i.name||'')+(i.quantity>1?' ×'+i.quantity:'')+'</span><span class="ic-row-val">'+fmt(i.subtotal)+'</span></div>';}).join('');
+  var h='<div class="info-card" style="margin-bottom:12px"><div class="info-card-hdr"><div class="ic-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><div class="ic-title">'+escH(o.order_number||'')+'</div><div class="ic-sub">'+escH(fmtDateFull(o.created_at)||'')+'</div></div></div><div class="ic-div"></div><div class="ic-body">'+itemsHtml+'<div class="ic-row" style="margin-top:4px"><span class="ic-row-lbl" style="font-weight:700">Total</span><span class="ic-row-val" style="font-size:14px;color:var(--navy)">'+fmt(o.total)+'</span></div></div></div>';
+  h+='<div class="os-card"><div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-3);margin-bottom:10px">Suivi</div>';
+  var tlWrap=document.createElement('div'); tlWrap.id='detail-tl-'+o.id;
+  wrap.innerHTML=h+'</div>';
+  var osCardEl=wrap.querySelector('.os-card');
+  osCardEl.appendChild(tlWrap);
+  renderTimeline(tlWrap, o.status, o.created_at);
+  if(o.notes){
+    var noteCard=document.createElement('div'); noteCard.className='info-card'; noteCard.style.marginTop='10px';
+    noteCard.innerHTML='<div class="info-card-hdr"><div class="ic-ico"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div><div><div class="ic-title">Note cuisine</div><div class="ic-sub">'+escH(o.notes)+'</div></div></div>';
+    wrap.appendChild(noteCard);
+  }
+}
+
+/* ── Render stay (accueil) ── */
 function render(stay){
+  _stayStatus=stay.reservation_status;
   var h=new Date().getHours();
   document.getElementById('greet-sup').textContent=(h>=6&&h<18?'Bonjour,':'Bonsoir,');
   document.getElementById('greet-name').textContent=stay.guest_first_name||'Bienvenue';
   if(stay.property_name) document.getElementById('hdr-prop').textContent=stay.property_name;
   if(stay.property_location) document.getElementById('hdr-loc').textContent=stay.property_location;
-
-  /* Photo */
   var pw=document.getElementById('unit-photo-wrap');
   if(stay.unit_photo_url){
-    var img=document.createElement('img');
-    img.className='unit-img'; img.alt=stay.unit_name||''; img.src=stay.unit_photo_url;
+    var img=document.createElement('img'); img.className='unit-img'; img.alt=stay.unit_name||''; img.src=stay.unit_photo_url;
     img.onerror=function(){this.parentNode.innerHTML='<div class="unit-ph"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1.2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>';};
     pw.appendChild(img);
   } else {
     pw.innerHTML='<div class="unit-ph"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>';
   }
-
-  /* Unit info */
   document.getElementById('unit-name').textContent=stay.unit_name||'—';
   var typeMap={chambre:'Chambre',studio:'Studio',appartement:'Appartement',suite:'Suite Présidentielle'};
   document.getElementById('unit-type').textContent=typeMap[(stay.unit_type||'').toLowerCase()]||stay.unit_type||'';
-
-  /* Dates */
   document.getElementById('ci-val').textContent=fmtDate(stay.check_in);
   document.getElementById('ci-day').textContent=fmtDay(stay.check_in);
   document.getElementById('ci-time').textContent=stay.checkin_time?'À partir de '+stay.checkin_time:'';
   document.getElementById('co-val').textContent=fmtDate(stay.check_out);
   document.getElementById('co-day').textContent=fmtDay(stay.check_out);
   document.getElementById('co-time').textContent=stay.checkout_time?'Avant '+stay.checkout_time:'';
-
-  /* Nights */
-  if(stay.check_in&&stay.check_out){
-    var n=calcN(stay.check_in,stay.check_out);
-    if(n>0){var np=document.getElementById('nights-pill');np.classList.remove('hidden');np.textContent=n+' nuit'+(n>1?'s':'');}
-  }
-
-  /* Status */
+  if(stay.check_in&&stay.check_out){var n=calcN(stay.check_in,stay.check_out);if(n>0){var np=document.getElementById('nights-pill');np.classList.remove('hidden');np.textContent=n+' nuit'+(n>1?'s':'');}}
   var badge=document.getElementById('st-badge'),lbl=document.getElementById('st-lbl');
   badge.className='st-badge';
   var sm={confirmed:{cls:'st-confirmed',txt:'Confirmé'},checkedin:{cls:'st-checkedin',txt:'En séjour'},checkedout:{cls:'st-other',txt:'Terminé'},cancelled:{cls:'st-other',txt:'Annulé'}};
   var si=sm[stay.reservation_status]||{cls:'st-other',txt:stay.reservation_status||'—'};
   badge.classList.add(si.cls); lbl.textContent=si.txt;
-
   /* WiFi */
   var wc=document.getElementById('wifi-card');
   if(stay.wifi&&stay.wifi.enabled){
@@ -454,18 +1061,12 @@ function render(stay){
     var wh='<div class="wifi-ssid-row"><span class="wifi-ssid-lbl">Réseau</span><span class="wifi-ssid-val">'+escH(stay.wifi.ssid||'—')+'</span></div>';
     if(stay.wifi.password_available&&stay.wifi.password){
       _wifiPwd=stay.wifi.password;
-      wh+='<div class="wifi-pwd-wrap">';
-      wh+='<div class="wifi-pwd-row"><span class="wifi-ssid-lbl">Mot de passe</span><span id="pwd-display" class="pwd-field">&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;</span></div>';
-      wh+='<div class="wifi-btns">';
-      wh+='<button id="btn-show" class="btn-pill btn-show" onclick="togglePwd()">Afficher</button>';
-      wh+='<button id="btn-copy" class="btn-pill btn-copy" onclick="copyPwd()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copier</button>';
-      wh+='</div></div>';
+      wh+='<div class="wifi-pwd-wrap"><div class="wifi-pwd-row"><span class="wifi-ssid-lbl">Mot de passe</span><span id="pwd-display" class="pwd-field">&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;</span></div><div class="wifi-btns"><button id="btn-show" class="btn-pill btn-show" onclick="togglePwd()">Afficher</button><button id="btn-copy" class="btn-pill btn-copy" onclick="copyPwd()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copier</button></div></div>';
     } else {
       wh+='<div class="wifi-hint">'+(stay.wifi.hint||'Le code Wi-Fi sera disponible après votre arrivée.')+'</div>';
     }
     wb.innerHTML=wh;
   }
-
   /* Réception */
   var rc=document.getElementById('recept-card');
   if(stay.contact&&stay.contact.phone){
@@ -473,8 +1074,7 @@ function render(stay){
     document.getElementById('recept-phone').textContent=stay.contact.phone;
     document.getElementById('call-btn').href='tel:'+stay.contact.phone.replace(/\s/g,'');
   }
-
-  /* Restaurant */
+  /* Restaurant card (accueil) */
   var restCard=document.getElementById('rest-card');
   if(stay.restaurant&&stay.restaurant.enabled){
     restCard.classList.remove('hidden');
@@ -484,16 +1084,20 @@ function render(stay){
     var rh='';
     if(oh||ch) rh+='<div class="ic-row"><span class="ic-row-lbl">Horaires</span><span class="ic-row-val">'+(oh||'')+(oh&&ch?' – ':'')+( ch||'')+'</span></div>';
     if(stay.restaurant.room_service_enabled) rh+='<div class="ic-row"><span class="ic-row-lbl">Room Service</span><span class="ic-row-val avail-badge">Disponible</span></div>';
-    rh+='<div class="ic-row" style="border:none"><span class="ic-row-lbl" style="font-style:italic;color:var(--text-3)">Commande en ligne bientôt disponible</span></div>';
+    rh+='<div class="ic-row" style="border:none"><span class="ic-row-lbl" style="font-style:italic;color:var(--text-3);font-size:10.5px">Commandez depuis l\'onglet Restaurant</span></div>';
     rb.innerHTML=rh;
+    /* Restaurant view header */
+    var rsSub=document.getElementById('rest-rs-sub');
+    if(rsSub) rsSub.textContent=stay.restaurant.room_service_enabled?'Room Service disponible':'Consultez le menu';
+    var hdrH=document.getElementById('rest-hdr-hours');
+    if(hdrH&&(oh||ch)) hdrH.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span>'+(oh||'')+(oh&&ch?' – ':'')+( ch||'')+'</span>';
   }
-
   document.getElementById('sl').style.display='none';
   document.getElementById('app').style.display='block';
   document.getElementById('vl-nav').style.display='block';
 }
 
-/* ── Bootstrap (identique v2) ── */
+/* ── Bootstrap ── */
 (function init(){
   var params=new URLSearchParams(window.location.search);
   var urlTok=params.get('t');
@@ -501,7 +1105,7 @@ function render(stay){
   var storedTok=sessionStorage.getItem(SK);
 
   function loadStay(tok){
-    return callEF({action:'get_my_stay'},tok).then(function(d){
+    return callEF({action:'get_my_stay'}).then(function(d){
       if(d.ok){render(d.stay);}
       else{sessionStorage.removeItem(SK);showError(d.message||"Ce séjour n'est plus accessible.");}
     });

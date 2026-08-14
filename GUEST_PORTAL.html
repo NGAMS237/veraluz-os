@@ -274,6 +274,61 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .fb-cat-btn.sel{border-color:var(--navy);background:rgba(10,30,53,.04)}
 .fb-star{background:none;border:none;cursor:pointer;padding:4px;font-size:30px;transition:transform .1s;line-height:1}
 .fb-star:active{transform:scale(1.2)}
+
+/* GUEST-4A — Folio Séjour */
+.folio-hdr{background:linear-gradient(160deg,var(--navy) 0%,var(--navy-3) 100%);padding:calc(var(--safe-top)+56px) 20px 28px;color:#fff;position:relative;overflow:hidden}
+.folio-hdr-decor{position:absolute;top:-30px;right:-30px;width:180px;height:180px;border-radius:50%;background:rgba(0,163,180,.08);pointer-events:none}
+.folio-hdr-inner{position:relative;z-index:1}
+.folio-hdr-lbl{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:6px}
+.folio-hdr-title{font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
+.folio-hdr-sub{font-size:13px;color:rgba(255,255,255,.55)}
+.folio-mode-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;color:rgba(255,255,255,.85);margin-top:12px}
+.folio-body{padding:16px 16px 120px;display:flex;flex-direction:column;gap:12px}
+.folio-card{background:var(--white);border-radius:var(--r);box-shadow:var(--sh-card);overflow:hidden}
+.folio-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px}
+.folio-card-title{font-size:13px;font-weight:700;color:var(--text-2)}
+.folio-card-amt{font-size:15px;font-weight:800;color:var(--navy)}
+.folio-card-body{padding:0 16px 14px}
+.folio-row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--gray-1);font-size:13px}
+.folio-row:last-child{border-bottom:none}
+.folio-row-lbl{color:var(--text-2);flex:1;padding-right:12px;line-height:1.4}
+.folio-row-amt{font-weight:600;color:var(--text-1);white-space:nowrap}
+.folio-row-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+.folio-total-card{background:var(--navy);border-radius:var(--r);padding:20px;box-shadow:var(--sh-card)}
+.folio-total-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.folio-total-row{display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.65)}
+.folio-total-row.main{font-size:16px;font-weight:800;color:#fff;border-top:1px solid rgba(255,255,255,.15);padding-top:12px;margin-top:4px}
+.folio-total-row.payments{color:var(--turq)}
+.folio-balance-row{display:flex;justify-content:space-between;align-items:center;padding:14px;border-radius:var(--r-sm)}
+.folio-balance-row.positive{background:rgba(255,255,255,.08)}
+.folio-balance-row.settled{background:rgba(46,125,82,.2)}
+.folio-balance-lbl{font-size:13px;font-weight:700;color:rgba(255,255,255,.8)}
+.folio-balance-amt{font-size:18px;font-weight:800;color:#fff}
+.folio-balance-amt.settled{color:#7AE0A0}
+.folio-settled-badge{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.6);margin-top:8px}
+.folio-charges-toggle{display:flex;align-items:center;gap:8px;padding:14px 16px;cursor:pointer;border-top:1px solid var(--gray-1);font-size:13px;font-weight:600;color:var(--navy);-webkit-tap-highlight-color:transparent}
+.folio-charges-list{overflow:hidden;max-height:0;transition:max-height .3s ease}
+.folio-charges-list.open{max-height:3000px}
+.folio-charge-item{display:flex;align-items:flex-start;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--gray-1);gap:12px}
+.folio-charge-item:last-child{border-bottom:none}
+.folio-charge-meta{flex:1;min-width:0}
+.folio-charge-lbl{font-size:13px;color:var(--text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.folio-charge-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+.folio-charge-reversal{color:var(--danger);font-size:11px;font-style:italic}
+.folio-charge-amt{font-size:13px;font-weight:700;color:var(--text-1);white-space:nowrap}
+.folio-charge-amt.negative{color:var(--danger)}
+.folio-pre-info{background:var(--white);border-radius:var(--r);padding:24px 20px;box-shadow:var(--sh-card);text-align:center}
+.folio-pre-icon{width:48px;height:48px;border-radius:50%;background:var(--turq-pale);display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.folio-pre-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.folio-pre-sub{font-size:13px;color:var(--text-3);line-height:1.5}
+.folio-err{background:var(--white);border-radius:var(--r);padding:28px 20px;text-align:center;box-shadow:var(--sh-card)}
+.folio-err-ico{width:48px;height:48px;border-radius:50%;background:var(--gray-1);display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.folio-err-msg{font-size:14px;color:var(--text-2);margin-bottom:16px;line-height:1.5}
+.btn-folio-retry{display:block;width:100%;max-width:220px;margin:0 auto;padding:12px;background:var(--navy);color:#fff;border:none;border-radius:var(--r-sm);font-size:14px;font-weight:700;cursor:pointer}
+.folio-refresh-btn{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);border:none;border-radius:20px;padding:6px 14px;color:rgba(255,255,255,.8);font-size:12px;font-weight:600;cursor:pointer;margin-top:12px;-webkit-tap-highlight-color:transparent}
+.charge-type-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;margin-left:6px;vertical-align:middle}
+.charge-type-badge.restaurant{background:var(--gold-pale);color:var(--gold)}
+.charge-type-badge.other{background:var(--turq-pale);color:var(--turq)}
 </style>
 </head>
 <body>
@@ -489,6 +544,128 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
 
   </div><!-- /view-restaurant -->
+  <!-- ══ VIEW: SÉJOUR (FOLIO) GUEST-4A ══════════════════════════════ -->
+  <div id="view-sejour" class="view">
+    <header class="folio-hdr">
+      <div class="folio-hdr-decor"></div>
+      <div class="folio-hdr-inner">
+        <div class="folio-hdr-lbl">Compte séjour</div>
+        <div class="folio-hdr-title">Mon Folio</div>
+        <div class="folio-hdr-sub" id="folio-hdr-sub">Résumé de vos consommations</div>
+        <div id="folio-mode-wrap"></div>
+        <button class="folio-refresh-btn" onclick="reloadFolio()" id="folio-refresh-btn" style="display:none">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-.07-8.49"/></svg>
+          Actualiser
+        </button>
+      </div>
+    </header>
+
+    <div id="folio-loading" class="folio-body">
+      <div style="text-align:center;padding:48px 0">
+        <div style="width:36px;height:36px;border:3px solid var(--gray-1);border-top-color:var(--navy);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px"></div>
+        <div style="font-size:13px;color:var(--text-3)">Chargement du folio…</div>
+      </div>
+    </div>
+
+    <div id="folio-err" style="display:none" class="folio-body">
+      <div class="folio-err">
+        <div class="folio-err-ico">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="folio-err-msg" id="folio-err-msg">Votre compte séjour n'est pas disponible.</div>
+        <button class="btn-folio-retry" onclick="reloadFolio()">Réessayer</button>
+      </div>
+    </div>
+
+    <div id="folio-content" style="display:none" class="folio-body">
+      <!-- Mode: pré-séjour (confirmed) -->
+      <div id="folio-prestay" style="display:none">
+        <div class="folio-pre-info">
+          <div class="folio-pre-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--turq)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="folio-pre-title">Votre réservation est confirmée</div>
+          <div class="folio-pre-sub">Le détail complet de votre compte séjour sera disponible dès votre arrivée.</div>
+        </div>
+      </div>
+
+      <!-- Mode: complet (checkedin / checkedout) -->
+      <div id="folio-full" style="display:none">
+        <!-- Hébergement -->
+        <div class="folio-card">
+          <div class="folio-card-hdr">
+            <div style="display:flex;align-items:center;gap:8px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              <span class="folio-card-title">Hébergement</span>
+            </div>
+            <span class="folio-card-amt" id="folio-accom-amt">—</span>
+          </div>
+          <div class="folio-card-body">
+            <div class="folio-row">
+              <div class="folio-row-lbl">Location chambre<div class="folio-row-sub" id="folio-accom-sub"></div></div>
+              <span class="folio-row-amt" id="folio-accom-detail">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Restaurant (si > 0) -->
+        <div class="folio-card" id="folio-rest-card" style="display:none">
+          <div class="folio-card-hdr">
+            <div style="display:flex;align-items:center;gap:8px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
+              <span class="folio-card-title">Restaurant & Room Service</span>
+            </div>
+            <span class="folio-card-amt" id="folio-rest-amt">—</span>
+          </div>
+        </div>
+
+        <!-- Autres charges (si > 0) -->
+        <div class="folio-card" id="folio-other-card" style="display:none">
+          <div class="folio-card-hdr">
+            <div style="display:flex;align-items:center;gap:8px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--turq)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span class="folio-card-title">Autres charges</span>
+            </div>
+            <span class="folio-card-amt" id="folio-other-amt">—</span>
+          </div>
+        </div>
+
+        <!-- Total / Paiements / Balance (carte navy) -->
+        <div class="folio-total-card">
+          <div class="folio-total-rows">
+            <div class="folio-total-row"><span>Total séjour</span><span id="folio-total-val">—</span></div>
+            <div class="folio-total-row payments"><span>Paiements reçus</span><span id="folio-payments-val">—</span></div>
+            <div class="folio-total-row main"><span>Solde</span><span id="folio-balance-val">—</span></div>
+          </div>
+          <div class="folio-balance-row positive" id="folio-balance-row">
+            <span class="folio-balance-lbl" id="folio-balance-lbl">Solde dû</span>
+            <span class="folio-balance-amt" id="folio-balance-amt">—</span>
+          </div>
+          <div class="folio-settled-badge" id="folio-settled-badge" style="display:none">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--turq)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Compte soldé
+          </div>
+        </div>
+
+        <!-- Détail des charges (expandable) -->
+        <div class="folio-card" id="folio-charges-wrap" style="display:none">
+          <div class="folio-charges-toggle" onclick="toggleFolioCharges()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span id="folio-charges-toggle-lbl">Voir le détail</span>
+            <svg id="folio-charges-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;transition:transform .25s"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+          <div class="folio-charges-list" id="folio-charges-list">
+            <div id="folio-charges-inner"></div>
+          </div>
+        </div>
+
+        <div style="font-size:11px;color:var(--text-3);text-align:center;padding:8px 0 4px;line-height:1.5">
+          Ce folio est indicatif. Le solde final est établi au départ.
+        </div>
+      </div><!-- /folio-full -->
+    </div><!-- /folio-content -->
+  </div><!-- /view-sejour -->
+
 
   <!-- Cart bar -->
   <div id="cart-bar" onclick="openCart()">
@@ -624,9 +801,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
       </div>
       <span class="ni-lbl">Services</span>
     </div>
-    <div class="ni disabled">
+    <div class="ni" id="ni-sejour" onclick="switchView('sejour')">
       <div class="ni-ico-wrap">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="ni-sejour-ico"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       </div>
       <span class="ni-lbl">Séjour</span>
     </div>
@@ -663,6 +840,11 @@ var _currentView = 'accueil';
 var _restTab = 'menu';
 var _restViewedLogged = false;
 var _fbType = null, _fbCat = null, _fbRating = null, _fbRelatedOrderId = null, _fbLogged = false;
+/* GUEST-4A — Folio */
+var _folioLoaded = false;
+var _folioChargesOpen = false;
+var _folioViewedLogged = false;
+
 
 /* ── Dates ── */
 var MO=['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
@@ -728,6 +910,12 @@ function switchView(v){
   // Cart bar only on restaurant/menu
   updateCartBar();
   if(v==='restaurant'){_menuLoaded=false;loadMenu();stopPolling();}
+  if(v==='sejour'){
+    loadFolio();
+    var sejourIco=document.getElementById('ni-sejour-ico');
+    if(sejourIco) sejourIco.setAttribute('stroke',v==='sejour'?'var(--turq)':'var(--text-3)');
+    if(!_folioViewedLogged){callEF({action:'log_activity',event_type:'folio_viewed'}).catch(function(){});_folioViewedLogged=true;}
+  }
   if(v==='restaurant'&&!_restViewedLogged){callEF({action:'log_activity',event_type:'restaurant_viewed'}).catch(function(){});_restViewedLogged=true;}
 }
 
@@ -1456,6 +1644,163 @@ function render(stay){
     setTimeout(function(){showError('Lien invalide ou expiré. Veuillez utiliser le lien envoyé par la réception.');},600);
   }
 })();
+
+/* ══ FOLIO SÉJOUR (GUEST-4A) ═══════════════════════════════════════════ */
+function reloadFolio(){
+  _folioLoaded=false;
+  _folioChargesOpen=false;
+  // reset charges list
+  var cl=document.getElementById('folio-charges-list');
+  if(cl) cl.classList.remove('open');
+  var cc=document.getElementById('folio-charges-caret');
+  if(cc) cc.style.transform='';
+  var tl=document.getElementById('folio-charges-toggle-lbl');
+  if(tl) tl.textContent=tl.textContent.replace('Masquer','Voir');
+  loadFolio();
+}
+
+function loadFolio(){
+  if(_folioLoaded) return;
+  document.getElementById('folio-loading').style.display='';
+  document.getElementById('folio-err').style.display='none';
+  document.getElementById('folio-content').style.display='none';
+  document.getElementById('folio-refresh-btn').style.display='none';
+  callEF({action:'get_my_folio'}).then(function(d){
+    _folioLoaded=true;
+    document.getElementById('folio-loading').style.display='none';
+    if(!d||!d.ok){
+      var msg="Votre compte séjour n'est pas disponible.";
+      if(d&&d.error==='folio_unavailable') msg="Ce folio n'est pas accessible pour ce séjour.";
+      else if(d&&d.error==='charges_unavailable') msg="Impossible de charger le détail des charges.";
+      else if(d&&d.error==='insufficient_scope') msg="Accès non autorisé.";
+      document.getElementById('folio-err-msg').textContent=msg;
+      document.getElementById('folio-err').style.display='';
+      return;
+    }
+    renderFolio(d);
+  }).catch(function(){
+    _folioLoaded=false;
+    document.getElementById('folio-loading').style.display='none';
+    document.getElementById('folio-err-msg').textContent='Erreur de connexion. Vérifiez votre réseau.';
+    document.getElementById('folio-err').style.display='';
+  });
+}
+
+function renderFolio(d){
+  var s=d.summary, r=d.reservation;
+  document.getElementById('folio-content').style.display='';
+  document.getElementById('folio-refresh-btn').style.display='';
+
+  // Mode badge
+  var modeWrap=document.getElementById('folio-mode-wrap');
+  var hdrSub=document.getElementById('folio-hdr-sub');
+
+  if(d.mode==='pre_stay'){
+    modeWrap.innerHTML='<div class="folio-mode-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>Pré-séjour</div>';
+    hdrSub.textContent='Votre réservation est confirmée';
+    // Show pre-stay message unless deposit paid
+    if(s.payments>0){
+      document.getElementById('folio-prestay').style.display='none';
+      document.getElementById('folio-full').style.display='';
+    } else {
+      document.getElementById('folio-prestay').style.display='';
+      document.getElementById('folio-full').style.display='none';
+      return; // nothing more to render
+    }
+  } else {
+    var inStay=r.status==='checkedin';
+    modeWrap.innerHTML=inStay
+      ?'<div class="folio-mode-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>En cours</div>'
+      :'<div class="folio-mode-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>Terminé</div>';
+    hdrSub.textContent='Détail de vos consommations';
+    document.getElementById('folio-prestay').style.display='none';
+    document.getElementById('folio-full').style.display='';
+  }
+
+  // Hébergement
+  document.getElementById('folio-accom-amt').textContent=fmt(s.accommodation);
+  document.getElementById('folio-accom-detail').textContent=fmt(s.accommodation);
+  var accomSub='';
+  if(r&&r.nights>1) accomSub=r.nights+' nuit'+(r.nights>1?'s':'')+' · '+fmtDate(r.check_in)+' → '+fmtDate(r.check_out);
+  else if(r) accomSub=fmtDate(r.check_in)+' → '+fmtDate(r.check_out);
+  document.getElementById('folio-accom-sub').textContent=accomSub;
+
+  // Restaurant
+  if(s.restaurant>0){
+    document.getElementById('folio-rest-card').style.display='';
+    document.getElementById('folio-rest-amt').textContent=fmt(s.restaurant);
+  }
+  // Autres
+  if(s.other>0){
+    document.getElementById('folio-other-card').style.display='';
+    document.getElementById('folio-other-amt').textContent=fmt(s.other);
+  }
+
+  // Total / Paiements / Balance
+  document.getElementById('folio-total-val').textContent=fmt(s.total);
+  document.getElementById('folio-payments-val').textContent='-'+fmt(s.payments);
+  document.getElementById('folio-balance-val').textContent=fmt(Math.abs(s.balance));
+
+  var balRow=document.getElementById('folio-balance-row');
+  var balAmtEl=document.getElementById('folio-balance-amt');
+  var balLbl=document.getElementById('folio-balance-lbl');
+  var settledBadge=document.getElementById('folio-settled-badge');
+
+  balAmtEl.textContent=fmt(Math.abs(s.balance));
+  if(s.is_settled){
+    balRow.className='folio-balance-row settled';
+    balAmtEl.className='folio-balance-amt settled';
+    balLbl.textContent='Compte soldé';
+    settledBadge.style.display='flex';
+  } else if(s.balance<0){
+    balRow.className='folio-balance-row positive';
+    balAmtEl.className='folio-balance-amt';
+    balLbl.textContent='Avoir / Excédent';
+  } else {
+    balRow.className='folio-balance-row positive';
+    balAmtEl.className='folio-balance-amt';
+    balLbl.textContent='Solde dû';
+  }
+
+  // Charges detail
+  var charges=d.charges||[];
+  if(charges.length>0&&d.mode==='full'){
+    document.getElementById('folio-charges-wrap').style.display='';
+    var html='';
+    charges.forEach(function(c){
+      var amtCls=c.amount<0?'folio-charge-amt negative':'folio-charge-amt';
+      var typeBadge=c.charge_type==='restaurant'
+        ?'<span class="charge-type-badge restaurant">Restaurant</span>'
+        :'<span class="charge-type-badge other">Autre</span>';
+      var sub='';
+      if(c.date) sub+=c.date;
+      if(c.order_ref) sub+=(sub?' · ':'')+' Réf '+c.order_ref;
+      html+='<div class="folio-charge-item">';
+      html+='<div class="folio-charge-meta">';
+      html+='<div class="folio-charge-lbl">'+escH(c.label)+typeBadge+'</div>';
+      if(c.is_reversal) html+='<div class="folio-charge-reversal">Annulation</div>';
+      if(sub) html+='<div class="folio-charge-sub">'+sub+'</div>';
+      html+='</div>';
+      html+='<div class="'+amtCls+'">'+fmt(c.amount)+'</div>';
+      html+='</div>';
+    });
+    document.getElementById('folio-charges-inner').innerHTML=html;
+    document.getElementById('folio-charges-toggle-lbl').textContent='Voir le détail ('+charges.length+')';
+  }
+}
+
+function toggleFolioCharges(){
+  _folioChargesOpen=!_folioChargesOpen;
+  var list=document.getElementById('folio-charges-list');
+  var caret=document.getElementById('folio-charges-caret');
+  var lbl=document.getElementById('folio-charges-toggle-lbl');
+  list.classList.toggle('open',_folioChargesOpen);
+  caret.style.transform=_folioChargesOpen?'rotate(180deg)':'';
+  lbl.textContent=_folioChargesOpen
+    ?lbl.textContent.replace('Voir','Masquer')
+    :lbl.textContent.replace('Masquer','Voir');
+}
+
 </script>
 </body>
 </html>

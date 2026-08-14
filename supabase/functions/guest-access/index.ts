@@ -48,6 +48,7 @@ const GUEST_DEFAULT_SCOPES = [
   'restaurant.read',
   'restaurant.order',
   'restaurant.orders.read',
+  'folio.read',      // GUEST-4A — lecture folio séjour
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -916,6 +917,7 @@ Deno.serve(async (req: Request) => {
   const ACTIVITY_ALLOWLIST = new Set([
     'portal_opened','restaurant_viewed','restaurant_order_created',
     'room_service_confirmed','feedback_opened','feedback_submitted',
+    'folio_viewed',   // GUEST-4A
   ]);
   const ACTIVITY_ALLOWED_META_KEYS = new Set(['order_id','feedback_id','view_name']);
 
@@ -1201,6 +1203,127 @@ Deno.serve(async (req: Request) => {
   }
 
 
+
+  // ══════════════════════════════════════════════════════════════════
+  // GET_MY_FOLIO — GUEST-4A
+  // Scope: folio.read (attribué serveur-side dans GUEST_DEFAULT_SCOPES)
+  // reservation_id / folio_id JAMAIS depuis le client — résolu depuis session
+  // Statuts autorisés: confirmed (résumé), checkedin / checkedout (complet)
+  // Cancelled / no_show: bloqué (folio_unavailable)
+  // ══════════════════════════════════════════════════════════════════
+  if (action === 'get_my_folio') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error: tokErr, session } = await validateGuestToken(db, rawToken);
+    if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
+
+    if (!(session!.scopes as string[]).includes('folio.read'))
+      return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
+
+    // ── Résoudre la réservation (serveur-side uniquement) ────────────
+    const reservationId = session!.reservation_id;
+    const { data: res, error: resErr } = await db
+      .from('veraluz_reservations')
+      .select('id, status, total, paid, check_in, check_out, nights, unit_id, client_name')
+      .eq('id', reservationId)
+      .single();
+
+    if (resErr || !res) return json({ ok: false, error: 'reservation_not_found' }, 404, cors);
+
+    const st = res.status as string;
+
+    // Bloqué: cancelled / no_show
+    if (['cancelled','no_show'].includes(st))
+      return json({ ok: false, error: 'folio_unavailable', status: st }, 403, cors);
+
+    // ── Hébergement (source canonique: reservation.total) ────────────
+    const accommodation: number = res.total ?? 0;
+    const payments: number      = res.paid  ?? 0;
+
+    // ── CONFIRMED: résumé pré-séjour uniquement (pas de charges séjour encore) ─
+    if (st === 'confirmed') {
+      const balance = accommodation - payments;
+      return json({
+        ok: true,
+        mode: 'pre_stay',
+        reservation: {
+          status:    st,
+          check_in:  res.check_in,
+          check_out: res.check_out,
+          nights:    res.nights ?? 1,
+          unit_id:   res.unit_id,
+        },
+        summary: {
+          accommodation,
+          restaurant: 0,
+          other:       0,
+          total:       accommodation,
+          payments,
+          balance,
+          is_settled:  balance <= 0,
+        },
+        charges: [],
+      }, 200, cors);
+    }
+
+    // ── CHECKEDIN / CHECKEDOUT: folio complet ────────────────────────
+    const { data: rawCharges, error: cErr } = await db
+      .from('veraluz_room_charges')
+      .select('id, created_at, posted_at, charge_type, label, description, amount, restaurant_order_id, reversal_of_charge_id')
+      .eq('reservation_id', reservationId)
+      .order('created_at', { ascending: true });
+
+    if (cErr) return json({ ok: false, error: 'charges_unavailable' }, 500, cors);
+
+    const charges = rawCharges ?? [];
+
+    // ── Calcul canonique (identique Finance / RESERVATIONS_EMBEDDED) ─
+    const restaurant: number = charges
+      .filter(c => (c.charge_type ?? 'restaurant') === 'restaurant')
+      .reduce((s: number, c: any) => s + (c.amount ?? 0), 0);
+
+    const other: number = charges
+      .filter(c => (c.charge_type ?? 'restaurant') !== 'restaurant')
+      .reduce((s: number, c: any) => s + (c.amount ?? 0), 0);
+
+    const total   = accommodation + restaurant + other;
+    const balance = total - payments;
+
+    // ── Détail charges exposé au guest (sans données internes) ───────
+    const chargesForGuest = charges.map((c: any) => ({
+      id:           c.id,
+      date:         (c.posted_at ?? c.created_at ?? '').slice(0, 10),
+      charge_type:  c.charge_type ?? 'restaurant',
+      label:        c.label ?? c.description ?? 'Charge',
+      amount:       c.amount ?? 0,
+      order_ref:    c.restaurant_order_id
+                      ? c.restaurant_order_id.slice(-10).toUpperCase()
+                      : null,
+      is_reversal:  !!c.reversal_of_charge_id,
+    }));
+
+    return json({
+      ok: true,
+      mode: 'full',
+      reservation: {
+        status:    st,
+        check_in:  res.check_in,
+        check_out: res.check_out,
+        nights:    res.nights ?? 1,
+        unit_id:   res.unit_id,
+      },
+      summary: {
+        accommodation,
+        restaurant,
+        other,
+        total,
+        payments,
+        balance,
+        is_settled: balance <= 0,
+      },
+      charges: chargesForGuest,
+    }, 200, cors);
+  }
 
   return json({ error: 'unknown_action' }, 400, cors);
 });

@@ -3066,7 +3066,7 @@ function renderRsTaskActions(t) {
   var id  = esc(t.id);
   var st  = t.room_service_status;
   var btn = function (label, action, color) {
-    return '<button onclick="doRsAction(''+id+'',''+action+'')" '
+    return '<button onclick="doRsAction(\'' + id + '\',\'' + action + '\')" '
       + 'style="flex:1;padding:9px 10px;border-radius:9px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:' + color + ';color:#fff;">'
       + label + '</button>';
   };

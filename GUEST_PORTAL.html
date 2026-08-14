@@ -2,700 +2,488 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0D2340">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Résidences Veraluz — Mon Séjour</title>
 <style>
-/* ── GUEST-1: GUEST_PORTAL — Mobile-first Premium VERALUZ ── */
-:root {
-  --navy:       #0D2340;
-  --navy-deep:  #081628;
-  --navy-mid:   #142D50;
-  --turquoise:  #00B4C8;
-  --turq-light: #00D4EC;
-  --turq-muted: #007A8A;
-  --gold:       #C9A84C;
-  --gold-light: #E8C96A;
-  --gold-dark:  #9B7E32;
-  --offwhite:   #F8F5F0;
-  --warm-gray:  #EAE6DF;
-  --card-bg:    #FFFFFF;
-  --text-dark:  #1A2B3C;
-  --text-mid:   #4A5568;
-  --text-soft:  #8A9BB0;
-  --error-red:  #E53E3E;
-  --success:    #38A169;
-  --shadow-sm:  0 2px 8px rgba(13,35,64,0.08);
-  --shadow-md:  0 4px 20px rgba(13,35,64,0.12);
-  --shadow-lg:  0 8px 32px rgba(13,35,64,0.18);
-  --radius:     16px;
-  --radius-sm:  10px;
-  --safe-top:   env(safe-area-inset-top, 0px);
-  --safe-bot:   env(safe-area-inset-bottom, 0px);
+/* GUEST-2 — GUEST_PORTAL premium mobile-first */
+:root{
+  --navy:#0D2340;--navy-deep:#081628;--navy-mid:#142D50;
+  --turq:#00B4C8;--turq-light:#00D4EC;--turq-muted:#007A8A;
+  --gold:#C9A84C;--gold-light:#E8C96A;--gold-dark:#9B7E32;
+  --offwhite:#F8F5F0;--warm-gray:#EAE6DF;--card:#FFFFFF;
+  --text-dark:#1A2B3C;--text-mid:#4A5568;--text-soft:#8A9BB0;
+  --red:#E53E3E;--green:#38A169;--blue:#3182CE;
+  --sh-sm:0 2px 8px rgba(13,35,64,.08);--sh-md:0 4px 20px rgba(13,35,64,.12);--sh-lg:0 8px 32px rgba(13,35,64,.18);
+  --r:16px;--r-sm:10px;--r-xs:8px;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bot:env(safe-area-inset-bottom,0px);
 }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow-x:hidden}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--offwhite);color:var(--text-dark);min-height:100dvh;max-width:480px;margin:0 auto}
 
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow-x: hidden; }
+/* ── Loading / Error ── */
+#sl,#se{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--navy);z-index:999;padding:32px 24px;text-align:center}
+#se{display:none}
+.logo-sup{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--turq);margin-bottom:6px}
+.logo-main{font-size:26px;font-weight:300;color:#fff;letter-spacing:.5px;margin-bottom:40px}
+.logo-main strong{font-weight:700;color:var(--gold)}
+.spinner{width:40px;height:40px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--turq);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err-icon{width:60px;height:60px;background:rgba(229,62,62,.15);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 16px}
+.err-title{font-size:20px;font-weight:600;color:#fff;margin-bottom:10px}
+.err-msg{font-size:14px;color:rgba(255,255,255,.65);line-height:1.6;max-width:280px}
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--offwhite);
-  color: var(--text-dark);
-  min-height: 100dvh;
-  max-width: 430px;
-  margin: 0 auto;
-  position: relative;
-}
+/* ── App ── */
+#app{display:none;min-height:100dvh;padding-bottom:calc(70px + var(--safe-bot))}
 
-/* ── LOADING / ERROR SCREENS ─────────────────────────────────────────── */
-#screen-loading, #screen-error {
-  position: fixed; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  background: var(--navy);
-  z-index: 999;
-  padding: 32px 24px;
-  text-align: center;
-}
-#screen-error { display: none; }
+/* ── Header ── */
+.hdr{background:linear-gradient(155deg,var(--navy-deep) 0%,var(--navy-mid) 55%,var(--turq-muted) 100%);padding:calc(18px + var(--safe-top)) 22px 36px;position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;top:-50px;right:-50px;width:220px;height:220px;background:radial-gradient(circle,rgba(0,180,200,.14) 0%,transparent 70%);border-radius:50%}
+.hdr::after{content:'';position:absolute;bottom:-60px;left:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(201,168,76,.10) 0%,transparent 70%);border-radius:50%}
+.hdr-brand{display:flex;align-items:center;gap:10px;margin-bottom:24px;position:relative;z-index:1}
+.hdr-dot{width:34px;height:34px;background:linear-gradient(135deg,var(--turq),var(--gold));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.hdr-name{font-size:11px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.85)}
+.hdr-sub{font-size:10px;color:var(--turq);letter-spacing:1px;text-transform:uppercase}
+.hdr-greet{position:relative;z-index:1}
+.greet-sup{font-size:13px;color:rgba(255,255,255,.55);margin-bottom:3px}
+.greet-name{font-size:30px;font-weight:700;color:var(--gold-light);letter-spacing:.3px;line-height:1.1}
 
-.logo-splash {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--turquoise);
-  margin-bottom: 8px;
-}
-.brand-splash {
-  font-size: 26px;
-  font-weight: 300;
-  color: #FFFFFF;
-  letter-spacing: 1px;
-  margin-bottom: 40px;
-}
-.brand-splash strong { font-weight: 700; color: var(--gold); }
+/* ── Hero card (photo + unité) ── */
+.hero-card{margin:-22px 14px 0;background:var(--card);border-radius:var(--r);box-shadow:var(--sh-lg);overflow:hidden;position:relative;z-index:10}
+.unit-photo{width:100%;height:160px;object-fit:cover;display:block}
+.unit-photo-placeholder{width:100%;height:120px;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-mid) 100%);display:flex;align-items:center;justify-content:center;font-size:50px}
+.hero-body{padding:16px}
+.hero-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.hero-emoji{width:44px;height:44px;background:linear-gradient(135deg,var(--navy),var(--navy-mid));border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.hero-unit-name{font-size:16px;font-weight:700;color:var(--navy)}
+.hero-unit-type{font-size:11px;color:var(--text-soft);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+/* Dates */
+.stay-dates{display:flex;align-items:center;gap:8px;background:var(--offwhite);border-radius:var(--r-sm);padding:12px}
+.date-blk{flex:1}
+.date-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);margin-bottom:3px}
+.date-val{font-size:15px;font-weight:700;color:var(--navy)}
+.date-sub{font-size:11px;color:var(--text-soft)}
+.date-time{font-size:11px;color:var(--turq-muted);font-weight:600;margin-top:2px}
+.arr-dot{width:26px;height:26px;background:var(--turq);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.arr-dot svg{width:12px;height:12px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+/* Status */
+.status-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px;flex-wrap:wrap;gap:6px}
+.st-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+.st-badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.st-confirmed{background:rgba(56,161,105,.12);color:var(--green)}
+.st-checkedin{background:rgba(0,180,200,.12);color:var(--turq-muted)}
+.st-other{background:rgba(138,155,176,.12);color:var(--text-soft)}
+.nights-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(0,180,200,.10);border-radius:20px;font-size:11px;color:var(--turq-muted);font-weight:600}
 
-.spinner {
-  width: 44px; height: 44px;
-  border: 3px solid rgba(255,255,255,0.15);
-  border-top-color: var(--turquoise);
-  border-radius: 50%;
-  animation: spin 0.9s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
+/* ── Section cards ── */
+.sec{padding:0 14px}
+.sec-title{font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-soft);padding:20px 0 10px}
+.card{background:var(--card);border-radius:var(--r-sm);box-shadow:var(--sh-sm);overflow:hidden;margin-bottom:10px}
+.card-hdr{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.card-ico{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.card-ico-wifi{background:rgba(0,180,200,.10)}
+.card-ico-phone{background:rgba(56,161,105,.10)}
+.card-ico-rest{background:rgba(201,168,76,.10)}
+.card-ico-soon{background:rgba(138,155,176,.10)}
+.card-ttl{font-size:14px;font-weight:700;color:var(--navy)}
+.card-sub{font-size:11px;color:var(--text-soft);margin-top:2px}
+.card-body{padding:0 16px 14px}
+.card-divider{height:1px;background:var(--warm-gray);margin:0 16px}
+/* WiFi card */
+.wifi-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0}
+.wifi-lbl{font-size:12px;color:var(--text-soft)}
+.wifi-val{font-size:13px;font-weight:600;color:var(--navy);font-family:monospace}
+.wifi-hint{font-size:12px;color:var(--text-soft);line-height:1.5;padding:10px 0 4px;font-style:italic}
+.pwd-row{display:flex;align-items:center;gap:6px;padding:8px 0}
+.pwd-display{flex:1;font-size:14px;font-weight:700;color:var(--navy);font-family:monospace;letter-spacing:1px}
+.btn-xs{padding:6px 12px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.btn-show{background:rgba(0,180,200,.12);color:var(--turq-muted)}
+.btn-copy{background:rgba(56,161,105,.12);color:var(--green)}
+.btn-copied{background:rgba(56,161,105,.20);color:var(--green)}
+/* Phone */
+.btn-call{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;background:linear-gradient(135deg,var(--navy),var(--navy-mid));border:none;border-radius:var(--r-xs);color:#fff;font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;margin-top:6px}
+/* Restaurant */
+.rest-info-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--warm-gray)}
+.rest-info-row:last-child{border-bottom:none}
+.rest-info-lbl{font-size:12px;color:var(--text-soft)}
+.rest-info-val{font-size:12px;font-weight:600;color:var(--navy)}
+.rest-soon{display:flex;align-items:center;gap:6px;padding:10px 0;color:var(--text-soft);font-size:12px;font-style:italic}
+/* Bientôt card */
+.soon-card{background:var(--card);border-radius:var(--r-sm);box-shadow:var(--sh-sm);padding:14px 16px;margin-bottom:10px;opacity:.6}
+.soon-card-row{display:flex;align-items:center;justify-content:space-between}
+.soon-badge{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:var(--warm-gray);color:var(--text-soft);padding:3px 7px;border-radius:5px}
 
-.error-icon {
-  width: 64px; height: 64px;
-  background: rgba(229,62,62,0.15);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 28px; margin: 0 auto 20px;
-}
-.error-title { font-size: 20px; font-weight: 600; color: #FFFFFF; margin-bottom: 10px; }
-.error-msg   { font-size: 15px; color: rgba(255,255,255,0.65); line-height: 1.5; max-width: 280px; }
+/* ── Bottom nav ── */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:1px solid var(--warm-gray);display:none;align-items:stretch;padding-bottom:var(--safe-bot);z-index:100;box-shadow:0 -4px 20px rgba(13,35,64,.08)}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px 7px;cursor:pointer;position:relative}
+.ni.active .niw{background:rgba(0,180,200,.10)}
+.ni.disabled{opacity:.4;cursor:not-allowed}
+.niw{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:2px}
+.nico{font-size:19px}
+.nlbl{font-size:9.5px;font-weight:600;color:var(--text-soft);letter-spacing:.2px}
+.ni.active .nlbl{color:var(--turq)}
+.ni-dot{width:4px;height:4px;background:var(--turq);border-radius:50%;position:absolute;top:5px}
 
-/* ── MAIN APP ────────────────────────────────────────────────────────── */
-#app { display: none; min-height: 100dvh; padding-bottom: calc(72px + var(--safe-bot)); }
-
-/* ── HEADER ─────────────────────────────────────────────────────────── */
-.guest-header {
-  background: linear-gradient(160deg, var(--navy-deep) 0%, var(--navy-mid) 60%, var(--turq-muted) 100%);
-  padding: calc(20px + var(--safe-top)) 24px 32px;
-  position: relative;
-  overflow: hidden;
-}
-.guest-header::before {
-  content: '';
-  position: absolute; top: -40px; right: -40px;
-  width: 200px; height: 200px;
-  background: radial-gradient(circle, rgba(0,180,200,0.15) 0%, transparent 70%);
-  border-radius: 50%;
-}
-.guest-header::after {
-  content: '';
-  position: absolute; bottom: -60px; left: -30px;
-  width: 160px; height: 160px;
-  background: radial-gradient(circle, rgba(201,168,76,0.10) 0%, transparent 70%);
-  border-radius: 50%;
-}
-
-.header-brand {
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 28px; position: relative; z-index: 1;
-}
-.header-logo-dot {
-  width: 32px; height: 32px;
-  background: linear-gradient(135deg, var(--turquoise), var(--gold));
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; flex-shrink: 0;
-}
-.header-brand-name {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.85);
-}
-.header-brand-sub {
-  font-size: 10px;
-  color: var(--turquoise);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-.header-greeting { position: relative; z-index: 1; }
-.greeting-hello {
-  font-size: 14px;
-  color: rgba(255,255,255,0.60);
-  font-weight: 400;
-  margin-bottom: 4px;
-}
-.greeting-name {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--gold-light);
-  letter-spacing: 0.5px;
-  line-height: 1.1;
-}
-
-/* ── STAY CARD (hero) ────────────────────────────────────────────────── */
-.hero-card {
-  margin: -20px 16px 0;
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lg);
-  padding: 20px;
-  position: relative;
-  z-index: 10;
-}
-.hero-card-top {
-  display: flex; align-items: center; gap: 12px;
-  margin-bottom: 16px;
-}
-.unit-emoji {
-  width: 48px; height: 48px;
-  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
-  border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; flex-shrink: 0;
-}
-.unit-info {}
-.unit-name {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--navy);
-  line-height: 1.2;
-}
-.unit-type {
-  font-size: 12px;
-  color: var(--text-soft);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-top: 2px;
-}
-
-.stay-dates {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--offwhite);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-}
-.date-block { flex: 1; }
-.date-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--text-soft);
-  margin-bottom: 3px;
-}
-.date-val {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--navy);
-}
-.date-sub {
-  font-size: 11px;
-  color: var(--text-soft);
-}
-.date-arrow {
-  width: 28px; height: 28px;
-  background: var(--turquoise);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.date-arrow svg { width: 14px; height: 14px; fill: none; stroke: #fff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-
-.stay-status-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  margin-top: 12px;
-  padding: 5px 10px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-}
-.status-confirmed { background: rgba(56,161,105,0.12); color: var(--success); }
-.status-checkedin { background: rgba(0,180,200,0.12); color: var(--turq-muted); }
-.status-other     { background: rgba(138,155,176,0.12); color: var(--text-soft); }
-.status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-
-/* ── SECTION TITLE ───────────────────────────────────────────────────── */
-.section-title {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--text-soft);
-  padding: 24px 20px 12px;
-}
-
-/* ── SERVICE CARDS ───────────────────────────────────────────────────── */
-.services-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 0 16px 16px;
-}
-.svc-card {
-  background: var(--card-bg);
-  border-radius: var(--radius-sm);
-  padding: 18px 14px;
-  box-shadow: var(--shadow-sm);
-  border: 1.5px solid transparent;
-  cursor: not-allowed;
-  opacity: 0.65;
-  position: relative;
-  overflow: hidden;
-}
-.svc-card::after {
-  content: 'Bientôt';
-  position: absolute; top: 8px; right: 8px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  background: var(--warm-gray);
-  color: var(--text-soft);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-.svc-icon {
-  width: 42px; height: 42px;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
-  margin-bottom: 10px;
-}
-.svc-rest .svc-icon  { background: rgba(201,168,76,0.12); }
-.svc-serv .svc-icon  { background: rgba(0,180,200,0.12); }
-.svc-sejour .svc-icon { background: rgba(13,35,64,0.08); }
-.svc-msg .svc-icon   { background: rgba(138,155,176,0.10); }
-
-.svc-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--navy);
-  line-height: 1.2;
-}
-.svc-desc {
-  font-size: 11px;
-  color: var(--text-soft);
-  margin-top: 3px;
-  line-height: 1.4;
-}
-
-/* ── WELCOME MSG ─────────────────────────────────────────────────────── */
-.welcome-banner {
-  margin: 0 16px 8px;
-  padding: 16px;
-  background: linear-gradient(135deg, rgba(0,180,200,0.08), rgba(201,168,76,0.06));
-  border-radius: var(--radius-sm);
-  border-left: 3px solid var(--turquoise);
-}
-.welcome-banner p {
-  font-size: 13px;
-  color: var(--text-mid);
-  line-height: 1.6;
-}
-
-/* ── NIGHTS PILL ─────────────────────────────────────────────────────── */
-.nights-info {
-  display: flex; align-items: center; justify-content: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: rgba(0,180,200,0.10);
-  border-radius: 20px;
-  margin-top: 12px;
-  width: fit-content;
-}
-.nights-info span { font-size: 12px; color: var(--turq-muted); font-weight: 600; }
-
-/* ── BOTTOM NAV ──────────────────────────────────────────────────────── */
-.bottom-nav {
-  position: fixed;
-  bottom: 0; left: 50%;
-  transform: translateX(-50%);
-  width: 100%; max-width: 430px;
-  background: var(--card-bg);
-  border-top: 1px solid var(--warm-gray);
-  display: flex; align-items: stretch;
-  padding-bottom: var(--safe-bot);
-  z-index: 100;
-  box-shadow: 0 -4px 20px rgba(13,35,64,0.08);
-}
-.nav-item {
-  flex: 1;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  padding: 10px 4px 8px;
-  cursor: pointer;
-  position: relative;
-  transition: opacity 0.2s;
-}
-.nav-item.active .nav-icon-wrap { background: rgba(0,180,200,0.10); }
-.nav-item.disabled { opacity: 0.4; cursor: not-allowed; }
-.nav-icon-wrap {
-  width: 36px; height: 36px;
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  margin-bottom: 3px;
-  transition: background 0.2s;
-}
-.nav-icon { font-size: 20px; }
-.nav-label {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: var(--text-soft);
-}
-.nav-item.active .nav-label { color: var(--turquoise); }
-.nav-active-dot {
-  width: 4px; height: 4px;
-  background: var(--turquoise);
-  border-radius: 50%;
-  position: absolute;
-  top: 6px;
-}
-
-/* ── UTILS ───────────────────────────────────────────────────────────── */
-.hidden { display: none !important; }
-.fade-in { animation: fadeUp 0.4s ease-out both; }
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* ── Utils ── */
+.hidden{display:none!important}
+.fade-in{animation:fadeUp .35s ease-out both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 </style>
 </head>
 <body>
 
-<!-- LOADING -->
-<div id="screen-loading">
-  <div class="logo-splash">Kribi · Cameroun</div>
-  <div class="brand-splash">Résidences <strong>Veraluz</strong></div>
+<!-- Loading -->
+<div id="sl">
+  <div class="logo-sup">Kribi · Cameroun</div>
+  <div class="logo-main">Résidences <strong>Veraluz</strong></div>
   <div class="spinner"></div>
 </div>
 
-<!-- ERROR -->
-<div id="screen-error">
-  <div class="error-icon">🔒</div>
-  <div class="error-title">Accès non disponible</div>
-  <div class="error-msg" id="error-msg-text">Lien invalide ou expiré.</div>
+<!-- Error -->
+<div id="se">
+  <div class="err-icon">🔒</div>
+  <div class="err-title">Accès non disponible</div>
+  <div class="err-msg" id="se-msg">Lien invalide ou expiré.</div>
 </div>
 
-<!-- APP -->
+<!-- App -->
 <div id="app">
   <!-- Header -->
-  <header class="guest-header">
-    <div class="header-brand">
-      <div class="header-logo-dot">🌊</div>
+  <header class="hdr">
+    <div class="hdr-brand">
+      <div class="hdr-dot">🌊</div>
       <div>
-        <div class="header-brand-name">Résidences Veraluz</div>
-        <div class="header-brand-sub">Kribi · Cameroun</div>
+        <div class="hdr-name" id="hdr-prop">Résidences Veraluz</div>
+        <div class="hdr-sub" id="hdr-loc">Kribi · Cameroun</div>
       </div>
     </div>
-    <div class="header-greeting">
-      <div class="greeting-hello">Bienvenue,</div>
-      <div class="greeting-name" id="guest-name">Cher client</div>
+    <div class="hdr-greet">
+      <div class="greet-sup" id="greet-sup">Bienvenue,</div>
+      <div class="greet-name" id="greet-name">Cher client</div>
     </div>
   </header>
 
-  <!-- Hero: Stay card -->
-  <div class="hero-card fade-in" style="animation-delay:0.05s">
-    <div class="hero-card-top">
-      <div class="unit-emoji" id="unit-emoji">🏨</div>
-      <div class="unit-info">
-        <div class="unit-name" id="unit-name">—</div>
-        <div class="unit-type" id="unit-type"></div>
+  <!-- Hero: photo + unité + séjour -->
+  <div class="hero-card fade-in" style="animation-delay:.05s">
+    <div id="unit-photo-wrap"></div>
+    <div class="hero-body">
+      <div class="hero-top">
+        <div class="hero-emoji" id="unit-emoji">🏨</div>
+        <div>
+          <div class="hero-unit-name" id="unit-name">—</div>
+          <div class="hero-unit-type" id="unit-type"></div>
+        </div>
       </div>
-    </div>
-    <div class="stay-dates">
-      <div class="date-block">
-        <div class="date-label">Arrivée</div>
-        <div class="date-val" id="checkin-val">—</div>
-        <div class="date-sub" id="checkin-sub"></div>
+      <div class="stay-dates">
+        <div class="date-blk">
+          <div class="date-lbl">Arrivée</div>
+          <div class="date-val" id="ci-val">—</div>
+          <div class="date-sub" id="ci-day"></div>
+          <div class="date-time" id="ci-time"></div>
+        </div>
+        <div class="arr-dot">
+          <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </div>
+        <div class="date-blk" style="text-align:right">
+          <div class="date-lbl">Départ</div>
+          <div class="date-val" id="co-val">—</div>
+          <div class="date-sub" id="co-day"></div>
+          <div class="date-time" id="co-time"></div>
+        </div>
       </div>
-      <div class="date-arrow">
-        <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </div>
-      <div class="date-block" style="text-align:right">
-        <div class="date-label">Départ</div>
-        <div class="date-val" id="checkout-val">—</div>
-        <div class="date-sub" id="checkout-sub"></div>
-      </div>
-    </div>
-    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:4px">
-      <div class="stay-status-badge status-confirmed" id="status-badge">
-        <span class="status-dot"></span>
-        <span id="status-label">Confirmé</span>
-      </div>
-      <div class="nights-info hidden" id="nights-pill">
-        <span id="nights-label">—</span>
+      <div class="status-row">
+        <div class="st-badge" id="st-badge"><span class="dot"></span><span id="st-lbl">—</span></div>
+        <div class="nights-pill hidden" id="nights-pill"><span id="nights-txt">—</span></div>
       </div>
     </div>
   </div>
 
-  <!-- Welcome banner -->
-  <div class="welcome-banner fade-in" style="animation-delay:0.1s; margin-top:20px">
-    <p>Nous sommes ravis de vous accueillir aux Résidences Veraluz à Kribi. Profitez de votre séjour face à l'Océan Atlantique. 🌊</p>
-  </div>
+  <!-- Cards section -->
+  <div class="sec fade-in" style="animation-delay:.1s">
+    <div class="sec-title">Informations séjour</div>
 
-  <!-- Services (placeholders) -->
-  <div class="section-title fade-in" style="animation-delay:0.15s">Services</div>
-  <div class="services-grid fade-in" style="animation-delay:0.2s">
-
-    <div class="svc-card svc-rest" aria-disabled="true">
-      <div class="svc-icon">🍽️</div>
-      <div class="svc-name">Restaurant</div>
-      <div class="svc-desc">Commandez depuis votre chambre</div>
+    <!-- WiFi -->
+    <div class="card" id="wifi-card" style="display:none">
+      <div class="card-hdr">
+        <div class="card-ico card-ico-wifi">📶</div>
+        <div>
+          <div class="card-ttl">Wi-Fi</div>
+          <div class="card-sub" id="wifi-ssid-sub">—</div>
+        </div>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-body" id="wifi-body"></div>
     </div>
 
-    <div class="svc-card svc-serv" aria-disabled="true">
-      <div class="svc-icon">✨</div>
-      <div class="svc-name">Services</div>
-      <div class="svc-desc">Ménage, linge & demandes</div>
+    <!-- Réception -->
+    <div class="card" id="recept-card" style="display:none">
+      <div class="card-hdr">
+        <div class="card-ico card-ico-phone">📞</div>
+        <div>
+          <div class="card-ttl">Réception</div>
+          <div class="card-sub">Disponible 24h/24</div>
+        </div>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-body">
+        <div class="wifi-row">
+          <span class="wifi-lbl">Téléphone</span>
+          <span class="wifi-val" id="recept-phone">—</span>
+        </div>
+        <a id="call-btn" class="btn-call" href="#">
+          📞 Appeler la réception
+        </a>
+      </div>
     </div>
 
-    <div class="svc-card svc-sejour" aria-disabled="true">
-      <div class="svc-icon">📋</div>
-      <div class="svc-name">Mon séjour</div>
-      <div class="svc-desc">Détails & facture</div>
+    <!-- Restaurant -->
+    <div class="card" id="rest-card" style="display:none">
+      <div class="card-hdr">
+        <div class="card-ico card-ico-rest">🍽️</div>
+        <div>
+          <div class="card-ttl">Restaurant</div>
+          <div class="card-sub" id="rest-hours-sub">—</div>
+        </div>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-body" id="rest-body"></div>
     </div>
 
-    <div class="svc-card svc-msg" aria-disabled="true">
-      <div class="svc-icon">💬</div>
-      <div class="svc-name">Messages</div>
-      <div class="svc-desc">Contactez la réception</div>
+    <!-- Placeholders services -->
+    <div class="sec-title">Services</div>
+    <div class="soon-card">
+      <div class="soon-card-row">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">✨</span><span style="font-size:13px;font-weight:700;color:var(--navy)">Services</span></div>
+        <span class="soon-badge">Bientôt</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-soft);margin-top:4px">Ménage, linge, demandes spéciales</div>
     </div>
-
+    <div class="soon-card">
+      <div class="soon-card-row">
+        <div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">💬</span><span style="font-size:13px;font-weight:700;color:var(--navy)">Messages</span></div>
+        <span class="soon-badge">Bientôt</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-soft);margin-top:4px">Contactez directement la réception</div>
+    </div>
+    <div style="height:8px"></div>
   </div>
 </div>
 
 <!-- Bottom nav -->
-<nav class="bottom-nav" id="bottom-nav" style="display:none">
-  <div class="nav-item active">
-    <div class="nav-active-dot"></div>
-    <div class="nav-icon-wrap"><span class="nav-icon">🏠</span></div>
-    <span class="nav-label">Accueil</span>
+<nav class="bnav" id="bnav">
+  <div class="ni active">
+    <div class="ni-dot"></div>
+    <div class="niw"><span class="nico">🏠</span></div>
+    <span class="nlbl">Accueil</span>
   </div>
-  <div class="nav-item disabled" aria-disabled="true">
-    <div class="nav-icon-wrap"><span class="nav-icon">🍽️</span></div>
-    <span class="nav-label">Restaurant</span>
+  <div class="ni disabled">
+    <div class="niw"><span class="nico">🍽️</span></div>
+    <span class="nlbl">Restaurant</span>
   </div>
-  <div class="nav-item disabled" aria-disabled="true">
-    <div class="nav-icon-wrap"><span class="nav-icon">✨</span></div>
-    <span class="nav-label">Services</span>
+  <div class="ni disabled">
+    <div class="niw"><span class="nico">✨</span></div>
+    <span class="nlbl">Services</span>
   </div>
-  <div class="nav-item disabled" aria-disabled="true">
-    <div class="nav-icon-wrap"><span class="nav-icon">📋</span></div>
-    <span class="nav-label">Séjour</span>
+  <div class="ni disabled">
+    <div class="niw"><span class="nico">📋</span></div>
+    <span class="nlbl">Séjour</span>
   </div>
-  <div class="nav-item disabled" aria-disabled="true">
-    <div class="nav-icon-wrap"><span class="nav-icon">💬</span></div>
-    <span class="nav-label">Messages</span>
+  <div class="ni disabled">
+    <div class="niw"><span class="nico">💬</span></div>
+    <span class="nlbl">Messages</span>
   </div>
 </nav>
 
 <script>
-/* ── GUEST-1: Token exchange + Stay display ──────────────────────────── */
-/* SÉCURITÉ:
-   - Le token brut n'est jamais loggé (pas de console.log avec le token)
-   - Le token est retiré de l'URL via history.replaceState immédiatement
-   - Le token est stocké en sessionStorage (survit F5, effacé à fermeture onglet)
-   - reservation_id n'est JAMAIS envoyé par le client
-   - Toutes les résolutions passent par l'EF côté serveur
+/* GUEST-2 — Accueil séjour enrichi
+   Sécurité:
+   - Token retiré URL via replaceState immédiatement
+   - Stocké en sessionStorage('vl_gt'), jamais localStorage ni URL
+   - wifi.password: jamais loggé, affiché uniquement si checkedin + clic Afficher
+   - reservation_id jamais envoyé par le client
 */
+var EF  = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/guest-access';
+var AK  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+var SK  = 'vl_gt'; // sessionStorage key
 
-var EF_URL    = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/guest-access';
-var ANON_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY;';
-var SESSION_KEY = 'vl_gt'; // sessionStorage key — token stocké hors URL
+var MO = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+var DO = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 
-/* ── Utilitaires date ───────────────────────────────────────────────── */
-var MONTHS_FR = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
-var DAYS_FR   = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+function fmtDate(s){ if(!s) return '—'; var d=new Date(s+'T12:00:00'); return d.getDate()+' '+MO[d.getMonth()]+' '+d.getFullYear(); }
+function fmtDay(s){ if(!s) return ''; var d=new Date(s+'T12:00:00'); return DO[d.getDay()]; }
+function calcN(a,b){ return Math.round((new Date(b)-new Date(a))/86400000); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-function fmtDate(dateStr) {
-  if (!dateStr) return '—';
-  var d = new Date(dateStr + 'T12:00:00');
-  return d.getDate() + ' ' + MONTHS_FR[d.getMonth()] + ' ' + d.getFullYear();
-}
-function fmtDay(dateStr) {
-  if (!dateStr) return '';
-  var d = new Date(dateStr + 'T12:00:00');
-  return DAYS_FR[d.getDay()];
-}
-function calcNights(cin, cout) {
-  var a = new Date(cin), b = new Date(cout);
-  return Math.round((b - a) / 86400000);
+function callEF(payload, guestToken){
+  var h={'Content-Type':'application/json','apikey':AK,'Authorization':'Bearer '+AK};
+  if(guestToken) h['x-guest-token']=guestToken;
+  return fetch(EF,{method:'POST',headers:h,body:JSON.stringify(payload)}).then(function(r){return r.json();});
 }
 
-/* ── Appel EF ───────────────────────────────────────────────────────── */
-function callEF(payload, guestToken) {
-  var headers = {
-    'Content-Type': 'application/json',
-    'apikey': ANON_KEY,
-    'Authorization': 'Bearer ' + ANON_KEY,
-  };
-  if (guestToken) {
-    headers['x-guest-token'] = guestToken;
+function showError(msg){
+  document.getElementById('sl').style.display='none';
+  document.getElementById('app').style.display='none';
+  document.getElementById('bnav').style.display='none';
+  var se=document.getElementById('se'); se.style.display='flex';
+  document.getElementById('se-msg').textContent=msg||'Lien invalide ou expiré.';
+}
+
+/* ── Rendu Wi-Fi ── */
+var _wifiPwd=null, _wifiShown=false;
+function togglePwd(){
+  _wifiShown=!_wifiShown;
+  document.getElementById('pwd-display').textContent=_wifiShown?(_wifiPwd||'—'):'••••••••••••';
+  document.getElementById('btn-show').textContent=_wifiShown?'Masquer':'Afficher';
+}
+function copyPwd(){
+  if(!_wifiPwd) return;
+  var btn=document.getElementById('btn-copy');
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(_wifiPwd).then(function(){
+      btn.textContent='✓ Copié'; btn.className='btn-xs btn-copied';
+      setTimeout(function(){btn.textContent='Copier';btn.className='btn-xs btn-copy';},2000);
+    });
+  } else {
+    var ta=document.createElement('textarea'); ta.value=_wifiPwd;
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent='✓ Copié'; setTimeout(function(){btn.textContent='Copier';},2000);
   }
-  return fetch(EF_URL, {
-    method: 'POST',
-    headers: headers,
-    body: JSON.stringify(payload),
-  }).then(function(r) { return r.json(); });
 }
 
-/* ── Affichage erreur ───────────────────────────────────────────────── */
-function showError(msg) {
-  document.getElementById('screen-loading').style.display = 'none';
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('bottom-nav').style.display = 'none';
-  var screen = document.getElementById('screen-error');
-  screen.style.display = 'flex';
-  document.getElementById('error-msg-text').textContent =
-    msg || 'Lien invalide ou expiré.';
-}
+/* ── Rendu séjour ── */
+function render(stay){
+  /* Header */
+  var h=new Date().getHours();
+  var greet=h>=6&&h<18?'Bonjour':'Bonsoir';
+  document.getElementById('greet-sup').textContent=greet+',';
+  document.getElementById('greet-name').textContent=stay.guest_first_name||'Cher client';
+  if(stay.property_name) document.getElementById('hdr-prop').textContent=stay.property_name;
+  if(stay.property_location) document.getElementById('hdr-loc').textContent=stay.property_location;
 
-/* ── Affichage séjour ───────────────────────────────────────────────── */
-function renderStay(stay) {
-  // Nom
-  document.getElementById('guest-name').textContent = stay.guest_first_name || 'Cher client';
-  // Unité
-  document.getElementById('unit-emoji').textContent = stay.unit_emoji || '🏨';
-  document.getElementById('unit-name').textContent  = stay.unit_name  || '—';
-  var unitType = (stay.unit_type || '').toLowerCase();
-  var typeLabels = { chambre:'Chambre', studio:'Studio', appartement:'Appartement', suite:'Suite Présidentielle' };
-  document.getElementById('unit-type').textContent = typeLabels[unitType] || stay.unit_type || '';
-  // Dates
-  document.getElementById('checkin-val').textContent  = fmtDate(stay.check_in);
-  document.getElementById('checkin-sub').textContent  = fmtDay(stay.check_in);
-  document.getElementById('checkout-val').textContent = fmtDate(stay.check_out);
-  document.getElementById('checkout-sub').textContent = fmtDay(stay.check_out);
-  // Nuits
-  if (stay.check_in && stay.check_out) {
-    var n = calcNights(stay.check_in, stay.check_out);
-    if (n > 0) {
-      var pill = document.getElementById('nights-pill');
-      pill.classList.remove('hidden');
-      document.getElementById('nights-label').textContent = n + ' nuit' + (n > 1 ? 's' : '');
+  /* Photo ou emoji */
+  var wrap=document.getElementById('unit-photo-wrap');
+  if(stay.unit_photo_url){
+    wrap.innerHTML='<img class="unit-photo" src="'+esc(stay.unit_photo_url)+'" alt="'+esc(stay.unit_name||'')+'" onerror="this.parentNode.innerHTML=\'<div class=unit-photo-placeholder>\'+document.getElementById(\'unit-emoji\').textContent+\'</div>\'">';
+  } else {
+    wrap.innerHTML='<div class="unit-photo-placeholder">'+esc(stay.unit_emoji||'🏨')+'</div>';
+  }
+  document.getElementById('unit-emoji').textContent=stay.unit_emoji||'🏨';
+  document.getElementById('unit-name').textContent=stay.unit_name||'—';
+  var typeMap={chambre:'Chambre',studio:'Studio',appartement:'Appartement',suite:'Suite Présidentielle'};
+  document.getElementById('unit-type').textContent=typeMap[(stay.unit_type||'').toLowerCase()]||stay.unit_type||'';
+
+  /* Dates */
+  document.getElementById('ci-val').textContent=fmtDate(stay.check_in);
+  document.getElementById('ci-day').textContent=fmtDay(stay.check_in);
+  document.getElementById('ci-time').textContent=stay.checkin_time?'Arrivée : '+stay.checkin_time:'';
+  document.getElementById('co-val').textContent=fmtDate(stay.check_out);
+  document.getElementById('co-day').textContent=fmtDay(stay.check_out);
+  document.getElementById('co-time').textContent=stay.checkout_time?'Départ : '+stay.checkout_time:'';
+
+  /* Nuits */
+  if(stay.check_in&&stay.check_out){
+    var n=calcN(stay.check_in,stay.check_out);
+    if(n>0){var pill=document.getElementById('nights-pill');pill.classList.remove('hidden');document.getElementById('nights-txt').textContent=n+' nuit'+(n>1?'s':'');}
+  }
+
+  /* Statut */
+  var badge=document.getElementById('st-badge'),lbl=document.getElementById('st-lbl');
+  badge.className='st-badge';
+  var stMap={confirmed:{cls:'st-confirmed',txt:'Confirmé'},checkedin:{cls:'st-checkedin',txt:'En cours'},checkedout:{cls:'st-other',txt:'Terminé'},cancelled:{cls:'st-other',txt:'Annulé'}};
+  var si=stMap[stay.reservation_status]||{cls:'st-other',txt:stay.reservation_status||'—'};
+  badge.classList.add(si.cls); lbl.textContent=si.txt;
+
+  /* WiFi */
+  var wc=document.getElementById('wifi-card');
+  if(stay.wifi&&stay.wifi.enabled){
+    wc.style.display='';
+    document.getElementById('wifi-ssid-sub').textContent=stay.wifi.ssid||'Réseau Wi-Fi';
+    var wb=document.getElementById('wifi-body');
+    var whtml='<div class="wifi-row"><span class="wifi-lbl">Réseau (SSID)</span><span class="wifi-val">'+esc(stay.wifi.ssid||'—')+'</span></div>';
+    if(stay.wifi.password_available&&stay.wifi.password){
+      _wifiPwd=stay.wifi.password; // En mémoire uniquement — jamais dans DOM ou logs
+      whtml+='<div class="card-divider" style="margin:0 -16px 0;"></div>';
+      whtml+='<div class="pwd-row">';
+      whtml+='<span class="wifi-lbl" style="flex:0 0 auto;margin-right:8px">Mot de passe</span>';
+      whtml+='<span id="pwd-display" class="pwd-display">••••••••••••</span>';
+      whtml+='</div>';
+      whtml+='<div style="display:flex;gap:8px;padding-bottom:4px">';
+      whtml+='<button id="btn-show" class="btn-xs btn-show" onclick="togglePwd()">Afficher</button>';
+      whtml+='<button id="btn-copy" class="btn-xs btn-copy" onclick="copyPwd()">Copier</button>';
+      whtml+='</div>';
+    } else {
+      whtml+='<div class="wifi-hint">'+(stay.wifi.hint||'Le code Wi-Fi sera disponible à votre arrivée.')+'</div>';
     }
-  }
-  // Statut
-  var badge = document.getElementById('status-badge');
-  var label = document.getElementById('status-label');
-  badge.className = 'stay-status-badge';
-  if (stay.reservation_status === 'confirmed') {
-    badge.classList.add('status-confirmed');
-    label.textContent = 'Confirmé';
-  } else if (stay.reservation_status === 'checkedin') {
-    badge.classList.add('status-checkedin');
-    label.textContent = 'En cours';
-  } else {
-    badge.classList.add('status-other');
-    label.textContent = stay.reservation_status || '—';
+    wb.innerHTML=whtml;
   }
 
-  // Afficher l'app
-  document.getElementById('screen-loading').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  document.getElementById('bottom-nav').style.display = 'flex';
+  /* Réception */
+  var rc=document.getElementById('recept-card');
+  if(stay.contact&&stay.contact.phone){
+    rc.style.display='';
+    document.getElementById('recept-phone').textContent=stay.contact.phone;
+    var callBtn=document.getElementById('call-btn');
+    callBtn.href='tel:'+stay.contact.phone.replace(/\s/g,'');
+  }
+
+  /* Restaurant */
+  var restCard=document.getElementById('rest-card');
+  if(stay.restaurant&&stay.restaurant.enabled){
+    restCard.style.display='';
+    var oh=stay.restaurant.opening_time, ch=stay.restaurant.closing_time;
+    var hoursSub='';
+    if(oh&&ch) hoursSub=oh+' – '+ch;
+    else if(oh) hoursSub='Ouvert à partir de '+oh;
+    else hoursSub='Horaires à confirmer';
+    document.getElementById('rest-hours-sub').textContent=hoursSub;
+    var rb=document.getElementById('rest-body');
+    var rhtml='';
+    if(oh||ch){
+      rhtml+='<div class="rest-info-row"><span class="rest-info-lbl">Horaires</span><span class="rest-info-val">'+(oh||'')+(oh&&ch?' – ':'')+( ch||'')+'</span></div>';
+    }
+    if(stay.restaurant.room_service_enabled){
+      rhtml+='<div class="rest-info-row"><span class="rest-info-lbl">Room Service</span><span class="rest-info-val" style="color:var(--green)">✓ Disponible</span></div>';
+    }
+    rhtml+='<div class="rest-soon"><span>🍽️</span> La commande en ligne sera bientôt disponible.</div>';
+    rb.innerHTML=rhtml;
+  }
+
+  /* Afficher app */
+  document.getElementById('sl').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('bnav').style.display='flex';
 }
 
-/* ── Bootstrap ──────────────────────────────────────────────────────── */
-(function init() {
-  var params   = new URLSearchParams(window.location.search);
-  var urlToken = params.get('t');
+/* ── Bootstrap ── */
+(function init(){
+  var params=new URLSearchParams(window.location.search);
+  var urlTok=params.get('t');
+  if(urlTok){ history.replaceState(null,'',window.location.pathname); }
+  var storedTok=sessionStorage.getItem(SK);
 
-  // Retirer le token de l'URL immédiatement (même avant échange)
-  if (urlToken) {
-    history.replaceState(null, '', window.location.pathname);
+  function loadStay(tok){
+    return callEF({action:'get_my_stay'},tok).then(function(d){
+      if(d.ok){ render(d.stay); }
+      else { sessionStorage.removeItem(SK); showError(d.message||"Ce séjour n'est plus accessible."); }
+    });
   }
 
-  var storedToken = sessionStorage.getItem(SESSION_KEY);
-
-  if (urlToken) {
-    /* Nouveau token d'invitation: échange avec l'EF */
-    callEF({ action: 'validate_token', token: urlToken })
-      .then(function(data) {
-        if (data.ok) {
-          /* Stocker le token en sessionStorage (hors URL) */
-          sessionStorage.setItem(SESSION_KEY, urlToken);
-          /* Charger les données de séjour */
-          return callEF({ action: 'get_my_stay' }, urlToken);
-        } else {
-          showError(data.message || 'Lien invalide ou expiré.');
-          return null;
-        }
-      })
-      .then(function(data) {
-        if (!data) return;
-        if (data.ok) {
-          renderStay(data.stay);
-        } else {
-          showError(data.message || 'Lien invalide ou expiré.');
-        }
-      })
-      .catch(function() {
-        showError("Impossible de se connecter. Vérifiez votre connexion internet.");
-      });
-
-  } else if (storedToken) {
-    /* Reprise de session: revalider et charger */
-    callEF({ action: 'resume_session', token: storedToken })
-      .then(function(data) {
-        if (data.ok) {
-          return callEF({ action: 'get_my_stay' }, storedToken);
-        } else {
-          /* Session expirée ou révoquée: effacer storage */
-          sessionStorage.removeItem(SESSION_KEY);
-          showError(data.message || 'Ce séjour n\'est plus accessible.');
-          return null;
-        }
-      })
-      .then(function(data) {
-        if (!data) return;
-        if (data.ok) {
-          renderStay(data.stay);
-        } else {
-          sessionStorage.removeItem(SESSION_KEY);
-          showError(data.message || 'Ce séjour n\'est plus accessible.');
-        }
-      })
-      .catch(function() {
-        showError("Impossible de se connecter. Vérifiez votre connexion internet.");
-      });
-
+  if(urlTok){
+    callEF({action:'validate_token',token:urlTok}).then(function(d){
+      if(d.ok){ sessionStorage.setItem(SK,urlTok); return loadStay(urlTok); }
+      else { showError(d.message||'Lien invalide ou expiré.'); }
+    }).catch(function(){ showError('Impossible de se connecter. Vérifiez votre connexion.'); });
+  } else if(storedTok){
+    callEF({action:'resume_session',token:storedTok}).then(function(d){
+      if(d.ok){ return loadStay(storedTok); }
+      else { sessionStorage.removeItem(SK); showError(d.message||"Ce séjour n'est plus accessible."); }
+    }).catch(function(){ showError('Impossible de se connecter. Vérifiez votre connexion.'); });
   } else {
-    /* Aucun token: accès direct refusé */
-    setTimeout(function() {
-      showError('Lien invalide ou expiré. Veuillez utiliser le lien envoyé par la réception.');
-    }, 600);
+    setTimeout(function(){ showError('Lien invalide ou expiré. Veuillez utiliser le lien envoyé par la réception.'); },600);
   }
 })();
 </script>

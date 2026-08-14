@@ -1229,10 +1229,12 @@ function removeImg(roomId,idx){
 /* ── current open rez id ── */
 var _openRezId = null;
 var _rezPayMethod = 'cash';
+/* GUEST-2 — reset lazy-load flag each time modal opens */
 
 function openRezModal(rezId,_tab){
   _openRezId = rezId;
   _rezPayMethod = 'cash';
+  _guestAccessLoaded = false;
   var r=_rez.find(function(x){return x.id===rezId;}); if(!r) return;
   var s=statusInfo(r.status);
   var actions='';
@@ -1259,6 +1261,7 @@ function openRezModal(rezId,_tab){
     '<button class="mtab-btn active" id="mtab-detail" onclick="switchRezTab(\'detail\')">📋 Détails</button>'+
     '<button class="mtab-btn" id="mtab-facture" onclick="switchRezTab(\'facture\')">🧾 Facture</button>'+
     '<button class="mtab-btn" id="mtab-paiement" onclick="switchRezTab(\'paiement\')">💳 Paiement</button>'+
+    '<button class="mtab-btn" id="mtab-guest" onclick="switchRezTab(\'guest\')">🔑 Accès</button>'+
     '</div>'+
     '<div id="rzpane-detail">'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;margin-bottom:12px">'+
@@ -1295,7 +1298,8 @@ function openRezModal(rezId,_tab){
     '<label class="form-label">Note (optionnel)</label>'+
     '<input class="form-input" type="text" id="pay-note" placeholder="Acompte, solde final…">'+
     '<button class="btn-pay" onclick="recordPayment()">✓ Enregistrer le paiement</button>'+
-    '</div></div>';
+    '</div></div>'+
+    '<div id="rzpane-guest" style="display:none"><div id="guest-access-inner"><div style="text-align:center;padding:24px;color:var(--text2);font-size:12px">Chargement…</div></div></div>';
 
   document.getElementById('rezModalContent').innerHTML = html;
   openModal('rezModal');
@@ -1303,14 +1307,105 @@ function openRezModal(rezId,_tab){
   if(_tab) setTimeout(function(){switchRezTab(_tab);},50);
 }
 
+var _guestAccessLoaded = false;
 function switchRezTab(tab){
-  ['detail','facture','paiement'].forEach(function(t){
+  if(tab==='guest'&&!_guestAccessLoaded){_guestAccessLoaded=true;loadGuestAccess(_openRezId);}
+  ['detail','facture','paiement','guest'].forEach(function(t){
     var pane=document.getElementById('rzpane-'+t);
     var btn=document.getElementById('mtab-'+t);
     if(pane) pane.style.display=(t===tab)?'':'none';
     if(btn) btn.className='mtab-btn'+(t===tab?' active':'');
   });
 }
+/* ── GUEST-2 — Accès Client ── */
+function guestBroker(payload){
+  if(!window.parent||typeof window.parent.veraluzSecureRequest!=='function')
+    return Promise.reject(new Error('broker_unavailable'));
+  return window.parent.veraluzSecureRequest('guest-access',payload).then(function(r){
+    return r.body||r;
+  });
+}
+
+var _guestLinkRezId=null;
+function loadGuestAccess(rezId){
+  var el=document.getElementById('guest-access-inner'); if(!el) return;
+  el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text2);font-size:12px">Chargement des accès…</div>';
+  guestBroker({action:'list_sessions',reservation_id:rezId}).then(function(d){
+    if(!d.ok){el.innerHTML='<div style="color:var(--danger);font-size:12px;padding:12px">'+escH(d.message||'Erreur')+'</div>';return;}
+    renderGuestAccess(el,rezId,d.sessions||[]);
+  }).catch(function(){
+    el.innerHTML='<div style="color:var(--danger);font-size:12px;padding:12px">Impossible de contacter le serveur.</div>';
+  });
+}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function renderGuestAccess(el,rezId,sessions){
+  var active=sessions.filter(function(s){return s.status==='active';});
+  var h='<div style="margin-bottom:14px">';
+  h+='<div style="font-size:12px;color:var(--text2);margin-bottom:10px">Sessions actives: <strong style="color:var(--text1)">'+active.length+'/3</strong></div>';
+  if(active.length){
+    active.forEach(function(s){
+      var exp=s.expires_at?new Date(s.expires_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+      h+='<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">'+
+        '<div><div style="font-size:11px;color:var(--text2)">Exp. '+escH(exp)+'</div></div>'+
+        '<button onclick="revokeGuestSession(''+escH(s.id)+'',''+escH(rezId)+'')" style="padding:4px 10px;border-radius:6px;border:1px solid var(--danger,#e53e3e);background:transparent;color:var(--danger,#e53e3e);font-size:11px;cursor:pointer">Révoquer</button>'+
+        '</div>';
+    });
+  } else {
+    h+='<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Aucun lien actif</div>';
+  }
+  h+='</div>';
+  // Generate button (only if <3 active or will auto-revoke oldest)
+  h+='<button onclick="generateGuestLink(''+escH(rezId)+'')" style="width:100%;padding:10px;border:none;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;cursor:pointer">🔗 Générer un lien client</button>';
+  h+='<div id="guest-link-result" style="margin-top:12px"></div>';
+  el.innerHTML=h;
+}
+
+function generateGuestLink(rezId){
+  var btn=event.currentTarget||event.target; btn.disabled=true; btn.textContent='Génération…';
+  guestBroker({action:'create_invitation',reservation_id:rezId}).then(function(d){
+    btn.disabled=false; btn.textContent='🔗 Générer un lien client';
+    var res=document.getElementById('guest-link-result'); if(!res) return;
+    if(!d.ok){res.innerHTML='<div style="color:var(--danger);font-size:12px;padding:8px">'+escH(d.message||'Erreur génération')+'</div>';return;}
+    var url=d.guest_url||'';
+    res.innerHTML=
+      '<div style="background:rgba(56,161,105,.08);border:1px solid rgba(56,161,105,.3);border-radius:8px;padding:12px">'+
+      '<div style="font-size:11px;color:var(--text2);margin-bottom:6px">⚠️ Ce lien n'est affiché qu'une seule fois</div>'+
+      '<div style="display:flex;gap:8px;align-items:center">'+
+      '<input id="guest-url-inp" readonly value="'+escH(url)+'" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid var(--border);font-size:11px;background:var(--bg3);color:var(--text1)">'+
+      '<button onclick="copyGuestUrl()" style="padding:6px 12px;border-radius:6px;border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:600;cursor:pointer" id="guest-copy-btn">Copier</button>'+
+      '</div></div>';
+    // Reload session list after short delay
+    setTimeout(function(){loadGuestAccess(rezId);},800);
+  }).catch(function(){
+    btn.disabled=false; btn.textContent='🔗 Générer un lien client';
+    var res=document.getElementById('guest-link-result'); if(res) res.innerHTML='<div style="color:var(--danger);font-size:12px">Erreur réseau.</div>';
+  });
+}
+
+function copyGuestUrl(){
+  var inp=document.getElementById('guest-url-inp'); if(!inp||!inp.value) return;
+  var btn=document.getElementById('guest-copy-btn');
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(inp.value).then(function(){
+      if(btn){btn.textContent='✓ Copié';setTimeout(function(){if(btn)btn.textContent='Copier';},2000);}
+    });
+  } else {
+    inp.select(); document.execCommand('copy');
+    if(btn){btn.textContent='✓ Copié';setTimeout(function(){if(btn)btn.textContent='Copier';},2000);}
+  }
+}
+
+function revokeGuestSession(gsId,rezId){
+  if(!confirm('Révoquer ce lien client? Le client ne pourra plus accéder au portail.')) return;
+  guestBroker({action:'revoke_session',session_id:gsId}).then(function(d){
+    if(!d.ok) toast(d.message||'Erreur révocation','danger');
+    else toast('Lien client révoqué','success');
+    _guestAccessLoaded=false;
+    loadGuestAccess(rezId);
+  }).catch(function(){toast('Erreur réseau','danger');});
+}
+/* ── fin GUEST-2 ── */
+
 function selPayMethod(btn){
   document.querySelectorAll('.pmb').forEach(function(b){b.classList.remove('sel');});
   btn.classList.add('sel');

@@ -1,29 +1,19 @@
-# Journal de transmission Claude–Codex
+# Handoff actif Claude–Codex
 
-Ce fichier est le point de coordination partagé du projet. Les entrées les plus récentes sont placées en premier. Les règles complètes se trouvent dans `AI_COLLABORATION.md`.
+Règles : `AI_COLLABORATION.md`. Conserver les tâches actives et environ 10 transmissions récentes.
 
-## 2026-08-17 — Codex — Mise en place de la collaboration
+## LOCK actifs
 
-- **Branche :** `codex/setup-ai-coordination`
-- **Statut :** prêt pour validation locale, non poussé
-- **Objectif :** mettre en place un protocole sûr pour permettre à Claude et Codex de travailler comme deux programmeurs sur le même dépôt.
-- **Fichiers ajoutés :** `AI_COLLABORATION.md`, `AI_HANDOFF.md`, `AGENTS.md`, `CLAUDE.md`
-- **Contrôles :** vérification de la branche, du dépôt distant et du contenu Markdown.
-- **Risque connu :** aucun changement fonctionnel; uniquement de la documentation de coordination.
-- **Prochaine action :** obtenir l'autorisation du propriétaire avant de pousser cette branche sur GitHub.
-- **Zone réservée :** aucune zone fonctionnelle du code.
+Aucun LOCK actif.
 
----
+## Transmissions récentes
 
-## Modèle pour la prochaine transmission
+`2026-08-17 | Codex | COORD-002 | codex/setup-ai-coordination | HEAD local | contrôle Markdown + git diff | prêt à pousser, non fusionné | aucun | pousser la branche de coordination; fusion dans main uniquement avec autorisation de Blaise`
 
-### AAAA-MM-JJ — Agent — Titre de la tâche
+`2026-08-17 | Codex | COORD-001 | codex/setup-ai-coordination | a5c4d9b | contrôle Markdown | remplacé par COORD-002 | aucun | aucune`
 
-- **Branche :** `agent/nom-de-la-tache`
-- **Statut :** en cours | prêt pour validation | poussé | fusionné | bloqué
-- **Objectif :**
-- **Fichiers modifiés :**
-- **Tests et résultats :**
-- **Risques ou problèmes connus :**
-- **Prochaine action :**
-- **Zone réservée :**
+## Format
+
+`date | agent | lot | branche | commit | tests | statut | fichiers réservés | prochaine action`
+
+LOCK : `LOCK | agent | branche | tâche | fichiers/zones`

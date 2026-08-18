@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/guest-4a2-validation | GUEST-4A.2 | GUEST_PORTAL.html; supabase/functions/guest-access/index.ts; tests/guest-folio-checkedout.test.mjs`
+Aucun LOCK actif.
 
 ## Lots actifs
 
-`GUEST-4A.2 | Codex | validation DB/Finance/Guest + navigateur desktop/mobile + correction ciblée checkedout | en cours`
+Aucun lot actif.
 
 ## Transmissions récentes
+
+`2026-08-18 | Codex | GUEST-4A.2 | codex/guest-4a2-validation | 196aa8f | test ciblé PASS; DB/API/UI identiques; desktop 1440×900 PASS; mobile 390×844 PASS; checkout Folio autorisé, stay/Wi-Fi/Room Service refusés; guest-access v9; session test supprimée | poussé, non fusionné; GUEST-4A complet | aucun: LOCK retiré | review/fusion main uniquement avec autorisation de Blaise`
 
 `2026-08-18 | Codex | SKILLS-001 | codex/setup-veraluz-skills | 22845357f7580056f82f8f5cf40903a6c0d117b6 | quick_validate 4/4 PASS; frontmatter, diff, secrets et cohérence contrôlés | poussé, non fusionné | aucun: LOCK retiré | review si demandée; fusion main uniquement avec autorisation de Blaise`
 

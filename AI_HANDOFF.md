@@ -4,15 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/setup-veraluz-skills | SKILLS-001 | .agents/skills/veraluz-implement-lot/**, .agents/skills/veraluz-review-lot/**, .agents/skills/veraluz-live-validation/**, .agents/skills/veraluz-handoff/**`
+Aucun LOCK actif.
 
 ## Lots actifs
 
-`SKILLS-001 | Codex | codex/setup-veraluz-skills | création des quatre Skills repository VERALUZ | LOCK actif`
+Aucun lot actif.
 
 ## Transmissions récentes
 
-`2026-08-18 | Codex | SKILLS-001 | codex/setup-veraluz-skills | en cours | non exécutés | LOCK actif | quatre dossiers .agents/skills/veraluz-* listés | créer puis valider les quatre SKILL.md`
+`2026-08-18 | Codex | SKILLS-001 | codex/setup-veraluz-skills | non créé | non exécutés | bloqué: LOCK distant impossible | aucun | autoriser l'écriture GitHub ou authentifier Git local, puis recommencer`
 
 `2026-08-18 | Codex | COORD-003 | codex/setup-ai-coordination | HEAD local | contrôle Markdown + git diff | prêt à pousser, non fusionné | aucun | pousser la branche de travail; préparer ai/coordination; fusion dans main uniquement avec autorisation de Blaise`
 

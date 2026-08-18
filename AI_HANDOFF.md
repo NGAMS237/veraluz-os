@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-Aucun LOCK actif.
+`LOCK | Codex | codex/guest-4a2-validation | GUEST-4A.2 | GUEST_PORTAL.html; supabase/functions/guest-access/index.ts; tests/guest-folio-checkedout.test.mjs`
 
 ## Lots actifs
 
-Aucun lot actif.
+`GUEST-4A.2 | Codex | validation DB/Finance/Guest + navigateur desktop/mobile + correction ciblée checkedout | en cours`
 
 ## Transmissions récentes
 

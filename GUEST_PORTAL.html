@@ -1610,6 +1610,27 @@ function render(stay){
 }
 
 /* ── Bootstrap ── */
+function openCheckedoutFolio(tok){
+  sessionStorage.setItem(SK,tok);
+  return callEF({action:'get_my_folio'}).then(function(d){
+    if(!d||!d.ok||!d.reservation||d.reservation.status!=='checkedout'){
+      sessionStorage.removeItem(SK);
+      return false;
+    }
+    document.querySelectorAll('#vl-nav .ni').forEach(function(ni){ni.style.display='none';});
+    var sejourNav=document.getElementById('ni-sejour');
+    if(sejourNav) sejourNav.style.display='flex';
+    document.getElementById('sl').style.display='none';
+    document.getElementById('app').style.display='block';
+    document.getElementById('vl-nav').style.display='block';
+    document.getElementById('folio-loading').style.display='none';
+    _folioLoaded=true;
+    renderFolio(d);
+    switchView('sejour');
+    return true;
+  });
+}
+
 (function init(){
   var params=new URLSearchParams(window.location.search);
   var urlTok=params.get('t');
@@ -1630,6 +1651,11 @@ function render(stay){
         callEF({action:'portal_open',token:urlTok,is_new_load:true}).catch(function(){});
         return loadStay(urlTok);
       }
+      else if(d.error==='reservation_unavailable'){
+        return openCheckedoutFolio(urlTok).then(function(ok){
+          if(!ok) showError(d.message||'Lien invalide ou expiré.');
+        });
+      }
       else{showError(d.message||'Lien invalide ou expiré.');}
     }).catch(function(){showError('Impossible de se connecter. Vérifiez votre connexion.');});
   } else if(storedTok){
@@ -1637,6 +1663,11 @@ function render(stay){
       if(d.ok){
         callEF({action:'portal_open',is_new_load:true}).catch(function(){});
         return loadStay(storedTok);
+      }
+      else if(d.error==='reservation_unavailable'){
+        return openCheckedoutFolio(storedTok).then(function(ok){
+          if(!ok) showError(d.message||"Ce séjour n'est plus accessible.");
+        });
       }
       else{sessionStorage.removeItem(SK);showError(d.message||"Ce séjour n'est plus accessible.");}
     }).catch(function(){showError('Impossible de se connecter. Vérifiez votre connexion.');});
@@ -1725,16 +1756,11 @@ function renderFolio(d){
   else if(r) accomSub=fmtDate(r.check_in)+' → '+fmtDate(r.check_out);
   document.getElementById('folio-accom-sub').textContent=accomSub;
 
-  // Restaurant
-  if(s.restaurant>0){
-    document.getElementById('folio-rest-card').style.display='';
-    document.getElementById('folio-rest-amt').textContent=fmt(s.restaurant);
-  }
-  // Autres
-  if(s.other>0){
-    document.getElementById('folio-other-card').style.display='';
-    document.getElementById('folio-other-amt').textContent=fmt(s.other);
-  }
+  // Restaurant / Autres — toujours visibles, y compris à zéro
+  document.getElementById('folio-rest-card').style.display='';
+  document.getElementById('folio-rest-amt').textContent=fmt(s.restaurant);
+  document.getElementById('folio-other-card').style.display='';
+  document.getElementById('folio-other-amt').textContent=fmt(s.other);
 
   // Total / Paiements / Balance
   document.getElementById('folio-total-val').textContent=fmt(s.total);

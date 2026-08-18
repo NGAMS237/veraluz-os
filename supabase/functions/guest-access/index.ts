@@ -109,7 +109,11 @@ async function validateEmployeeSession(db: any, sessionToken: string) {
 
 // ── Auth guest ────────────────────────────────────────────────────────────────
 
-async function validateGuestToken(db: any, rawToken: string) {
+async function validateGuestToken(
+  db: any,
+  rawToken: string,
+  allowedReservationStatuses: string[] = ['confirmed','checkedin'],
+) {
   if (!rawToken) return { error: 'token_required', session: null, reservationStatus: null };
   const hash = await hashToken(rawToken);
   const now  = new Date();
@@ -136,7 +140,7 @@ async function validateGuestToken(db: any, rawToken: string) {
     .single();
 
   if (!res) return { error: 'reservation_not_found', session: null, reservationStatus: null };
-  if (!['confirmed','checkedin'].includes(res.status)) {
+  if (!allowedReservationStatuses.includes(res.status)) {
     return { error: 'reservation_unavailable', session: null, reservationStatus: res.status };
   }
 
@@ -1214,7 +1218,11 @@ Deno.serve(async (req: Request) => {
   if (action === 'get_my_folio') {
     const rawToken = (body.token as string | undefined)
       ?? req.headers.get('x-guest-token') ?? '';
-    const { error: tokErr, session } = await validateGuestToken(db, rawToken);
+    const { error: tokErr, session } = await validateGuestToken(
+      db,
+      rawToken,
+      ['confirmed','checkedin','checkedout'],
+    );
     if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
 
     if (!(session!.scopes as string[]).includes('folio.read'))

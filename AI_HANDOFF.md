@@ -4,7 +4,7 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/guest-4a-p1 | GUEST-4A.P1 | GUEST_PORTAL.html; RESERVATIONS_EMBEDDED.html; supabase/functions/guest-access/index.ts; tests/guest-portal-correctness.test.mjs`
+`LOCK | Codex | codex/guest-4a-p1 | GUEST-4A.P1 | GUEST_PORTAL.html; RESERVATIONS_EMBEDDED.html; supabase/functions/guest-access/index.ts; supabase/functions/settings-secure/index.ts; supabase/migrations/20260818_guest_wifi_privacy.sql; tests/guest-portal-correctness.test.mjs`
 
 ## Lots actifs
 

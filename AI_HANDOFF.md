@@ -8,9 +8,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## Lots actifs
 
-`AUTH-R1 | Codex | codex/auth-r1-containment | containment sécurité employés/credentials | préparation migration et tests, aucun déploiement autorisé`
+`AUTH-R1 | Codex | codex/auth-r1-containment | containment sécurité employés/credentials | commit poussé, attente review; aucun déploiement autorisé; LOCK conservé`
 
 ## Transmissions récentes
+
+`2026-08-18 | Codex | AUTH-R1 | codex/auth-r1-containment | 04b164da8867189cfdeb4fceb3c2d98d61711f87 | statique AUTH-R1 15/15; broker Auth 11/11; read-back anon vue minimale HTTP 200 avec id/full_name/role/status seulement; aucun secret | poussé, non déployé, attente review | mêmes zones: LOCK conservé | reviewer migration/RPC; 6 anciens appels frontend directs seront bloqués; aucune fusion main`
 
 `2026-08-18 | Codex | GUEST-4A / GUEST-4A.P1 | main | 38786d67a486afa3a7fa5dddb02df7d56c762ad1 | test utilisateur final PASS: identité, checked-in, SSID, mot de passe masqué, Afficher/Copier et mobile validés | COMPLET | aucun: LOCK retiré | aucune; ne démarrer aucun autre lot dans cette action`
 

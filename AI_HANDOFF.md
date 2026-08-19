@@ -8,9 +8,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## Lots actifs
 
-`AUTH-R1C2.1 | Codex | codex/auth-r1-containment | Éligibilité Livreur par affectation canonique à l'équipe Livreurs, sélection publique minimale et contrôle serveur | en cours sur 3935057; aucun déploiement; LOCK conservé`
+`AUTH-R1C2.1 | Codex | codex/auth-r1-containment | Éligibilité Livreur par affectation canonique à l'équipe Livreurs, sélection publique minimale et contrôle serveur | e7206fc poussé, READY FOR FINAL R1 REVIEW; aucun déploiement; LOCK conservé`
 
 ## Transmissions récentes
+
+`2026-08-19 | Codex | AUTH-R1C2.1 | codex/auth-r1-containment | e7206fcde199548dc699a18eb3b1132d264525dc | DB read-back FK team_id→teams et équipe Livreurs; R1C2.1 13/13; R1C2 14/14; R1C1/R1C1.1 52/52; AUTH-R1 15/15; broker 11/11; Contacts 16/16; diff/secrets/syntaxe PASS | poussé, READY FOR FINAL R1 REVIEW; aucun déploiement | vue delivery publique, LIVREUR, employees-secure et tests: LOCK conservé selon demande | review finale R1; déploiement et fusion main exigent une autorisation séparée`
 
 `2026-08-18 | Codex | AUTH-R1C2 | codex/auth-r1-containment | 39350571064a96d85d5587186d6081cc8b4889a9 | DB read-back rôles staff/technicien dans l'équipe Livreurs; R1C2 13/13; R1C1 44/44; AUTH-R1 15/15; broker Auth 11/11; runtime Contacts 16/16; syntaxe HTML/JS et diff PASS | poussé, READY FOR REVIEW; aucun déploiement | LIVREUR.html, employees-secure, tests R1C1/R1C2: LOCK conservé selon demande | review ciblée; AUTH-R2 gérera resume/F5 et résilience logout; aucune fusion main`
 
@@ -29,12 +31,6 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 `2026-08-18 | Codex | GUEST-4A.2 | codex/guest-4a2-validation | 196aa8f | test ciblé PASS; DB/API/UI identiques; desktop 1440×900 PASS; mobile 390×844 PASS; checkout Folio autorisé, stay/Wi-Fi/Room Service refusés; guest-access v9; session test supprimée | poussé, non fusionné; GUEST-4A complet | aucun: LOCK retiré | review/fusion main uniquement avec autorisation de Blaise`
 
 `2026-08-18 | Codex | SKILLS-001 | codex/setup-veraluz-skills | 22845357f7580056f82f8f5cf40903a6c0d117b6 | quick_validate 4/4 PASS; frontmatter, diff, secrets et cohérence contrôlés | poussé, non fusionné | aucun: LOCK retiré | review si demandée; fusion main uniquement avec autorisation de Blaise`
-
-`2026-08-18 | Codex | COORD-003 | codex/setup-ai-coordination | HEAD local | contrôle Markdown + git diff | prêt à pousser, non fusionné | aucun | pousser la branche de travail; préparer ai/coordination; fusion dans main uniquement avec autorisation de Blaise`
-
-`2026-08-17 | Codex | COORD-002 | codex/setup-ai-coordination | 0779e75 | contrôle Markdown + git diff | remplacé par COORD-003 | aucun | aucune`
-
-`2026-08-17 | Codex | COORD-001 | codex/setup-ai-coordination | a5c4d9b | contrôle Markdown | remplacé par COORD-002 | aucun | aucune`
 
 ## Format
 

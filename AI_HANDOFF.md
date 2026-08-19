@@ -12,9 +12,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 AUTH-R2B1.1 | claude/auth-r2b1 | En cours — branche locale prête, push en attente auth Git
 
-AUTH-R2C | codex/auth-r2c-frontend | En cours — frontend CORE + Livreur uniquement; dépend du contrat backend AUTH-R2B1.1
+AUTH-R2C | codex/auth-r2c-frontend | READY FOR REVIEW — frontend poussé; validation F5 live dépend du backend AUTH-R2B1.1
 
 ## Transmissions récentes
+
+`2026-08-19 | Codex | AUTH-R2C | codex/auth-r2c-frontend | d7e64b7 | AUTH-R2C 18/18; R1C2 14/14; éligibilité 13/13; broker 11/11; employees-secure 52/52; containment 15/15; syntaxe CORE/Livreur; navigateur local desktop 1280x720 + mobile 390x844 sans débordement ni erreur console | poussé, READY FOR REVIEW; aucun backend/déploiement/merge | VERALUZ_OS_CORE.html, LIVREUR.html, tests frontend: LOCK conservé | intégrer avec AUTH-R2B1.1 puis exécuter login/F5/rotation/logout live CORE + Livreur`
 
 `2026-08-19 | Codex | AUTH-R1D PHASE C / AUTH-R1 | main | 6c76f8f66770cec5a49ddc672263fc4570e4990c | migration 20260819180919; table anon 4/4 refusée 401/42501; authenticated sans privilèges; vues 200/projections exactes; RPC credentials refusées; employees-secure profil/RH/annuaire/analytics/roster/Livreur PASS; Pages 7/7 exactes; browser sans erreur bloquante; 3 sessions test supprimées | COMPLET — CONTAINMENT LIVE VALIDÉ; rollback non utilisé | aucun: LOCK AUTH-R1 retiré | aucune; ne pas commencer AUTH-R2 sans nouveau lot`
 

@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/auth-r1-containment | AUTH-R1C2.1 | LIVREUR.html, supabase/functions/employees-secure/index.ts, supabase/migrations/20260819_auth_r1c2_delivery_login_public.sql, tests/auth-r1c1-employees-secure.test.mjs, tests/auth-r1c2-livreur-session.test.mjs, tests/auth-r1c2-1-delivery-eligibility.test.mjs`
+`LOCK | Codex | codex/auth-r1-containment | AUTH-R1D PHASE A | supabase/functions/employees-secure/index.ts, supabase/migrations/20260819_auth_r1c2_delivery_login_public.sql, validations production associées`
 
 ## Lots actifs
 
-`AUTH-R1C2.1 | Codex | codex/auth-r1-containment | Éligibilité Livreur par affectation canonique à l'équipe Livreurs, sélection publique minimale et contrôle serveur | e7206fc poussé, READY FOR FINAL R1 REVIEW; aucun déploiement; LOCK conservé`
+`AUTH-R1D PHASE A | Codex | codex/auth-r1-containment | Déployer employees-secure et appliquer uniquement la vue additive Livreur; containment explicitement interdit | précontrôle production en cours sur e7206fc; LOCK conservé`
 
 ## Transmissions récentes
 

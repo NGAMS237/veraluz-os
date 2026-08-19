@@ -1,17 +1,22 @@
 /**
- * VERALUZ — revoke-employee-sessions — v2 (AUTH-R2B1)
+ * VERALUZ — revoke-employee-sessions — v3 (AUTH-R2B1.2)
  *
- * Changements v2 :
- * - Revoque maintenant AUSSI tous les resume_tokens actifs de la cible.
- *   Sans cela, l'employe peut immediatement reconstruire une session via resume.
- * - caller status IN ('actif','active') pour coherence bilingue.
- * - employee_id cible jamais fait confiance depuis le client seul :
- *   il est valide mais le caller est toujours authentifie par session serveur.
+ * Changements v3 :
+ * - Révocation globale désormais ATOMIQUE via RPC PostgreSQL
+ *   `veraluz_revoke_employee_sessions` (SECURITY DEFINER, service_role only).
+ * - Plus de double UPDATE séquentiel depuis l'EF : si l'étape sessions
+ *   réussissait mais resumes échouait, on renvoyait ok:true avec un état
+ *   partiellement révoqué. Ce comportement est éliminé.
+ * - La RPC roule sessions + resumes dans un bloc PL/pgSQL avec EXCEPTION
+ *   handler → ROLLBACK des deux si l'une échoue → jamais ok:true partiel.
+ * - UUID validation côté EF avant appel RPC.
+ * - employee_id cible validé UUID + jamais fait confiance seul (caller toujours
+ *   authentifié par session serveur avant).
  *
- * POST body : { session_token: string, employee_id: string }
- * Reponse   : { ok: true, revoked_sessions: N, revoked_resumes: M }
+ * POST body : { session_token: string, employee_id: string (UUID) }
+ * Réponse   : { ok: true, revoked_sessions: N, revoked_resumes: M }
  *
- * Autorisation : role gerant / admin / superadmin uniquement.
+ * Autorisation : rôle gérant / admin / superadmin uniquement.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -21,6 +26,7 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080',
 ];
 const DIRECTION_ROLES = ['gerant', 'admin', 'superadmin'];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function cors(origin: string | null): Record<string, string> {
   const h: Record<string, string> = {
@@ -54,8 +60,10 @@ Deno.serve(async (req) => {
 
   const token    = String(body.session_token || '');
   const targetId = String(body.employee_id   || '').trim();
+
   if (!/^[0-9a-f]{64}$/.test(token)) return json({ ok: false, error: 'unauthorized' }, 401, origin);
-  if (!targetId) return json({ ok: false, error: 'employee_id_required' }, 400, origin);
+  if (!targetId)                       return json({ ok: false, error: 'employee_id_required' }, 400, origin);
+  if (!UUID_RE.test(targetId))         return json({ ok: false, error: 'invalid_employee_id' }, 400, origin);
 
   const admin = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -75,12 +83,15 @@ Deno.serve(async (req) => {
     .gt('expires_at', now)
     .limit(1);
 
-  if (sErr) { console.error('[revoke-sessions] session_lookup code=', sErr.code); return json({ ok: false, error: 'server_error' }, 500, origin); }
+  if (sErr) {
+    console.error('[revoke-sessions] session_lookup code=', sErr.code);
+    return json({ ok: false, error: 'server_error' }, 500, origin);
+  }
   if (!sessList || sessList.length === 0) return json({ ok: false, error: 'unauthorized' }, 401, origin);
 
   const callerId = sessList[0].employee_id as string;
 
-  // 2. Verifier le role du caller — status IN ('actif','active') pour coherence bilingue
+  // 2. Vérifier le rôle du caller — status IN ('actif','active') bilingue
   const { data: callerList, error: ceErr } = await admin
     .from('veraluz_employees')
     .select('id, role, status')
@@ -88,7 +99,10 @@ Deno.serve(async (req) => {
     .in('status', ['actif', 'active'])
     .limit(1);
 
-  if (ceErr) { console.error('[revoke-sessions] caller_lookup code=', ceErr.code); return json({ ok: false, error: 'server_error' }, 500, origin); }
+  if (ceErr) {
+    console.error('[revoke-sessions] caller_lookup code=', ceErr.code);
+    return json({ ok: false, error: 'server_error' }, 500, origin);
+  }
   const caller = callerList && callerList[0];
   if (!caller) return json({ ok: false, error: 'unauthorized' }, 401, origin);
 
@@ -101,33 +115,20 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'forbidden' }, 403, origin);
   }
 
-  // 3. Revoquer toutes les employee_sessions actives de la cible
-  const { data: revokedSess, error: rsErr } = await admin
-    .from('veraluz_employee_sessions')
-    .update({ revoked_at: now, revoked_reason: 'admin_revoke' })
-    .eq('employee_id', targetId)
-    .is('revoked_at', null)
-    .select('id');
+  // 3. Révocation atomique via RPC PostgreSQL
+  //    sessions + resume_tokens révoqués dans une seule transaction PL/pgSQL.
+  //    Si l'une des deux UPDATE échoue → ROLLBACK total → jamais ok:true partiel.
+  const { data: rpc, error: rpcErr } = await admin.rpc('veraluz_revoke_employee_sessions', {
+    p_target_employee_id: targetId,
+  });
 
-  if (rsErr) { console.error('[revoke-sessions] revoke_sessions code=', rsErr.code); return json({ ok: false, error: 'server_error' }, 500, origin); }
-
-  // 4. Revoquer AUSSI tous les resume_tokens actifs de la cible
-  //    Sans cela l'employe peut reconstruire une session via resume immediatement.
-  const { data: revokedResumes, error: rrErr } = await admin
-    .from('veraluz_resume_tokens')
-    .update({ revoked_at: now, revoked_reason: 'admin_revoke' })
-    .eq('employee_id', targetId)
-    .is('revoked_at', null)
-    .select('id');
-
-  if (rrErr) {
-    console.error('[revoke-sessions] revoke_resumes code=', rrErr.code);
-    // Sessions revoquees, resumes pas. On log l'evenement avec partial=true.
+  if (rpcErr || !rpc?.ok) {
+    const errCode = rpcErr?.code || rpc?.error || 'server_error';
+    console.error('[revoke-sessions] rpc_revoke err=', errCode);
+    return json({ ok: false, error: 'server_error' }, 500, origin);
   }
 
-  const revokedSessCount   = (revokedSess   || []).length;
-  const revokedResumeCount = (revokedResumes || []).length;
-
+  // 4. Journaliser l'événement audit (hors transaction : non critique)
   await admin.from('veraluz_auth_events').insert({
     event_type: 'sessions_revoked',
     employee_id: targetId,
@@ -135,15 +136,14 @@ Deno.serve(async (req) => {
     performed_by_role: caller.role,
     success: true,
     details_json: {
-      revoked_sessions: revokedSessCount,
-      revoked_resumes:  revokedResumeCount,
-      partial_resume_failure: rrErr ? true : false,
+      revoked_sessions: rpc.revoked_sessions,
+      revoked_resumes:  rpc.revoked_resumes,
     },
   });
 
   return json({
     ok: true,
-    revoked_sessions: revokedSessCount,
-    revoked_resumes:  revokedResumeCount,
+    revoked_sessions: rpc.revoked_sessions,
+    revoked_resumes:  rpc.revoked_resumes,
   }, 200, origin);
 });

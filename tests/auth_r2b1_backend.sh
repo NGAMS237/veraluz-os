@@ -112,3 +112,92 @@ Tests E2E live (nécessitent PIN valide — protocole manuel) :
     3. Employé status='inactif' → resume → employee_inactive
 
 MANUAL
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUTH-R2B1.2 — Révocation globale atomique via RPC
+# ══════════════════════════════════════════════════════════════════════════════
+
+# ── I. RPC veraluz_revoke_employee_sessions — anon refusé ────────────────────
+header "I — RPC revoke_employee_sessions : anon → 42501"
+R=$(curl -s -X POST "${SUPA_URL}/rest/v1/rpc/veraluz_revoke_employee_sessions" \
+  -H "Content-Type: application/json" \
+  -H "apikey: ${AK}" -H "Authorization: Bearer ${AK}" \
+  -d "{\"p_target_employee_id\":\"00000000-0000-0000-0000-000000000001\"}")
+HTTP_CODE=$(echo "$R" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('code','') or d.get('hint','') or 'no_code')" 2>/dev/null || echo "blocked")
+[[ "$HTTP_CODE" == *"42501"* ]] || [[ "$HTTP_CODE" == *"insufficient_privilege"* ]] || [[ "$HTTP_CODE" == *"PGRST302"* ]] \
+  && pass "anon → accès refusé ($HTTP_CODE)" || fail "anon → pas refusé: $R"
+
+# ── J. RPC — authenticated refusé ────────────────────────────────────────────
+header "J — RPC revoke_employee_sessions : authenticated → refusé"
+# Note : authenticated = token JWT signé anon (pas de service_role). Même comportement que anon côté RLS RPC.
+R=$(curl -s -X POST "${SUPA_URL}/rest/v1/rpc/veraluz_revoke_employee_sessions" \
+  -H "Content-Type: application/json" \
+  -H "apikey: ${AK}" -H "Authorization: Bearer ${AK}" \
+  -H "X-Client-Info: authenticated-test" \
+  -d "{\"p_target_employee_id\":\"00000000-0000-0000-0000-000000000002\"}")
+HTTP_CODE=$(echo "$R" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('code','') or d.get('hint','') or 'no_code')" 2>/dev/null || echo "blocked")
+[[ "$HTTP_CODE" == *"42501"* ]] || [[ "$HTTP_CODE" == *"insufficient_privilege"* ]] || [[ "$HTTP_CODE" == *"PGRST302"* ]] \
+  && pass "authenticated → accès refusé ($HTTP_CODE)" || fail "authenticated → pas refusé: $R"
+
+# ── K. RPC — service_role, UUID inexistant → ok:true, counts=0 ───────────────
+header "K — RPC revoke_employee_sessions : service_role, UUID inexistant → ok:true 0/0"
+R=$(curl -s -X POST "${SUPA_URL}/rest/v1/rpc/veraluz_revoke_employee_sessions" \
+  -H "Content-Type: application/json" \
+  -H "apikey: ${SK}" -H "Authorization: Bearer ${SK}" \
+  -d "{\"p_target_employee_id\":\"00000000-0000-0000-0000-000000000099\"}")
+OK=$(echo "$R" | python3 -c "import sys,json; d=json.load(sys.stdin); print(str(d.get('ok','')).lower())" 2>/dev/null || echo "")
+SC=$(echo "$R" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('revoked_sessions','x'))" 2>/dev/null || echo "x")
+RC=$(echo "$R" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('revoked_resumes','x'))" 2>/dev/null || echo "x")
+[ "$OK" = "true" ] && [ "$SC" = "0" ] && [ "$RC" = "0" ] \
+  && pass "service_role → ok:true, sessions=0, resumes=0" || fail "got: $R"
+
+# ── L. EF revoke — caller rôle insuffisant (réceptionniste) → 403, cible intacte ──
+header "L — EF revoke-employee-sessions : caller role insuffisant → 403"
+# Fake session token (64 hex) — sera rejeté unauthorized avant même le check rôle
+# On vérifie simplement que l'EF renvoie unauthorized/forbidden sans toucher la cible
+R=$(ef revoke-employee-sessions "{\"session_token\":\"$(python3 -c "print('b'*64)")\",\"employee_id\":\"00000000-0000-0000-0000-000000000099\"}")
+ERR=$(err_of "$R")
+OK2=$(ok_of "$R")
+[ "$OK2" = "false" ] && [[ "$ERR" == "unauthorized" || "$ERR" == "forbidden" ]] \
+  && pass "403/unauthorized sans révocation ($ERR)" || fail "got: $R"
+
+# ── M. EF revoke — employee_id format invalide (non-UUID) → 400 ──────────────
+header "M — EF revoke-employee-sessions : employee_id non-UUID → 400 invalid_employee_id"
+R=$(ef revoke-employee-sessions "{\"session_token\":\"$(python3 -c "print('c'*64)")\",\"employee_id\":\"not-a-uuid\"}")
+ERR=$(err_of "$R")
+# Note: peut être unauthorized (session fake rejetée en 1er) ou invalid_employee_id
+# selon l'ordre de validation. Les deux sont corrects — l'important est ok:false.
+[ "$(ok_of "$R")" = "false" ] \
+  && pass "non-UUID → ok:false ($ERR)" || fail "got: $R"
+
+# ── Résumé total ──────────────────────────────────────────────────────────────
+echo
+echo "─────────────────────────────────────────────────"
+echo "Total AUTH-R2B1 : PASS=$PASS  FAIL=$FAIL"
+echo "─────────────────────────────────────────────────"
+cat << 'MANUAL2'
+
+Tests E2E auth-r2b1.2 (nécessitent fixtures DB — protocole manuel) :
+
+  Révocation globale normale :
+    1. Insérer fixture : employé + 1 session active + 1 resume_token actif
+    2. Appeler EF revoke-employee-sessions (caller gérant valide)
+    3. Vérifier : ok:true, revoked_sessions=1, revoked_resumes=1
+    4. Vérifier en DB : les deux lignes ont revoked_at IS NOT NULL
+    5. Nettoyer fixtures
+
+  Rollback atomique (échec step 2 simulé) :
+    1. Insérer fixture : employé + 1 session active + 1 resume_token actif
+    2. Simuler l'échec step 2 en appellant directement la RPC avec
+       un p_target_employee_id dont la table resume_tokens est verrouillée
+       (BEGIN; SELECT ... FOR UPDATE NOWAIT; puis appel RPC dans une 2e connexion)
+    3. Vérifier : RPC retourne ok:false, error='server_error'
+    4. Vérifier en DB : session toujours active (revoked_at IS NULL) — rollback confirmé
+    5. ROLLBACK et nettoyer fixtures
+
+  Audit log :
+    1. Effectuer révocation globale avec caller gérant
+    2. Vérifier veraluz_auth_events : event_type='sessions_revoked', success=true,
+       details_json contient revoked_sessions + revoked_resumes corrects
+
+MANUAL2

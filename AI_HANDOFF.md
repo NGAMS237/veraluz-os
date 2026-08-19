@@ -8,9 +8,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## Lots actifs
 
-`AUTH-R1D-H1 | Codex | codex/auth-r1-containment | Restaurant Livraisons aligné sur livreur_id + assigned_to; main reste e7206fc | READY FOR REVIEW; containment non appliqué; LOCK Phase B conservé`
+`AUTH-R1D-H1 | Codex | main (source codex/auth-r1-containment) | Restaurant Livraisons publié au SHA 6c76f8f; Aujourd'hui/Historique/Livreurs et détail validés en lecture seule | READY FOR HUMAN RETEST; containment non appliqué; LOCK Phase B conservé`
 
 ## Transmissions récentes
+
+`2026-08-19 | Codex | AUTH-R1D-H1 | main (source codex/auth-r1-containment) | 6c76f8f66770cec5a49ddc672263fc4570e4990c | fast-forward 0/1; H1 10/10 + AUTH 11+15+52+13+14+16 PASS; Pages blob exact; navigateur Aujourd'hui/Historique/Livreurs/détail PASS sans erreur console; REST canonique et lookup livreur_id 200 | publié, READY FOR HUMAN RETEST; containment absent et rh_anon_all présent | LOCK AUTH-R1 Phase B conservé | Blaise reteste Restaurant; aucune Phase C/AUTH-R2 sans autorisation`
 
 `2026-08-19 | Codex | AUTH-R1D-H1 | codex/auth-r1-containment | 6c76f8f | DB: seules colonnes livreur_id/assigned_to présentes; ciblé 10/10; AUTH 11+15+52+13+14+16 PASS; REST live Aujourd’hui/Historique/Détail/message 200; regroupement réel lu sans écriture | poussé, READY FOR REVIEW; aucun déploiement/merge | LOCK AUTH-R1 Phase B conservé | review puis autorisation séparée requise avant merge main; containment interdit`
 
@@ -29,14 +31,6 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 `2026-08-18 | Codex | AUTH-R1 | codex/auth-r1-containment | 04b164da8867189cfdeb4fceb3c2d98d61711f87 | statique AUTH-R1 15/15; broker Auth 11/11; read-back anon vue minimale HTTP 200 avec id/full_name/role/status seulement; aucun secret | poussé, non déployé, attente review | mêmes zones: LOCK conservé | reviewer migration/RPC; 6 anciens appels frontend directs seront bloqués; aucune fusion main`
 
 `2026-08-18 | Codex | GUEST-4A / GUEST-4A.P1 | main | 38786d67a486afa3a7fa5dddb02df7d56c762ad1 | test utilisateur final PASS: identité, checked-in, SSID, mot de passe masqué, Afficher/Copier et mobile validés | COMPLET | aucun: LOCK retiré | aucune; ne démarrer aucun autre lot dans cette action`
-
-`2026-08-18 | Codex | GUEST-4A.P1 | main (source codex/guest-4a-p1) | 38786d67a486afa3a7fa5dddb02df7d56c762ad1 | Pages sert exactement CORE/Guest/Réservations; tests ciblés 11/11; browser CORE/Réservations/Guest sans erreur console; settings-secure wifi non configuré sans password; checkedout Folio 200, séjour/Wi-Fi et Room Service 401; session temporaire supprimée | produit publié; aucun autre lot commencé; attente test humain Wi-Fi | mêmes fichiers: LOCK conservé | Blaise saisit le Wi-Fi depuis CORE puis valide; retirer le LOCK seulement après son verdict`
-
-`2026-08-18 | Codex | GUEST-4A.P1 | codex/guest-4a-p1 | 38786d67a486afa3a7fa5dddb02df7d56c762ad1 | RLS anon/auth wifi=0 ligne; settings public sans password; update sans session=401; Direction no-op PASS; confirmed sans password; checkedout refusé; logs propres; fixtures temporaires supprimées | backend déployé: migration active, settings-secure v2, guest-access v10; interfaces non publiées; aucun merge | mêmes fichiers: LOCK conservé | autorisation séparée requise avant merge main et publication interfaces`
-
-`2026-08-18 | Codex | GUEST-4A.2 | codex/guest-4a2-validation | 196aa8f | test ciblé PASS; DB/API/UI identiques; desktop 1440×900 PASS; mobile 390×844 PASS; checkout Folio autorisé, stay/Wi-Fi/Room Service refusés; guest-access v9; session test supprimée | poussé, non fusionné; GUEST-4A complet | aucun: LOCK retiré | review/fusion main uniquement avec autorisation de Blaise`
-
-`2026-08-18 | Codex | SKILLS-001 | codex/setup-veraluz-skills | 22845357f7580056f82f8f5cf40903a6c0d117b6 | quick_validate 4/4 PASS; frontmatter, diff, secrets et cohérence contrôlés | poussé, non fusionné | aucun: LOCK retiré | review si demandée; fusion main uniquement avec autorisation de Blaise`
 
 ## Format
 

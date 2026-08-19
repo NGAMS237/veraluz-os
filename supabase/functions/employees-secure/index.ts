@@ -64,6 +64,7 @@ const RH_UPDATE_FIELDS = new Set([
   'full_name', 'phone', 'email', 'role', 'team_id', 'hire_date',
   'momo_number', 'notes',
 ]);
+const UPDATE_MY_PHOTO_FIELDS = new Set(['action', 'photo_url']);
 
 type Actor = { id: string; role: string; roleClass: string };
 type DbClient = ReturnType<typeof createClient>;
@@ -224,6 +225,22 @@ function validAmount(value: unknown) {
   return Number.isFinite(amount) && amount >= 0 ? amount : null;
 }
 
+function validEmployeePhotoUrl(value: unknown) {
+  const raw = String(value || '').trim();
+  if (!raw || raw.length > 2048) return null;
+  try {
+    const url = new URL(raw);
+    const projectOrigin = new URL(SUPABASE_URL).origin;
+    const photoPrefix = '/storage/v1/object/public/employee-photos/';
+    if (url.protocol !== 'https:' || url.origin !== projectOrigin) return null;
+    if (!url.pathname.startsWith(photoPrefix) || url.pathname.length <= photoPrefix.length) return null;
+    if (url.username || url.password || url.search || url.hash) return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
 function targetEmployeeId(value: unknown) {
   const normalized = String(value || '').trim();
   return normalized && normalized.length <= 128 ? normalized : null;
@@ -285,12 +302,33 @@ Deno.serve(async (req) => {
   if (action === 'get_my_profile') {
     const { data: profile, error } = await db
       .from('veraluz_employees')
-      .select('id,full_name,phone,email,hire_date,team_id')
+      .select('id,full_name,role,phone,email,hire_date,team_id,photo_url,public_display_name,identity_verified')
       .eq('id', actor.id)
       .maybeSingle();
     if (error) {
       console.error('[employees-secure] get_my_profile_failed code=', error.code);
       return json({ ok: false, error: 'server_error' }, 500, origin);
+    }
+    if (!profile) return json({ ok: false, error: 'employee_not_found' }, 404, origin);
+    return json({ ok: true, profile }, 200, origin);
+  }
+
+  if (action === 'update_my_photo') {
+    if (!validateFields(body, UPDATE_MY_PHOTO_FIELDS)) {
+      return json({ ok: false, error: 'invalid_photo_fields' }, 400, origin);
+    }
+    const photoUrl = validEmployeePhotoUrl(body.photo_url);
+    if (!photoUrl) return json({ ok: false, error: 'invalid_photo_url' }, 400, origin);
+
+    const { data: profile, error } = await db
+      .from('veraluz_employees')
+      .update({ photo_url: photoUrl })
+      .eq('id', actor.id)
+      .select('id,photo_url')
+      .maybeSingle();
+    if (error) {
+      console.error('[employees-secure] update_my_photo_failed code=', error.code);
+      return json({ ok: false, error: 'photo_update_failed' }, 500, origin);
     }
     if (!profile) return json({ ok: false, error: 'employee_not_found' }, 404, origin);
     return json({ ok: true, profile }, 200, origin);

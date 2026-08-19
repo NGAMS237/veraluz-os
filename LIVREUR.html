@@ -619,6 +619,8 @@ var SB  = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 /* PROMPT 009 — Edge Function PIN (clé service_role JAMAIS ici — Edge Function uniquement) */
 var EDGE_VERIFY_PIN_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
+var EDGE_EMPLOYEES_SECURE_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/employees-secure';
+var EDGE_LOGOUT_SESSION_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/logout-employee-session';
 /* ── Veraluz Core — référence globale + fallback ── */
 var VC = window.VeraluzCore || {};
 
@@ -648,6 +650,8 @@ function sbPatch(table,id,data){
    STATE
 ══════════════════════════════════════════ */
 var LIVREURS=[], LIVREUR_ACTIF=null;
+/* AUTH-R1C2: token canonique en mémoire uniquement, jamais dans LIVREUR_ACTIF/localStorage. */
+var LIVREUR_SESSION_TOKEN='', LIVREUR_SESSION_EXPIRY=null;
 var LIVREUR_BUILD = 'v032-alerts-2026-07-08'; /* PROMPT 031 */
 var _orders=[], _orderTab='pickup', _online=navigator.onLine, _curId=null, _interval=null;
 var _pointages=[], _pinBuffer='';
@@ -659,8 +663,7 @@ var _knownAssignedIds=null; /* PROMPT 033A — L2 : null = non initialisé, Set 
 ══════════════════════════════════════════ */
 var LS_ORDERS   = 'veraluz_livreur_cache_orders';
 var LS_ACTIONS  = 'veraluz_livreur_pending_actions';
-var LS_LIVREUR  = 'veraluz_livreur_actif_id';
-var LS_SESSION  = 'veraluz_livreur_session';       /* PROMPT 006: session 12h sans PIN */
+var LS_LEGACY_SESSION = 'veraluz_livreur_session'; /* lecture interdite; nettoyage migration seulement */
 
 /* ══════════════════════════════════════════
    NORMALIZE UTILS — VERALUZ CORE v0.3.0
@@ -691,6 +694,24 @@ var isDeliveryEmployee = VC.isDeliveryEmployee || function(emp) {
   var r = String((emp && (emp.role || emp.poste)) || '').toLowerCase();
   return t.includes('livr') || r.includes('livreur');
 };
+
+/* AUTH-R1C2: rôles constatés en DB pour l'équipe Livreurs + alias dédiés connus. */
+var DELIVERY_LOGIN_ROLES=['livreur','delivery','coursier','driver','chauffeur','staff','technicien'];
+function isLivreurLoginCandidate(emp){
+  var role=String(emp&&emp.role||'').toLowerCase();
+  var status=String(emp&&emp.status||'').toLowerCase();
+  return (status==='actif'||status==='active')&&DELIVERY_LOGIN_ROLES.indexOf(role)!==-1;
+}
+function normalizeLivreurEmployee(row){
+  var normalized=normalizeEmployee(row)||{};
+  return Object.assign({},normalized,{
+    photo_url:row&&row.photo_url||'',
+    public_display_name:row&&row.public_display_name||'',
+    identity_verified:Boolean(row&&row.identity_verified),
+    phone:row&&row.phone||normalized.phone||'',
+    telephone:row&&row.phone||normalized.phone||''
+  });
+}
 
 /* ══════════════════════════════════════════
    STATUSES
@@ -727,7 +748,7 @@ function toast(msg,type){
 /* ══════════════════════════════════════════
    PIN — LOAD LIVREURS
 ══════════════════════════════════════════ */
-/* PROMPT 031 : loadLivreurs avec fallback veraluz_employees + erreurs detaillees */
+/* AUTH-R1C2 : sélecteur alimenté uniquement par la vue publique minimale. */
 function loadLivreurs(){
   var sel=document.getElementById('pin-livreur-sel');
   var lbl=document.getElementById('pin-loading');
@@ -735,8 +756,8 @@ function loadLivreurs(){
 
   /* Helper : peupler le select depuis un tableau de lignes */
   function _populate(rows){
-    var livrows=rows.filter(isDeliveryEmployee);
-    LIVREURS=livrows.map(normalizeEmployee);
+    var livrows=rows.filter(isLivreurLoginCandidate);
+    LIVREURS=livrows.map(normalizeLivreurEmployee);
     sel.innerHTML='<option value="">— Sélectionnez —</option>';
     if(!LIVREURS.length){
       var o=document.createElement('option');
@@ -755,37 +776,15 @@ function loadLivreurs(){
     lbl.textContent='';
   }
 
-  /* Tentative 1 : vue veraluz_employees_public (public_display_name + identity_verified) */
-  return sbFetch('veraluz_employees_public?select=id,full_name,role,status,team_id,team_name,phone,email,hire_date,photo_url,public_display_name,identity_verified&order=full_name.asc')
+  return sbFetch('veraluz_employees_public?select=id,full_name,role,status&status=eq.actif&order=full_name.asc')
     .then(function(rows){
       _populate(rows||[]);
     })
-    .catch(function(e1){
-      /* Tentative 2 : fallback direct veraluz_employees */
-      console.warn('[LIVREUR] veraluz_employees_public echec:',e1&&e1.message||e1,'— fallback veraluz_employees');
-      return sbFetch('veraluz_employees?select=id,full_name,role,status,team_id,phone,photo_url,public_display_name,identity_verified&status=eq.actif&order=full_name.asc')
-        .then(function(rows2){
-          console.log('[LIVREUR] Fallback veraluz_employees OK:',rows2&&rows2.length,'lignes');
-          _populate(rows2||[]);
-        })
-        .catch(function(e2){
-          /* Tentative 3 : fallback sans colonnes optionnelles */
-          console.warn('[LIVREUR] Fallback veraluz_employees echec:',e2&&e2.message||e2,'— fallback minimal');
-          return sbFetch('veraluz_employees?select=id,full_name,role,status,team_id,phone&status=eq.actif&order=full_name.asc')
-            .then(function(rows3){
-              _populate(rows3||[]);
-            })
-            .catch(function(e3){
-              var msg='Erreur chargement livreurs';
-              var hint='';
-              if(e3&&e3.status===401||e3&&String(e3).indexOf('401')>=0){msg='Acces bloque (RLS/auth).';hint=' Contactez ladmin.';}
-              else if(e3&&e3.status===400||e3&&String(e3).indexOf('400')>=0){msg='Colonne manquante (400).';hint=' Exécutez MIGRATION_SQL.';}
-              else if(!navigator.onLine){msg='Hors ligne.';hint=' Vérifiez connexion.';}
-              console.error('[LIVREUR] Echec total chargement livreurs:',{e1:e1&&e1.message,e2:e2&&e2.message,e3:e3&&e3.message});
-              lbl.textContent=msg+hint;
-              sel.innerHTML='<option value="">'+(navigator.onLine?'Erreur chargement':'Hors ligne')+'</option>';
-            });
-        });
+    .catch(function(e){
+      var msg=!navigator.onLine?'Hors ligne.':'Erreur chargement livreurs.';
+      console.warn('[LIVREUR] Sélecteur public indisponible code=',e&&e.message||'network');
+      lbl.textContent=msg;
+      sel.innerHTML='<option value="">'+(navigator.onLine?'Erreur chargement':'Hors ligne')+'</option>';
     });
 }
 
@@ -846,6 +845,35 @@ function verifyLivreurPin(employeeId, pin) {
   });
 }
 
+function employeesSecure(action,payload){
+  if(!LIVREUR_SESSION_TOKEN)return Promise.reject(new Error('session_required'));
+  if(LIVREUR_SESSION_EXPIRY&&new Date(LIVREUR_SESSION_EXPIRY)<=new Date()){
+    clearLivreurSessionState();
+    return Promise.reject(new Error('session_expired'));
+  }
+  var body=Object.assign({action:action},payload||{});
+  return fetch(EDGE_EMPLOYEES_SECURE_URL,{
+    method:'POST',mode:'cors',credentials:'omit',
+    headers:{
+      'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY,
+      'X-Veraluz-Session':LIVREUR_SESSION_TOKEN
+    },
+    body:JSON.stringify(body)
+  }).then(function(r){
+    return r.json().catch(function(){return{ok:false,error:'invalid_response'};})
+      .then(function(data){if(!r.ok||!data.ok)throw new Error(data.error||('HTTP_'+r.status));return data;});
+  });
+}
+
+function revokeLivreurSession(token){
+  if(!/^[0-9a-f]{64}$/.test(String(token||'')))return Promise.resolve();
+  return fetch(EDGE_LOGOUT_SESSION_URL,{
+    method:'POST',mode:'cors',credentials:'omit',
+    headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY},
+    body:JSON.stringify({session_token:token})
+  }).then(function(){return;}).catch(function(){return;});
+}
+
 function validatePin(){
   var sel=document.getElementById('pin-livreur-sel');
   var err=document.getElementById('pin-err');
@@ -881,25 +909,44 @@ function validatePin(){
       return;
     }
 
-    /* Succès : enrichir objet local avec données serveur (sans PIN) */
-    var emp=result.employee;
-    var DELIVERY_ROLES=['delivery','livreur','staff','manager','superadmin'];
-    var serverRole=String(emp.role||'').toLowerCase();
-    if(DELIVERY_ROLES.indexOf(serverRole)===-1 && !isDeliveryEmployee(lv)){
-      err.textContent='Accès livreur refusé — contactez le manager.';
+    /* Un PIN provisoire ne crée aucune session utilisable dans Livreur. */
+    if(result.auth_state==='must_change_pin'||result.must_change_pin===true){
+      clearLivreurSessionState();
+      LIVREUR_ACTIF=null;
+      err.textContent='Vous devez modifier votre PIN avant de continuer.';
       return;
     }
 
-    LIVREUR_ACTIF=Object.assign({},lv,{
-      allowed_modules: emp.allowed_modules||[],
-      session_expiry:  emp.session_expiry||null,
-      role:            serverRole||lv.role||'delivery'
-    });
-    /* PROMPT 006: session 12h — PIN jamais persisté */
-    saveSession(LIVREUR_ACTIF);
-    document.getElementById('pin-screen').classList.add('hidden');
-    document.getElementById('main-app').style.display='';
-    initApp();
+    var sessionToken=String(result.session_token||'');
+    if(!/^[0-9a-f]{64}$/.test(sessionToken)){
+      clearLivreurSessionState();
+      err.textContent='Session serveur invalide — veuillez réessayer.';
+      return;
+    }
+
+    LIVREUR_SESSION_TOKEN=sessionToken;
+    LIVREUR_SESSION_EXPIRY=result.session_expiry||null;
+    employeesSecure('get_my_profile',{})
+      .then(function(data){
+        var profile=data&&data.profile;
+        var serverRole=String(profile&&profile.role||'').toLowerCase();
+        if(!profile||DELIVERY_LOGIN_ROLES.indexOf(serverRole)===-1){
+          throw new Error('delivery_role_forbidden');
+        }
+        LIVREUR_ACTIF=normalizeLivreurEmployee(profile);
+        document.getElementById('pin-screen').classList.add('hidden');
+        document.getElementById('main-app').style.display='';
+        initApp();
+      })
+      .catch(function(e){
+        var tokenToRevoke=LIVREUR_SESSION_TOKEN;
+        clearLivreurSessionState();
+        LIVREUR_ACTIF=null;
+        revokeLivreurSession(tokenToRevoke);
+        err.textContent=e&&e.message==='delivery_role_forbidden'
+          ?'Accès livreur refusé — contactez le manager.'
+          :'Impossible de charger votre profil sécurisé.';
+      });
   });
 }
 
@@ -1249,46 +1296,12 @@ function cleanupPendingActions(){
   updateSyncStrip();
 }
 
-/* ══════════════════════════════════════════
-   PROMPT 006 — SESSION LIVREUR (12h, sans PIN)
-   IMPORTANT SÉCURITÉ: Le PIN ne doit JAMAIS être stocké dans localStorage.
-   Seuls employee_id, nom, role et expiry sont persistés.
-   Pour une sécurisation future des PINs, voir commentaire en bas de fichier.
-══════════════════════════════════════════ */
-function saveSession(livreur){
-  var session = {
-    employee_id:     livreur.id,
-    prenom:          livreur.prenom,
-    nom:             livreur.nom,
-    role:            livreur.role || 'livreur',
-    login_time:      new Date().toISOString(),
-    session_expiry:  new Date(Date.now() + 12*60*60*1000).toISOString()
-    /* INTERDIT: ne pas ajouter pin_code ici */
-  };
-  try { localStorage.setItem(LS_SESSION, JSON.stringify(session)); } catch(e){}
-}
-
-function checkSession(){
-  /* PROMPT 006: restaurer session si < 12h, retour PIN si expirée */
-  try {
-    var v = localStorage.getItem(LS_SESSION);
-    if (!v) return false;
-    var s = JSON.parse(v);
-    if (!s || !s.session_expiry) return false;
-    if (new Date(s.session_expiry) < new Date()){
-      clearSession();
-      return false; /* toast affiché après chargement LIVREURS */
-    }
-    /* Retrouver le livreur complet pour que les infos PIN restent en mémoire */
-    var lv = LIVREURS.find(function(l){ return String(l.id) === String(s.employee_id); });
-    if (!lv) return false;
-    LIVREUR_ACTIF = lv;
-    return true;
-  } catch(e){ return false; }
-}
-
-function clearSession(){
-  try { localStorage.removeItem(LS_SESSION); } catch(e){}
+/* AUTH-R1C2 — seule la session serveur en mémoire porte l'autorité.
+   AUTH-R2 ajoutera le resume/F5 canonique. */
+function clearLivreurSessionState(){
+  LIVREUR_SESSION_TOKEN='';
+  LIVREUR_SESSION_EXPIRY=null;
+  try { localStorage.removeItem(LS_LEGACY_SESSION); } catch(e){}
 }
 
 /* ══════════════════════════════════════════
@@ -2372,7 +2385,7 @@ function renderProfil(){
 
 /* ══════════════════════════════════════════
    PROMPT 035 — CHANGEMENT PHOTO DE PROFIL
-   Upload vers Storage employee-photos + PATCH veraluz_employees
+   Upload Storage conservé; écriture fiche via employees-secure/actor.id.
    Politique : pas de reconnaissance faciale, pas de base64 en DB.
 ══════════════════════════════════════════ */
 function onProfilPhotoSelected(inp){
@@ -2394,16 +2407,16 @@ function onProfilPhotoSelected(inp){
   var path='employee-photos/'+String(LIVREUR_ACTIF.id||'unknown')+'_'+Date.now()+'.jpg';
   uploadToStorage(file,path)
     .then(function(url){
-      LIVREUR_ACTIF.photo_url=url;
-      /* Tenter PATCH sur veraluz_employees — peut échouer selon RLS */
-      sbPatch('veraluz_employees',String(LIVREUR_ACTIF.id||''),{photo_url:url})
-        .then(function(){ toast('✅ Photo de profil mise à jour','ok'); })
-        .catch(function(){ toast('📷 Photo visible pour cette session','ok'); });
-      /* Rafraîchir tout le bloc profil */
+      return employeesSecure('update_my_photo',{photo_url:url});
+    })
+    .then(function(data){
+      LIVREUR_ACTIF.photo_url=data&&data.profile&&data.profile.photo_url||'';
       renderProfil();
+      toast('✅ Photo de profil mise à jour','ok');
     })
     .catch(function(){
-      toast('⚠ Upload échoué — vérifiez votre connexion','err');
+      renderProfil();
+      toast('⚠ Mise à jour photo échouée — vérifiez votre connexion','err');
     });
 }
 
@@ -2411,7 +2424,9 @@ function onProfilPhotoSelected(inp){
    LOGOUT
 ══════════════════════════════════════════ */
 function logout(){
-  clearSession();  /* PROMPT 006: supprimer session (jamais le PIN) */
+  var tokenToRevoke=LIVREUR_SESSION_TOKEN;
+  clearLivreurSessionState();
+  revokeLivreurSession(tokenToRevoke);
   LIVREUR_ACTIF=null;_orders=[];_pointages=[];
   _pinBuffer='';_currentOrderId=null;_photoB64=null;_lastSync=null;
   if(_interval){clearInterval(_interval);_interval=null;}
@@ -2517,18 +2532,8 @@ window.addEventListener('DOMContentLoaded', function(){
   }
 });
 
-/* ══════════════════════════════════════════
-   PROMPT 006 — SÉCURISATION PIN FUTURE (NOTE TECHNIQUE)
-   Architecture actuelle : PIN vérifié côté client depuis données Supabase (anon key).
-   Ce mode convient à un usage terrain interne avec confiance implicite.
-   Pour sécuriser réellement les PINs dans une future version :
-     - Option 1 : Supabase Auth (email/password ou magic link)
-     - Option 2 : Supabase Edge Function côté serveur (PIN haché bcrypt)
-     - Option 3 : RPC Supabase sécurisée avec Row Level Security
-     - Option 4 : Hash PIN côté client insuffisant seul (clé anon expose les hashes)
-   Recommandation PROMPT 007+ : migrer vers Supabase Auth ou Edge Function.
-   Ne pas promettre qu'un simple hash côté client sécurise totalement un PIN 4-6 chiffres.
-══════════════════════════════════════════ */
+/* AUTH-R1C2 : le PIN est vérifié par verify-employee-pin et les appels identité
+   utilisent la session employé canonique. AUTH-R2 ajoutera le resume après F5. */
 
 /* ══════════════════════════════════════════
    BOOT
@@ -2536,15 +2541,11 @@ window.addEventListener('DOMContentLoaded', function(){
 document.addEventListener('DOMContentLoaded',function(){
   buildPinPad();
   updateNetworkBadge();  /* PROMPT 005: badge réseau avant login */
+  /* Nettoyer immédiatement toute ancienne pseudo-session locale. */
+  clearLivreurSessionState();
   loadLivreurs().then(function(){
-    /* PROMPT 006: tenter restauration session 12h après chargement des livreurs */
-    if(checkSession()){
-      document.getElementById('pin-screen').classList.add('hidden');
-      document.getElementById('main-app').style.display='';
-      initApp();
-    } else {
-      renderPinDots();
-    }
+    /* Pas de session locale parallèle : un F5 exige une nouvelle connexion jusqu'à AUTH-R2. */
+    renderPinDots();
   }).catch(function(){
     renderPinDots();
   });

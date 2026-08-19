@@ -100,7 +100,7 @@ async function invokeEdge(body, scenario = {}) {
       env: { get: (name) => name === 'SUPABASE_URL' ? 'https://example.supabase.co' : 'server-secret' },
       serve: (fn) => { handler = fn; },
     },
-    Request, Response, TextEncoder, crypto,
+    Request, Response, TextEncoder, URL, crypto,
     console: { error() {}, warn() {}, log() {} },
   });
   new vm.Script(runtimeSource, { filename: 'employees-secure/index.ts' }).runInContext(context);
@@ -151,11 +151,37 @@ test('AUTH-04 rôle et statut du demandeur sont relus côté serveur',
   /\.from\('veraluz_employees'\)[\s\S]*?\.select\('id,role,status'\)/.test(edge)
     && /roleClass: roleClass\(employee\.role\)/.test(edge));
 
-const profile = actionBlock('get_my_profile', 'list_directory');
+const profile = actionBlock('get_my_profile', 'update_my_photo');
 test('PROFILE-01 get_my_profile utilise uniquement actor.id',
   /\.eq\('id', actor\.id\)/.test(profile) && !/body\.employee_id/.test(profile));
 test('PROFILE-02 projection profil minimale',
-  /\.select\('id,full_name,phone,email,hire_date,team_id'\)/.test(profile));
+  /\.select\('id,full_name,role,phone,email,hire_date,team_id,photo_url,public_display_name,identity_verified'\)/.test(profile));
+
+const updatePhoto = actionBlock('update_my_photo', 'list_directory');
+test('PHOTO-01 update_my_photo utilise actor.id et une allowlist de payload',
+  /validateFields\(body, UPDATE_MY_PHOTO_FIELDS\)/.test(updatePhoto)
+    && /\.eq\('id', actor\.id\)/.test(updatePhoto)
+    && !/body\.employee_id/.test(updatePhoto));
+await testAsync('PHOTO-02 update_my_photo écrit uniquement la photo de l’acteur', async () => {
+  const photoUrl = 'https://example.supabase.co/storage/v1/object/public/employee-photos/test.jpg';
+  const result = await invokeEdge({ action: 'update_my_photo', photo_url: photoUrl }, { actor: { id: 'actor-1', role: 'staff' } });
+  const write = result.calls.find((call) => call.operation === 'update');
+  return result.status === 200 && write && write.filters.id === 'actor-1'
+    && JSON.stringify(write.payload) === JSON.stringify({ photo_url: photoUrl });
+});
+await testAsync('PHOTO-03 le client ne peut pas choisir employee_id', async () => {
+  const result = await invokeEdge({
+    action: 'update_my_photo', employee_id: 'target-1',
+    photo_url: 'https://example.supabase.co/storage/v1/object/public/employee-photos/test.jpg',
+  });
+  return result.status === 400 && result.body.error === 'invalid_photo_fields'
+    && !result.calls.some((call) => call.operation === 'update');
+});
+await testAsync('PHOTO-04 une URL hors du bucket/projet autorisé est refusée', async () => {
+  const result = await invokeEdge({ action: 'update_my_photo', photo_url: 'https://attacker.example/photo.jpg' });
+  return result.status === 400 && result.body.error === 'invalid_photo_url'
+    && !result.calls.some((call) => call.operation === 'update');
+});
 
 const directory = actionBlock('list_directory', 'list_operational_roster');
 test('DIRECTORY-01 projection Contacts limitée',
@@ -179,7 +205,7 @@ test('ANALYTICS-02 accès réservé strictement Direction ou Finance',
     && /const ANALYTICS_ROLE_CLASSES = new Set\(\['superadmin', 'accountant'\]\)/.test(edge));
 
 const expectedActions = [
-  'get_my_profile', 'list_directory', 'list_operational_roster', 'list_analytics',
+  'get_my_profile', 'update_my_photo', 'list_directory', 'list_operational_roster', 'list_analytics',
   'rh_list', 'rh_create', 'rh_update', 'rh_set_status', 'rh_update_compensation',
 ];
 const actualActions = [...edge.matchAll(/if \(action === '([^']+)'\)/g)].map((match) => match[1]);
@@ -373,8 +399,8 @@ test('BROKER-01 employees-secure est dans l’allowlist sans retirer les endpoin
       .every((endpoint) => core.includes(`'${endpoint}'`)));
 
 const livreur = read('LIVREUR.html');
-test('LIVREUR-01 LIVREUR reste explicitement hors R1C1 et conserve ses appels pour R1C2',
-  directAccess.test(livreur) && !/employees-secure/.test(livreur));
+test('LIVREUR-01 R1C2 retire les accès directs et utilise employees-secure',
+  !directAccess.test(livreur) && /employees-secure/.test(livreur));
 
 console.log(`\nRESULTAT AUTH-R1C1: ${passed}/${passed + failed} PASS — ${failed} echec(s)`);
 process.exit(failed ? 1 : 0);

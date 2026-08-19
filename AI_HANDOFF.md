@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/auth-r1-containment | AUTH-R1C1.1 | supabase/functions/employees-secure/index.ts, tests/auth-r1c1-employees-secure.test.mjs`
+`LOCK | Codex | codex/auth-r1-containment | AUTH-R1C2 | LIVREUR.html, supabase/functions/employees-secure/index.ts, tests/auth-r1c1-employees-secure.test.mjs, tests/auth-r1c2-livreur-session.test.mjs`
 
 ## Lots actifs
 
-`AUTH-R1C1.1 | Codex | codex/auth-r1-containment | empêcher l'élévation de privilèges via les actions RH employees-secure | poussé 8c0aed8, READY FOR REVIEW; aucun déploiement; LOCK conservé jusqu'à review`
+`AUTH-R1C2 | Codex | codex/auth-r1-containment | Livreur utilise l'identité et la session employé canoniques; retrait des accès directs veraluz_employees | en cours sur 8c0aed8; aucun déploiement; LOCK conservé`
 
 ## Transmissions récentes
 

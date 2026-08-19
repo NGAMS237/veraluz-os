@@ -8,9 +8,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## Lots actifs
 
-`GUEST-4A.P1 | Codex | diagnostic/correction Wi-Fi checkedin, identité client et affichage paiements zéro | en cours`
+`GUEST-4A.P1 | Codex | correction Wi-Fi checkedin, identité client, paiements zéro et RLS cible | branche poussée; en attente de review et d'autorisation de déploiement; LOCK conservé`
 
 ## Transmissions récentes
+
+`2026-08-18 | Codex | GUEST-4A.P1 | codex/guest-4a-p1 | 38786d67a486afa3a7fa5dddb02df7d56c762ad1 | 12 contrôles ciblés PASS; syntaxe HTML PASS; tests réseau existants PASS; aucun secret ajouté | poussé, aucun déploiement ni merge; prêt pour review | GUEST_PORTAL.html; RESERVATIONS_EMBEDDED.html; guest-access; settings-secure; migration RLS; test ciblé | review puis autorisation explicite avant migration/Edge Functions; conserver le LOCK`
 
 `2026-08-18 | Codex | GUEST-4A.2 | codex/guest-4a2-validation | 196aa8f | test ciblé PASS; DB/API/UI identiques; desktop 1440×900 PASS; mobile 390×844 PASS; checkout Folio autorisé, stay/Wi-Fi/Room Service refusés; guest-access v9; session test supprimée | poussé, non fusionné; GUEST-4A complet | aucun: LOCK retiré | review/fusion main uniquement avec autorisation de Blaise`
 

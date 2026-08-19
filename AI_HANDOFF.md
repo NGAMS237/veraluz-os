@@ -4,7 +4,7 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/auth-r1-containment | AUTH-R1 | veraluz_employees RLS, veraluz_employees_public, supabase/migrations/*auth_r1*, tests/*auth-r1*`
+`LOCK | Codex | codex/auth-r1-containment | AUTH-R1 | veraluz_employees RLS, veraluz_employees_public, VERALUZ_OS_CORE.html, AUTH_EMBEDDED.html, supabase/migrations/*auth_r1*, tests/*auth-r1*`
 
 ## Lots actifs
 

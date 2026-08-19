@@ -8,11 +8,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## Lots actifs
 
-`GUEST-4A.P1 | Codex | correction Wi-Fi checkedin, identité client, paiements zéro et RLS cible | branche poussée; en attente de review et d'autorisation de déploiement; LOCK conservé`
+`GUEST-4A.P1 | Codex | backend sécurité déployé et validé; interfaces non publiées | migration RLS active; settings-secure v2; guest-access v10; en attente d'autorisation main; LOCK conservé`
 
 ## Transmissions récentes
 
-`2026-08-18 | Codex | GUEST-4A.P1 | codex/guest-4a-p1 | 38786d67a486afa3a7fa5dddb02df7d56c762ad1 | 12 contrôles ciblés PASS; syntaxe HTML PASS; tests réseau existants PASS; aucun secret ajouté | poussé, aucun déploiement ni merge; prêt pour review | GUEST_PORTAL.html; RESERVATIONS_EMBEDDED.html; guest-access; settings-secure; migration RLS; test ciblé | review puis autorisation explicite avant migration/Edge Functions; conserver le LOCK`
+`2026-08-18 | Codex | GUEST-4A.P1 | codex/guest-4a-p1 | 38786d67a486afa3a7fa5dddb02df7d56c762ad1 | RLS anon/auth wifi=0 ligne; settings public sans password; update sans session=401; Direction no-op PASS; confirmed sans password; checkedout refusé; logs propres; fixtures temporaires supprimées | backend déployé: migration active, settings-secure v2, guest-access v10; interfaces non publiées; aucun merge | mêmes fichiers: LOCK conservé | autorisation séparée requise avant merge main et publication interfaces`
 
 `2026-08-18 | Codex | GUEST-4A.2 | codex/guest-4a2-validation | 196aa8f | test ciblé PASS; DB/API/UI identiques; desktop 1440×900 PASS; mobile 390×844 PASS; checkout Folio autorisé, stay/Wi-Fi/Room Service refusés; guest-access v9; session test supprimée | poussé, non fusionné; GUEST-4A complet | aucun: LOCK retiré | review/fusion main uniquement avec autorisation de Blaise`
 

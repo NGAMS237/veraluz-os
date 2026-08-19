@@ -1,19 +1,18 @@
 /**
- * VERALUZ — revoke-employee-sessions — v3 (AUTH-R2B1.2)
+ * VERALUZ — revoke-employee-sessions — v3 (AUTH-R2B1.3)
  *
- * Changements v3 :
- * - Révocation globale désormais ATOMIQUE via RPC PostgreSQL
- *   `veraluz_revoke_employee_sessions` (SECURITY DEFINER, service_role only).
- * - Plus de double UPDATE séquentiel depuis l'EF : si l'étape sessions
- *   réussissait mais resumes échouait, on renvoyait ok:true avec un état
- *   partiellement révoqué. Ce comportement est éliminé.
- * - La RPC roule sessions + resumes dans un bloc PL/pgSQL avec EXCEPTION
- *   handler → ROLLBACK des deux si l'une échoue → jamais ok:true partiel.
- * - UUID validation côté EF avant appel RPC.
- * - employee_id cible validé UUID + jamais fait confiance seul (caller toujours
- *   authentifié par session serveur avant).
+ * Changements v3 (R2B1.3) :
+ * - employee_id est TEXT dans la DB réelle (ex: 'emp-001', 'mqy690xvhqju2').
+ *   UUID_RE supprimé — incompatible avec les IDs réels VERALUZ.
+ * - Validation texte raisonnable : non vide, longueur ≤ 128.
+ *   L'ID passe toujours via RPC paramétrée — jamais interpolé en SQL brut.
+ * - RPC veraluz_revoke_employee_sessions(text) — sessions + resumes atomiques.
  *
- * POST body : { session_token: string, employee_id: string (UUID) }
+ * Changements v3 (R2B1.2) :
+ * - Révocation atomique via RPC PostgreSQL SECURITY DEFINER (service_role only).
+ *   Plus de double UPDATE séquentiel. Jamais ok:true partiel.
+ *
+ * POST body : { session_token: string, employee_id: string }
  * Réponse   : { ok: true, revoked_sessions: N, revoked_resumes: M }
  *
  * Autorisation : rôle gérant / admin / superadmin uniquement.
@@ -26,7 +25,6 @@ const ALLOWED_ORIGINS = [
   'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080',
 ];
 const DIRECTION_ROLES = ['gerant', 'admin', 'superadmin'];
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function cors(origin: string | null): Record<string, string> {
   const h: Record<string, string> = {
@@ -61,9 +59,14 @@ Deno.serve(async (req) => {
   const token    = String(body.session_token || '');
   const targetId = String(body.employee_id   || '').trim();
 
+  // Validation session token
   if (!/^[0-9a-f]{64}$/.test(token)) return json({ ok: false, error: 'unauthorized' }, 401, origin);
-  if (!targetId)                       return json({ ok: false, error: 'employee_id_required' }, 400, origin);
-  if (!UUID_RE.test(targetId))         return json({ ok: false, error: 'invalid_employee_id' }, 400, origin);
+
+  // Validation employee_id : non vide, longueur raisonnable.
+  // employee_id est TEXT dans la DB (ex: 'emp-001', 'mqy690xvhqju2') — pas UUID.
+  // Jamais interpolé en SQL brut : toujours passé via RPC paramétrée.
+  if (!targetId)               return json({ ok: false, error: 'employee_id_required' }, 400, origin);
+  if (targetId.length > 128)   return json({ ok: false, error: 'employee_id_too_long' }, 400, origin);
 
   const admin = createClient(
     Deno.env.get('SUPABASE_URL')!,

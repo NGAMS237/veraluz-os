@@ -8,9 +8,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## Lots actifs
 
-`AUTH-R1C1.1 | Codex | codex/auth-r1-containment | empêcher l'élévation de privilèges via les actions RH employees-secure | en cours sur 12bdace; aucun déploiement; LOCK conservé jusqu'à review`
+`AUTH-R1C1.1 | Codex | codex/auth-r1-containment | empêcher l'élévation de privilèges via les actions RH employees-secure | poussé 8c0aed8, READY FOR REVIEW; aucun déploiement; LOCK conservé jusqu'à review`
 
 ## Transmissions récentes
+
+`2026-08-18 | Codex | AUTH-R1C1.1 | codex/auth-r1-containment | 8c0aed8 | automatisé/statique AUTH-R1C1 40/40 dont 11 scénarios Edge simulés; AUTH-R1 15/15; broker Auth 11/11; runtime Contacts 16/16; diff et secrets contrôlés | poussé, READY FOR REVIEW; aucun déploiement | employees-secure + test: LOCK conservé selon demande | review sécurité ciblée; aucune fusion main`
 
 `2026-08-18 | Codex | AUTH-R1C1 | codex/auth-r1-containment | 12bdace46d37cf2cbb93a92371be2fdaa4b9a038 | statique AUTH-R1C1 27/27; AUTH-R1 15/15; broker Auth 11/11; runtime Contacts 16/16; syntaxe des 5 interfaces et diff vérifiés | poussé, READY FOR REVIEW; migration et Edge Function non déployées | aucun: LOCK retiré | review ciblée; AUTH-R1C2 traitera LIVREUR; aucune fusion main`
 

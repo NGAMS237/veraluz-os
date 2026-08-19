@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/auth-r1-containment | AUTH-R1 | veraluz_employees RLS, veraluz_employees_public, employee credential RPC privileges, VERALUZ_OS_CORE.html, AUTH_EMBEDDED.html, supabase/migrations/*auth_r1*, tests/*auth-r1*`
+`LOCK | Codex | codex/auth-r1-containment | AUTH-R1C1 | veraluz_employees RLS/view/credential RPC privileges, VERALUZ_OS_CORE.html, AUTH_EMBEDDED.html, RH_EMBEDDED.html, CONTACTS_EMBEDDED.html, ANALYTICS_EMBEDDED.html, RESTAURANT_EMBEDDED.html, supabase/functions/employees-secure/**, supabase/migrations/*auth_r1*, tests/*auth-r1*`
 
 ## Lots actifs
 
-`AUTH-R1 | Codex | codex/auth-r1-containment | containment sécurité employés/credentials | commit poussé, attente review; aucun déploiement autorisé; LOCK conservé`
+`AUTH-R1C1 | Codex | codex/auth-r1-containment | bridge serveur employees-secure pour CORE/RH/Contacts/Analytics/Restaurant | en cours sur base 04b164d; aucun déploiement autorisé; LIVREUR réservé à AUTH-R1C2`
 
 ## Transmissions récentes
 

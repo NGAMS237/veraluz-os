@@ -2002,6 +2002,218 @@ function hideReconnecting() {
   if (ov) ov.classList.add('hidden');
 }
 
+var CORE_RESUME_KEY = 'vz_resume';
+var _resumePromise = null;
+
+function authEdgePost(url, body, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    var settled = false;
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = setTimeout(function() {
+      if (settled) return;
+      settled = true;
+      if (controller) controller.abort();
+      var err = new Error('timeout');
+      err.status = 0;
+      reject(err);
+    }, timeoutMs || 9000);
+
+    fetch(url, {
+      method: 'POST', mode: 'cors', credentials: 'omit',
+      headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY },
+      body: JSON.stringify(body || {}),
+      signal: controller ? controller.signal : undefined
+    }).then(function(response) {
+      return response.json().catch(function(){ return {}; }).then(function(data) {
+        if (!response.ok) {
+          var err = new Error(data.error || ('HTTP_' + response.status));
+          err.status = response.status;
+          err.data = data;
+          throw err;
+        }
+        return data;
+      });
+    }).then(function(data) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(data);
+    }).catch(function(error) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
+}
+
+function coreExpiryMs(value) {
+  if (typeof value === 'number' && isFinite(value)) return value;
+  var parsed = value ? Date.parse(value) : NaN;
+  return isNaN(parsed) ? Date.now() + 12*60*60*1000 : parsed;
+}
+
+function coreSessionFromServer(data) {
+  data = data || {};
+  var employee = data && data.employee ? data.employee : (data || {});
+  var employeeId = data.employee_id || employee.id || employee.employee_id || '';
+  var role = data.role || employee.role || 'staff';
+  var fullName = data.full_name || employee.full_name || employee.employee_name ||
+    data.public_display_name || employee.public_display_name || 'Employé';
+  var department = data.department || employee.department || employee.team_id || role;
+  var normalizedRole = ROLE_MAP[role] || role;
+  var allowedModules = employee.allowed_modules || getAllowedModules(normalizedRole);
+  return {
+    username: employeeId,
+    name: fullName,
+    role: role,
+    employee_id: employeeId,
+    user_id: employeeId,
+    department: department,
+    tenant_id: TENANT_ID,
+    allowed_modules: allowedModules,
+    primaryModule: 'employee_home',
+    loginAt: Date.now(),
+    expires: coreExpiryMs(data.expires_at || data.session_expiry || employee.session_expiry_ts)
+  };
+}
+
+function persistCoreSessionMetadata(session) {
+  localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+  localStorage.setItem('veraluz_session', JSON.stringify({
+    user_id: session.employee_id,
+    id: session.employee_id,
+    name: session.name,
+    role: session.role,
+    department: session.department,
+    tenant_id: TENANT_ID
+  }));
+}
+
+function enterCoreEmployeeSession(serverData, sessionToken) {
+  var session = coreSessionFromServer(serverData);
+  if (!session.employee_id || !session.name || !session.role || !sessionToken) {
+    throw new Error('invalid_server_identity');
+  }
+  setSessionToken(sessionToken, serverData.expires_at || serverData.session_expiry || session.expires);
+  persistCoreSessionMetadata(session);
+  currentUser = {
+    username: session.employee_id,
+    name: session.name,
+    role: session.role,
+    employee_id: session.employee_id,
+    allowed_modules: session.allowed_modules
+  };
+  hideAuthOverlay();
+  updateTopbarUser();
+  buildNav();
+  initGreeting();
+  loadDashboardData();
+  setTimeout(function() { goTo('employee_home'); }, 300);
+  return session;
+}
+
+function clearCoreLocalSession(removeResume) {
+  clearSessionToken();
+  localStorage.removeItem('veraluz_auth_v1');
+  localStorage.removeItem('veraluz_session');
+  if (removeResume) localStorage.removeItem(CORE_RESUME_KEY);
+  currentUser = null;
+}
+
+function showCoreResumeFailure(message) {
+  showAuthOverlay();
+  var errEl = document.getElementById('auth-error');
+  if (errEl) {
+    errEl.textContent = message || 'Reconnexion impossible. Veuillez saisir votre PIN.';
+    errEl.classList.add('show');
+  }
+}
+
+function logoutCoreSessionBestEffort(sessionToken, resumeToken) {
+  if (!sessionToken && !resumeToken) return Promise.resolve();
+  try {
+    return fetch(SUPA_URL + '/functions/v1/logout-employee-session', {
+      method: 'POST', mode: 'cors', credentials: 'omit', keepalive: true,
+      headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY },
+      body: JSON.stringify({ session_token: sessionToken || null, resume_token: resumeToken || null })
+    }).then(function(){ return; }).catch(function(){ return; });
+  } catch(e) {
+    return Promise.resolve();
+  }
+}
+
+function issueCoreResumeToken(sessionToken) {
+  return authEdgePost(EDGE_ISSUE_RESUME_URL, { session_token: sessionToken }, 9000)
+    .then(function(data) {
+      if (!data || !data.resume_token) throw new Error('resume_token_missing');
+      return data;
+    });
+}
+
+function stabilizeCoreEmployeeLogin(serverData, sessionToken, btnLogin, errEl) {
+  if (!sessionToken) {
+    if (errEl) { errEl.textContent = 'Session serveur invalide — veuillez réessayer.'; errEl.classList.add('show'); }
+    return Promise.resolve(false);
+  }
+  setSessionToken(sessionToken, serverData.session_expiry || serverData.expires_at);
+  if (btnLogin) { btnLogin.disabled = true; btnLogin.textContent = '⏳ Stabilisation de la session…'; }
+  return issueCoreResumeToken(sessionToken).then(function(resumeData) {
+    localStorage.setItem(CORE_RESUME_KEY, resumeData.resume_token);
+    var session = enterCoreEmployeeSession(serverData, sessionToken);
+    logAuthEvent('pin-login', session.name, session.role);
+    if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = '✅ Se connecter'; }
+    return true;
+  }).catch(function() {
+    logoutCoreSessionBestEffort(sessionToken, null);
+    clearCoreLocalSession(true);
+    if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = '✅ Se connecter'; }
+    if (errEl) {
+      errEl.textContent = 'Connexion établie, mais la session persistante n’a pas pu être créée. Réessayez.';
+      errEl.classList.add('show');
+    }
+    return false;
+  });
+}
+
+function resumeCoreSession(resumeToken) {
+  if (_resumePromise) return _resumePromise;
+  _isResuming = true;
+  showReconnecting();
+  _resumePromise = authEdgePost(EDGE_RESUME_SESSION_URL, { resume_token: resumeToken }, 9000)
+    .then(function(data) {
+      if (!data || !data.session_token || !data.resume_token) {
+        var malformed = new Error('invalid_resume_response');
+        malformed.status = 403;
+        throw malformed;
+      }
+      localStorage.setItem(CORE_RESUME_KEY, data.resume_token);
+      hideReconnecting();
+      var session = enterCoreEmployeeSession(data, data.session_token);
+      logAuthEvent('session-resume', session.name, session.role);
+      return true;
+    })
+    .catch(function(error) {
+      var invalidCredential = error && (error.status === 401 || error.status === 403);
+      clearCoreLocalSession(invalidCredential);
+      hideReconnecting();
+      showCoreResumeFailure(invalidCredential
+        ? 'Votre session a expiré. Veuillez saisir votre PIN.'
+        : 'Reconnexion impossible. Vérifiez la connexion puis saisissez votre PIN.');
+      return false;
+    })
+    .then(function(result) {
+      _isResuming = false;
+      _resumePromise = null;
+      return result;
+    }, function(error) {
+      _isResuming = false;
+      _resumePromise = null;
+      throw error;
+    });
+  return _resumePromise;
+}
+
 /* PROMPT 008A — showAuthOverlay avec messages d'erreur distincts */
 /* PROMPT 010C — Bouton DEV MODE + erreur réseau non-bloquante en mode développement */
 function showAuthOverlay() {
@@ -2060,53 +2272,18 @@ function showAuthOverlay() {
 
 function checkAuth() {
   try {
-    /* PROMPT 010I — Si session_token absent de la mémoire (ex: refresh)
-       mais que les métadonnées locales + un resume_token existent,
-       tenter une reprise silencieuse avant d'afficher le login. */
+    /* AUTH-R2C — le resume opaque est l'unique autorité persistée.
+       Les métadonnées locales ne peuvent jamais autoriser l'entrée dans CORE. */
     if (!getSessionToken()) {
-      var resumeToken = localStorage.getItem('vz_resume');
-      var sessionStr0 = localStorage.getItem('veraluz_auth_v1');
-      if (resumeToken && sessionStr0) {
-        try { var s0=JSON.parse(sessionStr0); if(!s0||s0.expires<Date.now())throw'x'; } catch(e){ localStorage.removeItem('vz_resume'); showAuthOverlay(); return; }
-        if (_isResuming) return; /* MICRO CORE BOOT — empêcher appels concurrents */
-        _isResuming = true;
-        showReconnecting(); /* MICRO CORE BOOT — masquer CORE vide pendant reprise */
-        var _resumeTimer = setTimeout(function() { /* MICRO CORE BOOT — timeout 9s */
-          if (!_isResuming) return;
-          _isResuming = false;
-          localStorage.removeItem('vz_resume');
-          hideReconnecting();
-          showAuthOverlay();
-        }, 9000);
-        fetch(EDGE_RESUME_SESSION_URL, {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY },
-          body: JSON.stringify({ resume_token: resumeToken })
-        }).then(function(r){ return r.json(); })
-          .then(function(d){
-            clearTimeout(_resumeTimer);
-            _isResuming = false;
-            hideReconnecting();
-            if (d && d.session_token) {
-              setSessionToken(d.session_token, d.expires_at);
-              if (d.resume_token) localStorage.setItem('vz_resume', d.resume_token);
-              /* Reprendre avec les métadonnées locales (rôle, nom, etc.) */
-              checkAuth();
-            } else {
-              localStorage.removeItem('vz_resume');
-              showAuthOverlay();
-            }
-          }).catch(function(){
-            clearTimeout(_resumeTimer);
-            _isResuming = false;
-            hideReconnecting();
-            showAuthOverlay();
-          });
-        return; /* attendre la réponse async */
-      }
+      var resumeToken = localStorage.getItem(CORE_RESUME_KEY);
+      if (resumeToken) { resumeCoreSession(resumeToken); return; }
+      clearCoreLocalSession(false);
+      showAuthOverlay();
+      return;
     }
+    /* Ce cache n'est consulté qu'avec un session_token serveur déjà présent en mémoire. */
     var sessionStr = localStorage.getItem('veraluz_auth_v1');
-    if (!sessionStr) { showAuthOverlay(); return; }
+    if (!sessionStr) { clearCoreLocalSession(false); showAuthOverlay(); return; }
     var session = JSON.parse(sessionStr);
     if (session.expires && session.expires < Date.now()) {
       localStorage.removeItem('veraluz_auth_v1');
@@ -2218,72 +2395,17 @@ function doLoginPin() {
       return;
     }
 
-    /* Succès normal — construire session depuis réponse serveur (sans données sensibles) */
-    /* EMERGENCY_001 : le jeton opaque reste en mémoire, jamais persisté. */
-    setSessionToken(result.session_token, result.session_expiry);
-    var emp           = result.employee;
-    var empName2      = emp.full_name || emp.employee_name || empName || 'Employé';
-    var coreRole      = emp.role || 'staff';
-    var allowedMods   = emp.allowed_modules || getAllowedModules(ROLE_MAP[coreRole] || coreRole);
-    var expires       = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
-    /* PROMPT 009 — correction : empDeptFinal est désormais déclaré AVANT toute
-       utilisation (l'ancien code le référençait plus haut avant sa propre
-       déclaration var, un bug de hoisting qui produisait undefined). */
-    var empDeptFinal  = emp.department || emp.team_id || empDept || coreRole;
-
-    /* PIN JAMAIS stocké — session 12h issue du serveur */
-    var session = {
-      username:        empId,
-      name:            empName2,
-      role:            coreRole,
-      employee_id:     empId,
-      user_id:         empId,
-      department:      empDeptFinal,
-      tenant_id:       TENANT_ID,
-      allowed_modules: allowedMods,
-      primaryModule:   'employee_home',
-      loginAt:         Date.now(),
-      expires:         expires
-    };
-    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
-    /* PROMPT 038 — alias veraluz_session pour les modules (Messages, etc.) */
-    localStorage.setItem('veraluz_session', JSON.stringify({
-      user_id:    empId,
-      id:         empId,
-      name:       empName2,
-      role:       coreRole,
-      department: empDeptFinal,
-      tenant_id:  TENANT_ID
-    }));
-    logAuthEvent('pin-login', empName2, coreRole);
-
-    currentUser = { username:empId, name:empName2, role:coreRole,
-                    employee_id:empId, allowed_modules:allowedMods };
-    hideAuthOverlay();
-    updateTopbarUser();
-    buildNav();
-    initGreeting();
-    loadDashboardData();
-    /* Espace Employé en premier */
-    setTimeout(function() { goTo('employee_home'); }, 300);
-
-    /* PROMPT 010I — Émettre un resume_token (opaque) pour la reprise après refresh.
-       Le session_token reste en mémoire uniquement ; seul ce jeton résiduel
-       est persisté dans localStorage. Il ne donne aucun droit métier direct. */
-    (function() {
-      var tok = getSessionToken();
-      if (!tok) return;
-      fetch(EDGE_ISSUE_RESUME_URL, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY },
-        body: JSON.stringify({ session_token: tok })
-      }).then(function(r){ return r.ok ? r.json() : null; })
-        .then(function(d){
-          if (d && d.resume_token) {
-            localStorage.setItem('vz_resume', d.resume_token);
-          }
-        }).catch(function(){});
-    })();
+    /* AUTH-R2C — ne pas ouvrir CORE avant émission confirmée du resume_token. */
+    var emp = result.employee || {};
+    stabilizeCoreEmployeeLogin({
+      employee_id: emp.id || emp.employee_id || empId,
+      role: emp.role || 'staff',
+      full_name: emp.full_name || emp.employee_name || empName || 'Employé',
+      public_display_name: emp.public_display_name || null,
+      department: emp.department || emp.team_id || empDept || emp.role || 'staff',
+      allowed_modules: emp.allowed_modules || null,
+      session_expiry: result.session_expiry || emp.session_expiry_ts || null
+    }, result.session_token, btnLogin, errEl);
   });
 }
 
@@ -3472,26 +3594,13 @@ function toggleAdminMode() {
 
 function logout() {
   if (!confirm('Confirmer la déconnexion ?')) return;
-  /* EMERGENCY_001 — révoquer la session côté serveur AVANT l'effacement local.
-     keepalive : la requête survit à la navigation. Échec réseau non bloquant. */
   var _tok = getSessionToken();
-  if (_tok) {
-    try {
-      fetch(SUPA_URL + '/functions/v1/logout-employee-session', {
-        method: 'POST', keepalive: true,
-        headers: { 'Content-Type':'application/json', 'apikey': SUPA_KEY,
-                   'Authorization': 'Bearer ' + SUPA_KEY },
-        body: JSON.stringify({ session_token: _tok })
-      }).catch(function(){});
-    } catch(e) {}
-  }
-  clearSessionToken();
+  var _resume = localStorage.getItem(CORE_RESUME_KEY);
+  logoutCoreSessionBestEffort(_tok, _resume);
   logAuthEvent('logout', currentUser ? currentUser.name||currentUser.username : '?',
                          currentUser ? currentUser.role : '?');
-  localStorage.removeItem('veraluz_auth_v1');
-  localStorage.removeItem('veraluz_session'); /* PROMPT 038 */
-  localStorage.removeItem('vz_resume');       /* PROMPT 010I — révocation resume token */
-  currentUser = null;
+  /* Le nettoyage local est obligatoire même si la révocation réseau échoue. */
+  clearCoreLocalSession(true);
   _pinBuffer = '';
   updateTopbarUser();
   var ids = ['sb-modules','sb-coming','bn-modules','dash-grid'];

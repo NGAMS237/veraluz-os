@@ -37,7 +37,7 @@ const validatePinSource = functionSource('validatePin', '/* ══════�
 const loadLivreursSource = functionSource('loadLivreurs', 'function buildPinPad');
 
 function loginScenario(result, secureResponse, secureError) {
-  const state = { initialized: 0, employeeSecureCalls: [], revoked: [] };
+  const state = { initialized: 0, employeeSecureCalls: [], revoked: [], storage: new Map() };
   const elements = {
     'pin-livreur-sel': { value: 'liv-1' },
     'pin-err': { textContent: '' },
@@ -52,6 +52,12 @@ function loginScenario(result, secureResponse, secureError) {
     LIVREUR_ACTIF: null,
     LIVREUR_SESSION_TOKEN: '',
     LIVREUR_SESSION_EXPIRY: null,
+    LS_RESUME_LIVREUR: 'vz_resume_livreur',
+    localStorage: {
+      getItem: (key) => state.storage.get(key) ?? null,
+      setItem: (key, value) => state.storage.set(key, String(value)),
+      removeItem: (key) => state.storage.delete(key),
+    },
     _pinBuffer: '123456',
     renderPinDots() {},
     verifyLivreurPin: () => Promise.resolve(result),
@@ -60,11 +66,17 @@ function loginScenario(result, secureResponse, secureError) {
       return secureError ? Promise.reject(new Error(secureError)) : Promise.resolve(secureResponse);
     },
     normalizeLivreurEmployee: (employee) => ({ ...employee, prenom: 'Livreur', nom: 'Test' }),
-    clearLivreurSessionState() {
+    clearLivreurSessionState(removeResume) {
       context.LIVREUR_SESSION_TOKEN = '';
       context.LIVREUR_SESSION_EXPIRY = null;
+      if (removeResume) state.storage.delete('vz_resume_livreur');
     },
-    revokeLivreurSession: (token) => { state.revoked.push(token); return Promise.resolve(); },
+    revokeLivreurSession: (token, resumeToken) => { state.revoked.push({ token, resumeToken }); return Promise.resolve(); },
+    issueLivreurResumeToken: () => Promise.resolve({ resume_token: 'opaque-resume-token' }),
+    openLivreurApp(profile) {
+      context.LIVREUR_ACTIF = context.normalizeLivreurEmployee(profile);
+      state.initialized += 1;
+    },
     initApp: () => { state.initialized += 1; },
     Error, Promise, String, Date,
   });
@@ -115,6 +127,7 @@ await testAsync('LOGIN-02 PIN correct utilise la vraie session et le profil serv
     && !Object.prototype.hasOwnProperty.call(scenario.context.LIVREUR_ACTIF, 'session_token')
     && scenario.state.employeeSecureCalls.length === 1
     && scenario.state.employeeSecureCalls[0].action === 'get_my_delivery_profile'
+    && scenario.state.storage.get('vz_resume_livreur') === 'opaque-resume-token'
     && scenario.state.initialized === 1;
 });
 await testAsync('LOGIN-03 must_change_pin bloque totalement l’application', async () => {
@@ -139,7 +152,7 @@ await testAsync('LOGIN-04 session non éligible révoquée sans ouvrir Livreur',
   return scenario.context.LIVREUR_ACTIF === null
     && scenario.context.LIVREUR_SESSION_TOKEN === ''
     && scenario.state.revoked.length === 1
-    && scenario.state.revoked[0] === token
+    && scenario.state.revoked[0].token === token
     && scenario.state.initialized === 0
     && scenario.elements['pin-err'].textContent === 'Accès livreur non autorisé';
 });
@@ -152,12 +165,14 @@ test('PHOTO-01 mise à jour via employees-secure sans employee_id client',
 const logoutSource = functionSource('logout', '/* ══════════════════════════════════════════════════════════════');
 test('LOGOUT-01 logout révoque la session serveur puis nettoie l’état local',
   /tokenToRevoke=LIVREUR_SESSION_TOKEN/.test(logoutSource)
-    && /clearLivreurSessionState\(\)/.test(logoutSource)
-    && /revokeLivreurSession\(tokenToRevoke\)/.test(logoutSource)
+    && /resumeToRevoke=localStorage\.getItem\(LS_RESUME_LIVREUR\)/.test(logoutSource)
+    && /clearLivreurSessionState\(true\)/.test(logoutSource)
+    && /revokeLivreurSession\(tokenToRevoke,resumeToRevoke\)/.test(logoutSource)
     && /LIVREUR_ACTIF=null/.test(logoutSource));
 
-test('SECURITY-01 aucun token/PIN/credential persisté dans LIVREUR_ACTIF ou Storage web',
-  !/(localStorage|sessionStorage)\.setItem\([^)]*(?:pin|token|credential)/i.test(livreur)
+test('SECURITY-01 seul le resume opaque est persisté, jamais session/PIN/credential',
+  !/(localStorage|sessionStorage)\.setItem\([^)]*(?:session_token|pin|credential)/i.test(livreur)
+    && /localStorage\.setItem\(LS_RESUME_LIVREUR,(?:data|resumeData)\.resume_token\)/.test(livreur)
     && !/LIVREUR_ACTIF\.(?:pin_code|pin_hash|session_token)\b/.test(livreur)
     && !/LIVREUR_ACTIF\s*=\s*Object\.assign\([^)]*(?:pin_code|pin_hash|session_token)/s.test(livreur));
 

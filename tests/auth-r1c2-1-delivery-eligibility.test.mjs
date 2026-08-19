@@ -50,7 +50,7 @@ test('FRONTEND-02 aucun rôle générique ne décide de l’accès Livreur',
     && /employeesSecure\('get_my_delivery_profile',\{\}\)/.test(livreur));
 test('FRONTEND-03 refus serveur révoque la session et bloque l’application',
   /delivery_access_forbidden/.test(livreur)
-    && /revokeLivreurSession\(tokenToRevoke\)/.test(livreur)
+    && /revokeLivreurSession\(tokenToRevoke,resumeToRevoke\)/.test(livreur)
     && /Accès livreur non autorisé/.test(livreur));
 test('FRONTEND-04 aucun accès direct à veraluz_employees',
   !/(?:sbFetch|sbPatch)\(['"]veraluz_employees(?:\?|['"])/.test(livreur)

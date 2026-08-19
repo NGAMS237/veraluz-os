@@ -1,5 +1,5 @@
 /**
- * VERALUZ — reset-employee-pin — v7 (AUTH-R3A.1)
+ * VERALUZ — reset-employee-pin — v8 (AUTH-R3A.2 CORS FIX)
  *
  * POST { session_token, employee_id } -> { ok:true, temporary_pin, expires_at, must_change_pin:true }
  *
@@ -30,7 +30,7 @@ const DIRECTION_ROLES = ['gerant', 'admin', 'superadmin']
 
 function cors(origin: string | null) {
   const h: Record<string, string> = {
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-veraluz-session',
     'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Vary': 'Origin',
   }
   if (origin && ALLOWED_ORIGINS.includes(origin)) h['Access-Control-Allow-Origin'] = origin

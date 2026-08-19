@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Claude | claude/auth-r2-integration | AUTH-R2D — Intégration backend AUTH-R2B1 + frontend AUTH-R2C | VERALUZ_OS_CORE.html, LIVREUR.html, supabase/functions/resume-employee-session/index.ts, supabase/functions/issue-resume-token/index.ts, supabase/functions/logout-employee-session/index.ts, supabase/functions/revoke-employee-sessions/index.ts, supabase/migrations/*_auth_r2b1*.sql, tests/auth_r2b1_backend.sh, tests/auth-r2c-frontend.test.mjs, tests/auth-r1c2-livreur-session.test.mjs, tests/auth-r1c2-1-delivery-eligibility.test.mjs`
+*(aucun LOCK actif)*
 
 ## Lots actifs
 
-AUTH-R2D | claude/auth-r2-integration | En cours — intégration backend Claude + frontend Codex; tests live CORE + Livreur en cours
+AUTH-R2D | claude/auth-r2-integration | TERMINÉ — e2f4629 poussé; READY FOR MERGE REVIEW
 
 ## Transmissions récentes
+
+`2026-08-19 | Claude | AUTH-R2D INTÉGRATION | claude/auth-r2-integration | e2f4629 | AUTH-R2C 18/18; AUTH-R2B1 14/14; AUTH-R1C2 14/14; AUTH-R1C2.1 13/13; AUTH-R1 15/15; AUTH-R1C1 52/52; syntaxe CORE/LIVREUR 0 erreur; live 6/6 PASS (issue/resume/logout/revoke/CORS/employees-secure); contrat backend/frontend vérifié; main 6c76f8f inchangé | poussé, READY FOR MERGE REVIEW; aucun backend/déploiement; NE PAS merger main sans autorisation | LOCK AUTH-R2D retiré — intégration terminée | autorisation Blaise pour merger main ou poursuivre`
 
 `2026-08-19 | Claude | AUTH-R2D TAKEOVER | claude/auth-r2-integration | — | takeover autorisé par Blaise; Codex sans crédit; AUTH-R2C READY/handed-off; AUTH-R2B1 LIVE VALIDATED; LOCK AUTH-R2B1 Claude + LOCK AUTH-R2C Codex retirés simultanément; LOCK AUTH-R2D Claude pris | branche intégration en cours de création | VERALUZ_OS_CORE.html, LIVREUR.html, backend + tests: LOCK AUTH-R2D actif | créer claude/auth-r2-integration, cherry-pick 4 commits backend + 1 commit Codex, tests, push`
 

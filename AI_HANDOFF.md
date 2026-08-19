@@ -8,9 +8,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## Lots actifs
 
-`AUTH-R1C2 | Codex | codex/auth-r1-containment | Livreur utilise l'identité et la session employé canoniques; retrait des accès directs veraluz_employees | en cours sur 8c0aed8; aucun déploiement; LOCK conservé`
+`AUTH-R1C2 | Codex | codex/auth-r1-containment | Livreur utilise l'identité et la session employé canoniques; retrait des accès directs veraluz_employees | 3935057 poussé, READY FOR REVIEW; aucun déploiement; LOCK conservé`
 
 ## Transmissions récentes
+
+`2026-08-18 | Codex | AUTH-R1C2 | codex/auth-r1-containment | 39350571064a96d85d5587186d6081cc8b4889a9 | DB read-back rôles staff/technicien dans l'équipe Livreurs; R1C2 13/13; R1C1 44/44; AUTH-R1 15/15; broker Auth 11/11; runtime Contacts 16/16; syntaxe HTML/JS et diff PASS | poussé, READY FOR REVIEW; aucun déploiement | LIVREUR.html, employees-secure, tests R1C1/R1C2: LOCK conservé selon demande | review ciblée; AUTH-R2 gérera resume/F5 et résilience logout; aucune fusion main`
 
 `2026-08-18 | Codex | AUTH-R1C1.1 | codex/auth-r1-containment | 8c0aed8 | automatisé/statique AUTH-R1C1 40/40 dont 11 scénarios Edge simulés; AUTH-R1 15/15; broker Auth 11/11; runtime Contacts 16/16; diff et secrets contrôlés | poussé, READY FOR REVIEW; aucun déploiement | employees-secure + test: LOCK conservé selon demande | review sécurité ciblée; aucune fusion main`
 

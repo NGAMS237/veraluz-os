@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-Aucun LOCK actif.
+`LOCK | Codex | codex/auth-r1-containment | AUTH-R1C1.1 | supabase/functions/employees-secure/index.ts, tests/auth-r1c1-employees-secure.test.mjs`
 
 ## Lots actifs
 
-`AUTH-R1C1 | Codex | codex/auth-r1-containment | bridge serveur employees-secure pour CORE/RH/Contacts/Analytics/Restaurant | poussé, READY FOR REVIEW; aucun déploiement; LIVREUR réservé à AUTH-R1C2`
+`AUTH-R1C1.1 | Codex | codex/auth-r1-containment | empêcher l'élévation de privilèges via les actions RH employees-secure | en cours sur 12bdace; aucun déploiement; LOCK conservé jusqu'à review`
 
 ## Transmissions récentes
 

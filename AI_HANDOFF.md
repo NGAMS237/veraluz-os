@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/auth-r1-containment | AUTH-R1D PHASE A | supabase/functions/employees-secure/index.ts, supabase/migrations/20260819_auth_r1c2_delivery_login_public.sql, validations production associées`
+`LOCK | Codex | codex/auth-r1-containment | AUTH-R1D PHASE B | VERALUZ_OS_CORE.html, RH_EMBEDDED.html, CONTACTS_EMBEDDED.html, ANALYTICS_EMBEDDED.html, RESTAURANT_EMBEDDED.html, AUTH_EMBEDDED.html, LIVREUR.html, validations production associées`
 
 ## Lots actifs
 
-`AUTH-R1D PHASE A | Codex | codex/auth-r1-containment | Backend production préparé sans containment: employees-secure v1 + vue Livreur additive | READY FOR FRONTEND RELEASE; containment non appliqué; main inchangé; LOCK conservé`
+`AUTH-R1D PHASE B | Codex | codex/auth-r1-containment | Préconditions produit validées: e7206fc, 5 commits devant main et 0 derrière, suites AUTH PASS | PUBLICATION AUTORISÉE; containment interdit/non appliqué; LOCK conservé`
 
 ## Transmissions récentes
 

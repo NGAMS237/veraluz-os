@@ -39,6 +39,16 @@ const OPERATIONAL_ROLE_CLASSES = new Set(['superadmin', 'manager', 'restaurant',
 const ANALYTICS_ROLE_CLASSES = new Set(['superadmin', 'accountant']);
 const RH_ROLE_CLASSES = new Set(['superadmin', 'manager', 'rh']);
 
+// Liste fermée alignée sur ROLE_MAP (CORE) et le sélecteur RH existant.
+// AUTH-R5 décidera plus tard d'une éventuelle source RBAC canonique en DB.
+const KNOWN_EMPLOYEE_ROLES = new Set([
+  ...Object.keys(ROLE_CLASS),
+  'femme_chambre', 'agent_menage', 'housekeeping', 'menage', 'cleaner', 'housekeeper',
+  'technicien', 'maintenance', 'plombier', 'electricien', 'agent_securite',
+  'livreur', 'coursier', 'driver', 'delivery', 'chauffeur',
+  'staff', 'agent', 'employe',
+]);
+
 const RH_LIST_PROJECTION = [
   'id', 'full_name', 'phone', 'email', 'role', 'team_id', 'status', 'hire_date',
   'base_salary', 'hourly_rate', 'contract_type', 'photo_url', 'notes',
@@ -57,6 +67,9 @@ const RH_UPDATE_FIELDS = new Set([
 
 type Actor = { id: string; role: string; roleClass: string };
 type DbClient = ReturnType<typeof createClient>;
+type TargetAccess =
+  | { ok: true; target: { id: string; role: string } }
+  | { ok: false; status: number; error: string };
 
 function corsHeaders(origin: string | null) {
   const headers: Record<string, string> = {
@@ -136,6 +149,40 @@ function requireRole(actor: Actor, allowed: Set<string>) {
   return allowed.has(actor.roleClass);
 }
 
+function isPrivilegedRole(role: unknown) {
+  return roleClass(role) === 'superadmin';
+}
+
+function isPrivilegedActor(actor: Actor) {
+  return actor.roleClass === 'superadmin';
+}
+
+function canAssignRole(actor: Actor, targetRole: string) {
+  return isPrivilegedActor(actor) || !isPrivilegedRole(targetRole);
+}
+
+async function authorizeTargetMutation(
+  db: DbClient,
+  actor: Actor,
+  employeeId: string,
+): Promise<TargetAccess> {
+  const { data: target, error } = await db
+    .from('veraluz_employees')
+    .select('id,role')
+    .eq('id', employeeId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[employees-secure] privileged_target_lookup_failed code=', error.code);
+    return { ok: false, status: 500, error: 'server_error' };
+  }
+  if (!target) return { ok: false, status: 404, error: 'employee_not_found' };
+  if (!isPrivilegedActor(actor) && isPrivilegedRole(target.role)) {
+    return { ok: false, status: 403, error: 'privileged_target_forbidden' };
+  }
+  return { ok: true, target: { id: String(target.id), role: String(target.role || '') } };
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -158,7 +205,7 @@ function requiredName(value: unknown) {
 
 function validRole(value: unknown) {
   const normalized = String(value || '').trim().toLowerCase();
-  return /^[a-z][a-z0-9_]{0,63}$/.test(normalized) ? normalized : null;
+  return KNOWN_EMPLOYEE_ROLES.has(normalized) ? normalized : null;
 }
 
 function validStatus(value: unknown) {
@@ -324,6 +371,9 @@ Deno.serve(async (req) => {
     if (!fullName || !role || !status || hireDate === undefined || baseSalary === null) {
       return json({ ok: false, error: 'invalid_employee_data' }, 400, origin);
     }
+    if (!canAssignRole(actor, role)) {
+      return json({ ok: false, error: 'privileged_role_forbidden' }, 403, origin);
+    }
 
     const row = {
       full_name: fullName,
@@ -362,6 +412,11 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'invalid_employee_fields' }, 400, origin);
     }
 
+    const targetAccess = await authorizeTargetMutation(db, actor, employeeId);
+    if (!targetAccess.ok) {
+      return json({ ok: false, error: targetAccess.error }, targetAccess.status, origin);
+    }
+
     const update: Record<string, unknown> = {};
     if ('full_name' in input) {
       const name = requiredName(input.full_name);
@@ -371,6 +426,9 @@ Deno.serve(async (req) => {
     if ('role' in input) {
       const role = validRole(input.role);
       if (!role) return json({ ok: false, error: 'invalid_employee_data' }, 400, origin);
+      if (!canAssignRole(actor, role)) {
+        return json({ ok: false, error: 'privileged_role_forbidden' }, 403, origin);
+      }
       update.role = role;
     }
     if ('hire_date' in input) {
@@ -391,6 +449,7 @@ Deno.serve(async (req) => {
       .from('veraluz_employees')
       .update(update)
       .eq('id', employeeId)
+      .eq('role', targetAccess.target.role)
       .select(RH_LIST_PROJECTION)
       .maybeSingle();
     if (error) {
@@ -409,10 +468,16 @@ Deno.serve(async (req) => {
     const status = validStatus(body.status);
     if (!employeeId || !status) return json({ ok: false, error: 'invalid_status' }, 400, origin);
 
+    const targetAccess = await authorizeTargetMutation(db, actor, employeeId);
+    if (!targetAccess.ok) {
+      return json({ ok: false, error: targetAccess.error }, targetAccess.status, origin);
+    }
+
     const { data: employee, error } = await db
       .from('veraluz_employees')
       .update({ status })
       .eq('id', employeeId)
+      .eq('role', targetAccess.target.role)
       .select('id,status')
       .maybeSingle();
     if (error) {
@@ -433,10 +498,16 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'invalid_compensation' }, 400, origin);
     }
 
+    const targetAccess = await authorizeTargetMutation(db, actor, employeeId);
+    if (!targetAccess.ok) {
+      return json({ ok: false, error: targetAccess.error }, targetAccess.status, origin);
+    }
+
     const { data: employee, error } = await db
       .from('veraluz_employees')
       .update({ base_salary: baseSalary })
       .eq('id', employeeId)
+      .eq('role', targetAccess.target.role)
       .select('id,base_salary')
       .maybeSingle();
     if (error) {

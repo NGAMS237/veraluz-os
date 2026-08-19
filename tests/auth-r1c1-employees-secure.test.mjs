@@ -39,6 +39,93 @@ function actionBlock(action, nextAction) {
   return edge.slice(start, end < 0 ? edge.length : end);
 }
 
+function makeFakeDb(scenario, calls) {
+  const actor = { id: 'actor-1', role: 'rh', status: 'actif', ...(scenario.actor || {}) };
+  const target = { id: 'target-1', role: 'staff', status: 'actif', ...(scenario.target || {}) };
+
+  return {
+    from(table) {
+      const state = { table, operation: 'select', projection: '', filters: {}, payload: null };
+      const query = {
+        select(projection) { state.projection = projection; return query; },
+        eq(column, value) { state.filters[column] = value; return query; },
+        is() { return query; },
+        gt() { return query; },
+        in() { return query; },
+        order() { return query; },
+        insert(payload) { state.operation = 'insert'; state.payload = payload; return query; },
+        update(payload) { state.operation = 'update'; state.payload = payload; return query; },
+        maybeSingle() { return Promise.resolve(resolveQuery()); },
+        single() { return Promise.resolve(resolveQuery()); },
+        then(onFulfilled, onRejected) {
+          return Promise.resolve(resolveQuery()).then(onFulfilled, onRejected);
+        },
+      };
+
+      function resolveQuery() {
+        calls.push({ ...state, filters: { ...state.filters } });
+        if (table === 'veraluz_employee_sessions') {
+          return { data: scenario.sessionValid === false ? null : { employee_id: actor.id }, error: null };
+        }
+        if (table === 'veraluz_employees') {
+          if (state.operation === 'insert') {
+            return { data: { id: 'created-1', ...state.payload }, error: null };
+          }
+          if (state.operation === 'update') {
+            return { data: { id: state.filters.id || target.id, ...state.payload }, error: null };
+          }
+          if (state.projection === 'id,role,status') return { data: actor, error: null };
+          if (state.projection === 'id,role') {
+            return state.filters.id === target.id
+              ? { data: target, error: null }
+              : { data: null, error: null };
+          }
+        }
+        return { data: [], error: null };
+      }
+
+      return query;
+    },
+  };
+}
+
+async function invokeEdge(body, scenario = {}) {
+  const calls = [];
+  let handler = null;
+  const runtimeSource = stripTypeScriptTypes(edge, { mode: 'transform' })
+    .replace(/^import[^;]+;\s*$/m, 'const createClient = globalThis.__createClient;');
+  const context = vm.createContext({
+    __createClient: () => makeFakeDb(scenario, calls),
+    Deno: {
+      env: { get: (name) => name === 'SUPABASE_URL' ? 'https://example.supabase.co' : 'server-secret' },
+      serve: (fn) => { handler = fn; },
+    },
+    Request, Response, TextEncoder, crypto,
+    console: { error() {}, warn() {}, log() {} },
+  });
+  new vm.Script(runtimeSource, { filename: 'employees-secure/index.ts' }).runInContext(context);
+  const request = new Request('https://example.supabase.co/functions/v1/employees-secure', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'origin': 'https://ngams237.github.io',
+      'x-veraluz-session': 'temporary-test-session-token',
+    },
+    body: JSON.stringify(body),
+  });
+  const response = await handler(request);
+  return { status: response.status, body: await response.json(), calls };
+}
+
+async function testAsync(name, assertion) {
+  try {
+    test(name, Boolean(await assertion()));
+  } catch (error) {
+    console.log(`       ${error.stack || error.message}`);
+    test(name, false);
+  }
+}
+
 test('EDGE-01 employees-secure utilise le service_role uniquement depuis l’environnement',
   /Deno\.env\.get\('SUPABASE_SERVICE_ROLE_KEY'\)/.test(edge)
     && !/SUPABASE_SERVICE_ROLE_KEY\s*=\s*['"][^'"]+/.test(edge));
@@ -121,6 +208,141 @@ test('RH-05 aucun PIN local ni fallback local dans le workflow employé RH',
   !/id="emp-pin"|emp\.pin_code|d\.pin_code/.test(rh)
     && rhLogin.length > 0
     && !/pin_code|default_pin/.test(rhLogin));
+test('RH-06 les rôles acceptés viennent d’une liste fermée connue',
+  /const KNOWN_EMPLOYEE_ROLES = new Set/.test(edge)
+    && /return KNOWN_EMPLOYEE_ROLES\.has\(normalized\) \? normalized : null/.test(edge)
+    && !/\^\[a-z\].*a-z0-9_/.test(edge));
+test('RH-07 chaque mutation de cible vérifie que son rôle DB n’a pas changé',
+  ['rh_update', 'rh_set_status', 'rh_update_compensation']
+    .every((action, index, actions) => {
+      const block = actionBlock(action, actions[index + 1]);
+      return /\.eq\('role', targetAccess\.target\.role\)/.test(block);
+    }));
+
+await testAsync('PRIV-01 RH peut créer un rôle housekeeping connu', async () => {
+  const result = await invokeEdge(
+    { action: 'rh_create', employee: { full_name: 'Test Housekeeping', role: 'femme_chambre' } },
+    { actor: { role: 'rh' } },
+  );
+  return result.status === 201 && result.calls.some((call) => call.operation === 'insert');
+});
+await testAsync('PRIV-02 manager peut créer un rôle opérationnel connu', async () => {
+  const result = await invokeEdge(
+    { action: 'rh_create', employee: { full_name: 'Test Restaurant', role: 'barman' } },
+    { actor: { role: 'manager' } },
+  );
+  return result.status === 201 && result.calls.some((call) => call.operation === 'insert');
+});
+await testAsync('PRIV-03 RH ne peut pas créer superadmin', async () => {
+  const result = await invokeEdge(
+    { action: 'rh_create', employee: { full_name: 'Test Admin', role: 'superadmin' } },
+    { actor: { role: 'rh' } },
+  );
+  return result.status === 403 && result.body.error === 'privileged_role_forbidden'
+    && !result.calls.some((call) => call.operation === 'insert');
+});
+await testAsync('PRIV-04 manager ne peut pas créer gerant', async () => {
+  const result = await invokeEdge(
+    { action: 'rh_create', employee: { full_name: 'Test Gérant', role: 'gerant' } },
+    { actor: { role: 'manager' } },
+  );
+  return result.status === 403 && result.body.error === 'privileged_role_forbidden'
+    && !result.calls.some((call) => call.operation === 'insert');
+});
+await testAsync('PRIV-05 RH ne peut pas promouvoir un employé vers admin', async () => {
+  const result = await invokeEdge(
+    { action: 'rh_update', employee_id: 'target-1', employee: { role: 'admin' } },
+    { actor: { role: 'rh' }, target: { role: 'staff' } },
+  );
+  return result.status === 403 && result.body.error === 'privileged_role_forbidden'
+    && !result.calls.some((call) => call.operation === 'update');
+});
+await testAsync('PRIV-06 manager ne peut pas promouvoir vers direction', async () => {
+  const result = await invokeEdge(
+    { action: 'rh_update', employee_id: 'target-1', employee: { role: 'direction' } },
+    { actor: { role: 'manager' }, target: { role: 'staff' } },
+  );
+  return result.status === 403 && result.body.error === 'privileged_role_forbidden'
+    && !result.calls.some((call) => call.operation === 'update');
+});
+await testAsync('PRIV-07 RH/manager ne peuvent pas modifier un compte privilégié', async () => {
+  const results = await Promise.all([
+    invokeEdge(
+      { action: 'rh_update', employee_id: 'target-1', employee: { phone: '+237600000000' } },
+      { actor: { role: 'rh' }, target: { role: 'gerant' } },
+    ),
+    invokeEdge(
+      { action: 'rh_update', employee_id: 'target-1', employee: { notes: 'test' } },
+      { actor: { role: 'manager' }, target: { role: 'admin' } },
+    ),
+  ]);
+  return results.every((result) => result.status === 403
+    && result.body.error === 'privileged_target_forbidden'
+    && !result.calls.some((call) => call.operation === 'update'));
+});
+await testAsync('PRIV-08 RH/manager ne peuvent pas changer le statut d’un compte privilégié', async () => {
+  const results = await Promise.all([
+    invokeEdge(
+      { action: 'rh_set_status', employee_id: 'target-1', status: 'inactif' },
+      { actor: { role: 'rh' }, target: { role: 'superadmin' } },
+    ),
+    invokeEdge(
+      { action: 'rh_set_status', employee_id: 'target-1', status: 'actif' },
+      { actor: { role: 'manager' }, target: { role: 'direction' } },
+    ),
+  ]);
+  return results.every((result) => result.status === 403
+    && result.body.error === 'privileged_target_forbidden'
+    && !result.calls.some((call) => call.operation === 'update'));
+});
+await testAsync('PRIV-09 RH/manager ne peuvent pas modifier la compensation d’un compte privilégié', async () => {
+  const results = await Promise.all([
+    invokeEdge(
+      { action: 'rh_update_compensation', employee_id: 'target-1', base_salary: 100000 },
+      { actor: { role: 'rh' }, target: { role: 'owner' } },
+    ),
+    invokeEdge(
+      { action: 'rh_update_compensation', employee_id: 'target-1', base_salary: 100000 },
+      { actor: { role: 'manager' }, target: { role: 'directrice' } },
+    ),
+  ]);
+  return results.every((result) => result.status === 403
+    && result.body.error === 'privileged_target_forbidden'
+    && !result.calls.some((call) => call.operation === 'update'));
+});
+await testAsync('PRIV-10 un acteur privilégié conserve les opérations RH prévues', async () => {
+  const results = await Promise.all([
+    invokeEdge(
+      { action: 'rh_create', employee: { full_name: 'Test Direction', role: 'admin' } },
+      { actor: { role: 'gerant' } },
+    ),
+    invokeEdge(
+      { action: 'rh_update', employee_id: 'target-1', employee: { role: 'direction' } },
+      { actor: { role: 'gerant' }, target: { role: 'admin' } },
+    ),
+    invokeEdge(
+      { action: 'rh_set_status', employee_id: 'target-1', status: 'inactif' },
+      { actor: { role: 'gerant' }, target: { role: 'superadmin' } },
+    ),
+    invokeEdge(
+      { action: 'rh_update_compensation', employee_id: 'target-1', base_salary: 100000 },
+      { actor: { role: 'gerant' }, target: { role: 'owner' } },
+    ),
+  ]);
+  return results.every((result) => result.status >= 200 && result.status < 300
+    && result.calls.some((call) => call.operation === 'insert' || call.operation === 'update'));
+});
+await testAsync('PRIV-11 le rôle déclaré par le payload n’accorde aucun droit', async () => {
+  const result = await invokeEdge(
+    {
+      action: 'rh_create', caller_role: 'superadmin', requested_by_role: 'gerant',
+      employee: { full_name: 'Test Payload', role: 'staff' },
+    },
+    { actor: { role: 'staff' } },
+  );
+  return result.status === 403 && result.body.error === 'forbidden'
+    && !result.calls.some((call) => call.operation === 'insert');
+});
 
 const projectionSource = [
   edge.match(/const RH_LIST_PROJECTION = \[([\s\S]*?)\]\.join/)?.[1] || '',

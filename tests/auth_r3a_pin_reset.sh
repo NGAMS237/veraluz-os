@@ -82,13 +82,15 @@ cleanup_test_sessions() {
 }
 
 # ════════════════════════════════════════════════════════════════════════════
-hdr "A — STATIQUE : reset-employee-pin v6 contient veraluz_revoke_employee_sessions"
+hdr "A — STATIQUE : reset-employee-pin v7 appelle uniquement veraluz_reset_employee_pin (atomique)"
 EF_SRC="supabase/functions/reset-employee-pin/index.ts"
 if [[ -f "$EF_SRC" ]]; then
-  if grep -q "veraluz_revoke_employee_sessions" "$EF_SRC"; then
-    ok "A — EF utilise veraluz_revoke_employee_sessions (RPC atomique)"
+  # v7 : seule la RPC atomique est appelée (la révocation est à l'intérieur)
+  CODE_LINES=$(grep -v "^\s*//" "$EF_SRC" | grep -v "^\s*\*")
+  if echo "$CODE_LINES" | grep -q "veraluz_reset_employee_pin" &&      ! echo "$CODE_LINES" | grep -q "veraluz_revoke_employee_sessions"; then
+    ok "A — EF v7 appelle uniquement veraluz_reset_employee_pin (atomique, pas de 2e RPC)"
   else
-    fail "A — EF n'utilise PAS veraluz_revoke_employee_sessions"
+    fail "A — EF v7 appelle encore une 2e RPC de révocation séparée"
   fi
 else
   fail "A — $EF_SRC introuvable"
@@ -296,7 +298,101 @@ fi
 
 cleanup_test_sessions
 
+# ════════════════════════════════════════════════════════════════════════════
+# Tests Q→X — AUTH-R3A.1 (atomicité RPC + sécurité migration)
+# ════════════════════════════════════════════════════════════════════════════
+
+hdr "Q — STATIQUE : EF v7 n'appelle PAS veraluz_revoke_employee_sessions séparément"
+if [[ -f "$EF_SRC" ]]; then
+  # Exclure les lignes de commentaires (// et *)
+  CODE_CALLS=$(grep -v "^\s*//" "$EF_SRC" | grep -v "^\s*\*" | grep "veraluz_revoke_employee_sessions" || true)
+  if [[ -z "$CODE_CALLS" ]]; then
+    ok "Q — EF v7: aucun appel actif à veraluz_revoke_employee_sessions (commentaires exclus)"
+  else
+    fail "Q — EF v7 appelle encore veraluz_revoke_employee_sessions: $CODE_CALLS"
+  fi
+else fail "Q — fichier absent"; fi
+
+# ── R ────────────────────────────────────────────────────────────────────────
+hdr "R — STATIQUE : EF v7 traite rpc.ok=false comme ERREUR bloquante (pas ok:true partiel)"
+if [[ -f "$EF_SRC" ]]; then
+  if grep -q "rpc.ok\|rpc?.ok\|!rpc" "$EF_SRC" &&      grep -A3 "!rpc \|\!rpc\.ok\|rpc?.ok" "$EF_SRC" | grep -q "return json"; then
+    ok "R — ok:false RPC → erreur bloquante retournée"
+  else
+    fail "R — ok:false RPC non traité comme bloquant"
+  fi
+else fail "R — fichier absent"; fi
+
+# ── S ────────────────────────────────────────────────────────────────────────
+hdr "S — STATIQUE : EF v7 journalise APRÈS le succès total de la RPC (jamais avant)"
+if [[ -f "$EF_SRC" ]]; then
+  # L'audit log insert doit apparaître APRÈS le check rpc.ok
+  LINE_RPC=$(grep -n "rpc.ok\|atomic_rpc" "$EF_SRC" | head -1 | cut -d: -f1)
+  LINE_LOG=$(grep -n "event_type.*pin_reset[^_]" "$EF_SRC" | tail -1 | cut -d: -f1)
+  if [[ -n "$LINE_RPC" && -n "$LINE_LOG" && "$LINE_LOG" -gt "$LINE_RPC" ]]; then
+    ok "S — Journal audit après succès RPC (ligne $LINE_LOG > $LINE_RPC)"
+  else
+    fail "S — Journal audit AVANT le succès RPC (ligne log=$LINE_LOG, rpc=$LINE_RPC)"
+  fi
+else fail "S — fichier absent"; fi
+
+# ── T ────────────────────────────────────────────────────────────────────────
+hdr "T — STATIQUE : migration atomique contient révocation sessions ET resume_tokens"
+MIG="supabase/migrations/20260819_auth_r3a1_reset_pin_atomic.sql"
+if [[ -f "$MIG" ]]; then
+  HAS_SESS=$(grep -c "veraluz_employee_sessions" "$MIG" || echo 0)
+  HAS_RESUME=$(grep -c "veraluz_resume_tokens" "$MIG" || echo 0)
+  if [[ "$HAS_SESS" -gt 0 && "$HAS_RESUME" -gt 0 ]]; then
+    ok "T — Migration révoque sessions ($HAS_SESS) ET resume_tokens ($HAS_RESUME) dans la même fonction"
+  else
+    fail "T — Migration manque sessions($HAS_SESS) ou resume_tokens($HAS_RESUME)"
+  fi
+else fail "T — $MIG introuvable"; fi
+
+# ── U ────────────────────────────────────────────────────────────────────────
+hdr "U — STATIQUE : migration a EXCEPTION handler (rollback sémantique PL/pgSQL)"
+if [[ -f "$MIG" ]]; then
+  if grep -q "EXCEPTION WHEN OTHERS" "$MIG" && grep -q "transaction_failed\|ROLLBACK" "$MIG"; then
+    ok "U — EXCEPTION WHEN OTHERS handler présent (rollback automatique PL/pgSQL)"
+  else
+    fail "U — EXCEPTION handler absent ou incomplet"
+  fi
+else fail "U — fichier absent"; fi
+
+# ── V ────────────────────────────────────────────────────────────────────────
+hdr "V — STATIQUE : migration valide le format PIN 6 chiffres avant tout"
+if [[ -f "$MIG" ]]; then
+  if grep -q "invalid_pin_format\|\^\[0-9\]\{6\}" "$MIG"; then
+    ok "V — Validation format PIN dans la RPC avant bcrypt/révocation"
+  else
+    fail "V — Validation format PIN absente"
+  fi
+else fail "V — fichier absent"; fi
+
+# ── W ────────────────────────────────────────────────────────────────────────
+hdr "W — STATIQUE : migration REVOKE ALL + GRANT TO service_role uniquement"
+if [[ -f "$MIG" ]]; then
+  if grep -q "REVOKE ALL" "$MIG" && grep -q "GRANT EXECUTE.*service_role" "$MIG" &&      ! grep -q "GRANT EXECUTE.*anon\|GRANT EXECUTE.*authenticated\|GRANT EXECUTE.*PUBLIC" "$MIG"; then
+    ok "W — Permissions correctes: REVOKE ALL + GRANT service_role uniquement"
+  else
+    fail "W — Permissions incorrectes (REVOKE ou GRANT manquants)"
+  fi
+else fail "W — fichier absent"; fi
+
+# ── X ────────────────────────────────────────────────────────────────────────
+hdr "X — LIVE : résurgence AUTH-R2 — resume-employee-session CORS → 204 (non-régression)"
+if [[ "$LIVE" -eq 0 ]]; then
+  skip "X — LIVE non disponible (pas de SUPABASE_URL)"
+else
+  SC=$(edge_options "resume-employee-session")
+  if [[ "$SC" == "204" ]]; then
+    ok "X — OPTIONS resume-employee-session → 204 (AUTH-R2 non régressé)"
+  else
+    fail "X — OPTIONS → $SC (attendu 204, régression AUTH-R2 possible)"
+  fi
+fi
+
 echo
 echo "────────────────────────────────────────────────────────"
-echo "RÉSULTAT AUTH-R3A : ${PASS} PASS | ${FAIL} FAIL | ${SKIP} SKIP"
+echo "RÉSULTAT AUTH-R3A + AUTH-R3A.1 : ${PASS} PASS | ${FAIL} FAIL | ${SKIP} SKIP"
 [[ "$FAIL" -eq 0 ]] && exit 0 || exit 1

@@ -1,19 +1,23 @@
 /**
- * VERALUZ — reset-employee-pin — v6 (AUTH-R3A)
+ * VERALUZ — reset-employee-pin — v7 (AUTH-R3A.1)
  *
  * POST { session_token, employee_id } -> { ok:true, temporary_pin, expires_at, must_change_pin:true }
  *
- * v6 vs v5 : étape 4 (révocation) utilise désormais veraluz_revoke_employee_sessions(text)
- * qui révoque ATOMIQUEMENT sessions + resume_tokens en une seule transaction PL/pgSQL.
- * La v5 ne révoquait que veraluz_employee_sessions (oubli resume_tokens → vecteur de
- * réauthentification silencieuse post-reset). Zéro autre changement de comportement.
+ * v7 vs v6 : appelle uniquement veraluz_reset_employee_pin() qui est désormais ATOMIQUE —
+ * bcrypt + must_change_pin + révocation sessions + révocation resume_tokens dans UNE transaction.
+ * La v6 appelait reset_pin puis revoke_sessions séparément et traitait l'échec de révocation
+ * comme non-bloquant (vecteur ok:true avec sessions encore actives). INACCEPTABLE.
+ *
+ * Contrat v7 :
+ *  - si RPC error   → 500 server_error (aucun PIN retourné, aucun ok:true)
+ *  - si RPC ok:false → 400/500 selon l'erreur (aucun PIN retourné)
+ *  - si RPC ok:true  → audit log puis retour du PIN en clair UNE SEULE FOIS
  *
  * Contrat de sécurité inchangé :
  *  - session Direction VALIDE requise (rôle dérivé côté serveur, jamais du corps) ;
  *  - PIN 6 chiffres cryptographiquement sûr (crypto.getRandomValues) ;
- *  - stockage bcrypt uniquement via RPC veraluz_reset_employee_pin ;
- *  - retourne le PIN en clair UNE SEULE FOIS, jamais journalisé, jamais relisible ;
- *  - aucun PIN partagé, aucun PIN hardcodé, aucun plaintext persisté DB/localStorage/log.
+ *  - aucun PIN partagé, aucun PIN hardcodé, aucun plaintext persisté DB/localStorage/log ;
+ *  - temporary_pin retourné UNE SEULE FOIS, jamais journalisé, jamais relisible.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -39,7 +43,7 @@ async function sha256Hex(s: string): Promise<string> {
   const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
   return Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join('')
 }
-/** PIN 6 chiffres cryptographiquement sûr, jamais Math.random(). */
+/** PIN 6 chiffres cryptographiquement sûr — jamais Math.random(). */
 function generateSecurePin(): string {
   const bytes = new Uint32Array(6)
   crypto.getRandomValues(bytes)
@@ -95,48 +99,39 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'forbidden' }, 403, origin)
   }
 
-  /* 2. Cible existe et est active. */
-  const { data: targetEmp, error: teErr } = await admin
-    .from('veraluz_employees').select('id, status').eq('id', targetId).limit(1)
-  if (teErr) { console.error('[reset-pin] target_lookup_failed code=', teErr.code); return json({ ok: false, error: 'server_error' }, 500, origin) }
-  if (!targetEmp || targetEmp.length === 0) return json({ ok: false, error: 'employee_not_found' }, 404, origin)
-
-  /* 3. Générer le PIN côté serveur et l'écrire (bcrypt uniquement). */
+  /* 2. Générer le PIN côté serveur (6 chiffres crypto, jamais journalisé). */
   const tempPin = generateSecurePin()
+
+  /* 3. RPC atomique : bcrypt + must_change_pin + révocation sessions + resume_tokens.
+   *    UNE SEULE TRANSACTION — si une étape échoue → ROLLBACK total → jamais de ok:true partiel.
+   *    L'EF ne fait PLUS d'appel séparé à veraluz_revoke_employee_sessions. */
   const { data: rpcRes, error: rpcErr } = await admin.rpc('veraluz_reset_employee_pin', {
-    p_employee_id: targetId, p_new_pin: tempPin, p_reset_by: callerId,
+    p_employee_id: targetId,
+    p_new_pin:     tempPin,
+    p_reset_by:    callerId,
   })
-  if (rpcErr) { console.error('[reset-pin] rpc_failed code=', rpcErr.code); return json({ ok: false, error: 'server_error' }, 500, origin) }
-  const rpc = rpcRes as { ok: boolean; error?: string }
-  if (!rpc || !rpc.ok) return json({ ok: false, error: rpc?.error || 'reset_failed' }, 400, origin)
-
-  /* 4. Révoquer TOUTES les sessions + resume_tokens existants de la cible — ATOMIQUE via RPC.
-   *    v6 : veraluz_revoke_employee_sessions revoque sessions ET resume_tokens en une seule
-   *    transaction PL/pgSQL (AUTH-R2B1.2). La v5 ne révoquait que les sessions, laissant les
-   *    resume_tokens actifs (vecteur de réauthentification silencieuse post-reset). */
-  const { data: revokeRes, error: revErr } = await admin.rpc('veraluz_revoke_employee_sessions', {
-    p_target_employee_id: targetId,
-  })
-  if (revErr) {
-    console.error('[reset-pin] revoke_rpc_failed code=', revErr.code)
-    /* Non-bloquant : le PIN a déjà été réinitialisé ; journaliser l'échec de révocation. */
+  if (rpcErr) {
+    console.error('[reset-pin] atomic_rpc_failed code=', rpcErr.code)
+    return json({ ok: false, error: 'server_error' }, 500, origin)
   }
-  const revoke = revokeRes as { ok: boolean; revoked_sessions?: number; revoked_resumes?: number } | null
-  if (!revoke?.ok) console.error('[reset-pin] revoke_rpc_returned_not_ok', revokeRes)
+  const rpc = rpcRes as { ok: boolean; error?: string; revoked_sessions?: number; revoked_resumes?: number }
+  if (!rpc || !rpc.ok) {
+    return json({ ok: false, error: rpc?.error || 'reset_failed' }, 400, origin)
+  }
 
-  /* 5. Journaliser (jamais le PIN, jamais un hash). */
+  /* 4. Succès total confirmé — journaliser APRÈS la transaction (jamais le PIN, jamais un hash). */
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
   await admin.from('veraluz_auth_events').insert({
     event_type: 'pin_reset', employee_id: targetId,
     performed_by: callerId, performed_by_role: callerRole, success: true,
     details_json: {
       temporary_pin_expires_at: expiresAt.toISOString(),
-      revoked_sessions: revoke?.revoked_sessions ?? null,
-      revoked_resumes: revoke?.revoked_resumes ?? null,
+      revoked_sessions: rpc.revoked_sessions ?? null,
+      revoked_resumes:  rpc.revoked_resumes  ?? null,
     },
   })
 
-  /* 6. Retourner le PIN en clair — UNE SEULE FOIS. Jamais journalisé, jamais relisible. */
+  /* 5. Retourner le PIN en clair — UNE SEULE FOIS. Jamais journalisé, jamais relisible. */
   return json({
     ok: true,
     temporary_pin: tempPin,

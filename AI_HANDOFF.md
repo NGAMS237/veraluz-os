@@ -37,3 +37,5 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 `date | agent | lot | branche | commit | tests | statut | fichiers réservés | prochaine action`
 
 LOCK : `LOCK | agent | branche | tâche | fichiers/zones`
+
+`2026-08-19 | Claude | RBAC-C1 CONTAINMENT | claude/rbac-c1-containment | a1ac14d | loadDashboardData dispatché par rôle: restaurant→_loadDashRestaurant (commandes/stock), housekeeping→_loadDashHousekeeping (tâches), global→_loadDashGlobal (finance gated); revenus/paiements masqués non-finance; noms clients protection; 15/15 tests statiques PASS | READY FOR HUMAN TEST | aucun LOCK | push GitHub (credentials manquants sandbox)`

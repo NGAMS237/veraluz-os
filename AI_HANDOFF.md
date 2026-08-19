@@ -8,9 +8,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## Lots actifs
 
-`AUTH-R1D PHASE A | Codex | codex/auth-r1-containment | Déployer employees-secure et appliquer uniquement la vue additive Livreur; containment explicitement interdit | précontrôle production en cours sur e7206fc; LOCK conservé`
+`AUTH-R1D PHASE A | Codex | codex/auth-r1-containment | Backend production préparé sans containment: employees-secure v1 + vue Livreur additive | READY FOR FRONTEND RELEASE; containment non appliqué; main inchangé; LOCK conservé`
 
 ## Transmissions récentes
+
+`2026-08-19 | Codex | AUTH-R1D PHASE A | codex/auth-r1-containment | e7206fcde199548dc699a18eb3b1132d264525dc | live: Edge 401 sans/invalide, profil 200, Livreur 200, hors-équipe 403, photo croisée 400; vue anon 200, 2 lignes/3 colonnes, écritures refusées 55000; employés directs 200; logs sans secret; 2 sessions test supprimées | employees-secure v1 ACTIVE + migration auth_r1c2_delivery_login_public appliquée; READY FOR FRONTEND RELEASE | mêmes zones: LOCK conservé | publier les frontends dans une phase autorisée séparée; ne pas appliquer containment avant Phase C`
 
 `2026-08-19 | Codex | AUTH-R1C2.1 | codex/auth-r1-containment | e7206fcde199548dc699a18eb3b1132d264525dc | DB read-back FK team_id→teams et équipe Livreurs; R1C2.1 13/13; R1C2 14/14; R1C1/R1C1.1 52/52; AUTH-R1 15/15; broker 11/11; Contacts 16/16; diff/secrets/syntaxe PASS | poussé, READY FOR FINAL R1 REVIEW; aucun déploiement | vue delivery publique, LIVREUR, employees-secure et tests: LOCK conservé selon demande | review finale R1; déploiement et fusion main exigent une autorisation séparée`
 

@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/auth-r1-containment | AUTH-R1C2 | LIVREUR.html, supabase/functions/employees-secure/index.ts, tests/auth-r1c1-employees-secure.test.mjs, tests/auth-r1c2-livreur-session.test.mjs`
+`LOCK | Codex | codex/auth-r1-containment | AUTH-R1C2.1 | LIVREUR.html, supabase/functions/employees-secure/index.ts, supabase/migrations/20260819_auth_r1c2_delivery_login_public.sql, tests/auth-r1c1-employees-secure.test.mjs, tests/auth-r1c2-livreur-session.test.mjs, tests/auth-r1c2-1-delivery-eligibility.test.mjs`
 
 ## Lots actifs
 
-`AUTH-R1C2 | Codex | codex/auth-r1-containment | Livreur utilise l'identité et la session employé canoniques; retrait des accès directs veraluz_employees | 3935057 poussé, READY FOR REVIEW; aucun déploiement; LOCK conservé`
+`AUTH-R1C2.1 | Codex | codex/auth-r1-containment | Éligibilité Livreur par affectation canonique à l'équipe Livreurs, sélection publique minimale et contrôle serveur | en cours sur 3935057; aucun déploiement; LOCK conservé`
 
 ## Transmissions récentes
 

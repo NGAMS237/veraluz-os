@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/guest-4a-p1 | GUEST-4A.P1 | GUEST_PORTAL.html; RESERVATIONS_EMBEDDED.html; supabase/functions/guest-access/index.ts; supabase/functions/settings-secure/index.ts; supabase/migrations/20260818_guest_wifi_privacy.sql; tests/guest-portal-correctness.test.mjs`
+Aucun.
 
 ## Lots actifs
 
-`GUEST-4A.P1 | Codex | backend et interfaces publiés sur main au commit 38786d67; contrôles post-publication PASS | en attente du test utilisateur avec Wi-Fi réel saisi par Blaise; LOCK conservé`
+Aucun.
 
 ## Transmissions récentes
+
+`2026-08-18 | Codex | GUEST-4A / GUEST-4A.P1 | main | 38786d67a486afa3a7fa5dddb02df7d56c762ad1 | test utilisateur final PASS: identité, checked-in, SSID, mot de passe masqué, Afficher/Copier et mobile validés | COMPLET | aucun: LOCK retiré | aucune; ne démarrer aucun autre lot dans cette action`
 
 `2026-08-18 | Codex | GUEST-4A.P1 | main (source codex/guest-4a-p1) | 38786d67a486afa3a7fa5dddb02df7d56c762ad1 | Pages sert exactement CORE/Guest/Réservations; tests ciblés 11/11; browser CORE/Réservations/Guest sans erreur console; settings-secure wifi non configuré sans password; checkedout Folio 200, séjour/Wi-Fi et Room Service 401; session temporaire supprimée | produit publié; aucun autre lot commencé; attente test humain Wi-Fi | mêmes fichiers: LOCK conservé | Blaise saisit le Wi-Fi depuis CORE puis valide; retirer le LOCK seulement après son verdict`
 

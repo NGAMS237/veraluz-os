@@ -1,12 +1,10 @@
--- AUTH-R2B1.2 — Révocation globale atomique (sessions + resume tokens)
--- RPC SECURITY DEFINER, service_role uniquement.
---
--- Garantie : les deux UPDATE (employee_sessions + resume_tokens) s'exécutent
--- dans le même bloc PL/pgSQL. Si l'un échoue, le savepoint implicite de
--- l'EXCEPTION handler annule les deux → jamais ok:true partiel.
+-- AUTH-R2B1.2 (corrigé R2B1.3) — Révocation globale atomique
+-- employee_id est TEXT dans veraluz_employees, veraluz_employee_sessions,
+-- veraluz_resume_tokens (ex: 'emp-001', 'mqy690xvhqju2').
+-- Paramètre p_target_employee_id TEXT (non uuid) pour compatibilité réelle.
 
 CREATE OR REPLACE FUNCTION public.veraluz_revoke_employee_sessions(
-  p_target_employee_id  uuid
+  p_target_employee_id  text
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -18,6 +16,11 @@ DECLARE
   v_sess_count   int         := 0;
   v_resume_count int         := 0;
 BEGIN
+  -- Garde-fou : paramètre non vide
+  IF p_target_employee_id IS NULL OR trim(p_target_employee_id) = '' THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'employee_id_required');
+  END IF;
+
   -- Étape 1 : révoquer toutes les employee_sessions actives de la cible
   WITH r AS (
     UPDATE veraluz_employee_sessions
@@ -49,14 +52,14 @@ BEGIN
 
 EXCEPTION WHEN OTHERS THEN
   -- Toute erreur → rollback implicite des deux étapes.
-  -- jamais ok:true partiel.
+  -- Jamais ok:true partiel.
   RAISE WARNING 'veraluz_revoke_employee_sessions: %', SQLERRM;
   RETURN jsonb_build_object('ok', false, 'error', 'server_error');
 END;
 $$;
 
 -- Droits : service_role uniquement — ni anon, ni authenticated, ni PUBLIC
-REVOKE ALL     ON FUNCTION public.veraluz_revoke_employee_sessions(uuid) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION public.veraluz_revoke_employee_sessions(uuid) FROM anon;
-REVOKE EXECUTE ON FUNCTION public.veraluz_revoke_employee_sessions(uuid) FROM authenticated;
-GRANT  EXECUTE ON FUNCTION public.veraluz_revoke_employee_sessions(uuid) TO service_role;
+REVOKE ALL     ON FUNCTION public.veraluz_revoke_employee_sessions(text) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.veraluz_revoke_employee_sessions(text) FROM anon;
+REVOKE EXECUTE ON FUNCTION public.veraluz_revoke_employee_sessions(text) FROM authenticated;
+GRANT  EXECUTE ON FUNCTION public.veraluz_revoke_employee_sessions(text) TO service_role;

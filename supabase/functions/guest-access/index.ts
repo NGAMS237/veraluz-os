@@ -348,7 +348,7 @@ Deno.serve(async (req: Request) => {
 
     const [resResult, unitResult, photoResult, settingsData] = await Promise.all([
       db.from('veraluz_reservations')
-        .select('client_name, check_in, check_out, status, guests')
+        .select('client_id, client_name, check_in, check_out, status, guests')
         .eq('id', session!.reservation_id)
         .single(),
       db.from('veraluz_units')
@@ -372,7 +372,20 @@ Deno.serve(async (req: Request) => {
 
     if (!res) return json({ ok: false, error: 'stay_not_found' }, 404, cors);
 
-    const firstName = (res.client_name ?? '').split(' ')[0] || 'Cher client';
+    let identityName = (res.client_name ?? '').trim();
+    if (res.client_id) {
+      const { data: client } = await db.from('veraluz_clients')
+        .select('full_name')
+        .eq('id', res.client_id)
+        .maybeSingle();
+      if (client?.full_name?.trim()) identityName = client.full_name.trim();
+    }
+    const displayName = identityName
+      .replace(/\s+/g, ' ')
+      .split(' ')
+      .map((part: string) => part ? part.charAt(0).toUpperCase() + part.slice(1) : '')
+      .join(' ') || 'Cher client';
+    const firstName = displayName.split(' ')[0] || 'Cher client';
     const resStatus = res.status as string;
 
     const S        = settingsData;
@@ -382,14 +395,18 @@ Deno.serve(async (req: Request) => {
     const contact  = S['contact']    || {};
     const rest     = S['restaurant'] || {};
 
-    const wifiEnabled    = wifi.enabled !== false;
-    const canSeePassword = resStatus === 'checkedin';
+    const wifiEnabled       = wifi.enabled !== false;
+    const canSeePassword    = resStatus === 'checkedin';
+    const wifiPassword      = typeof wifi.password === 'string' ? wifi.password : '';
+    const passwordAvailable = canSeePassword && wifiPassword.length > 0;
     const wifiPayload    = wifiEnabled ? {
       enabled:            true,
       ssid:               wifi.ssid || null,
-      password:           canSeePassword ? (wifi.password || null) : null,
-      password_available: canSeePassword,
-      hint: !canSeePassword ? "Le code Wi-Fi sera disponible après votre arrivée." : null,
+      password:           passwordAvailable ? wifiPassword : null,
+      password_available: passwordAvailable,
+      hint: canSeePassword
+        ? (passwordAvailable ? null : "L'accès Wi-Fi n'est pas encore configuré. Contactez la réception.")
+        : "Le code Wi-Fi sera disponible après votre arrivée.",
     } : { enabled: false };
 
     return json({
@@ -399,6 +416,7 @@ Deno.serve(async (req: Request) => {
         property_tagline:  property.tagline  || '',
         property_location: property.location || 'Kribi, Cameroun',
         guest_first_name:  firstName,
+        guest_display_name: displayName,
         unit_name:         unit?.name  ?? session!.unit_id,
         unit_type:         unit?.type  ?? '',
         unit_emoji:        unit?.emoji ?? '🏨',

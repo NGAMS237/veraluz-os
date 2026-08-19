@@ -2,7 +2,7 @@
  * SETTINGS-1 — settings-secure Edge Function v1
  *
  * Actions:
- *   get_settings    — lecture publique (anon OK)
+ *   get_settings    — lecture publique, wifi.password toujours masqué
  *   update_settings — écriture sécurisée (direction/gerant uniquement)
  *
  * Sécurité:
@@ -10,7 +10,7 @@
  *   - Rôle direction/gerant requis pour écriture
  *   - Clés autorisées: property, contact, booking, wifi, restaurant, branding
  *   - Secrets jamais dans settings (RESEND_API_KEY, service_role, etc.)
- *   - wifi.password jamais loggué
+ *   - wifi.password jamais renvoyé par get_settings ni loggué
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -111,7 +111,16 @@ Deno.serve(async (req) => {
 
     const settings: Record<string,unknown> = {};
     for (const row of rows ?? []) {
-      settings[row.key] = row.value;
+      if (row.key === 'wifi' && row.value && typeof row.value === 'object') {
+        const wifi = row.value as Record<string,unknown>;
+        const { password: _password, ...publicWifi } = wifi;
+        settings[row.key] = {
+          ...publicWifi,
+          password_configured: typeof _password === 'string' && _password.length > 0,
+        };
+      } else {
+        settings[row.key] = row.value;
+      }
     }
     return json({ ok: true, settings }, 200, cors);
   }
@@ -154,6 +163,14 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const merged = Object.assign({}, existing?.value ?? {}, value);
+    if (
+      key === 'wifi' &&
+      value.password === '' &&
+      typeof existing?.value?.password === 'string' &&
+      existing.value.password.length > 0
+    ) {
+      merged.password = existing.value.password;
+    }
 
     const { error: upErr } = await db
       .from('veraluz_settings')

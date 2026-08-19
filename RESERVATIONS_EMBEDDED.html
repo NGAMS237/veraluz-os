@@ -2322,12 +2322,16 @@ function sbPatchSettings(key, obj, cb){
 }
 
 function loadSettingsFromDB(){
-  fetch(SB+'/rest/v1/veraluz_settings?key=in.(booking,wifi,restaurant,contact,property)',{
-    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY}
+  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
+    console.warn('[RES] settings broker unavailable'); return;
+  }
+  window.parent.veraluzSecureRequest('settings-secure', {
+    action:'get_settings', keys:['booking','wifi','restaurant','contact','property']
   })
-  .then(function(r){ return r.ok?r.json():[]; })
-  .then(function(rows){
-    rows.forEach(function(row){ _dbSettings[row.key]=row.value; });
+  .then(function(r){
+    var d=r&&r.body?r.body:r;
+    if(!d||!d.ok||!d.settings) throw new Error((d&&d.error)||'settings_load_failed');
+    Object.assign(_dbSettings,d.settings);
     renderPropertyCard();
     renderContactCard();
     renderBookingCard();
@@ -2423,7 +2427,7 @@ function renderWifiCard(){
     '<input class="param-inp-p" id="db-wifi-ssid" value="'+esc(wf.ssid||'')+'"></div>'+
     '<div class="param-row-p"><span class="param-lbl-p">Mot de passe</span>'+
     '<div style="display:flex;gap:8px;align-items:center;flex:1">'+
-    '<input class="param-inp-p" type="password" id="db-wifi-pw" value="'+esc(wf.password||'')+'" style="flex:1">'+
+    '<input class="param-inp-p" type="password" id="db-wifi-pw" value="" placeholder="'+(wf.password_configured?'Configuré — saisir pour changer':'Non configuré')+'" style="flex:1">'+
     '<button onclick="toggleWifiPw()" style="border:1px solid var(--border);background:var(--bg);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px" id="db-wifi-toggle">👁</button>'+
     '</div></div>'+
     '<div class="param-row-p"><span class="param-lbl-p">Wi-Fi actif</span>'+

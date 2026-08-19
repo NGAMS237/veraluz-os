@@ -1536,7 +1536,7 @@ function render(stay){
   _stayStatus=stay.reservation_status;
   var h=new Date().getHours();
   document.getElementById('greet-sup').textContent=(h>=6&&h<18?'Bonjour,':'Bonsoir,');
-  document.getElementById('greet-name').textContent=stay.guest_first_name||'Bienvenue';
+  document.getElementById('greet-name').textContent=stay.guest_display_name||stay.guest_first_name||'Bienvenue';
   if(stay.property_name) document.getElementById('hdr-prop').textContent=stay.property_name;
   if(stay.property_location) document.getElementById('hdr-loc').textContent=stay.property_location;
   var pw=document.getElementById('unit-photo-wrap');
@@ -1573,7 +1573,8 @@ function render(stay){
       _wifiPwd=stay.wifi.password;
       wh+='<div class="wifi-pwd-wrap"><div class="wifi-pwd-row"><span class="wifi-ssid-lbl">Mot de passe</span><span id="pwd-display" class="pwd-field">&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;</span></div><div class="wifi-btns"><button id="btn-show" class="btn-pill btn-show" onclick="togglePwd()">Afficher</button><button id="btn-copy" class="btn-pill btn-copy" onclick="copyPwd()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copier</button></div></div>';
     } else {
-      wh+='<div class="wifi-hint">'+(stay.wifi.hint||'Le code Wi-Fi sera disponible après votre arrivée.')+'</div>';
+      var wifiHint=stay.wifi.hint||(stay.reservation_status==='checkedin'?"L'accès Wi-Fi n'est pas encore configuré. Contactez la réception.":'Le code Wi-Fi sera disponible après votre arrivée.');
+      wh+='<div class="wifi-hint">'+escH(wifiHint)+'</div>';
     }
     wb.innerHTML=wh;
   }
@@ -1764,7 +1765,7 @@ function renderFolio(d){
 
   // Total / Paiements / Balance
   document.getElementById('folio-total-val').textContent=fmt(s.total);
-  document.getElementById('folio-payments-val').textContent='-'+fmt(s.payments);
+  document.getElementById('folio-payments-val').textContent=s.payments>0?'-'+fmt(s.payments):fmt(0);
   document.getElementById('folio-balance-val').textContent=fmt(Math.abs(s.balance));
 
   var balRow=document.getElementById('folio-balance-row');

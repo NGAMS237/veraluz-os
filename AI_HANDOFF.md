@@ -6,9 +6,13 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 `LOCK | Claude | claude/auth-r2b1 | AUTH-R2B1.1 — RPC atomique rotate_resume + hardening session backend | supabase/functions/resume-employee-session/index.ts, supabase/functions/issue-resume-token/index.ts, supabase/functions/logout-employee-session/index.ts, supabase/functions/revoke-employee-sessions/index.ts, supabase/migrations/*_auth_r2b1*.sql, tests/auth_r2b1_backend.sh`
 
+`LOCK | Codex | codex/auth-r2c-frontend | AUTH-R2C — Frontend reprise session CORE + Livreur | VERALUZ_OS_CORE.html, LIVREUR.html, tests/auth-r2c-frontend.test.mjs`
+
 ## Lots actifs
 
 AUTH-R2B1.1 | claude/auth-r2b1 | En cours — branche locale prête, push en attente auth Git
+
+AUTH-R2C | codex/auth-r2c-frontend | En cours — frontend CORE + Livreur uniquement; dépend du contrat backend AUTH-R2B1.1
 
 ## Transmissions récentes
 

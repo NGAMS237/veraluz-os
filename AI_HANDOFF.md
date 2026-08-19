@@ -8,9 +8,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## Lots actifs
 
-`AUTH-R1D PHASE B | Codex | codex/auth-r1-containment | Préconditions produit validées: e7206fc, 5 commits devant main et 0 derrière, suites AUTH PASS | PUBLICATION AUTORISÉE; containment interdit/non appliqué; LOCK conservé`
+`AUTH-R1D PHASE B | Codex | main (source codex/auth-r1-containment) | main e7206fc publié; backend, Pages et interfaces validés; containment non appliqué | READY FOR HUMAN VALIDATION; LOCK conservé`
 
 ## Transmissions récentes
+
+`2026-08-19 | Codex | AUTH-R1D PHASE B | main (source codex/auth-r1-containment) | e7206fcde199548dc699a18eb3b1132d264525dc | fast-forward 5/0; suites 11+15+52+13+14+16 PASS; Pages 7/7 blobs exacts; live profil/RH/Contacts/Analytics/Restaurant 200; Livreur équipe 200 et hors-équipe 403; CORS 204; navigateur sans erreur bloquante; 3 sessions test supprimées | publié, READY FOR HUMAN VALIDATION; rh_anon_all présent et containment non appliqué | mêmes zones Phase B: LOCK conservé | validation humaine puis autorisation séparée requise avant Phase C; ne pas démarrer AUTH-R2`
 
 `2026-08-19 | Codex | AUTH-R1D PHASE A | codex/auth-r1-containment | e7206fcde199548dc699a18eb3b1132d264525dc | live: Edge 401 sans/invalide, profil 200, Livreur 200, hors-équipe 403, photo croisée 400; vue anon 200, 2 lignes/3 colonnes, écritures refusées 55000; employés directs 200; logs sans secret; 2 sessions test supprimées | employees-secure v1 ACTIVE + migration auth_r1c2_delivery_login_public appliquée; READY FOR FRONTEND RELEASE | mêmes zones: LOCK conservé | publier les frontends dans une phase autorisée séparée; ne pas appliquer containment avant Phase C`
 

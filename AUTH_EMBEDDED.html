@@ -278,7 +278,7 @@ var _sbEmp = [];          /* tableau d'objets {id, full_name, role, status, ...}
 var _sbEmpLoaded = false;
 
 function loadSBEmployees(cb) {
-  fetch(_SB_URL + '/rest/v1/veraluz_employees_public?select=id,full_name,role,status,team_name,email,phone&order=full_name.asc', {
+  fetch(_SB_URL + '/rest/v1/veraluz_employees_public?select=id,full_name,role,status&order=full_name.asc', {
     headers: { apikey: _SB_KEY, Authorization: 'Bearer ' + _SB_KEY }
   })
   .then(function(r){ return r.json(); })

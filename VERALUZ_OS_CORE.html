@@ -1875,7 +1875,7 @@ function getEmployeesFromSupabase(cb, onErr) {
     } catch(e) {}
   }
   /* PROMPT 009 — vue publique veraluz_employees_public : exclut pin_code, salaire, contrat */
-  fetch(SUPA_URL+'/rest/v1/veraluz_employees_public?select=id,full_name,role,status,team_id,team_name,phone,email,hire_date&order=full_name.asc', {
+  fetch(SUPA_URL+'/rest/v1/veraluz_employees_public?select=id,full_name,role,status&order=full_name.asc', {
     headers: { apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY }
   })
   .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })

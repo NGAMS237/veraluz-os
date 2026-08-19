@@ -312,6 +312,18 @@ function sbGet(path){
     .then(function(r){if(!r.ok)throw new Error(r.status);return r.json();});
 }
 
+function getEmployeeDirectorySecure(){
+  if(!window.parent||typeof window.parent.veraluzSecureRequest!=='function'){
+    return Promise.reject(new Error('secure_broker_unavailable'));
+  }
+  return window.parent.veraluzSecureRequest('employees-secure',{action:'list_directory'})
+    .then(function(res){
+      var body=res&&res.body||{};
+      if(!body.ok)throw new Error(body.error||'employees_secure_failed');
+      return Array.isArray(body.employees)?body.employees:[];
+    });
+}
+
 async function loadAll(){
   contacts=[];
   // Clients from localStorage cache
@@ -351,9 +363,9 @@ async function loadAll(){
   }catch(e){}
   // Employees
   try{
-    var emps=await sbGet('veraluz_employees?select=id,full_name,email,phone,role,status,contract_type&order=full_name.asc');
+    var emps=await getEmployeeDirectorySecure();
     emps.forEach(function(e){
-      contacts.push({id:'emp_'+e.id,type:'employee',name:e.full_name||'Employé',email:e.email||'',phone:e.phone||'',role:(e.role||'').replace(/_/g,' '),contract:e.contract_type||'',status:e.status||''});
+      contacts.push({id:'emp_'+e.id,type:'employee',name:e.full_name||'Employé',email:e.email||'',phone:e.phone||'',role:(e.role||'').replace(/_/g,' '),status:e.status||''});
     });
   }catch(e){console.warn('emp',e);}
   // Fournisseurs from restaurant table

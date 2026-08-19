@@ -12,6 +12,12 @@
 
 ALTER TABLE public.veraluz_employees ENABLE ROW LEVEL SECURITY;
 
+-- AUTH-R1C1: toute creation employee sans credential doit rester sans PIN.
+-- Les valeurs legacy existantes sont conservees pour AUTH-R3, mais aucun
+-- INSERT futur ne doit recreer implicitement un PIN en clair.
+ALTER TABLE public.veraluz_employees
+  ALTER COLUMN pin_code DROP DEFAULT;
+
 DROP POLICY IF EXISTS rh_anon_all ON public.veraluz_employees;
 
 REVOKE ALL PRIVILEGES ON TABLE public.veraluz_employees FROM PUBLIC;

@@ -631,8 +631,7 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
     <div style="height:8px;"></div>
     <div class="fg">
       <div><label class="fl">Num&#233;ro MoMo</label><input class="fi" id="emp-momo" type="tel" placeholder="+237 6xx..." style="margin-bottom:0"></div>
-      <!-- PROMPT 020C — M8 : PIN initial à créer, reset recommandé via Auth après création -->
-      <div><label class="fl">PIN initial <span style="font-size:10px;color:var(--text3);">(r&#233;initialiser via Auth apr&#232;s cr&#233;ation)</span></label><input class="fi" id="emp-pin" type="text" maxlength="6" placeholder="000000" style="margin-bottom:0"></div>
+      <div><label class="fl">Acc&#232;s</label><div class="fi" style="margin-bottom:0;height:auto;min-height:44px;color:var(--text3);">&#192; provisionner depuis Auth apr&#232;s cr&#233;ation. Aucun PIN n&#39;est cr&#233;&#233; ici.</div></div>
     </div>
     <div style="height:8px;"></div>
     <label class="fl">Statut</label>
@@ -943,11 +942,24 @@ function safeGet(t){
     return [];
   });
 }
+function employeesSecure(action,payload){
+  if(!window.parent||typeof window.parent.veraluzSecureRequest!=='function'){
+    return Promise.reject(new Error('secure_broker_unavailable'));
+  }
+  var req=Object.assign({action:action},payload||{});
+  return window.parent.veraluzSecureRequest('employees-secure',req).then(function(res){
+    var body=res&&res.body||{};
+    if(!body.ok){var err=new Error(body.error||'employees_secure_failed');err.code=body.error||'';throw err;}
+    return body;
+  });
+}
 function loadAll(){
   var banner=document.getElementById('load-banner');
   if(banner){banner.textContent='Chargement des données...';banner.style.display='block';banner.style.color='var(--acc1)';}
   Promise.all([
-    safeGet('veraluz_employees?select=*&order=full_name.asc'),
+    employeesSecure('rh_list').then(function(body){return body.employees||[];}).catch(function(e){
+      console.warn('RH employees-secure:',e&&e.message||e);return[];
+    }),
     safeGet('veraluz_teams?select=*'),
     safeGet('veraluz_contracts?select=*&order=created_at.desc&limit=100'),
     safeGet('veraluz_schedules?select=*&order=date.desc&limit=200'),
@@ -1054,6 +1066,8 @@ function renderEmps(){
 }
 function saveEmp(){
   var id=document.getElementById('emp-edit-id').value;
+  var baseSalary=parseFloat(document.getElementById('emp-salary').value)||0;
+  var status=document.getElementById('emp-status').value;
   var d={
     full_name:document.getElementById('emp-name').value.trim(),
     phone:document.getElementById('emp-phone').value.trim(),
@@ -1061,29 +1075,31 @@ function saveEmp(){
     role:document.getElementById('emp-role').value,
     team_id:document.getElementById('emp-team-sel').value||null,
     hire_date:document.getElementById('emp-hire').value||null,
-    base_salary:parseFloat(document.getElementById('emp-salary').value)||0,
     momo_number:document.getElementById('emp-momo').value.trim()||null,
-    status:document.getElementById('emp-status').value,
     notes:document.getElementById('emp-notes').value.trim()||null
   };
   if(!d.full_name){toast('Nom requis','err');return;}
   if(id){
-    /* PROMPT 020D — M9 : modification sans pin_code — géré via Auth > Réinitialiser PIN */
-    PATCH('veraluz_employees',id,d).then(function(){
+    var current=EMPS.find(function(e){return e.id===id;})||{};
+    var flow=employeesSecure('rh_update',{employee_id:id,employee:d});
+    if(Number(current.base_salary||0)!==baseSalary){
+      flow=flow.then(function(){return employeesSecure('rh_update_compensation',{employee_id:id,base_salary:baseSalary});});
+    }
+    if(String(current.status||'')!==String(status)){
+      flow=flow.then(function(){return employeesSecure('rh_set_status',{employee_id:id,status:status});});
+    }
+    flow.then(function(){
       var idx=EMPS.findIndex(function(e){return e.id===id;});
-      if(idx>=0)Object.assign(EMPS[idx],d);
+      if(idx>=0)Object.assign(EMPS[idx],d,{base_salary:baseSalary,status:status});
       closeMd('md-add-emp');renderEmps();toast('Employ&#233; mis &#224; jour &#9989;','ok');
-    }).catch(function(e){toast(explainSupabaseError('Mise à jour','veraluz_employees',e),'err');});
+    }).catch(function(e){toast(explainSupabaseError('Mise à jour','employees-secure',e),'err');});
   } else {
-    d.id=gid();
-    /* PROMPT 020D — M9 : PIN initial + must_change_pin=true à la création */
-    d.pin_code=document.getElementById('emp-pin').value||SETTINGS.default_pin||'123456';
-    d.must_change_pin=true;
-    POST('veraluz_employees',d).then(function(r){
-      EMPS.push(r[0]||d);
+    var createData=Object.assign({},d,{base_salary:baseSalary,status:status});
+    employeesSecure('rh_create',{employee:createData}).then(function(body){
+      EMPS.push(body.employee);
       populateSelects();
-      closeMd('md-add-emp');renderEmps();toast('Employ&#233; ajout&#233; &#9989;','ok');
-    }).catch(function(e){toast(explainSupabaseError('Création','veraluz_employees',e),'err');});
+      closeMd('md-add-emp');renderEmps();toast('Employ&#233; ajout&#233; — acc&#232;s &#224; provisionner dans Auth','ok');
+    }).catch(function(e){toast(explainSupabaseError('Création','employees-secure',e),'err');});
   }
 }
 function openAddEmp(){
@@ -1091,7 +1107,6 @@ function openAddEmp(){
   document.getElementById('emp-md-title').textContent='Nouvel employ&#233;';
   ['emp-name','emp-phone','emp-email','emp-momo','emp-notes'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('emp-salary').value='';
-  document.getElementById('emp-pin').value=SETTINGS.default_pin||'1234';
   document.getElementById('emp-hire').value=new Date().toISOString().slice(0,10);
   openMd('md-add-emp');
 }
@@ -1284,7 +1299,7 @@ function renderDosProfil(e){
     +'<div><div style="color:var(--text3);font-size:10px;">MoMo</div><div>'+maskMomo(e.momo_number)+'</div></div>'
     /* PROMPT 020C — M5 : supprimer PIN •••• — afficher statut */
     +'<div><div style="color:var(--text3);font-size:10px;">PIN</div>'
-    +'<div style="font-size:12px;">'+(e.must_change_pin?'<span style="color:#f59e0b;font-weight:600;">&#9888; Temporaire actif &mdash; changement requis</span>':'<span style="color:var(--text3);">&#128274; Prot&eacute;g&eacute;</span>')+'</div></div>'
+    +'<div style="font-size:12px;">'+(e.access_provisioned===false?'<span style="color:#f59e0b;font-weight:600;">Acc&#232;s &#224; provisionner</span>':e.must_change_pin?'<span style="color:#f59e0b;font-weight:600;">&#9888; Temporaire actif &mdash; changement requis</span>':'<span style="color:var(--text3);">&#128274; Prot&eacute;g&eacute;</span>')+'</div></div>'
     +'</div>'
     +(e.notes?'<div style="margin-top:10px;font-size:12px;color:var(--text3);">'+esc(e.notes)+'</div>':'')
     +'</div>'
@@ -1446,20 +1461,19 @@ function editEmp(eid){
   document.getElementById('emp-hire').value=e.hire_date||'';
   document.getElementById('emp-salary').value=e.base_salary||0;
   document.getElementById('emp-momo').value=e.momo_number||'';
-  document.getElementById('emp-pin').value=e.pin_code||'';
   document.getElementById('emp-status').value=e.status||'actif';
   document.getElementById('emp-notes').value=e.notes||'';
   openMd('md-add-emp');
 }
 function toggleEmpStatus(eid,cur){
   var ns=cur==='actif'?'inactif':'actif';
-  PATCH('veraluz_employees',eid,{status:ns}).then(function(){
+  employeesSecure('rh_set_status',{employee_id:eid,status:ns}).then(function(){
     var e=EMPS.find(function(x){return x.id===eid;});
     if(e){e.status=ns;}
     renderEmps();
     openDossier(eid);
     toast('Statut mis &#224; jour','ok');
-  });
+  }).catch(function(e){toast(explainSupabaseError('Statut','employees-secure',e),'err');});
 }
 function renderDosContrat(){
   var list=CONTRACTS.filter(function(c){return c.employee_id===_dosEmpId;});
@@ -1636,11 +1650,11 @@ function openEditSalaryForEmp(eid){
   if(val===null)return;
   var newSal=parseFloat(val);
   if(isNaN(newSal)||newSal<0){toast('Montant invalide','err');return;}
-  PATCH('veraluz_employees',eid,{base_salary:newSal}).then(function(){
+  employeesSecure('rh_update_compensation',{employee_id:eid,base_salary:newSal}).then(function(){
     emp.base_salary=newSal;
     renderDosSalaire();
     toast('Salaire mis à jour ✅','ok');
-  }).catch(function(e){toast(explainSupabaseError('Salaire','veraluz_employees',e),'err');});
+  }).catch(function(e){toast(explainSupabaseError('Salaire','employees-secure',e),'err');});
 }
 /* PROMPT 020D — M11/M14 : erreurs unifiées et couche adaptateurs */
 function explainSupabaseError(action,table,err){
@@ -1651,7 +1665,7 @@ function explainSupabaseError(action,table,err){
   if(msg.includes('PGRST'))return action+' — Erreur API: '+msg.slice(0,80);
   return action+' ('+table+'): '+msg.slice(0,100);
 }
-var RH_TABLES={EMP:'veraluz_employees',CTR:'veraluz_contracts',TSK:'veraluz_hr_tasks',DOC:'veraluz_hr_documents',BON:'veraluz_employee_bonuses',PAY:'veraluz_payroll_records',ADV:'veraluz_advances'};
+var RH_TABLES={CTR:'veraluz_contracts',TSK:'veraluz_hr_tasks',DOC:'veraluz_hr_documents',BON:'veraluz_employee_bonuses',PAY:'veraluz_payroll_records',ADV:'veraluz_advances'};
 function rhGetContracts(empId){return CONTRACTS.filter(function(c){return c.employee_id===empId;});}
 function rhGetTasks(empId){return TASKS.filter(function(t){return t.employee_id===empId;});}
 function rhGetDocs(empId){return DOCS.filter(function(d){return d.employee_id===empId;});}
@@ -2224,12 +2238,7 @@ function doLogin(){
     showClockScreen();
     if(res.must_change_pin){setTimeout(function(){toast('⚠️ PIN temporaire — changez votre PIN dans Mon PIN');},600);}
   }).catch(function(){
-    /* Fallback local si Edge Function indisponible */
-    if((emp.pin_code||SETTINGS.default_pin||'1234')===_pinBuffer){
-      LOGGED_EMP=emp;errEl.textContent='';
-      document.getElementById('login-screen').classList.remove('on');
-      showClockScreen();
-    } else {errEl.textContent='PIN incorrect ✗';_pinBuffer='';updatePinDots();}
+    errEl.textContent='Service de connexion indisponible';_pinBuffer='';updatePinDots();
   });
 }
 function logoutEmp(){

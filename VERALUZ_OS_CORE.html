@@ -3331,14 +3331,13 @@ function loadEmployeePersonalData(employeeId) {
   if (!employeeId) return;
   var today = new Date().toISOString().slice(0,10);
 
-  /* 1. Profil complet */
-  fetch(SUPA_URL+'/rest/v1/veraluz_employees?id=eq.'+encodeURIComponent(employeeId)
-    +'&select=id,full_name,role,phone,email,hire_date,status,team_id&limit=1', {
-    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
+  /* 1. Profil complet — identité exclusivement dérivée de la session serveur */
+  window.veraluzSecureRequest('employees-secure', { action:'get_my_profile' })
+  .then(function(res){
+    var body=res&&res.body||{};
+    return body.ok?body.profile:null;
   })
-  .then(function(r){ return r.ok?r.json():[]; })
-  .then(function(rows){
-    var emp = Array.isArray(rows)?rows[0]:null;
+  .then(function(emp){
     var extra = document.getElementById('emp-profile-extra');
     if (!extra) return;
     if (!emp) { extra.innerHTML='<div class="emp-empty">Profil non trouve.</div>'; return; }
@@ -3623,6 +3622,8 @@ var VERALUZ_BROKER_ALLOWED_ENDPOINTS = [
   'room-service',
   /* SETTINGS-1 — Settings sécurisés */
   'settings-secure',
+  /* AUTH-R1C1 — Données employés sécurisées */
+  'employees-secure',
   /* RES-LIFECYCLE-1 — Workflow réservations sécurisé */
   'reservation-workflow'
 ];

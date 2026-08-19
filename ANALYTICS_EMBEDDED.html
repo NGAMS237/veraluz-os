@@ -362,6 +362,21 @@ async function safeFetchTable(table, query) {
   }
 }
 
+async function fetchEmployeesAnalyticsSecure() {
+  try {
+    if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+      throw new Error('secure_broker_unavailable');
+    }
+    var res = await window.parent.veraluzSecureRequest('employees-secure', { action:'list_analytics' });
+    var body = res && res.body || {};
+    if (!body.ok) throw new Error(body.error || 'employees_secure_failed');
+    return Array.isArray(body.employees) ? body.employees : [];
+  } catch (err) {
+    console.warn('[VERALUZ ANALYTICS] Employés indisponibles:', err && err.message);
+    return [];
+  }
+}
+
 // ── COMPUTE DASHBOARD ─────────────────────────────────────────
 function computeDashboard() {
   var days = period > 0 ? period : 365;
@@ -675,7 +690,7 @@ async function loadAnalyticsData() {
     safeFetchTable('veraluz_payments',         'select=*&order=created_at.desc'),
     safeFetchTable('veraluz_food_orders',      'select=*&order=created_at.desc'),
     safeFetchTable('veraluz_restaurant_orders','select=*&order=created_at.desc'),
-    safeFetchTable('veraluz_employees',        'select=id,full_name,role,status,team_id,hire_date,base_salary,hourly_rate,contract_type,created_at'), /* PROMPT 018: select explicite — pas de bank_account/momo/pin */
+    fetchEmployeesAnalyticsSecure(),
     safeFetchTable('veraluz_units',            'select=*&order=sort_order.asc'),
     safeFetchTable('veraluz_expenses',         'select=*&order=date.desc'),
     safeFetchTable('veraluz_payroll',          'select=*&order=created_at.desc'),

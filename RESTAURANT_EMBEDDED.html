@@ -1135,6 +1135,17 @@ var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR
 var VC = window.VeraluzCore || {};
 function H(x){return Object.assign({apikey:SK,Authorization:'Bearer '+SK,'Content-Type':'application/json'},x||{});}
 function GET(p){return fetch(SB+p,{headers:H({Accept:'application/json'})}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
+function getOperationalRosterSecure(){
+  if(!window.parent||typeof window.parent.veraluzSecureRequest!=='function'){
+    return Promise.reject(new Error('secure_broker_unavailable'));
+  }
+  return window.parent.veraluzSecureRequest('employees-secure',{action:'list_operational_roster'})
+    .then(function(res){
+      var body=res&&res.body||{};
+      if(!body.ok)throw new Error(body.error||'employees_secure_failed');
+      return Array.isArray(body.employees)?body.employees:[];
+    });
+}
 function POST(t,d){return fetch(SB+'/rest/v1/'+t,{method:'POST',headers:H({Prefer:'return=representation'}),body:JSON.stringify(d)}).then(function(r){if(!r.ok)throw r.status;return r.json();});}
 /* PROMPT 028 : PATCH enrichi — capture erreur Supabase */
 function RPC(name,params){
@@ -1429,17 +1440,16 @@ function loadAll(){
     _safe(GET('/rest/v1/veraluz_room_charges?select=*&settled=eq.false&order=created_at.desc')),
     _safe(GET('/rest/v1/veraluz_food_orders?select=*&order=created_at.desc&limit=50')),
     _safe(GET('/rest/v1/veraluz_food_promotions?select=*&order=created_at.desc')),
-    /* P0 FIX: veraluz_employees (table officielle) + join equipe */
-    /* PROMPT 025 SÉCURITÉ: code PIN retiré du select — jamais exposé côté frontend */
-    /* PROMPT 026 : photo_url + identity_verified pour affichage livreur */
-    _safe(GET('/rest/v1/veraluz_employees?select=id,full_name,role,status,phone,email,photo_url,public_display_name,identity_verified,team:veraluz_teams(id,name)&status=eq.actif&order=full_name.asc')),
+    /* AUTH-R1C1: roster opérationnel via session employé et autorité serveur */
+    _safe(getOperationalRosterSecure()),
   ]).then(function(r){
     TABLES=r[0]||[];PRODS=r[1]||[];ORDERS=r[2]||[];STOCK=r[3]||[];SUPS=r[4]||[];
     RESAS=r[5]||[];ACTIVE_HOTEL_GUESTS=r[6]||[];ROOM_CHARGES=r[7]||[];FOOD_ORDERS=r[8]||[];APP_PROMOS=r[9]||[];
-      /* GUEST-3.2 — résoudre nom employé RS */
-      resolveRsEmployeeNames(FOOD_ORDERS);
+    var employeeRoster=r[10]||[];
+      /* GUEST-3.2 — résoudre nom employé RS depuis le roster sécurisé */
+      resolveRsEmployeeNames(FOOD_ORDERS,employeeRoster);
     /* Filtre livreurs via isDeliveryEmployee() : équipe OU rôle */
-    LIVREURS=(r[10]||[]).filter(isDeliveryEmployee).map(normalizeEmployee);
+    LIVREURS=employeeRoster.filter(isDeliveryEmployee).map(normalizeEmployee);
     /* P0 FIX: normalise les statuts food à la source — tout le code aval utilise o.status directement */
     FOOD_ORDERS=(FOOD_ORDERS||[]).map(function(o){
       var ns=normalizeOrderStatus(o.status);
@@ -2303,21 +2313,15 @@ function kdsFoodUpd(oid,st){
 }
 
 /* Assign deliverer — modal avec cartes livreurs */
-/* GUEST-3.2 — Résoudre noms employés RS depuis veraluz_employees */
-function resolveRsEmployeeNames(orders){
-  var ids=(orders||[]).filter(function(o){return o.room_service_employee_id&&!o.rs_employee_name;}).map(function(o){return o.room_service_employee_id;});
-  if(!ids.length)return;
-  var unique=[...new Set(ids)];
-  GET('/rest/v1/veraluz_employees?id=in.('+unique.map(encodeURIComponent).join(',')+')'
-    +'&select=id,public_display_name,public_role_label').then(function(rows){
-    var map={};(rows||[]).forEach(function(e){map[e.id]=e;});
-    (orders||[]).forEach(function(o){
-      if(o.room_service_employee_id&&map[o.room_service_employee_id]){
-        o.rs_employee_name=map[o.room_service_employee_id].public_display_name||o.room_service_employee_id;
-      }
-    });
-    renderKds();
-  }).catch(function(){});
+/* GUEST-3.2 / AUTH-R1C1 — Résoudre les noms depuis le roster déjà autorisé */
+function resolveRsEmployeeNames(orders,employees){
+  var map={};(employees||[]).forEach(function(e){map[String(e.id)]=e;});
+  (orders||[]).forEach(function(o){
+    var e=o.room_service_employee_id?map[String(o.room_service_employee_id)]:null;
+    if(e&&!o.rs_employee_name){
+      o.rs_employee_name=e.public_display_name||e.full_name||o.room_service_employee_id;
+    }
+  });
 }
 
 /* GUEST-3.2 — Ouvrir modal assignment Room Service */
@@ -2336,12 +2340,12 @@ function kdsAssignRoomService(oid){
     window.parent.veraluzSecureRequest('room-service',{action:'list_on_duty_employees'}).then(function(res){
       var employees=(res.body&&res.body.employees)||[];
       if(!employees.length){
-        lst.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);">Aucun employé en service actuellement.<br><small>Les employés doivent avoir pointé (shift_start) aujourd'hui.</small></div>';
+        lst.innerHTML='<div style="padding:16px;text-align:center;color:var(--text3);">Aucun employé en service actuellement.<br><small>Les employés doivent avoir pointé (shift_start) aujourd&#39;hui.</small></div>';
         return;
       }
       lst.innerHTML=employees.map(function(emp){
         var initials=(emp.display_name||'E').charAt(0).toUpperCase();
-        return '<button onclick="pickRsEmployee(''+esc(emp.employee_id)+'',''+esc(emp.display_name)+'')" '
+        return '<button data-eid="'+esc(emp.employee_id)+'" data-ename="'+esc(emp.display_name)+'" onclick="pickRsEmployee(this.dataset.eid,this.dataset.ename)" '
           +'style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bord2);border-radius:12px;cursor:pointer;width:100%;text-align:left;">'
           +'<div style="width:38px;height:38px;border-radius:50%;background:#a78bfa;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;">'+initials+'</div>'
           +'<div style="flex:1;min-width:0;">'

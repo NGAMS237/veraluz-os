@@ -695,13 +695,6 @@ var isDeliveryEmployee = VC.isDeliveryEmployee || function(emp) {
   return t.includes('livr') || r.includes('livreur');
 };
 
-/* AUTH-R1C2: rôles constatés en DB pour l'équipe Livreurs + alias dédiés connus. */
-var DELIVERY_LOGIN_ROLES=['livreur','delivery','coursier','driver','chauffeur','staff','technicien'];
-function isLivreurLoginCandidate(emp){
-  var role=String(emp&&emp.role||'').toLowerCase();
-  var status=String(emp&&emp.status||'').toLowerCase();
-  return (status==='actif'||status==='active')&&DELIVERY_LOGIN_ROLES.indexOf(role)!==-1;
-}
 function normalizeLivreurEmployee(row){
   var normalized=normalizeEmployee(row)||{};
   return Object.assign({},normalized,{
@@ -748,7 +741,7 @@ function toast(msg,type){
 /* ══════════════════════════════════════════
    PIN — LOAD LIVREURS
 ══════════════════════════════════════════ */
-/* AUTH-R1C2 : sélecteur alimenté uniquement par la vue publique minimale. */
+/* AUTH-R1C2.1 : la vue publique dédiée filtre l'équipe Livreurs côté DB. */
 function loadLivreurs(){
   var sel=document.getElementById('pin-livreur-sel');
   var lbl=document.getElementById('pin-loading');
@@ -756,8 +749,7 @@ function loadLivreurs(){
 
   /* Helper : peupler le select depuis un tableau de lignes */
   function _populate(rows){
-    var livrows=rows.filter(isLivreurLoginCandidate);
-    LIVREURS=livrows.map(normalizeLivreurEmployee);
+    LIVREURS=rows.map(normalizeLivreurEmployee);
     sel.innerHTML='<option value="">— Sélectionnez —</option>';
     if(!LIVREURS.length){
       var o=document.createElement('option');
@@ -776,7 +768,7 @@ function loadLivreurs(){
     lbl.textContent='';
   }
 
-  return sbFetch('veraluz_employees_public?select=id,full_name,role,status&status=eq.actif&order=full_name.asc')
+  return sbFetch('veraluz_delivery_login_public?select=id,full_name,status&order=full_name.asc')
     .then(function(rows){
       _populate(rows||[]);
     })
@@ -926,12 +918,11 @@ function validatePin(){
 
     LIVREUR_SESSION_TOKEN=sessionToken;
     LIVREUR_SESSION_EXPIRY=result.session_expiry||null;
-    employeesSecure('get_my_profile',{})
+    employeesSecure('get_my_delivery_profile',{})
       .then(function(data){
         var profile=data&&data.profile;
-        var serverRole=String(profile&&profile.role||'').toLowerCase();
-        if(!profile||DELIVERY_LOGIN_ROLES.indexOf(serverRole)===-1){
-          throw new Error('delivery_role_forbidden');
+        if(!profile||data.delivery_access!==true){
+          throw new Error('delivery_access_forbidden');
         }
         LIVREUR_ACTIF=normalizeLivreurEmployee(profile);
         document.getElementById('pin-screen').classList.add('hidden');
@@ -943,8 +934,8 @@ function validatePin(){
         clearLivreurSessionState();
         LIVREUR_ACTIF=null;
         revokeLivreurSession(tokenToRevoke);
-        err.textContent=e&&e.message==='delivery_role_forbidden'
-          ?'Accès livreur refusé — contactez le manager.'
+        err.textContent=e&&e.message==='delivery_access_forbidden'
+          ?'Accès livreur non autorisé'
           :'Impossible de charger votre profil sécurisé.';
       });
   });

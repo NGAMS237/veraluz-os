@@ -34,8 +34,9 @@ function functionSource(name, nextMarker) {
 }
 
 const validatePinSource = functionSource('validatePin', '/* ══════════════════════════════════════════\n   APP INIT');
+const loadLivreursSource = functionSource('loadLivreurs', 'function buildPinPad');
 
-function loginScenario(result, profile) {
+function loginScenario(result, secureResponse, secureError) {
   const state = { initialized: 0, employeeSecureCalls: [], revoked: [] };
   const elements = {
     'pin-livreur-sel': { value: 'liv-1' },
@@ -51,13 +52,12 @@ function loginScenario(result, profile) {
     LIVREUR_ACTIF: null,
     LIVREUR_SESSION_TOKEN: '',
     LIVREUR_SESSION_EXPIRY: null,
-    DELIVERY_LOGIN_ROLES: ['livreur', 'delivery', 'coursier', 'driver', 'chauffeur', 'staff', 'technicien'],
     _pinBuffer: '123456',
     renderPinDots() {},
     verifyLivreurPin: () => Promise.resolve(result),
     employeesSecure: (action, payload) => {
       state.employeeSecureCalls.push({ action, payload });
-      return Promise.resolve({ ok: true, profile });
+      return secureError ? Promise.reject(new Error(secureError)) : Promise.resolve(secureResponse);
     },
     normalizeLivreurEmployee: (employee) => ({ ...employee, prenom: 'Livreur', nom: 'Test' }),
     clearLivreurSessionState() {
@@ -80,13 +80,12 @@ async function settleLogin(scenario) {
 }
 
 test('SELECTOR-01 vue publique avec projection minimale exacte',
-  /veraluz_employees_public\?select=id,full_name,role,status&status=eq\.actif&order=full_name\.asc/.test(livreur));
+  /veraluz_delivery_login_public\?select=id,full_name,status&order=full_name\.asc/.test(livreur));
 test('SELECTOR-02 aucun fallback ou accès direct à veraluz_employees',
   !/(?:sbFetch|sbPatch)\(['"]veraluz_employees(?:\?|['"])/.test(livreur)
     && !/\/rest\/v1\/veraluz_employees(?:\?|['"])/.test(livreur));
-test('SELECTOR-03 rôles DB livreurs et alias dédiés explicitement filtrés',
-  /DELIVERY_LOGIN_ROLES=\['livreur','delivery','coursier','driver','chauffeur','staff','technicien'\]/.test(livreur)
-    && /rows\.filter\(isLivreurLoginCandidate\)/.test(livreur));
+test('SELECTOR-03 aucune autorisation Livreur décidée par un rôle frontend',
+  !/DELIVERY_LOGIN_ROLES|isLivreurLoginCandidate|rows\.filter\(/.test(loadLivreursSource));
 
 test('SESSION-01 token canonique séparé de LIVREUR_ACTIF',
   /var LIVREUR_SESSION_TOKEN='', LIVREUR_SESSION_EXPIRY=null/.test(livreur)
@@ -109,13 +108,13 @@ await testAsync('LOGIN-02 PIN correct utilise la vraie session et le profil serv
   const token = 'a'.repeat(64);
   const scenario = await settleLogin(loginScenario(
     { ok: true, auth_state: 'ok', session_token: token, session_expiry: '2099-01-01T00:00:00Z', employee: { id: 'liv-1' } },
-    { id: 'liv-1', full_name: 'Livreur Test', role: 'staff' },
+    { ok: true, delivery_access: true, profile: { id: 'liv-1', full_name: 'Livreur Test', role: 'staff' } },
   ));
   return scenario.context.LIVREUR_SESSION_TOKEN === token
     && scenario.context.LIVREUR_ACTIF?.id === 'liv-1'
     && !Object.prototype.hasOwnProperty.call(scenario.context.LIVREUR_ACTIF, 'session_token')
     && scenario.state.employeeSecureCalls.length === 1
-    && scenario.state.employeeSecureCalls[0].action === 'get_my_profile'
+    && scenario.state.employeeSecureCalls[0].action === 'get_my_delivery_profile'
     && scenario.state.initialized === 1;
 });
 await testAsync('LOGIN-03 must_change_pin bloque totalement l’application', async () => {
@@ -128,6 +127,21 @@ await testAsync('LOGIN-03 must_change_pin bloque totalement l’application', as
     && scenario.state.employeeSecureCalls.length === 0
     && scenario.state.initialized === 0
     && scenario.elements['pin-err'].textContent === 'Vous devez modifier votre PIN avant de continuer.';
+});
+
+await testAsync('LOGIN-04 session non éligible révoquée sans ouvrir Livreur', async () => {
+  const token = 'b'.repeat(64);
+  const scenario = await settleLogin(loginScenario(
+    { ok: true, auth_state: 'ok', session_token: token, session_expiry: '2099-01-01T00:00:00Z', employee: { id: 'liv-1' } },
+    null,
+    'delivery_access_forbidden',
+  ));
+  return scenario.context.LIVREUR_ACTIF === null
+    && scenario.context.LIVREUR_SESSION_TOKEN === ''
+    && scenario.state.revoked.length === 1
+    && scenario.state.revoked[0] === token
+    && scenario.state.initialized === 0
+    && scenario.elements['pin-err'].textContent === 'Accès livreur non autorisé';
 });
 
 const photoSource = functionSource('onProfilPhotoSelected', '/* ══════════════════════════════════════════\n   LOGOUT');

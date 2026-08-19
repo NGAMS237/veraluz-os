@@ -64,6 +64,7 @@ const RH_UPDATE_FIELDS = new Set([
   'full_name', 'phone', 'email', 'role', 'team_id', 'hire_date',
   'momo_number', 'notes',
 ]);
+const GET_MY_DELIVERY_PROFILE_FIELDS = new Set(['action']);
 const UPDATE_MY_PHOTO_FIELDS = new Set(['action', 'photo_url']);
 
 type Actor = { id: string; role: string; roleClass: string };
@@ -148,6 +149,10 @@ async function validateEmployeeSession(
 
 function requireRole(actor: Actor, allowed: Set<string>) {
   return allowed.has(actor.roleClass);
+}
+
+function isDeliveryTeamName(value: unknown) {
+  return String(value || '').trim().toLowerCase() === 'livreurs';
 }
 
 function isPrivilegedRole(role: unknown) {
@@ -311,6 +316,49 @@ Deno.serve(async (req) => {
     }
     if (!profile) return json({ ok: false, error: 'employee_not_found' }, 404, origin);
     return json({ ok: true, profile }, 200, origin);
+  }
+
+  if (action === 'get_my_delivery_profile') {
+    if (!validateFields(body, GET_MY_DELIVERY_PROFILE_FIELDS)) {
+      return json({ ok: false, error: 'invalid_delivery_profile_fields' }, 400, origin);
+    }
+
+    const { data: employee, error: employeeError } = await db
+      .from('veraluz_employees')
+      .select('id,full_name,role,status,team_id,phone,photo_url,public_display_name,identity_verified')
+      .eq('id', actor.id)
+      .maybeSingle();
+    if (employeeError) {
+      console.error('[employees-secure] delivery_employee_lookup_failed code=', employeeError.code);
+      return json({ ok: false, error: 'server_error' }, 500, origin);
+    }
+    if (!employee || !ACTIVE_STATUSES.has(String(employee.status || '').toLowerCase()) || !employee.team_id) {
+      return json({ ok: false, error: 'delivery_access_forbidden', delivery_access: false }, 403, origin);
+    }
+
+    const { data: team, error: teamError } = await db
+      .from('veraluz_teams')
+      .select('id,name')
+      .eq('id', employee.team_id)
+      .maybeSingle();
+    if (teamError) {
+      console.error('[employees-secure] delivery_team_lookup_failed code=', teamError.code);
+      return json({ ok: false, error: 'server_error' }, 500, origin);
+    }
+    if (!team || !isDeliveryTeamName(team.name)) {
+      return json({ ok: false, error: 'delivery_access_forbidden', delivery_access: false }, 403, origin);
+    }
+
+    const profile = {
+      id: employee.id,
+      full_name: employee.full_name,
+      role: employee.role,
+      phone: employee.phone,
+      photo_url: employee.photo_url,
+      public_display_name: employee.public_display_name,
+      identity_verified: employee.identity_verified,
+    };
+    return json({ ok: true, delivery_access: true, profile }, 200, origin);
   }
 
   if (action === 'update_my_photo') {

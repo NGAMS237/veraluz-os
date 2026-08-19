@@ -42,6 +42,14 @@ function actionBlock(action, nextAction) {
 function makeFakeDb(scenario, calls) {
   const actor = { id: 'actor-1', role: 'rh', status: 'actif', ...(scenario.actor || {}) };
   const target = { id: 'target-1', role: 'staff', status: 'actif', ...(scenario.target || {}) };
+  const deliveryEmployee = {
+    id: actor.id, full_name: 'Livreur Test', role: actor.role, status: actor.status,
+    team_id: scenario.teamId === undefined ? 'team-delivery' : scenario.teamId,
+    phone: null, photo_url: null, public_display_name: null, identity_verified: false,
+  };
+  const deliveryTeam = scenario.teamMissing
+    ? null
+    : { id: deliveryEmployee.team_id, name: scenario.teamName || 'Livreurs' };
 
   return {
     from(table) {
@@ -75,11 +83,17 @@ function makeFakeDb(scenario, calls) {
             return { data: { id: state.filters.id || target.id, ...state.payload }, error: null };
           }
           if (state.projection === 'id,role,status') return { data: actor, error: null };
+          if (state.projection === 'id,full_name,role,status,team_id,phone,photo_url,public_display_name,identity_verified') {
+            return { data: deliveryEmployee, error: null };
+          }
           if (state.projection === 'id,role') {
             return state.filters.id === target.id
               ? { data: target, error: null }
               : { data: null, error: null };
           }
+        }
+        if (table === 'veraluz_teams' && state.projection === 'id,name') {
+          return { data: deliveryTeam, error: null };
         }
         return { data: [], error: null };
       }
@@ -151,11 +165,64 @@ test('AUTH-04 rôle et statut du demandeur sont relus côté serveur',
   /\.from\('veraluz_employees'\)[\s\S]*?\.select\('id,role,status'\)/.test(edge)
     && /roleClass: roleClass\(employee\.role\)/.test(edge));
 
-const profile = actionBlock('get_my_profile', 'update_my_photo');
+const profile = actionBlock('get_my_profile', 'get_my_delivery_profile');
 test('PROFILE-01 get_my_profile utilise uniquement actor.id',
   /\.eq\('id', actor\.id\)/.test(profile) && !/body\.employee_id/.test(profile));
 test('PROFILE-02 projection profil minimale',
   /\.select\('id,full_name,role,phone,email,hire_date,team_id,photo_url,public_display_name,identity_verified'\)/.test(profile));
+
+const deliveryProfile = actionBlock('get_my_delivery_profile', 'update_my_photo');
+test('DELIVERY-01 éligibilité calculée uniquement depuis actor.id et la DB',
+  /\.eq\('id', actor\.id\)/.test(deliveryProfile)
+    && /\.from\('veraluz_teams'\)/.test(deliveryProfile)
+    && /\.eq\('id', employee\.team_id\)/.test(deliveryProfile)
+    && !/body\.employee_id/.test(deliveryProfile));
+test('DELIVERY-02 le rôle générique ne décide jamais de l’accès Livreur',
+  /isDeliveryTeamName\(team\.name\)/.test(deliveryProfile)
+    && !/(actor|employee)\.role\s*===|DELIVERY_LOGIN_ROLES/.test(deliveryProfile));
+
+await testAsync('DELIVERY-03 staff + équipe Livreurs autorisé', async () => {
+  const result = await invokeEdge(
+    { action: 'get_my_delivery_profile' },
+    { actor: { role: 'staff', status: 'actif' }, teamName: 'Livreurs' },
+  );
+  return result.status === 200 && result.body.delivery_access === true
+    && result.body.profile?.id === 'actor-1';
+});
+await testAsync('DELIVERY-04 technicien + équipe Livreurs autorisé', async () => {
+  const result = await invokeEdge(
+    { action: 'get_my_delivery_profile' },
+    { actor: { role: 'technicien', status: 'active' }, teamName: 'Livreurs' },
+  );
+  return result.status === 200 && result.body.delivery_access === true;
+});
+await testAsync('DELIVERY-05 technicien + Maintenance refusé', async () => {
+  const result = await invokeEdge(
+    { action: 'get_my_delivery_profile' },
+    { actor: { role: 'technicien', status: 'actif' }, teamName: 'Maintenance' },
+  );
+  return result.status === 403 && result.body.delivery_access === false
+    && result.body.error === 'delivery_access_forbidden';
+});
+await testAsync('DELIVERY-06 staff hors Livreurs refusé', async () => {
+  const result = await invokeEdge(
+    { action: 'get_my_delivery_profile' },
+    { actor: { role: 'staff', status: 'actif' }, teamName: 'Réception' },
+  );
+  return result.status === 403 && result.body.delivery_access === false;
+});
+await testAsync('DELIVERY-07 employé inactif de l’équipe Livreurs refusé', async () => {
+  const result = await invokeEdge(
+    { action: 'get_my_delivery_profile' },
+    { actor: { role: 'staff', status: 'inactif' }, teamName: 'Livreurs' },
+  );
+  return result.status === 401 && result.body.error === 'invalid_or_expired_session';
+});
+await testAsync('DELIVERY-08 le client ne peut pas choisir employee_id', async () => {
+  const result = await invokeEdge({ action: 'get_my_delivery_profile', employee_id: 'target-1' });
+  return result.status === 400 && result.body.error === 'invalid_delivery_profile_fields'
+    && !result.calls.some((call) => call.table === 'veraluz_teams');
+});
 
 const updatePhoto = actionBlock('update_my_photo', 'list_directory');
 test('PHOTO-01 update_my_photo utilise actor.id et une allowlist de payload',
@@ -205,7 +272,8 @@ test('ANALYTICS-02 accès réservé strictement Direction ou Finance',
     && /const ANALYTICS_ROLE_CLASSES = new Set\(\['superadmin', 'accountant'\]\)/.test(edge));
 
 const expectedActions = [
-  'get_my_profile', 'update_my_photo', 'list_directory', 'list_operational_roster', 'list_analytics',
+  'get_my_profile', 'get_my_delivery_profile', 'update_my_photo',
+  'list_directory', 'list_operational_roster', 'list_analytics',
   'rh_list', 'rh_create', 'rh_update', 'rh_set_status', 'rh_update_compensation',
 ];
 const actualActions = [...edge.matchAll(/if \(action === '([^']+)'\)/g)].map((match) => match[1]);

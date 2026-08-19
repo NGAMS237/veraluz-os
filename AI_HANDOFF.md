@@ -8,9 +8,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## Lots actifs
 
-`AUTH-R1D PHASE B | Codex | main (source codex/auth-r1-containment) | main e7206fc publié; backend, Pages et interfaces validés; containment non appliqué | READY FOR HUMAN VALIDATION; LOCK conservé`
+`AUTH-R1D-H1 | Codex | codex/auth-r1-containment | Restaurant Livraisons aligné sur livreur_id + assigned_to; main reste e7206fc | READY FOR REVIEW; containment non appliqué; LOCK Phase B conservé`
 
 ## Transmissions récentes
+
+`2026-08-19 | Codex | AUTH-R1D-H1 | codex/auth-r1-containment | 6c76f8f | DB: seules colonnes livreur_id/assigned_to présentes; ciblé 10/10; AUTH 11+15+52+13+14+16 PASS; REST live Aujourd’hui/Historique/Détail/message 200; regroupement réel lu sans écriture | poussé, READY FOR REVIEW; aucun déploiement/merge | LOCK AUTH-R1 Phase B conservé | review puis autorisation séparée requise avant merge main; containment interdit`
 
 `2026-08-19 | Codex | AUTH-R1D PHASE B | main (source codex/auth-r1-containment) | e7206fcde199548dc699a18eb3b1132d264525dc | fast-forward 5/0; suites 11+15+52+13+14+16 PASS; Pages 7/7 blobs exacts; live profil/RH/Contacts/Analytics/Restaurant 200; Livreur équipe 200 et hors-équipe 403; CORS 204; navigateur sans erreur bloquante; 3 sessions test supprimées | publié, READY FOR HUMAN VALIDATION; rh_anon_all présent et containment non appliqué | mêmes zones Phase B: LOCK conservé | validation humaine puis autorisation séparée requise avant Phase C; ne pas démarrer AUTH-R2`
 

@@ -1,95 +1,149 @@
 /**
- * VERALUZ — revoke-employee-sessions — v1 (PROMPT 009, §10)
+ * VERALUZ — revoke-employee-sessions — v2 (AUTH-R2B1)
  *
- * POST { session_token, employee_id } -> { ok:true, revoked_count }
+ * Changements v2 :
+ * - Revoque maintenant AUSSI tous les resume_tokens actifs de la cible.
+ *   Sans cela, l'employe peut immediatement reconstruire une session via resume.
+ * - caller status IN ('actif','active') pour coherence bilingue.
+ * - employee_id cible jamais fait confiance depuis le client seul :
+ *   il est valide mais le caller est toujours authentifie par session serveur.
  *
- * Action Direction independante du reset PIN : revoquer les sessions actives d'un
- * employe sans forcement generer un nouveau PIN provisoire. Meme modele
- * d'autorisation que reset-employee-pin (session Direction valide, role derive
- * cote serveur, jamais du client).
+ * POST body : { session_token: string, employee_id: string }
+ * Reponse   : { ok: true, revoked_sessions: N, revoked_resumes: M }
+ *
+ * Autorisation : role gerant / admin / superadmin uniquement.
  */
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const ALLOWED_ORIGINS = [
   'https://ngams237.github.io',
   'http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080',
   'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080',
-]
-const DIRECTION_ROLES = ['gerant', 'admin', 'superadmin']
+];
+const DIRECTION_ROLES = ['gerant', 'admin', 'superadmin'];
 
-function cors(origin: string | null) {
+function cors(origin: string | null): Record<string, string> {
   const h: Record<string, string> = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Vary': 'Origin',
-  }
-  if (origin && ALLOWED_ORIGINS.includes(origin)) h['Access-Control-Allow-Origin'] = origin
-  return h
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
+  };
+  if (origin && ALLOWED_ORIGINS.includes(origin)) h['Access-Control-Allow-Origin'] = origin;
+  return h;
 }
+
 function json(b: unknown, s: number, o: string | null) {
-  return new Response(JSON.stringify(b), { status: s, headers: { ...cors(o), 'Content-Type': 'application/json' } })
+  return new Response(JSON.stringify(b),
+    { status: s, headers: { ...cors(o), 'Content-Type': 'application/json' } });
 }
+
 async function sha256Hex(s: string): Promise<string> {
-  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))
-  return Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join('')
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(d)).map(x => x.toString(16).padStart(2, '0')).join('');
 }
 
 Deno.serve(async (req) => {
-  const origin = req.headers.get('origin')
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) })
-  if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405, origin)
-  if (origin && !ALLOWED_ORIGINS.includes(origin)) return json({ ok: false, error: 'forbidden_origin' }, 403, origin)
+  const origin = req.headers.get('origin');
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) });
+  if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405, origin);
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) return json({ ok: false, error: 'forbidden_origin' }, 403, origin);
 
-  let body: { session_token?: string; employee_id?: string }
-  try { body = await req.json() } catch { return json({ ok: false, error: 'invalid_json' }, 400, origin) }
+  let body: { session_token?: string; employee_id?: string };
+  try { body = await req.json(); }
+  catch { return json({ ok: false, error: 'invalid_json' }, 400, origin); }
 
-  const token = String(body.session_token || '')
-  const targetId = String(body.employee_id || '').trim()
-  if (!/^[0-9a-f]{64}$/.test(token)) return json({ ok: false, error: 'unauthorized' }, 401, origin)
-  if (!targetId) return json({ ok: false, error: 'employee_id_required' }, 400, origin)
+  const token    = String(body.session_token || '');
+  const targetId = String(body.employee_id   || '').trim();
+  if (!/^[0-9a-f]{64}$/.test(token)) return json({ ok: false, error: 'unauthorized' }, 401, origin);
+  if (!targetId) return json({ ok: false, error: 'employee_id_required' }, 400, origin);
 
   const admin = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     { auth: { autoRefreshToken: false, persistSession: false } },
-  )
+  );
 
-  const callerTokenHash = await sha256Hex(token)
-  const { data: sess, error: sErr } = await admin
+  const now = new Date().toISOString();
+  const callerHash = await sha256Hex(token);
+
+  // 1. Authentifier le caller
+  const { data: sessList, error: sErr } = await admin
     .from('veraluz_employee_sessions')
     .select('employee_id, expires_at, revoked_at')
-    .eq('token_hash', callerTokenHash).is('revoked_at', null)
-    .gt('expires_at', new Date().toISOString()).limit(1)
-  if (sErr) { console.error('[revoke-sessions] session_lookup_failed code=', sErr.code); return json({ ok: false, error: 'server_error' }, 500, origin) }
-  if (!sess || sess.length === 0) return json({ ok: false, error: 'unauthorized' }, 401, origin)
-  const callerId = sess[0].employee_id as string
+    .eq('token_hash', callerHash)
+    .is('revoked_at', null)
+    .gt('expires_at', now)
+    .limit(1);
 
-  const { data: callerEmp, error: ceErr } = await admin
-    .from('veraluz_employees').select('id, role, status').eq('id', callerId).limit(1)
-  if (ceErr) { console.error('[revoke-sessions] caller_lookup_failed code=', ceErr.code); return json({ ok: false, error: 'server_error' }, 500, origin) }
-  const caller = callerEmp && callerEmp[0]
-  if (!caller || !['actif', 'active'].includes(String(caller.status))) return json({ ok: false, error: 'unauthorized' }, 401, origin)
-  const callerRole = String(caller.role || '')
+  if (sErr) { console.error('[revoke-sessions] session_lookup code=', sErr.code); return json({ ok: false, error: 'server_error' }, 500, origin); }
+  if (!sessList || sessList.length === 0) return json({ ok: false, error: 'unauthorized' }, 401, origin);
 
-  if (!DIRECTION_ROLES.includes(callerRole)) {
+  const callerId = sessList[0].employee_id as string;
+
+  // 2. Verifier le role du caller — status IN ('actif','active') pour coherence bilingue
+  const { data: callerList, error: ceErr } = await admin
+    .from('veraluz_employees')
+    .select('id, role, status')
+    .eq('id', callerId)
+    .in('status', ['actif', 'active'])
+    .limit(1);
+
+  if (ceErr) { console.error('[revoke-sessions] caller_lookup code=', ceErr.code); return json({ ok: false, error: 'server_error' }, 500, origin); }
+  const caller = callerList && callerList[0];
+  if (!caller) return json({ ok: false, error: 'unauthorized' }, 401, origin);
+
+  if (!DIRECTION_ROLES.includes(String(caller.role || ''))) {
     await admin.from('veraluz_auth_events').insert({
       event_type: 'session_revoke_denied', employee_id: targetId,
-      performed_by: callerId, performed_by_role: callerRole, success: false,
-      details_json: { reason: 'insufficient_role' },
-    })
-    return json({ ok: false, error: 'forbidden' }, 403, origin)
+      performed_by: callerId, performed_by_role: caller.role,
+      success: false, details_json: { reason: 'insufficient_role' },
+    });
+    return json({ ok: false, error: 'forbidden' }, 403, origin);
   }
 
-  const { data: revoked, error: revErr } = await admin.from('veraluz_employee_sessions')
-    .update({ revoked_at: new Date().toISOString(), revoked_reason: 'admin_revoke' })
-    .eq('employee_id', targetId).is('revoked_at', null)
-    .select('id')
-  if (revErr) { console.error('[revoke-sessions] revoke_failed code=', revErr.code); return json({ ok: false, error: 'server_error' }, 500, origin) }
+  // 3. Revoquer toutes les employee_sessions actives de la cible
+  const { data: revokedSess, error: rsErr } = await admin
+    .from('veraluz_employee_sessions')
+    .update({ revoked_at: now, revoked_reason: 'admin_revoke' })
+    .eq('employee_id', targetId)
+    .is('revoked_at', null)
+    .select('id');
+
+  if (rsErr) { console.error('[revoke-sessions] revoke_sessions code=', rsErr.code); return json({ ok: false, error: 'server_error' }, 500, origin); }
+
+  // 4. Revoquer AUSSI tous les resume_tokens actifs de la cible
+  //    Sans cela l'employe peut reconstruire une session via resume immediatement.
+  const { data: revokedResumes, error: rrErr } = await admin
+    .from('veraluz_resume_tokens')
+    .update({ revoked_at: now, revoked_reason: 'admin_revoke' })
+    .eq('employee_id', targetId)
+    .is('revoked_at', null)
+    .select('id');
+
+  if (rrErr) {
+    console.error('[revoke-sessions] revoke_resumes code=', rrErr.code);
+    // Sessions revoquees, resumes pas. On log l'evenement avec partial=true.
+  }
+
+  const revokedSessCount   = (revokedSess   || []).length;
+  const revokedResumeCount = (revokedResumes || []).length;
 
   await admin.from('veraluz_auth_events').insert({
-    event_type: 'sessions_revoked', employee_id: targetId,
-    performed_by: callerId, performed_by_role: callerRole, success: true,
-    details_json: { revoked_count: (revoked || []).length },
-  })
+    event_type: 'sessions_revoked',
+    employee_id: targetId,
+    performed_by: callerId,
+    performed_by_role: caller.role,
+    success: true,
+    details_json: {
+      revoked_sessions: revokedSessCount,
+      revoked_resumes:  revokedResumeCount,
+      partial_resume_failure: rrErr ? true : false,
+    },
+  });
 
-  return json({ ok: true, revoked_count: (revoked || []).length }, 200, origin)
-})
+  return json({
+    ok: true,
+    revoked_sessions: revokedSessCount,
+    revoked_resumes:  revokedResumeCount,
+  }, 200, origin);
+});

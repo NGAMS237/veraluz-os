@@ -3741,7 +3741,7 @@ function renderLivraisonsJour(rows){
       +'<div class="dlv-card-meta">'
       +'<span>👤 '+esc(o.customer_name||'—')+'</span>'
       +'<span>⏰ '+_fmtTime(o.created_at)+'</span>'
-      +(o.assigned_livreur_name?'<span>🚚 '+esc(o.assigned_livreur_name)+'</span>':'')
+      +(o.assigned_to?'<span>🚚 '+esc(o.assigned_to)+'</span>':'')
       +(o.delivered_at?'<span>✅ '+_fmtTime(o.delivered_at)+'</span>':'')
       +'</div>'
       +'</div>';
@@ -3773,7 +3773,7 @@ function loadLivraisonsDate(d){
         +'<div class="dlv-card-meta">'
         +'<span>👤 '+esc(o.customer_name||'—')+'</span>'
         +'<span>⏰ '+_fmtTime(o.created_at)+'</span>'
-        +(o.assigned_livreur_name?'<span>🚚 '+esc(o.assigned_livreur_name)+'</span>':'')
+        +(o.assigned_to?'<span>🚚 '+esc(o.assigned_to)+'</span>':'')
         +(o.delivered_at?'<span>✅ '+_fmtTime(o.delivered_at)+'</span>':'')
         +'</div>'
         +'</div>';
@@ -3789,7 +3789,7 @@ function loadLivraisonsLivreurs(){
   el.innerHTML='<div class="dlv-empty">Chargement…</div>';
   var today=new Date().toISOString().slice(0,10);
   GET('/rest/v1/veraluz_food_orders'
-    +'?select=id,assigned_livreur_id,assigned_livreur_name,status,delivery_status,delivered_at,created_at'
+    +'?select=id,livreur_id,assigned_to,status,delivery_status,delivered_at,created_at'
     +'&created_at=gte.'+today+'T00:00:00'
     +'&order=created_at.desc'
     +'&limit=200')
@@ -3803,8 +3803,8 @@ function renderLivraisonsLivreurs(rows){
   /* Regrouper par livreur */
   var groups={};
   rows.forEach(function(o){
-    var lid=o.assigned_livreur_id||'none';
-    var lname=o.assigned_livreur_name||'Non assigné';
+    var lid=o.livreur_id||'none';
+    var lname=o.assigned_to||'Non assigné';
     if(!groups[lid])groups[lid]={name:lname,orders:[],delivered:0};
     groups[lid].orders.push(o);
     var s=o.delivery_status||o.status||'';
@@ -3853,7 +3853,7 @@ function openLivraisonDetail(oid){
       +'</div>'
       +'<div style="margin-top:6px;font-size:12px;">'
       +'<span class="dlv-card-status '+_dlvStatusCls(s)+'" style="display:inline-block;margin-right:6px;">'+_dlvStatusLabel(s)+'</span>'
-      +(o.assigned_livreur_name?'🚚 <b>'+esc(o.assigned_livreur_name)+'</b>':'')
+      +(o.assigned_to?'🚚 <b>'+esc(o.assigned_to)+'</b>':'')
       +'</div>';
     /* Timeline statique depuis les champs de la commande */
     var tl=[
@@ -3940,9 +3940,9 @@ function sendLivraisonMsg(){
   if(!txt||!_curLivDetailId)return;
   inp.value='';
   /* Identifier le livreur de la commande */
-  GET('/rest/v1/veraluz_food_orders?id=eq.'+encodeURIComponent(_curLivDetailId)+'&select=assigned_livreur_id&limit=1')
+  GET('/rest/v1/veraluz_food_orders?id=eq.'+encodeURIComponent(_curLivDetailId)+'&select=livreur_id&limit=1')
   .then(function(rows){
-    var livId=(rows&&rows[0]&&rows[0].assigned_livreur_id)||null;
+    var livId=(rows&&rows[0]&&rows[0].livreur_id)||null;
     return POST('veraluz_delivery_messages',{
       order_id:_curLivDetailId,
       sender_type:'restaurant',

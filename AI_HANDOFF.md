@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/auth-r1-containment | AUTH-R1D PHASE B | VERALUZ_OS_CORE.html, RH_EMBEDDED.html, CONTACTS_EMBEDDED.html, ANALYTICS_EMBEDDED.html, RESTAURANT_EMBEDDED.html, AUTH_EMBEDDED.html, LIVREUR.html, validations production associées`
+Aucun.
 
 ## Lots actifs
 
-`AUTH-R1D-H1 | Codex | main (source codex/auth-r1-containment) | Restaurant Livraisons publié au SHA 6c76f8f; Aujourd'hui/Historique/Livreurs et détail validés en lecture seule | READY FOR HUMAN RETEST; containment non appliqué; LOCK Phase B conservé`
+Aucun lot actif.
 
 ## Transmissions récentes
+
+`2026-08-19 | Codex | AUTH-R1D PHASE C / AUTH-R1 | main | 6c76f8f66770cec5a49ddc672263fc4570e4990c | migration 20260819180919; table anon 4/4 refusée 401/42501; authenticated sans privilèges; vues 200/projections exactes; RPC credentials refusées; employees-secure profil/RH/annuaire/analytics/roster/Livreur PASS; Pages 7/7 exactes; browser sans erreur bloquante; 3 sessions test supprimées | COMPLET — CONTAINMENT LIVE VALIDÉ; rollback non utilisé | aucun: LOCK AUTH-R1 retiré | aucune; ne pas commencer AUTH-R2 sans nouveau lot`
 
 `2026-08-19 | Codex | AUTH-R1D-H1 | main (source codex/auth-r1-containment) | 6c76f8f66770cec5a49ddc672263fc4570e4990c | fast-forward 0/1; H1 10/10 + AUTH 11+15+52+13+14+16 PASS; Pages blob exact; navigateur Aujourd'hui/Historique/Livreurs/détail PASS sans erreur console; REST canonique et lookup livreur_id 200 | publié, READY FOR HUMAN RETEST; containment absent et rh_anon_all présent | LOCK AUTH-R1 Phase B conservé | Blaise reteste Restaurant; aucune Phase C/AUTH-R2 sans autorisation`
 
@@ -29,8 +31,6 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 `2026-08-18 | Codex | AUTH-R1C1 | codex/auth-r1-containment | 12bdace46d37cf2cbb93a92371be2fdaa4b9a038 | statique AUTH-R1C1 27/27; AUTH-R1 15/15; broker Auth 11/11; runtime Contacts 16/16; syntaxe des 5 interfaces et diff vérifiés | poussé, READY FOR REVIEW; migration et Edge Function non déployées | aucun: LOCK retiré | review ciblée; AUTH-R1C2 traitera LIVREUR; aucune fusion main`
 
 `2026-08-18 | Codex | AUTH-R1 | codex/auth-r1-containment | 04b164da8867189cfdeb4fceb3c2d98d61711f87 | statique AUTH-R1 15/15; broker Auth 11/11; read-back anon vue minimale HTTP 200 avec id/full_name/role/status seulement; aucun secret | poussé, non déployé, attente review | mêmes zones: LOCK conservé | reviewer migration/RPC; 6 anciens appels frontend directs seront bloqués; aucune fusion main`
-
-`2026-08-18 | Codex | GUEST-4A / GUEST-4A.P1 | main | 38786d67a486afa3a7fa5dddb02df7d56c762ad1 | test utilisateur final PASS: identité, checked-in, SSID, mot de passe masqué, Afficher/Copier et mobile validés | COMPLET | aucun: LOCK retiré | aucune; ne démarrer aucun autre lot dans cette action`
 
 ## Format
 

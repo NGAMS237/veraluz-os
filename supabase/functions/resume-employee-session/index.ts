@@ -1,18 +1,25 @@
 /**
- * VERALUZ — resume-employee-session — v2 (AUTH-R2B1)
+ * VERALUZ — resume-employee-session — v3 (AUTH-R2B1.1)
  *
- * Changements v2 :
- * - status IN ('actif','active') : compatibilité bilingue (fix Bug 1)
- * - CORS élargi : content-type + authorization + apikey (CORE envoie ces 3 headers)
- * - Atomicité rotation : INSERT nouveau resume_token AVANT de révoquer l'ancien
- * - last_used_at + rotated_at écrits sur le token sortant
- * - Identité retournée fraîche depuis DB
- * - department + public_display_name + resume_expires_at dans la réponse
+ * Changements v3 (par rapport à v2 AUTH-R2B1) :
+ * - Rotation atomique via RPC PostgreSQL veraluz_rotate_resume_token :
+ *     FOR UPDATE SKIP LOCKED → INSERT nouveau → REVOKE ancien → INSERT session
+ *     ROLLBACK total si une étape échoue → ancien token intact → pas de lockout.
+ * - L'EF génère les raw tokens et n'envoie QUE leurs hashes à la RPC.
+ * - Plus de compensation applicative fragile : la DB garantit l'atomicité.
+ * - CORS, status IN ('actif','active'), identité fraîche : conservés.
  *
  * POST body : { resume_token: string }
  * Réponse   : { session_token, resume_token, employee_id, role, full_name,
  *               department, public_display_name, expires_at, resume_expires_at }
+ *
+ * SÉCURITÉ :
+ * - raw tokens jamais stockés en DB (SHA-256 uniquement)
+ * - raw tokens jamais journalisés
+ * - employee_id toujours résolu depuis la RPC (jamais du client)
+ * - RPC exécutable uniquement via service_role
  */
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -46,7 +53,7 @@ async function sha256hex(input: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-function generateToken(bytes = 48): string {
+function generateToken(bytes: number): string {
   const arr = new Uint8Array(bytes);
   crypto.getRandomValues(arr);
   return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -72,86 +79,58 @@ Deno.serve(async (req) => {
     return json({ error: 'invalid_token' }, 400, origin);
   }
 
-  const hash = await sha256hex(rawToken);
-  const now  = new Date().toISOString();
+  // ── Générer les nouveaux credentials AVANT l'appel RPC ───────────────────
+  // Les raw tokens ne traversent jamais la DB. Seuls les hashes sont transmis.
+  const newRawResume   = generateToken(48);           // 48 octets = 96 hex
+  const newRawSession  = generateToken(32);           // 32 octets = 64 hex
 
-  // 1. Valider le resume_token
-  const { data: rt, error: rtErr } = await sb
-    .from('veraluz_resume_tokens')
-    .select('id, employee_id, expires_at')
-    .eq('token_hash', hash)
-    .is('revoked_at', null)
-    .gt('expires_at', now)
-    .maybeSingle();
+  const [oldHash, newResumeHash, newSessionHash] = await Promise.all([
+    sha256hex(rawToken),
+    sha256hex(newRawResume),
+    sha256hex(newRawSession),
+  ]);
 
-  if (rtErr || !rt) return json({ error: 'token_invalid_or_expired' }, 401, origin);
-
-  // 2. Vérifier l'employe — IN ('actif','active') pour compatibilite bilingue
-  const { data: emp, error: empErr } = await sb
-    .from('veraluz_employees')
-    .select('id, full_name, role, status, department, public_display_name')
-    .eq('id', rt.employee_id)
-    .in('status', ['actif', 'active'])
-    .maybeSingle();
-
-  if (empErr || !emp) return json({ error: 'employee_inactive' }, 403, origin);
-
-  // 3. Preparer nouveaux credentials
-  const newRawResume  = generateToken(48);
-  const newResumeHash = await sha256hex(newRawResume);
-  const resumeExpiry  = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+  const resumeExpiry  = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(); // 30j
+  const sessionExpiry = new Date(Date.now() +  8 *      3600 * 1000).toISOString(); //  8h
   const deviceHint    = req.headers.get('user-agent')?.slice(0, 120) ?? null;
 
-  const sessionRaw    = generateToken(32);
-  const sessionHash   = await sha256hex(sessionRaw);
-  const sessionExpiry = new Date(Date.now() + 8 * 3600 * 1000).toISOString();
-
-  // 4. ATOMICITE : INSERT nouveau resume_token EN PREMIER
-  // Si INSERT echoue -> ancien token intact -> utilisateur peut reessayer
-  // Si revoke echoue -> 2 tokens valides brievement (acceptable, rotation au prochain usage)
-  // Si INSERT session echoue -> rollback nouveau resume, retour 500 -> utilisateur reessaie
-  const { error: insertResumeErr } = await sb.from('veraluz_resume_tokens').insert({
-    employee_id: rt.employee_id,
-    token_hash:  newResumeHash,
-    device_hint: deviceHint,
-    expires_at:  resumeExpiry,
+  // ── Appel RPC atomique ───────────────────────────────────────────────────
+  // veraluz_rotate_resume_token est SECURITY DEFINER, service_role seulement.
+  // Si n'importe quelle étape DB échoue → ROLLBACK PostgreSQL → ancien token intact.
+  const { data: rpc, error: rpcErr } = await sb.rpc('veraluz_rotate_resume_token', {
+    p_old_resume_hash:    oldHash,
+    p_new_resume_hash:    newResumeHash,
+    p_new_session_hash:   newSessionHash,
+    p_device_hint:        deviceHint,
+    p_resume_expires_at:  resumeExpiry,
+    p_session_expires_at: sessionExpiry,
   });
 
-  if (insertResumeErr) {
-    console.error('[resume-session] new_resume_insert_failed code=', insertResumeErr.code);
+  if (rpcErr) {
+    console.error('[resume-session] rpc_failed code=', rpcErr.code);
     return json({ error: 'server_error' }, 500, origin);
   }
 
-  // 5. Revoquer l'ancien resume_token (apres succes INSERT)
-  await sb.from('veraluz_resume_tokens')
-    .update({ revoked_at: now, revoked_reason: 'rotated', rotated_at: now, last_used_at: now })
-    .eq('id', rt.id);
+  const result = rpc as {
+    ok: boolean; error?: string;
+    employee_id?: string; role?: string; full_name?: string;
+    department?: string; public_display_name?: string;
+  };
 
-  // 6. Creer la nouvelle employee_session
-  const { error: sessErr } = await sb.from('veraluz_employee_sessions').insert({
-    employee_id:  rt.employee_id,
-    token_hash:   sessionHash,
-    expires_at:   sessionExpiry,
-    last_seen_at: now,
-  });
-
-  if (sessErr) {
-    console.error('[resume-session] session_insert_failed code=', sessErr.code);
-    // Rollback du nouveau resume_token
-    await sb.from('veraluz_resume_tokens')
-      .update({ revoked_at: now, revoked_reason: 'session_create_failed' })
-      .eq('token_hash', newResumeHash);
-    return json({ error: 'server_error' }, 500, origin);
+  if (!result.ok) {
+    const status = result.error === 'employee_inactive' ? 403 : 401;
+    return json({ error: result.error ?? 'unknown' }, status, origin);
   }
 
+  // ── Réponse — raw tokens retournés une seule fois ─────────────────────────
   return json({
-    session_token:       sessionRaw,    // garder UNIQUEMENT en memoire cote client
-    resume_token:        newRawResume,  // stocker dans localStorage (opaque)
-    employee_id:         emp.id,
-    role:                emp.role,
-    full_name:           emp.full_name,
-    department:          emp.department ?? '',
-    public_display_name: emp.public_display_name ?? emp.full_name,
+    session_token:       newRawSession,  // ← garder UNIQUEMENT en mémoire côté client
+    resume_token:        newRawResume,   // ← stocker dans localStorage (opaque)
+    employee_id:         result.employee_id,
+    role:                result.role,
+    full_name:           result.full_name,
+    department:          result.department ?? '',
+    public_display_name: result.public_display_name ?? result.full_name,
     expires_at:          sessionExpiry,
     resume_expires_at:   resumeExpiry,
   }, 200, origin);

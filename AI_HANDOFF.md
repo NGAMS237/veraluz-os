@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-Aucun.
+`LOCK | Codex | codex/auth-r1-containment | AUTH-R1 | veraluz_employees RLS, veraluz_employees_public, supabase/migrations/*auth_r1*, tests/*auth-r1*`
 
 ## Lots actifs
 
-Aucun.
+`AUTH-R1 | Codex | codex/auth-r1-containment | containment sécurité employés/credentials | préparation migration et tests, aucun déploiement autorisé`
 
 ## Transmissions récentes
 

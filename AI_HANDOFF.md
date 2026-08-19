@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/auth-r1-containment | AUTH-R1C1 | veraluz_employees RLS/view/credential RPC privileges, VERALUZ_OS_CORE.html, AUTH_EMBEDDED.html, RH_EMBEDDED.html, CONTACTS_EMBEDDED.html, ANALYTICS_EMBEDDED.html, RESTAURANT_EMBEDDED.html, supabase/functions/employees-secure/**, supabase/migrations/*auth_r1*, tests/*auth-r1*`
+Aucun LOCK actif.
 
 ## Lots actifs
 
-`AUTH-R1C1 | Codex | codex/auth-r1-containment | bridge serveur employees-secure pour CORE/RH/Contacts/Analytics/Restaurant | en cours sur base 04b164d; aucun déploiement autorisé; LIVREUR réservé à AUTH-R1C2`
+`AUTH-R1C1 | Codex | codex/auth-r1-containment | bridge serveur employees-secure pour CORE/RH/Contacts/Analytics/Restaurant | poussé, READY FOR REVIEW; aucun déploiement; LIVREUR réservé à AUTH-R1C2`
 
 ## Transmissions récentes
+
+`2026-08-18 | Codex | AUTH-R1C1 | codex/auth-r1-containment | 12bdace46d37cf2cbb93a92371be2fdaa4b9a038 | statique AUTH-R1C1 27/27; AUTH-R1 15/15; broker Auth 11/11; runtime Contacts 16/16; syntaxe des 5 interfaces et diff vérifiés | poussé, READY FOR REVIEW; migration et Edge Function non déployées | aucun: LOCK retiré | review ciblée; AUTH-R1C2 traitera LIVREUR; aucune fusion main`
 
 `2026-08-18 | Codex | AUTH-R1 | codex/auth-r1-containment | 04b164da8867189cfdeb4fceb3c2d98d61711f87 | statique AUTH-R1 15/15; broker Auth 11/11; read-back anon vue minimale HTTP 200 avec id/full_name/role/status seulement; aucun secret | poussé, non déployé, attente review | mêmes zones: LOCK conservé | reviewer migration/RPC; 6 anciens appels frontend directs seront bloqués; aucune fusion main`
 

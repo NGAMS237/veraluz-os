@@ -260,6 +260,12 @@ svg{flex-shrink:0} a{text-decoration:none;color:inherit}
 .pin-key.del{font-size:.9rem;color:var(--dt2)}
 .pin-err{text-align:center;color:#f87171;font-size:.77rem;font-weight:600;min-height:20px;margin-top:4px}
 .pin-loading{text-align:center;color:var(--dt2);font-size:.77rem;margin-top:8px;min-height:20px}
+.livreur-reconnect{display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  width:100%;max-width:340px;padding:36px 20px;color:var(--dt2);font-size:.82rem;text-align:center}
+.livreur-reconnect.show{display:flex}
+.livreur-reconnect-spinner{width:38px;height:38px;border:3px solid rgba(255,255,255,.16);
+  border-top-color:var(--gold);border-radius:50%;animation:livreurSpin 1s linear infinite}
+@keyframes livreurSpin{to{transform:rotate(360deg)}}
 
 /* ── MEDIA QUERIES MOBILE TERRAIN — PROMPT 005 ── */
 @media (max-width:480px){
@@ -407,7 +413,7 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
   <div class="pin-logo">🛵</div>
   <div class="pin-brand">Veraluz</div>
   <div class="pin-tagline">Dashboard Livreur</div>
-  <div class="pin-card">
+  <div class="pin-card" id="pin-login-card" style="display:none">
     <div class="pin-label">Votre nom</div>
     <select class="pin-select" id="pin-livreur-sel">
       <option value="">Chargement…</option>
@@ -424,6 +430,10 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
     <div class="pin-pad" id="pin-pad"></div>
     <div class="pin-err" id="pin-err"></div>
     <div class="pin-loading" id="pin-loading"></div>
+  </div>
+  <div class="livreur-reconnect" id="livreur-reconnect" role="status" aria-live="polite">
+    <div class="livreur-reconnect-spinner"></div>
+    <div>Reconnexion à l’application Livreur…</div>
   </div>
 </div>
 
@@ -621,6 +631,8 @@ var KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6
 var EDGE_VERIFY_PIN_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/verify-employee-pin';
 var EDGE_EMPLOYEES_SECURE_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/employees-secure';
 var EDGE_LOGOUT_SESSION_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/logout-employee-session';
+var EDGE_ISSUE_RESUME_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/issue-resume-token';
+var EDGE_RESUME_SESSION_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/resume-employee-session';
 /* ── Veraluz Core — référence globale + fallback ── */
 var VC = window.VeraluzCore || {};
 
@@ -652,6 +664,7 @@ function sbPatch(table,id,data){
 var LIVREURS=[], LIVREUR_ACTIF=null;
 /* AUTH-R1C2: token canonique en mémoire uniquement, jamais dans LIVREUR_ACTIF/localStorage. */
 var LIVREUR_SESSION_TOKEN='', LIVREUR_SESSION_EXPIRY=null;
+var _livreurResumePromise=null;
 var LIVREUR_BUILD = 'v032-alerts-2026-07-08'; /* PROMPT 031 */
 var _orders=[], _orderTab='pickup', _online=navigator.onLine, _curId=null, _interval=null;
 var _pointages=[], _pinBuffer='';
@@ -664,6 +677,7 @@ var _knownAssignedIds=null; /* PROMPT 033A — L2 : null = non initialisé, Set 
 var LS_ORDERS   = 'veraluz_livreur_cache_orders';
 var LS_ACTIONS  = 'veraluz_livreur_pending_actions';
 var LS_LEGACY_SESSION = 'veraluz_livreur_session'; /* lecture interdite; nettoyage migration seulement */
+var LS_RESUME_LIVREUR = 'vz_resume_livreur';
 
 /* ══════════════════════════════════════════
    NORMALIZE UTILS — VERALUZ CORE v0.3.0
@@ -853,17 +867,116 @@ function employeesSecure(action,payload){
     body:JSON.stringify(body)
   }).then(function(r){
     return r.json().catch(function(){return{ok:false,error:'invalid_response'};})
-      .then(function(data){if(!r.ok||!data.ok)throw new Error(data.error||('HTTP_'+r.status));return data;});
+      .then(function(data){
+        if(!r.ok||!data.ok){var err=new Error(data.error||('HTTP_'+r.status));err.status=r.status;throw err;}
+        return data;
+      });
   });
 }
 
-function revokeLivreurSession(token){
-  if(!/^[0-9a-f]{64}$/.test(String(token||'')))return Promise.resolve();
+function livreurAuthPost(url,body,timeoutMs){
+  return new Promise(function(resolve,reject){
+    var settled=false;
+    var controller=typeof AbortController!=='undefined'?new AbortController():null;
+    var timer=setTimeout(function(){
+      if(settled)return;
+      settled=true;
+      if(controller)controller.abort();
+      var err=new Error('timeout');err.status=0;reject(err);
+    },timeoutMs||9000);
+    fetch(url,{
+      method:'POST',mode:'cors',credentials:'omit',
+      headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY},
+      body:JSON.stringify(body||{}),signal:controller?controller.signal:undefined
+    }).then(function(r){
+      return r.json().catch(function(){return{};}).then(function(data){
+        if(!r.ok){var err=new Error(data.error||('HTTP_'+r.status));err.status=r.status;throw err;}
+        return data;
+      });
+    }).then(function(data){
+      if(settled)return;settled=true;clearTimeout(timer);resolve(data);
+    }).catch(function(error){
+      if(settled)return;settled=true;clearTimeout(timer);reject(error);
+    });
+  });
+}
+
+function issueLivreurResumeToken(sessionToken){
+  return livreurAuthPost(EDGE_ISSUE_RESUME_URL,{session_token:sessionToken},9000)
+    .then(function(data){if(!data||!data.resume_token)throw new Error('resume_token_missing');return data;});
+}
+
+function revokeLivreurSession(token,resumeToken){
+  if(!token&&!resumeToken)return Promise.resolve();
   return fetch(EDGE_LOGOUT_SESSION_URL,{
     method:'POST',mode:'cors',credentials:'omit',
     headers:{'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY},
-    body:JSON.stringify({session_token:token})
+    body:JSON.stringify({session_token:token||null,resume_token:resumeToken||null})
   }).then(function(){return;}).catch(function(){return;});
+}
+
+function showLivreurReconnecting(){
+  var pin=document.getElementById('pin-screen');if(pin)pin.classList.remove('hidden');
+  var app=document.getElementById('main-app');if(app)app.style.display='none';
+  var card=document.getElementById('pin-login-card');if(card)card.style.display='none';
+  var reconnect=document.getElementById('livreur-reconnect');if(reconnect)reconnect.classList.add('show');
+}
+
+function showLivreurPinScreen(message){
+  var reconnect=document.getElementById('livreur-reconnect');if(reconnect)reconnect.classList.remove('show');
+  var card=document.getElementById('pin-login-card');if(card)card.style.display='';
+  var pin=document.getElementById('pin-screen');if(pin)pin.classList.remove('hidden');
+  var app=document.getElementById('main-app');if(app)app.style.display='none';
+  var err=document.getElementById('pin-err');if(err)err.textContent=message||'';
+}
+
+function openLivreurApp(profile){
+  LIVREUR_ACTIF=normalizeLivreurEmployee(profile);
+  var reconnect=document.getElementById('livreur-reconnect');if(reconnect)reconnect.classList.remove('show');
+  document.getElementById('pin-screen').classList.add('hidden');
+  document.getElementById('main-app').style.display='';
+  initApp();
+}
+
+function loadLivreurLoginScreen(message){
+  showLivreurPinScreen(message);
+  return loadLivreurs().then(function(){renderPinDots();}).catch(function(){renderPinDots();});
+}
+
+function resumeLivreurSession(resumeToken){
+  if(_livreurResumePromise)return _livreurResumePromise;
+  showLivreurReconnecting();
+  _livreurResumePromise=livreurAuthPost(EDGE_RESUME_SESSION_URL,{resume_token:resumeToken},9000)
+    .then(function(data){
+      if(!data||!data.session_token||!data.resume_token){var err=new Error('invalid_resume_response');err.status=403;throw err;}
+      LIVREUR_SESSION_TOKEN=String(data.session_token);
+      LIVREUR_SESSION_EXPIRY=data.expires_at||null;
+      localStorage.setItem(LS_RESUME_LIVREUR,data.resume_token);
+      return employeesSecure('get_my_delivery_profile',{}).then(function(profileData){
+        if(!profileData||profileData.delivery_access!==true||!profileData.profile){
+          var forbidden=new Error('delivery_access_forbidden');forbidden.status=403;throw forbidden;
+        }
+        openLivreurApp(profileData.profile);
+        return true;
+      });
+    })
+    .catch(function(error){
+      var sessionToRevoke=LIVREUR_SESSION_TOKEN;
+      var resumeToRevoke=localStorage.getItem(LS_RESUME_LIVREUR)||resumeToken;
+      var invalid=error&&(error.status===401||error.status===403||error.message==='delivery_access_forbidden');
+      if(sessionToRevoke||invalid)revokeLivreurSession(sessionToRevoke,resumeToRevoke);
+      /* Une session rotatée puis révoquée ne doit jamais laisser son resume local. */
+      clearLivreurSessionState(invalid||!!sessionToRevoke);
+      LIVREUR_ACTIF=null;
+      return loadLivreurLoginScreen(error&&error.message==='delivery_access_forbidden'
+        ?'Accès livreur non autorisé'
+        :(invalid?'Votre session a expiré. Reconnectez-vous.':'Reconnexion impossible. Vérifiez la connexion.'))
+        .then(function(){return false;});
+    })
+    .then(function(result){_livreurResumePromise=null;return result;},function(error){
+      _livreurResumePromise=null;throw error;
+    });
+  return _livreurResumePromise;
 }
 
 function validatePin(){
@@ -903,7 +1016,7 @@ function validatePin(){
 
     /* Un PIN provisoire ne crée aucune session utilisable dans Livreur. */
     if(result.auth_state==='must_change_pin'||result.must_change_pin===true){
-      clearLivreurSessionState();
+      clearLivreurSessionState(true);
       LIVREUR_ACTIF=null;
       err.textContent='Vous devez modifier votre PIN avant de continuer.';
       return;
@@ -911,11 +1024,12 @@ function validatePin(){
 
     var sessionToken=String(result.session_token||'');
     if(!/^[0-9a-f]{64}$/.test(sessionToken)){
-      clearLivreurSessionState();
+      clearLivreurSessionState(true);
       err.textContent='Session serveur invalide — veuillez réessayer.';
       return;
     }
 
+    localStorage.removeItem(LS_RESUME_LIVREUR);
     LIVREUR_SESSION_TOKEN=sessionToken;
     LIVREUR_SESSION_EXPIRY=result.session_expiry||null;
     employeesSecure('get_my_delivery_profile',{})
@@ -924,19 +1038,25 @@ function validatePin(){
         if(!profile||data.delivery_access!==true){
           throw new Error('delivery_access_forbidden');
         }
-        LIVREUR_ACTIF=normalizeLivreurEmployee(profile);
-        document.getElementById('pin-screen').classList.add('hidden');
-        document.getElementById('main-app').style.display='';
-        initApp();
+        lod.textContent='⏳ Stabilisation de la session…';
+        return issueLivreurResumeToken(sessionToken).then(function(resumeData){
+          localStorage.setItem(LS_RESUME_LIVREUR,resumeData.resume_token);
+          lod.textContent='';
+          openLivreurApp(profile);
+        });
       })
       .catch(function(e){
         var tokenToRevoke=LIVREUR_SESSION_TOKEN;
-        clearLivreurSessionState();
+        var resumeToRevoke=localStorage.getItem(LS_RESUME_LIVREUR);
+        clearLivreurSessionState(true);
         LIVREUR_ACTIF=null;
-        revokeLivreurSession(tokenToRevoke);
+        revokeLivreurSession(tokenToRevoke,resumeToRevoke);
+        lod.textContent='';
         err.textContent=e&&e.message==='delivery_access_forbidden'
           ?'Accès livreur non autorisé'
-          :'Impossible de charger votre profil sécurisé.';
+          :(e&&(e.message==='resume_token_missing'||e.message==='timeout'||e.status===0)
+            ?'Impossible de créer la session persistante. Réessayez.'
+            :'Impossible de charger votre profil sécurisé.');
       });
   });
 }
@@ -1289,10 +1409,11 @@ function cleanupPendingActions(){
 
 /* AUTH-R1C2 — seule la session serveur en mémoire porte l'autorité.
    AUTH-R2 ajoutera le resume/F5 canonique. */
-function clearLivreurSessionState(){
+function clearLivreurSessionState(removeResume){
   LIVREUR_SESSION_TOKEN='';
   LIVREUR_SESSION_EXPIRY=null;
   try { localStorage.removeItem(LS_LEGACY_SESSION); } catch(e){}
+  if(removeResume){try{localStorage.removeItem(LS_RESUME_LIVREUR);}catch(e){}}
 }
 
 /* ══════════════════════════════════════════
@@ -2416,14 +2537,14 @@ function onProfilPhotoSelected(inp){
 ══════════════════════════════════════════ */
 function logout(){
   var tokenToRevoke=LIVREUR_SESSION_TOKEN;
-  clearLivreurSessionState();
-  revokeLivreurSession(tokenToRevoke);
+  var resumeToRevoke=localStorage.getItem(LS_RESUME_LIVREUR);
+  clearLivreurSessionState(true);
+  revokeLivreurSession(tokenToRevoke,resumeToRevoke);
   LIVREUR_ACTIF=null;_orders=[];_pointages=[];
   _pinBuffer='';_currentOrderId=null;_photoB64=null;_lastSync=null;
   if(_interval){clearInterval(_interval);_interval=null;}
   if(_punchInterval){clearInterval(_punchInterval);_punchInterval=null;}
-  document.getElementById('main-app').style.display='none';
-  document.getElementById('pin-screen').classList.remove('hidden');
+  showLivreurPinScreen('');
   document.getElementById('pin-livreur-sel').value='';
   document.getElementById('pin-err').textContent='';
   renderPinDots();
@@ -2523,8 +2644,7 @@ window.addEventListener('DOMContentLoaded', function(){
   }
 });
 
-/* AUTH-R1C2 : le PIN est vérifié par verify-employee-pin et les appels identité
-   utilisent la session employé canonique. AUTH-R2 ajoutera le resume après F5. */
+/* AUTH-R2C : session métier en mémoire, resume opaque rotatif en localStorage. */
 
 /* ══════════════════════════════════════════
    BOOT
@@ -2532,14 +2652,11 @@ window.addEventListener('DOMContentLoaded', function(){
 document.addEventListener('DOMContentLoaded',function(){
   buildPinPad();
   updateNetworkBadge();  /* PROMPT 005: badge réseau avant login */
-  /* Nettoyer immédiatement toute ancienne pseudo-session locale. */
-  clearLivreurSessionState();
-  loadLivreurs().then(function(){
-    /* Pas de session locale parallèle : un F5 exige une nouvelle connexion jusqu'à AUTH-R2. */
-    renderPinDots();
-  }).catch(function(){
-    renderPinDots();
-  });
+  /* Perdre l'autorité mémoire au reload, mais conserver le seul resume opaque. */
+  clearLivreurSessionState(false);
+  var resumeToken=localStorage.getItem(LS_RESUME_LIVREUR);
+  if(resumeToken){resumeLivreurSession(resumeToken);return;}
+  loadLivreurLoginScreen('');
 });
 </script>
 

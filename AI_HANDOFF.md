@@ -8,9 +8,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## Lots actifs
 
-AUTH-R2D | claude/auth-r2-integration | TERMINÉ — e2f4629 poussé; READY FOR MERGE REVIEW
+AUTH-R2 | main | PUBLIÉ — e2f4629 sur main; Pages build en cours; en attente validation humaine F5
 
 ## Transmissions récentes
+
+`2026-08-19 | Claude | AUTH-R2 PUBLISHED | main | e2f4629 | merge ff-only 6c76f8f→e2f4629; 126/126 statiques PASS; live 6/6 PASS; backend EF ACTIVE; Pages build déclenché (deploy en cours, VERALUZ_OS_CORE.html et LIVREUR.html nouveaux servis dès build terminé) | PUBLIÉ — en attente validation humaine F5 login/resume/logout | aucun LOCK actif | Blaise valide F5 CORE + LIVREUR live avec PIN réel`
 
 `2026-08-19 | Claude | AUTH-R2D INTÉGRATION | claude/auth-r2-integration | e2f4629 | AUTH-R2C 18/18; AUTH-R2B1 14/14; AUTH-R1C2 14/14; AUTH-R1C2.1 13/13; AUTH-R1 15/15; AUTH-R1C1 52/52; syntaxe CORE/LIVREUR 0 erreur; live 6/6 PASS (issue/resume/logout/revoke/CORS/employees-secure); contrat backend/frontend vérifié; main 6c76f8f inchangé | poussé, READY FOR MERGE REVIEW; aucun backend/déploiement; NE PAS merger main sans autorisation | LOCK AUTH-R2D retiré — intégration terminée | autorisation Blaise pour merger main ou poursuivre`
 

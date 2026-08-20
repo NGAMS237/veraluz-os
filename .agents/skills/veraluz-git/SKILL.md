@@ -4,7 +4,7 @@ Protocole Git pour le projet Résidence Veraluz.
 
 ## Règles absolues
 
-- NE PAS MERGER claude/auth-final-integration dans main sans autorisation Blaise.
+- Ne jamais merger dans main sans autorisation explicite de Blaise.
 - NE PAS déployer sans autorisation explicite.
 - Ne demander aucune commande Git à Blaise.
 - Ne pas utiliser Computer Use pour Git — utiliser bash uniquement.
@@ -14,19 +14,19 @@ Protocole Git pour le projet Résidence Veraluz.
 
 ## Workflow standard
 
-1. Lire AI_HANDOFF.md pour connaître l'état actuel.
-2. Travailler sur la branche désignée (actuellement `claude/auth-final-integration`).
+1. Lire AI_HANDOFF.md pour connaître l'état actuel et la branche du lot courant.
+2. Travailler sur la branche désignée par AI_HANDOFF (lots actifs).
 3. Commit atomique par fonctionnalité, message en français structuré.
 4. Push via token éphémère (voir ci-dessous).
 5. Mettre à jour AI_HANDOFF.md avec le nouveau HEAD.
-6. Ne jamais merger sans autorisation explicite.
+6. Ne jamais merger dans main sans autorisation explicite.
 
-## Clone (si index.lock bloqué sur OneDrive)
+## Clone
 
 ```bash
-git clone --no-local https://github.com/NGAMS237/veraluz-os.git /tmp/veraluz-os
+git clone https://github.com/NGAMS237/veraluz-os.git /tmp/veraluz-os
 cd /tmp/veraluz-os
-git checkout claude/auth-final-integration
+# Checkout la branche du lot courant (voir AI_HANDOFF.md)
 ```
 
 ## Push authentifié (token éphémère — ne jamais modifier l'URL remote)
@@ -39,8 +39,7 @@ git -C /tmp/veraluz-os push "https://x-access-token:${TOKEN}@github.com/NGAMS237
 git -C /tmp/veraluz-os remote get-url origin  # doit être https://github.com/NGAMS237/veraluz-os.git
 ```
 
-## État actuel
+## État repo
 
-Branche : claude/auth-final-integration
-HEAD : à mettre à jour dans AI_HANDOFF.md après chaque push
-Base : main @ 76e618d (merge AUTH-FINAL-INTEGRATION)
+main @ cd30985 (AUTH PHASE CLOSED — 2026-08-20)
+Lire AI_HANDOFF.md pour l'état courant et la branche active.

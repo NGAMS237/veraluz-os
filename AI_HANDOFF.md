@@ -46,12 +46,3 @@ SETTINGS-SSOT-1 | main | PROCHAINE PHASE — AUTH CLOSED (merge 2026-08-20)
 `date | agent | lot | branche | commit | tests | statut | fichiers réservés | prochaine action`
 
 LOCK : `LOCK | agent | branche | tâche | fichiers/zones`
-
-## Retest humain requis (2026-08-20)
-
-1. AUTH → Profil → Modifier mes infos → Enregistrer → doit retourner OK (plus `invalid_profile_fields`)
-2. AUTH → Profil → Équipe → doit afficher nom réel (ex: "Livraisons") et jamais `team-005`
-3. AUTH → Sécurité → Politiques — params configurables doivent refléter les valeurs DB (session 12h, resume 30j, track_ip=true)
-4. AUTH → Sessions — device et IP doivent s'afficher (non "Appareil inconnu" / null) pour les nouvelles connexions
-5. Settings → Système → Sécurité — section éditable visible avec toggles IP/UA et champs numériques
-6. CORE broker: vérifier que session_token n'est plus envoyé dans le body (inspecter requête réseau)

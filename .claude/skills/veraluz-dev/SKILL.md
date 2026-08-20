@@ -8,7 +8,6 @@ Projet : appartements meublés courte durée, Kribi Cameroun. Piloté depuis le 
 Stack : Supabase (PostgreSQL + Edge Functions Deno) + HTML/JS vanille embarqué.
 Repo : https://github.com/NGAMS237/veraluz-os
 Branche principale : main
-Branche active : claude/auth-final-integration
 
 ## Bâtiment
 
@@ -38,10 +37,10 @@ Branche active : claude/auth-final-integration
 
 ## Edge Functions actives (projet dfdmasejsoibxrvubegu)
 
-employees-secure v4, auth-admin-secure, reset-employee-pin v8,
+employees-secure v4, auth-admin-secure v3, reset-employee-pin v10,
 reservation-workflow v2, room-service v3, guest-access v6,
 post-restaurant-folio, communications-secure v7, dispatch-client-email v5,
-messages-secure v2, settings-secure
+messages-secure v2, settings-secure v4, change-employee-pin v7
 
 ## Tables canoniques clés
 

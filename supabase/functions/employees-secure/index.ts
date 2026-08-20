@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
   if (action === 'get_my_profile') {
     const { data: profile, error } = await db
       .from('veraluz_employees')
-      .select('id,full_name,role,phone,email,hire_date,team_id,photo_url,public_display_name,identity_verified')
+      .select('id,full_name,civility,first_name,last_name,role,phone,email,hire_date,team_id,department,status,photo_url,public_display_name,public_role_label,identity_verified')
       .eq('id', actor.id)
       .maybeSingle();
     if (error) {

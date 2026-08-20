@@ -709,157 +709,78 @@ function doLogout(){
   emit('logout',{});
   toast('Déconnexion...');
 }
-function renderProfil(){
-  var u=getCurrentUser();
-  var roles=getRoles();
-  var role=roles.find(function(r){ return r.id===u.role; })||{label:u.role,badge:'bdg-gray'};
-  var modules=Object.keys((u.perms_override)||role.perms||{});
-  return '<div class="stat-row">'
-    +'<div class="stat"><div class="stat-val">'+esc(avatarInitials(u.name))+'</div><div class="stat-lbl">'+esc(u.name)+'</div></div>'
-    +'<div class="stat"><div class="stat-val"><span class="bdg '+esc(role.badge)+'">'+esc(role.label)+'</span></div><div class="stat-lbl">Rôle</div></div>'
-    +'<div class="stat"><div class="stat-val">'+modules.length+'</div><div class="stat-lbl">Modules</div></div>'
-    +'</div>'
-    +'<div class="card"><div class="card-hdr"><div class="card-title">Modifier profil</div></div>'
-    +'<label class="fl">Nom complet</label><input class="fi" id="p-name" value="'+esc(u.name)+'">'
-    +'<label class="fl">Email</label><input class="fi" id="p-email" type="email" value="'+esc(u.email||'')+'">'
-    +'<label class="fl">Téléphone</label><input class="fi" id="p-phone" type="tel" value="'+esc(u.phone||'')+'">'
-    +'<div class="btn-row"><button class="btn btn-primary" data-uid="'+esc(u.id)+'" onclick="saveProfil(this.dataset.uid)">Enregistrer</button></div></div>'
-    +'<div class="card"><div class="card-hdr"><div class="card-title">Sécurité du compte</div></div>'
-    +'<label class="fl">Mot de passe actuel</label><input class="fi" id="p-pw-old" type="password" placeholder="••••••">'
-    +'<label class="fl">Nouveau mot de passe</label><input class="fi" id="p-pw-new" type="password" placeholder="••••••">'
-    +'<div style="background:rgba(245,158,11,0.1);border:1px solid #f59e0b;border-radius:6px;padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:8px;">&#128274; Le PIN employé est géré via <strong>🔑 Réinitialiser le PIN</strong> dans l\'onglet Employés — il ne peut pas être changé ici.</div>'
-    +'<div class="btn-row"><button class="btn btn-primary" data-uid="'+esc(u.id)+'" onclick="savePassword(this.dataset.uid)">Changer</button>'
-    +'<button class="btn btn-danger" onclick="doLogout()">🚪 Déconnexion</button></div></div>';
+/* AUTH-R4 — Profil réel depuis session serveur uniquement. */
+function _buildProfilDisplayName(emp){
+  if(emp.public_display_name) return emp.public_display_name;
+  var parts=[];
+  if(emp.civility)    parts.push(emp.civility);
+  if(emp.first_name)  parts.push(emp.first_name);
+  if(emp.last_name)   parts.push(emp.last_name);
+  if(parts.length)    return parts.join(' ');
+  return emp.full_name||'';
 }
-
-/* ══════════════════════════════════════════════════════════════
-   TAB: USERS
-═══════════════════════════════════════════════════════════════ */
-var _uFilter='all';
-var _uSearch='';
-
-function setUFilter(f){ _uFilter=f; renderTab('users'); }
-function filterUsers(){
-  _uSearch=(document.getElementById('u-search')||{}).value||'';
-  renderTab('users');
-}
-function openNewUserMd(){
-  var roles=getRoles();
-  var roleOpts=roles.map(function(r){
-    return '<option value="'+esc(r.id)+'">'+esc(r.label)+'</option>';
-  }).join('');
-  document.getElementById('md-user-body').innerHTML
-    ='<div class="modal-title">👤 Nouvel utilisateur</div>'
-    +'<label class="fl">Nom complet</label><input class="fi" id="nu-name" placeholder="Prénom Nom">'
-    +'<label class="fl">Email</label><input class="fi" id="nu-email" type="email" placeholder="email@domaine.com">'
-    +'<label class="fl">Téléphone</label><input class="fi" id="nu-phone" type="tel" placeholder="+237 6 xx xx xx xx">'
-    +'<label class="fl">Rôle</label><select class="fi" id="nu-role">'+roleOpts+'</select>'
-    +'<div style="background:var(--bg4);border-radius:10px;padding:12px;margin:8px 0;font-size:12px;color:var(--text2);">'
-    +'📧 Une invitation sera envoyée automatiquement par email.<br>'
-    +'L’utilisateur devra créer son mot de passe pour activer son compte.</div>'
-    +'<div class="btn-row"><button class="btn btn-sec" onclick="closeMd(\'md-user\')">Annuler</button>'
-    +'<button class="btn btn-primary" onclick="addUser()">Créer &amp; Inviter</button></div>';
-  openMd('md-user');
-}
-function addUser(){
-  var name =(document.getElementById('nu-name')||{}).value.trim();
-  var email=(document.getElementById('nu-email')||{}).value.trim();
-  var phone=(document.getElementById('nu-phone')||{}).value.trim();
-  var role =(document.getElementById('nu-role')||{}).value||'receptionist';
-  if(!name||!email){ toast('Nom et email requis',true); return; }
-  var now=new Date().toISOString().slice(0,10);
-  var token='inv_'+Math.random().toString(36).slice(2,10);
-  var users=getUsers();
-  users.push({
-    id:gid(), name:name, email:email, phone:phone, role:role,
-    status:'pending', created:now, last_login:null,
-    invite_sent:now, invite_token:token, employee_id:null
-  });
-  saveUsers(users);
-  audit('user-invite',{email:email,role:role});
-  closeMd('md-user');
-  renderTab('users');
-  // Show invite token modal
-  document.getElementById('md-invite-body').innerHTML
-    ='<div class="modal-title">📧 Invitation envoyée</div>'
-    +'<p style="color:var(--text2);margin-bottom:12px;">Partagez ce lien avec '+esc(name)+':</p>'
-    +'<div style="background:var(--bg3);border-radius:8px;padding:12px;font-family:monospace;font-size:12px;word-break:break-all;">https://ngams237.github.io/veraluz-os/invite?token='+token+'</div>'
-    +'<div class="btn-row"><button class="btn btn-primary" onclick="closeMd(\'md-invite\')">Fermer</button></div>';
-  openMd('md-invite');
-}
-
-function openEditUser(uid){
-  var users=getUsers();
-  var u=users.find(function(x){ return x.id===uid; });
-  if(!u) return;
-  var roles=getRoles();
-  var roleOpts=roles.map(function(r){
-    return '<option value="'+esc(r.id)+'"'+(u.role===r.id?' selected':'')+'>'+esc(r.label)+'</option>';
-  }).join('');
-  var statusOpts=['active','pending','disabled'].map(function(s){
-    return '<option value="'+s+'"'+(u.status===s?' selected':'')+'>'+s+'</option>';
-  }).join('');
-  document.getElementById('md-user-body').innerHTML
-    ='<div class="modal-title">✏ Modifier '+esc(u.name)+'</div>'
-    +'<label class="fl">Nom complet</label><input class="fi" id="eu-name" value="'+esc(u.name)+'">'
-    +'<label class="fl">Email</label><input class="fi" id="eu-email" type="email" value="'+esc(u.email||'')+'">'
-    +'<label class="fl">Téléphone</label><input class="fi" id="eu-phone" type="tel" value="'+esc(u.phone||'')+'">'
-    +'<label class="fl">Rôle</label><select class="fi" id="eu-role">'+roleOpts+'</select>'
-    +'<label class="fl">Statut</label><select class="fi" id="eu-status">'+statusOpts+'</select>'
-    +(u.role!=='superadmin'?'<label class="fl">Nouveau mot de passe</label><input class="fi" id="eu-pw" type="password" placeholder="Laisser vide = inchangé">':'')
-    +'<div class="btn-row">'
-    +'<button class="btn btn-sec" onclick="closeMd(\'md-user\')">Annuler</button>'
-    +'<button class="btn btn-primary" data-uid="'+esc(uid)+'" onclick="saveUserEdit(this.dataset.uid)">Enregistrer</button>'
-    +(u.role!=='superadmin'?'<button class="btn btn-sec" data-uid="'+esc(uid)+'" onclick="openUserPerms(this.dataset.uid)">🔒 Permissions</button>':'')
-    +'</div>';
-  openMd('md-user');
-}
-function saveUserEdit(uid){
-  var users=getUsers();
-  var idx=users.findIndex(function(u){ return u.id===uid; });
-  if(idx<0) return;
-  users[idx].name  =(document.getElementById('eu-name')||{}).value||users[idx].name;
-  users[idx].email =(document.getElementById('eu-email')||{}).value||users[idx].email;
-  users[idx].phone =(document.getElementById('eu-phone')||{}).value||users[idx].phone;
-  users[idx].role  =(document.getElementById('eu-role')||{}).value||users[idx].role;
-  users[idx].status=(document.getElementById('eu-status')||{}).value||users[idx].status;
-  saveUsers(users);
-  audit('user-edit',{uid:uid,name:users[idx].name});
-  closeMd('md-user');
-  renderTab('users');
-  toast('Utilisateur mis à jour');
-}
-function toggleUserStatus(uid,status){
-  var users=getUsers();
-  var idx=users.findIndex(function(u){ return u.id===uid; });
-  if(idx<0) return;
-  if(users[idx].role==='superadmin'&&status==='disabled'){
-    toast('Le Super Admin ne peut pas être désactivé',true); return;
+function _renderProfilCard(emp){
+  var dispName=_buildProfilDisplayName(emp);
+  var shortName=emp.first_name&&emp.last_name?(emp.first_name+' '+emp.last_name):emp.full_name||dispName;
+  var roleLabel=emp.public_role_label||emp.role||'';
+  var avatarHtml=emp.photo_url
+    ?'<img src="'+esc(emp.photo_url)+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;" alt="Photo">'
+    :'<div style="width:64px;height:64px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;">'+esc(avatarInitials(shortName))+'</div>';
+  var rows=[];
+  if(emp.civility)   rows.push(['Civilité',    esc(emp.civility)]);
+  if(emp.first_name) rows.push(['Prénom',       esc(emp.first_name)]);
+  if(emp.last_name)  rows.push(['Nom',          esc(emp.last_name)]);
+  if(dispName&&dispName!==shortName) rows.push(['Nom affiché',esc(dispName)]);
+  rows.push(['Rôle','<span class="bdg bdg-blue">'+esc(roleLabel)+'</span>']);
+  if(emp.department) rows.push(['Département',  esc(emp.department)]);
+  if(emp.team_id)    rows.push(['Équipe',       esc(emp.team_id)]);
+  if(emp.phone)      rows.push(['Téléphone',    esc(emp.phone)]);
+  if(emp.email)      rows.push(['Email',        esc(emp.email)]);
+  if(emp.hire_date)  rows.push(['Embauché le',  esc(emp.hire_date)]);
+  if(emp.status){
+    var stMap={actif:'Actif',active:'Actif',inactif:'Inactif',disabled:'Désactivé',suspended:'Suspendu'};
+    rows.push(['Statut', stMap[emp.status]||emp.status]);
   }
-  users[idx].status=status;
-  saveUsers(users);
-  audit(status==='disabled'?'user-disabled':'user-enabled',{uid:uid,name:users[idx].name});
-  renderTab('users');
-  toast(status==='disabled'?'Compte désactivé':'✅ Compte activé');
+  var tRows=rows.map(function(r){
+    return '<tr><td style="padding:6px 8px;color:var(--text3);font-size:12px;white-space:nowrap;">'+r[0]+'</td>'
+          +'<td style="padding:6px 8px;font-size:13px;font-weight:500;">'+r[1]+'</td></tr>';
+  }).join('');
+  return '<div class="card" style="padding:20px;">'
+    +'<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">'
+    +avatarHtml
+    +'<div><div style="font-size:17px;font-weight:700;">'+esc(shortName)+'</div>'
+    +'<div style="font-size:13px;color:var(--text3);margin-top:2px;">'+esc(roleLabel)+'</div></div></div>'
+    +'<table style="width:100%;border-collapse:collapse;">'+tRows+'</table>'
+    +'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--bg4);">'
+    +'<div style="background:rgba(245,158,11,0.1);border:1px solid #f59e0b;border-radius:6px;'
+    +'padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:10px;">'
+    +'&#128274; Le PIN est géré via <strong>Réinitialiser le PIN</strong> dans l\'onglet Employés.</div>'
+    +'<button class="btn btn-danger" onclick="doLogout()">Déconnexion</button>'
+    +'</div></div>';
 }
-function deleteUser(uid){
-  var users=getUsers();
-  var u=users.find(function(x){ return x.id===uid; });
-  if(!u) return;
-  if(u.role==='superadmin'){ toast('Le Super Admin ne peut pas être supprimé',true); return; }
-  if(!confirm('Supprimer '+u.name+' ?')) return;
-  users=users.filter(function(x){ return x.id!==uid; });
-  saveUsers(users);
-  audit('user-delete',{uid:uid,name:u.name});
-  renderTab('users');
-  toast('Utilisateur supprimé');
-}
-function resendInvite(uid){
-  var users=getUsers();
-  var u=users.find(function(x){ return x.id===uid; });
-  if(!u) return;
-  audit('invite-resent',{uid:uid,email:u.email});
-  toast('📧 Invitation renvoyée à '+u.email);
+function renderProfil(){
+  /* AUTH-R4 : identité dérivée exclusivement de la session serveur (employees-secure) */
+  if(!window.parent||!window.parent.veraluzSecureRequest){
+    return '<div class="empty">Broker non disponible.</div>';
+  }
+  window.parent.veraluzSecureRequest('employees-secure',{action:'get_my_profile'})
+    .then(function(res){
+      var c=document.getElementById('profil-wrap');
+      if(!c) return;
+      if(res&&res.body&&res.body.ok&&res.body.profile){
+        c.innerHTML=_renderProfilCard(res.body.profile);
+      } else {
+        var err=(res&&res.body&&res.body.error)||'inconnue';
+        c.innerHTML='<div class="empty">Erreur chargement profil ('+esc(err)+').</div>';
+      }
+    })
+    .catch(function(){
+      var c=document.getElementById('profil-wrap');
+      if(c) c.innerHTML='<div class="empty">Erreur réseau.</div>';
+    });
+  return '<div id="profil-wrap" style="padding:8px;">'
+    +'<div style="text-align:center;padding:40px;color:var(--text3);">Chargement du profil...</div>'
+    +'</div>';
 }
 
 function renderUsers(){

@@ -32,6 +32,12 @@ const WRITABLE_KEYS = new Set([
   'property','contact','booking','wifi','restaurant','branding','security',
 ]);
 
+// Champs autorisés pour la clé 'security' (whitelist stricte)
+const SECURITY_ALLOWED_FIELDS = new Set([
+  'session_lifetime_hours','resume_token_days','temp_pin_expiry_hours',
+  'track_ip','track_user_agent',
+]);
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function corsHeaders(origin: string) {
@@ -173,6 +179,13 @@ Deno.serve(async (req) => {
       }
     }
 
+
+    // Merge avec valeur existante pour ne pas écraser les champs non envoyés
+    const { data: existing } = await db
+      .from('veraluz_settings')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
 
     const merged = Object.assign({}, existing?.value ?? {}, value);
     if (

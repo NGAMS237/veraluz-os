@@ -59,6 +59,13 @@ function generateToken(bytes: number): string {
   return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** IP côté serveur uniquement — jamais du body */
+function getClientIp(req: Request): string | null {
+  const xff = req.headers.get('x-forwarded-for');
+  if (xff) return xff.split(',')[0].trim().slice(0, 45);
+  return req.headers.get('cf-connecting-ip')?.trim().slice(0, 45) ?? null;
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get('origin');
 
@@ -121,6 +128,19 @@ Deno.serve(async (req) => {
     const status = result.error === 'employee_inactive' ? 403 : 401;
     return json({ error: result.error ?? 'unknown' }, status, origin);
   }
+
+  // ── Mise à jour IP / UA sur la nouvelle session ─────────────────────────
+  try {
+    const { data: secRow } = await sb.from('veraluz_settings').select('value').eq('key','security').maybeSingle();
+    const sec = (secRow?.value || {}) as Record<string, unknown>;
+    if (sec.track_ip !== false || sec.track_user_agent !== false) {
+      const clientIp  = sec.track_ip !== false ? getClientIp(req) : null;
+      const ua        = sec.track_user_agent !== false ? (req.headers.get('user-agent')?.slice(0, 255) ?? null) : null;
+      await sb.from('veraluz_employee_sessions')
+        .update({ last_ip: clientIp, user_agent: ua, last_seen_at: new Date().toISOString() })
+        .eq('token_hash', newSessionHash);
+    }
+  } catch (e) { console.warn('[resume-session] ip_ua_update_failed', e); }
 
   // ── Réponse — raw tokens retournés une seule fois ─────────────────────────
   return json({

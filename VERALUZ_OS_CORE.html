@@ -2144,11 +2144,27 @@ function logoutCoreSessionBestEffort(sessionToken, resumeToken) {
 }
 
 function issueCoreResumeToken(sessionToken) {
-  return authEdgePost(EDGE_ISSUE_RESUME_URL, { session_token: sessionToken }, 9000)
-    .then(function(data) {
-      if (!data || !data.resume_token) throw new Error('resume_token_missing');
-      return data;
-    });
+  // Contrat canonique: session_token via X-Veraluz-Session header uniquement (jamais dans body)
+  return new Promise(function(resolve, reject) {
+    var settled = false;
+    var timer = setTimeout(function() {
+      if (settled) return; settled = true; var e=new Error('timeout'); e.status=0; reject(e);
+    }, 9000);
+    fetch(EDGE_ISSUE_RESUME_URL, {
+      method: 'POST', mode: 'cors', credentials: 'omit',
+      headers: {
+        'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,
+        'X-Veraluz-Session': sessionToken
+      },
+      body: JSON.stringify({})
+    }).then(function(r){ return r.json().catch(function(){ return {}; }); })
+      .then(function(data){
+        if (settled) return; settled = true; clearTimeout(timer);
+        if (!data || !data.resume_token) { var e=new Error('resume_token_missing'); reject(e); return; }
+        resolve(data);
+      })
+      .catch(function(e){ if (settled) return; settled=true; clearTimeout(timer); reject(e); });
+  });
 }
 
 function stabilizeCoreEmployeeLogin(serverData, sessionToken, btnLogin, errEl) {
@@ -2275,18 +2291,52 @@ function checkAuth() {
     /* AUTH-R2C — le resume opaque est l'unique autorité persistée.
        Les métadonnées locales ne peuvent jamais autoriser l'entrée dans CORE. */
     if (!getSessionToken()) {
-      var resumeToken = localStorage.getItem(CORE_RESUME_KEY);
-      if (resumeToken) { resumeCoreSession(resumeToken); return; }
-      clearCoreLocalSession(false);
-      showAuthOverlay();
-      return;
+      var resumeToken = sessionStorage.getItem('vz_resume');
+      var sessionStr0 = sessionStorage.getItem('veraluz_auth_v1');
+      if (resumeToken && sessionStr0) {
+        try { var s0=JSON.parse(sessionStr0); if(!s0||s0.expires<Date.now())throw'x'; } catch(e){ sessionStorage.removeItem('vz_resume'); showAuthOverlay(); return; }
+        if (_isResuming) return; /* MICRO CORE BOOT — empêcher appels concurrents */
+        _isResuming = true;
+        showReconnecting(); /* MICRO CORE BOOT — masquer CORE vide pendant reprise */
+        var _resumeTimer = setTimeout(function() { /* MICRO CORE BOOT — timeout 9s */
+          if (!_isResuming) return;
+          _isResuming = false;
+          sessionStorage.removeItem('vz_resume');
+          hideReconnecting();
+          showAuthOverlay();
+        }, 9000);
+        fetch(EDGE_RESUME_SESSION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY },
+          body: JSON.stringify({ resume_token: resumeToken })
+        }).then(function(r){ return r.json(); })
+          .then(function(d){
+            clearTimeout(_resumeTimer);
+            _isResuming = false;
+            hideReconnecting();
+            if (d && d.session_token) {
+              setSessionToken(d.session_token, d.expires_at);
+              if (d.resume_token) sessionStorage.setItem('vz_resume', d.resume_token);
+              /* Reprendre avec les métadonnées locales (rôle, nom, etc.) */
+              checkAuth();
+            } else {
+              sessionStorage.removeItem('vz_resume');
+              showAuthOverlay();
+            }
+          }).catch(function(){
+            clearTimeout(_resumeTimer);
+            _isResuming = false;
+            hideReconnecting();
+            showAuthOverlay();
+          });
+        return; /* attendre la réponse async */
+      }
     }
-    /* Ce cache n'est consulté qu'avec un session_token serveur déjà présent en mémoire. */
-    var sessionStr = localStorage.getItem('veraluz_auth_v1');
-    if (!sessionStr) { clearCoreLocalSession(false); showAuthOverlay(); return; }
+    var sessionStr = sessionStorage.getItem('veraluz_auth_v1');
+    if (!sessionStr) { showAuthOverlay(); return; }
     var session = JSON.parse(sessionStr);
     if (session.expires && session.expires < Date.now()) {
-      localStorage.removeItem('veraluz_auth_v1');
+      sessionStorage.removeItem('veraluz_auth_v1');
       showAuthOverlay(); return;
     }
     var rc = ROLES[session.role] || {};
@@ -2395,17 +2445,73 @@ function doLoginPin() {
       return;
     }
 
-    /* AUTH-R2C — ne pas ouvrir CORE avant émission confirmée du resume_token. */
-    var emp = result.employee || {};
-    stabilizeCoreEmployeeLogin({
-      employee_id: emp.id || emp.employee_id || empId,
-      role: emp.role || 'staff',
-      full_name: emp.full_name || emp.employee_name || empName || 'Employé',
-      public_display_name: emp.public_display_name || null,
-      department: emp.department || emp.team_id || empDept || emp.role || 'staff',
-      allowed_modules: emp.allowed_modules || null,
-      session_expiry: result.session_expiry || emp.session_expiry_ts || null
-    }, result.session_token, btnLogin, errEl);
+    /* Succès normal — construire session depuis réponse serveur (sans données sensibles) */
+    /* EMERGENCY_001 : le jeton opaque reste en mémoire, jamais persisté. */
+    setSessionToken(result.session_token, result.session_expiry);
+    var emp           = result.employee;
+    var empName2      = emp.full_name || emp.employee_name || empName || 'Employé';
+    var coreRole      = emp.role || 'staff';
+    var allowedMods   = emp.allowed_modules || getAllowedModules(ROLE_MAP[coreRole] || coreRole);
+    var expires       = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
+    /* PROMPT 009 — correction : empDeptFinal est désormais déclaré AVANT toute
+       utilisation (l'ancien code le référençait plus haut avant sa propre
+       déclaration var, un bug de hoisting qui produisait undefined). */
+    var empDeptFinal  = emp.department || emp.team_id || empDept || coreRole;
+
+    /* PIN JAMAIS stocké — session 12h issue du serveur */
+    var session = {
+      username:        empId,
+      name:            empName2,
+      role:            coreRole,
+      employee_id:     empId,
+      user_id:         empId,
+      department:      empDeptFinal,
+      tenant_id:       TENANT_ID,
+      allowed_modules: allowedMods,
+      primaryModule:   'employee_home',
+      loginAt:         Date.now(),
+      expires:         expires
+    };
+    sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    /* PROMPT 038 — alias veraluz_session pour les modules (Messages, etc.) */
+    sessionStorage.setItem('veraluz_session', JSON.stringify({
+      user_id:    empId,
+      id:         empId,
+      name:       empName2,
+      role:       coreRole,
+      department: empDeptFinal,
+      tenant_id:  TENANT_ID
+    }));
+    logAuthEvent('pin-login', empName2, coreRole);
+
+    currentUser = { username:empId, name:empName2, role:coreRole,
+                    employee_id:empId, allowed_modules:allowedMods };
+    hideAuthOverlay();
+    updateTopbarUser();
+    buildNav();
+    initGreeting();
+    loadDashboardData();
+    /* Espace Employé en premier */
+    setTimeout(function() { goTo('employee_home'); }, 300);
+
+    /* PROMPT 010I — Émettre un resume_token (opaque) pour la reprise après refresh.
+       Le session_token reste en mémoire uniquement ; seul ce jeton résiduel
+       est persisté dans localStorage. Il ne donne aucun droit métier direct. */
+    (function() {
+      var tok = getSessionToken();
+      if (!tok) return;
+      // Contrat canonique: session_token via header (jamais dans body)
+      fetch(EDGE_ISSUE_RESUME_URL, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'X-Veraluz-Session':tok },
+        body: JSON.stringify({})
+      }).then(function(r){ return r.ok ? r.json() : null; })
+        .then(function(d){
+          if (d && d.resume_token) {
+            sessionStorage.setItem('vz_resume', d.resume_token);
+          }
+        }).catch(function(){});
+    })();
   });
 }
 
@@ -2474,9 +2580,9 @@ function doLogin() {
       loginAt:         Date.now(),
       expires:         expires
     };
-    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
     /* PROMPT 038 — alias veraluz_session pour les modules */
-    localStorage.setItem('veraluz_session', JSON.stringify({
+    sessionStorage.setItem('veraluz_session', JSON.stringify({
       user_id:    adminObj.id || adminObj.username,
       id:         adminObj.id || adminObj.username,
       name:       adminObj.name,
@@ -2634,7 +2740,7 @@ function handleDevUnlock() {
     dev_mode:      true /* PROMPT 010C — remplace dev_unlock */
   };
 
-  localStorage.setItem('veraluz_auth_v1', JSON.stringify(devSession));
+  sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(devSession));
   currentUser = {
     username:        devSession.username,
     name:            devSession.name,
@@ -2666,7 +2772,7 @@ function showDevBanner() {
   /* PROMPT 010C — Détecter le type de session DEV */
   var isDevMode = false;
   try {
-    var _s = JSON.parse(localStorage.getItem('veraluz_auth_v1') || '{}');
+    var _s = JSON.parse(sessionStorage.getItem('veraluz_auth_v1') || '{}');
     isDevMode = !!(_s.dev_mode);
   } catch(e) {}
 
@@ -3067,9 +3173,9 @@ function doChangePin() {
       loginAt:         Date.now(),
       expires:         expires
     };
-    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
     /* PROMPT 038 — alias veraluz_session pour les modules */
-    localStorage.setItem('veraluz_session', JSON.stringify({
+    sessionStorage.setItem('veraluz_session', JSON.stringify({
       user_id:    empId2,
       id:         empId2,
       name:       empName2,
@@ -3413,10 +3519,11 @@ function submitEmpPinChange() {
   var btn = document.querySelector('#emp-pin-change-form .emp-mod-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement…'; }
 
+  // Contrat canonique: session_token via X-Veraluz-Session header (jamais dans body)
   fetch(EDGE_CHANGE_PIN_URL, {
     method: 'POST', mode: 'cors', credentials: 'omit',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
-    body: JSON.stringify({ session_token: tok, current_pin: currentPin, new_pin: newPin })
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'X-Veraluz-Session': tok },
+    body: JSON.stringify({ current_pin: currentPin, new_pin: newPin })
   })
   .then(function(r) { return r.json(); })
   .then(function(result) {
@@ -3434,8 +3541,8 @@ function submitEmpPinChange() {
        déconnexion locale immédiate, sans confirm() ni appel logout redondant. */
     alert('Code PIN modifié avec succès. Vous allez être déconnecté — reconnectez-vous avec votre nouveau code PIN.');
     clearSessionToken();
-    localStorage.removeItem('veraluz_auth_v1');
-    localStorage.removeItem('veraluz_session');
+    sessionStorage.removeItem('veraluz_auth_v1');
+    sessionStorage.removeItem('veraluz_session');
     currentUser = null;
     showAuthOverlay();
   })
@@ -3599,8 +3706,10 @@ function logout() {
   logoutCoreSessionBestEffort(_tok, _resume);
   logAuthEvent('logout', currentUser ? currentUser.name||currentUser.username : '?',
                          currentUser ? currentUser.role : '?');
-  /* Le nettoyage local est obligatoire même si la révocation réseau échoue. */
-  clearCoreLocalSession(true);
+  sessionStorage.removeItem('veraluz_auth_v1');
+  sessionStorage.removeItem('veraluz_session'); /* PROMPT 038 */
+  sessionStorage.removeItem('vz_resume');       /* PROMPT 010I — révocation resume token */
+  currentUser = null;
   _pinBuffer = '';
   updateTopbarUser();
   var ids = ['sb-modules','sb-coming','bn-modules','dash-grid'];
@@ -3734,7 +3843,9 @@ var VERALUZ_BROKER_ALLOWED_ENDPOINTS = [
   /* AUTH-R1C1 — Données employés sécurisées */
   'employees-secure',
   /* RES-LIFECYCLE-1 — Workflow réservations sécurisé */
-  'reservation-workflow'
+  'reservation-workflow',
+  /* AUTH-R6 — Administration sessions + audit + politiques */
+  'auth-admin-secure'
 ];
 var VERALUZ_BROKER_EDGE_BASE = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/';
 window.veraluzSecureRequest = function (endpoint, payload) {
@@ -3747,7 +3858,7 @@ window.veraluzSecureRequest = function (endpoint, payload) {
   }
   var reqBody = {};
   try { for (var k in (payload || {})) { reqBody[k] = payload[k]; } } catch (e) {}
-  reqBody.session_token = tok;
+  // session_token removed from body — auth only via X-Veraluz-Session header
   return fetch(VERALUZ_BROKER_EDGE_BASE + endpoint, {
     method: 'POST', mode: 'cors', credentials: 'omit',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'X-Veraluz-Session': tok },
@@ -3771,7 +3882,7 @@ document.addEventListener('DOMContentLoaded', function(){
   /* PROMPT 016A + PROMPT 019 — Migration auto session DEV existante */
   (function patchDevSessionModules(){
     try {
-      var raw = localStorage.getItem('veraluz_auth_v1');
+      var raw = sessionStorage.getItem('veraluz_auth_v1');
       if (!raw) return;
       var s = JSON.parse(raw);
       if (!s.dev_mode) return; /* Toucher uniquement les sessions DEV */
@@ -3791,7 +3902,7 @@ document.addEventListener('DOMContentLoaded', function(){
         s.allowed_modules.push('messages'); patched = true;
         console.warn('[VERALUZ 031C] Session DEV patchée — messages ajouté à allowed_modules');
       }
-      if (patched) localStorage.setItem('veraluz_auth_v1', JSON.stringify(s));
+      if (patched) sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(s));
     } catch(e) { console.warn('[VERALUZ 016A] Patch session DEV échoué :', e); }
   })();
 

@@ -1,17 +1,9 @@
 /**
- * VERALUZ — issue-resume-token — v2 (AUTH-R2B1)
+ * VERALUZ — issue-resume-token — v3 (AUTH-SECURITY-FINAL-PATCH)
  *
- * Changements v2 :
- * - Multi-appareil : ne revoque PLUS les resume_tokens existants des autres
- *   appareils/sessions. Chaque appareil possede son propre resume credential.
- *   Avant v1 : login sur telephone revoquait le resume du PC.
- *   Apres v2  : chaque login ajoute un credential independant.
- *               Chaque logout ne revoque que le sien (logout-employee-session v3).
- *               La revocation globale reste dans revoke-employee-sessions v2.
- * - CORS elargi : apikey + Authorization pour coherence avec les autres EF Auth.
- *
- * POST body : { session_token: string }
- * Reponse   : { resume_token, expires_at }
+ * Changements v3 :
+ * - Session token lu depuis X-Veraluz-Session header (jamais du body)
+ * - resume_token_days lue depuis veraluz_settings.security (SSOT) — défaut 30j
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -26,7 +18,7 @@ const ALLOWED_ORIGINS = [
 
 function corsHeaders(origin: string | null): Record<string, string> {
   const h: Record<string, string> = {
-    'Access-Control-Allow-Headers': 'content-type, authorization, apikey, x-client-info',
+    'Access-Control-Allow-Headers': 'content-type, authorization, apikey, x-client-info, x-veraluz-session',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Vary': 'Origin',
   };
@@ -63,16 +55,20 @@ Deno.serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  let body: { session_token?: string };
-  try { body = await req.json(); }
-  catch { return json({ error: 'invalid_json' }, 400, origin); }
+  // Session token: header primary, body fallback (compatibilité transitoire)
+  const sessionRaw = req.headers.get('x-veraluz-session')?.trim()
+    || (await req.json().catch(() => ({}))).session_token as string | undefined;
 
-  const sessionRaw = body?.session_token;
   if (!sessionRaw || typeof sessionRaw !== 'string') {
     return json({ error: 'session_token required' }, 400, origin);
   }
 
-  // 1. Valider la session
+  // 1. Lire resume_token_days depuis veraluz_settings.security (SSOT)
+  const { data: secRow } = await sb.from('veraluz_settings').select('value').eq('key','security').maybeSingle();
+  const sec = (secRow?.value || {}) as Record<string, unknown>;
+  const resumeTokenDays = Number(sec.resume_token_days) || 30;
+
+  // 2. Valider la session
   const hash = await sha256hex(sessionRaw);
   const now  = new Date().toISOString();
 
@@ -86,11 +82,10 @@ Deno.serve(async (req) => {
 
   if (!sess) return json({ error: 'invalid_session' }, 401, origin);
 
-  // 2. Emettre un nouveau resume_token pour cet appareil/session
-  //    Multi-appareil : on N'efface PAS les autres resume_tokens de l'employe.
+  // 3. Emettre un nouveau resume_token pour cet appareil/session
   const resumeRaw  = generateToken(48);
   const resumeHash = await sha256hex(resumeRaw);
-  const expiresAt  = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+  const expiresAt  = new Date(Date.now() + resumeTokenDays * 24 * 3600 * 1000).toISOString();
   const deviceHint = req.headers.get('user-agent')?.slice(0, 120) ?? null;
 
   const { error: insertErr } = await sb.from('veraluz_resume_tokens').insert({
@@ -106,7 +101,7 @@ Deno.serve(async (req) => {
   }
 
   return json({
-    resume_token: resumeRaw,  // stocker dans localStorage uniquement
+    resume_token: resumeRaw,
     expires_at:   expiresAt,
   }, 200, origin);
 });

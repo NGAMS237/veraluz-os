@@ -1,7 +1,7 @@
 /**
  * VERALUZ — change-employee-pin — v4 (PROMPT 009 : ajout journalisation §13)
  *
- * POST { session_token, current_pin, new_pin } -> { ok:true }
+ * POST { current_pin, new_pin } -> { ok:true }  (session_token via X-Veraluz-Session header)
  *
  * Logique inchangee par rapport a la v3 (deja correcte) :
  *  - employee_id deduit de la session, jamais du corps ;
@@ -20,7 +20,7 @@ const ALLOWED_ORIGINS = [
 ]
 function cors(origin: string | null) {
   const h: Record<string, string> = {
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-veraluz-session',
     'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Vary': 'Origin',
   }
   if (origin && ALLOWED_ORIGINS.includes(origin)) h['Access-Control-Allow-Origin'] = origin
@@ -42,14 +42,15 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) })
   if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405, origin)
 
-  let body: { session_token?: string; current_pin?: string; new_pin?: string }
+  // Session token: X-Veraluz-Session header (contrat canonique CORE→EF)
+  const token = (req.headers.get('x-veraluz-session') || '').trim()
+  if (!/^[0-9a-f]{64}$/.test(token)) return json({ ok: false, error: 'unauthorized' }, 401, origin)
+
+  let body: { current_pin?: string; new_pin?: string }
   try { body = await req.json() } catch { return json({ ok: false, error: 'invalid_json' }, 400, origin) }
 
-  const token = String(body.session_token || '')
   const currentPin = String(body.current_pin || '')
   const newPin = String(body.new_pin || '')
-
-  if (!/^[0-9a-f]{64}$/.test(token)) return json({ ok: false, error: 'unauthorized' }, 401, origin)
   if (!/^\d{6}$/.test(newPin))       return json({ ok: false, error: 'new_pin_must_be_6_digits' }, 400, origin)
   if (WEAK.includes(newPin))         return json({ ok: false, error: 'weak_pin' }, 400, origin)
   if (newPin === currentPin)         return json({ ok: false, error: 'new_pin_same_as_current' }, 400, origin)

@@ -265,6 +265,7 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
 'use strict';
 var MODULE_VER = '2.0';
 var currentTabId = 'profil';
+var _renderGen   = 0; // Incrémenté à chaque renderTab — invalide les callbacks async en vol
 
 /* ── Supabase config (héritée du parent CORE.html) — clé anon publique safe ── */
 var _SB_URL  = (function(){ try{ return window.parent.SUPA_URL || ''; }catch(e){ return ''; } })()
@@ -503,32 +504,7 @@ var DEFAULT_ROLES = [
 ];
 
 /* ── Demo Users ────────────────────────────────────────────────────────────── */
-var DEMO_USERS = [
-  { id:'u1', name:'Smith Ngams',  email:'smith@veraluz.cm', phone:'+237 6 90 00 00 01',
-    role:'superadmin', status:'active',  created:'2026-01-01', last_login:'2026-05-17',
-    invite_sent:null, invite_token:null, employee_id:'E001' },
-  { id:'u2', name:'Marie Ateba',  email:'marie@veraluz.cm', phone:'+237 6 90 00 00 02',
-    role:'admin',     status:'active',  created:'2026-01-15', last_login:'2026-05-16',
-    invite_sent:'2026-01-15', invite_token:null, employee_id:'E002' },
-  { id:'u3', name:'Paul Biya',    email:'paul@veraluz.cm', phone:'+237 6 90 00 00 03',
-    role:'receptionist', status:'active', created:'2026-02-01', last_login:'2026-05-15',
-    invite_sent:'2026-02-01', invite_token:null, employee_id:'E003' },
-  { id:'u4', name:'Carine Ngo',   email:'carine@veraluz.cm', phone:'+237 6 90 00 00 04',
-    role:'housekeeping', status:'active', created:'2026-02-10', last_login:'2026-05-14',
-    invite_sent:'2026-02-10', invite_token:null, employee_id:'E004' },
-  { id:'u5', name:'Jean Mbarga',  email:'jean@veraluz.cm', phone:'+237 6 90 00 00 05',
-    role:'restaurant', status:'active', created:'2026-03-01', last_login:'2026-05-13',
-    invite_sent:'2026-03-01', invite_token:null, employee_id:'E005' },
-  { id:'u6', name:'Sophie Fouda', email:'sophie@veraluz.cm', phone:'+237 6 90 00 00 06',
-    role:'finance',   status:'active',  created:'2026-03-15', last_login:'2026-05-12',
-    invite_sent:'2026-03-15', invite_token:null, employee_id:'E006' },
-  { id:'u7', name:'Lucas Essam',  email:'lucas@veraluz.cm', phone:'+237 6 90 00 00 07',
-    role:'rh',        status:'disabled',created:'2026-04-15', last_login:'2026-04-15',
-    invite_sent:'2026-04-15', invite_token:null, employee_id:'E007' },
-  { id:'u8', name:'Kevin Ateba',  email:'kevin@veraluz.cm', phone:'+237 6 91 00 00 08',
-    role:'finance',   status:'pending', created:'2026-05-10', last_login:null,
-    invite_sent:'2026-05-10', invite_token:'inv_abc123', employee_id:null }
-];
+var DEMO_USERS = []; /* R6: supprimé — utiliser employees-secure */
 
 /* ── Storage ───────────────────────────────────────────────────────────────── */
 var STORE_USERS = 'vlz_auth_users_v2';
@@ -553,8 +529,7 @@ function getAudit(){
   catch(e){ return []; }
 }
 function getSessions(){
-  try{ var d=localStorage.getItem(STORE_SESS); return d?JSON.parse(d):DEMO_SESSIONS.slice();}
-  catch(e){ return DEMO_SESSIONS.slice(); }
+  return DEMO_SESSIONS.slice(); /* R6: toujours vide, utiliser loadRealSessions() */
 }
 function getPolicy(){
   try{ var d=localStorage.getItem(STORE_POL); return d?JSON.parse(d):DEFAULT_POLICY;}
@@ -562,19 +537,11 @@ function getPolicy(){
 }
 function savePolicy(p){ try{localStorage.setItem(STORE_POL,JSON.stringify(p));}catch(e){} }
 function getCurrentUser(){
-  try{ var d=localStorage.getItem(STORE_CU); return d?JSON.parse(d):DEMO_USERS[0];}
-  catch(e){ return DEMO_USERS[0]; }
+  return null; /* R6: plus de fallback fictif — identité depuis session serveur */
 }
 
-/* ── Demo Sessions ─────────────────────────────────────────────────────────── */
-var DEMO_SESSIONS = [
-  { id:'s1', user_id:'u1', user_name:'Smith Ngams', ip:'192.168.1.10', device:'Chrome/macOS',
-    created:'2026-05-17T08:00:00Z', last_active:'2026-05-17T14:30:00Z', active:true },
-  { id:'s2', user_id:'u2', user_name:'Marie Ateba', ip:'192.168.1.11', device:'Safari/iPhone',
-    created:'2026-05-17T09:15:00Z', last_active:'2026-05-17T13:00:00Z', active:true },
-  { id:'s3', user_id:'u3', user_name:'Paul Biya',   ip:'192.168.1.12', device:'Firefox/Windows',
-    created:'2026-05-16T10:00:00Z', last_active:'2026-05-16T18:00:00Z', active:false }
-];
+/* ── Demo Sessions (supprimées R6 — utiliser auth-admin-secure) ──────────────── */
+var DEMO_SESSIONS = []; /* R6: supprimé — utiliser loadRealSessions() */
 
 /* ── Default Policy ────────────────────────────────────────────────────────── */
 var DEFAULT_POLICY = {
@@ -663,10 +630,12 @@ function goTab(el){
   renderTab(currentTabId);
 }
 function renderTab(id){
+  _renderGen++;
+  var gen=_renderGen;
   var fns={profil:renderProfil,users:renderUsers,roles:renderRoles,
            sessions:renderSessions,audit:renderAudit,security:renderSecurite};
   var c=document.getElementById('main-content');
-  if(c&&fns[id]) c.innerHTML=fns[id]();
+  if(c&&fns[id]) c.innerHTML=fns[id](gen);
 }
 
 /* ── Audit ─────────────────────────────────────────────────────────────────── */
@@ -709,160 +678,184 @@ function doLogout(){
   emit('logout',{});
   toast('Déconnexion...');
 }
-function renderProfil(){
-  var u=getCurrentUser();
-  var roles=getRoles();
-  var role=roles.find(function(r){ return r.id===u.role; })||{label:u.role,badge:'bdg-gray'};
-  var modules=Object.keys((u.perms_override)||role.perms||{});
-  return '<div class="stat-row">'
-    +'<div class="stat"><div class="stat-val">'+esc(avatarInitials(u.name))+'</div><div class="stat-lbl">'+esc(u.name)+'</div></div>'
-    +'<div class="stat"><div class="stat-val"><span class="bdg '+esc(role.badge)+'">'+esc(role.label)+'</span></div><div class="stat-lbl">Rôle</div></div>'
-    +'<div class="stat"><div class="stat-val">'+modules.length+'</div><div class="stat-lbl">Modules</div></div>'
-    +'</div>'
-    +'<div class="card"><div class="card-hdr"><div class="card-title">Modifier profil</div></div>'
-    +'<label class="fl">Nom complet</label><input class="fi" id="p-name" value="'+esc(u.name)+'">'
-    +'<label class="fl">Email</label><input class="fi" id="p-email" type="email" value="'+esc(u.email||'')+'">'
-    +'<label class="fl">Téléphone</label><input class="fi" id="p-phone" type="tel" value="'+esc(u.phone||'')+'">'
-    +'<div class="btn-row"><button class="btn btn-primary" data-uid="'+esc(u.id)+'" onclick="saveProfil(this.dataset.uid)">Enregistrer</button></div></div>'
-    +'<div class="card"><div class="card-hdr"><div class="card-title">Sécurité du compte</div></div>'
-    +'<label class="fl">Mot de passe actuel</label><input class="fi" id="p-pw-old" type="password" placeholder="••••••">'
-    +'<label class="fl">Nouveau mot de passe</label><input class="fi" id="p-pw-new" type="password" placeholder="••••••">'
-    +'<div style="background:rgba(245,158,11,0.1);border:1px solid #f59e0b;border-radius:6px;padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:8px;">&#128274; Le PIN employé est géré via <strong>🔑 Réinitialiser le PIN</strong> dans l\'onglet Employés — il ne peut pas être changé ici.</div>'
-    +'<div class="btn-row"><button class="btn btn-primary" data-uid="'+esc(u.id)+'" onclick="savePassword(this.dataset.uid)">Changer</button>'
-    +'<button class="btn btn-danger" onclick="doLogout()">🚪 Déconnexion</button></div></div>';
+/* AUTH-R4 — Profil réel depuis session serveur uniquement. */
+function _buildProfilDisplayName(emp){
+  if(emp.public_display_name) return emp.public_display_name;
+  var parts=[];
+  if(emp.civility)    parts.push(emp.civility);
+  if(emp.first_name)  parts.push(emp.first_name);
+  if(emp.last_name)   parts.push(emp.last_name);
+  if(parts.length)    return parts.join(' ');
+  return emp.full_name||'';
 }
-
-/* ══════════════════════════════════════════════════════════════
-   TAB: USERS
-═══════════════════════════════════════════════════════════════ */
-var _uFilter='all';
-var _uSearch='';
-
-function setUFilter(f){ _uFilter=f; renderTab('users'); }
-function filterUsers(){
-  _uSearch=(document.getElementById('u-search')||{}).value||'';
-  renderTab('users');
-}
-function openNewUserMd(){
-  var roles=getRoles();
-  var roleOpts=roles.map(function(r){
-    return '<option value="'+esc(r.id)+'">'+esc(r.label)+'</option>';
-  }).join('');
-  document.getElementById('md-user-body').innerHTML
-    ='<div class="modal-title">👤 Nouvel utilisateur</div>'
-    +'<label class="fl">Nom complet</label><input class="fi" id="nu-name" placeholder="Prénom Nom">'
-    +'<label class="fl">Email</label><input class="fi" id="nu-email" type="email" placeholder="email@domaine.com">'
-    +'<label class="fl">Téléphone</label><input class="fi" id="nu-phone" type="tel" placeholder="+237 6 xx xx xx xx">'
-    +'<label class="fl">Rôle</label><select class="fi" id="nu-role">'+roleOpts+'</select>'
-    +'<div style="background:var(--bg4);border-radius:10px;padding:12px;margin:8px 0;font-size:12px;color:var(--text2);">'
-    +'📧 Une invitation sera envoyée automatiquement par email.<br>'
-    +'L’utilisateur devra créer son mot de passe pour activer son compte.</div>'
-    +'<div class="btn-row"><button class="btn btn-sec" onclick="closeMd(\'md-user\')">Annuler</button>'
-    +'<button class="btn btn-primary" onclick="addUser()">Créer &amp; Inviter</button></div>';
-  openMd('md-user');
-}
-function addUser(){
-  var name =(document.getElementById('nu-name')||{}).value.trim();
-  var email=(document.getElementById('nu-email')||{}).value.trim();
-  var phone=(document.getElementById('nu-phone')||{}).value.trim();
-  var role =(document.getElementById('nu-role')||{}).value||'receptionist';
-  if(!name||!email){ toast('Nom et email requis',true); return; }
-  var now=new Date().toISOString().slice(0,10);
-  var token='inv_'+Math.random().toString(36).slice(2,10);
-  var users=getUsers();
-  users.push({
-    id:gid(), name:name, email:email, phone:phone, role:role,
-    status:'pending', created:now, last_login:null,
-    invite_sent:now, invite_token:token, employee_id:null
-  });
-  saveUsers(users);
-  audit('user-invite',{email:email,role:role});
-  closeMd('md-user');
-  renderTab('users');
-  // Show invite token modal
-  document.getElementById('md-invite-body').innerHTML
-    ='<div class="modal-title">📧 Invitation envoyée</div>'
-    +'<p style="color:var(--text2);margin-bottom:12px;">Partagez ce lien avec '+esc(name)+':</p>'
-    +'<div style="background:var(--bg3);border-radius:8px;padding:12px;font-family:monospace;font-size:12px;word-break:break-all;">https://ngams237.github.io/veraluz-os/invite?token='+token+'</div>'
-    +'<div class="btn-row"><button class="btn btn-primary" onclick="closeMd(\'md-invite\')">Fermer</button></div>';
-  openMd('md-invite');
-}
-
-function openEditUser(uid){
-  var users=getUsers();
-  var u=users.find(function(x){ return x.id===uid; });
-  if(!u) return;
-  var roles=getRoles();
-  var roleOpts=roles.map(function(r){
-    return '<option value="'+esc(r.id)+'"'+(u.role===r.id?' selected':'')+'>'+esc(r.label)+'</option>';
-  }).join('');
-  var statusOpts=['active','pending','disabled'].map(function(s){
-    return '<option value="'+s+'"'+(u.status===s?' selected':'')+'>'+s+'</option>';
-  }).join('');
-  document.getElementById('md-user-body').innerHTML
-    ='<div class="modal-title">✏ Modifier '+esc(u.name)+'</div>'
-    +'<label class="fl">Nom complet</label><input class="fi" id="eu-name" value="'+esc(u.name)+'">'
-    +'<label class="fl">Email</label><input class="fi" id="eu-email" type="email" value="'+esc(u.email||'')+'">'
-    +'<label class="fl">Téléphone</label><input class="fi" id="eu-phone" type="tel" value="'+esc(u.phone||'')+'">'
-    +'<label class="fl">Rôle</label><select class="fi" id="eu-role">'+roleOpts+'</select>'
-    +'<label class="fl">Statut</label><select class="fi" id="eu-status">'+statusOpts+'</select>'
-    +(u.role!=='superadmin'?'<label class="fl">Nouveau mot de passe</label><input class="fi" id="eu-pw" type="password" placeholder="Laisser vide = inchangé">':'')
-    +'<div class="btn-row">'
-    +'<button class="btn btn-sec" onclick="closeMd(\'md-user\')">Annuler</button>'
-    +'<button class="btn btn-primary" data-uid="'+esc(uid)+'" onclick="saveUserEdit(this.dataset.uid)">Enregistrer</button>'
-    +(u.role!=='superadmin'?'<button class="btn btn-sec" data-uid="'+esc(uid)+'" onclick="openUserPerms(this.dataset.uid)">🔒 Permissions</button>':'')
-    +'</div>';
-  openMd('md-user');
-}
-function saveUserEdit(uid){
-  var users=getUsers();
-  var idx=users.findIndex(function(u){ return u.id===uid; });
-  if(idx<0) return;
-  users[idx].name  =(document.getElementById('eu-name')||{}).value||users[idx].name;
-  users[idx].email =(document.getElementById('eu-email')||{}).value||users[idx].email;
-  users[idx].phone =(document.getElementById('eu-phone')||{}).value||users[idx].phone;
-  users[idx].role  =(document.getElementById('eu-role')||{}).value||users[idx].role;
-  users[idx].status=(document.getElementById('eu-status')||{}).value||users[idx].status;
-  saveUsers(users);
-  audit('user-edit',{uid:uid,name:users[idx].name});
-  closeMd('md-user');
-  renderTab('users');
-  toast('Utilisateur mis à jour');
-}
-function toggleUserStatus(uid,status){
-  var users=getUsers();
-  var idx=users.findIndex(function(u){ return u.id===uid; });
-  if(idx<0) return;
-  if(users[idx].role==='superadmin'&&status==='disabled'){
-    toast('Le Super Admin ne peut pas être désactivé',true); return;
+function _renderProfilCard(emp){
+  var dispName=_buildProfilDisplayName(emp);
+  var shortName=emp.first_name&&emp.last_name?(emp.first_name+' '+emp.last_name):emp.full_name||dispName;
+  var roleLabel=emp.public_role_label||emp.role||'';
+  var avatarHtml=emp.photo_url
+    ?'<img src="'+esc(emp.photo_url)+'" style="width:64px;height:64px;border-radius:50%;object-fit:cover;" alt="Photo">'
+    :'<div style="width:64px;height:64px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;">'+esc(avatarInitials(shortName))+'</div>';
+  var rows=[];
+  if(emp.civility)   rows.push(['Civilité',    esc(emp.civility)]);
+  if(emp.first_name) rows.push(['Prénom',       esc(emp.first_name)]);
+  if(emp.last_name)  rows.push(['Nom',          esc(emp.last_name)]);
+  if(dispName&&dispName!==shortName) rows.push(['Nom affiché',esc(dispName)]);
+  rows.push(['Rôle','<span class="bdg bdg-blue">'+esc(roleLabel)+'</span>']);
+  var dept=emp.department||null;
+  if(dept && !/^team-/i.test(String(dept))) rows.push(['Département', esc(dept)]);
+  rows.push(['Équipe', esc(emp.team_name||'Non renseignée')]);
+  if(emp.phone)      rows.push(['Téléphone',    esc(emp.phone)]);
+  if(emp.email)      rows.push(['Email',        esc(emp.email)]);
+  if(emp.hire_date)  rows.push(['Embauché le',  esc(emp.hire_date)]);
+  if(emp.status){
+    var stMap={actif:'Actif',active:'Actif',inactif:'Inactif',disabled:'Désactivé',suspended:'Suspendu'};
+    rows.push(['Statut', stMap[emp.status]||emp.status]);
   }
-  users[idx].status=status;
-  saveUsers(users);
-  audit(status==='disabled'?'user-disabled':'user-enabled',{uid:uid,name:users[idx].name});
-  renderTab('users');
-  toast(status==='disabled'?'Compte désactivé':'✅ Compte activé');
+  var tRows=rows.map(function(r){
+    return '<tr><td style="padding:6px 8px;color:var(--text3);font-size:12px;white-space:nowrap;">'+r[0]+'</td>'
+          +'<td style="padding:6px 8px;font-size:13px;font-weight:500;">'+r[1]+'</td></tr>';
+  }).join('');
+  return '<div class="card" style="padding:20px;">'
+    +'<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">'
+    +avatarHtml
+    +'<div><div style="font-size:17px;font-weight:700;">'+esc(shortName)+'</div>'
+    +'<div style="font-size:13px;color:var(--text3);margin-top:2px;">'+esc(roleLabel)+'</div></div></div>'
+    +'<table style="width:100%;border-collapse:collapse;">'+tRows+'</table>'
+    +'<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--bg4);">'
+    +'<div style="background:rgba(245,158,11,0.1);border:1px solid #f59e0b;border-radius:6px;'
+    +'padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:10px;">'
+    +'&#128274; Le PIN est géré via <strong>Réinitialiser le PIN</strong> dans l\'onglet Employés.</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    +'<button class="btn btn-sec btn-sm" onclick="showProfilEdit()">✏️ Modifier mes infos</button>'
+    +'<button class="btn btn-danger btn-sm" onclick="doLogout()">Déconnexion</button>'
+    +'</div>'
+    +'</div></div>';
 }
-function deleteUser(uid){
-  var users=getUsers();
-  var u=users.find(function(x){ return x.id===uid; });
-  if(!u) return;
-  if(u.role==='superadmin'){ toast('Le Super Admin ne peut pas être supprimé',true); return; }
-  if(!confirm('Supprimer '+u.name+' ?')) return;
-  users=users.filter(function(x){ return x.id!==uid; });
-  saveUsers(users);
-  audit('user-delete',{uid:uid,name:u.name});
-  renderTab('users');
-  toast('Utilisateur supprimé');
+function showProfilEdit(){
+  var c=document.getElementById('profil-wrap');
+  if(!c) return;
+  /* Read current values from hidden data store */
+  var emp=window._profilData||{};
+  var civOpts=['','M.','Mme','Dr','Pr'].map(function(v){
+    return '<option value="'+v+'"'+(emp.civility===v?' selected':'')+'>'+v+'</option>';
+  }).join('');
+  c.innerHTML='<div class="card" style="padding:20px;">'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:14px;">Modifier mes informations</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;">'
+    +'<label style="font-size:12px;color:var(--text3);">Civilité'
+    +'<select id="pf-civ" class="fi" style="width:100%;margin-top:4px;">'+civOpts+'</select></label>'
+    +'<label style="font-size:12px;color:var(--text3);">Prénom'
+    +'<input id="pf-fn" class="fi" style="width:100%;margin-top:4px;" value="'+esc(emp.first_name||'')+'" maxlength="80"></label>'
+    +'<label style="font-size:12px;color:var(--text3);">Nom'
+    +'<input id="pf-ln" class="fi" style="width:100%;margin-top:4px;" value="'+esc(emp.last_name||'')+'" maxlength="80"></label>'
+    +'<label style="font-size:12px;color:var(--text3);">Téléphone'
+    +'<input id="pf-ph" class="fi" style="width:100%;margin-top:4px;" value="'+esc(emp.phone||'')+'" maxlength="64"></label>'
+    +'<label style="font-size:12px;color:var(--text3);">Email'
+    +'<input id="pf-em" class="fi" style="width:100%;margin-top:4px;" type="email" value="'+esc(emp.email||'')+'" maxlength="254"></label>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:16px;">'
+    +'<button class="btn btn-prim btn-sm" onclick="saveMyProfile()" id="pf-save">Enregistrer</button>'
+    +'<button class="btn btn-sec btn-sm" onclick="renderProfilReload()">Annuler</button>'
+    +'</div>'
+    +'<div id="pf-msg" style="margin-top:8px;font-size:12px;"></div>'
+    +'</div>';
 }
-function resendInvite(uid){
-  var users=getUsers();
-  var u=users.find(function(x){ return x.id===uid; });
-  if(!u) return;
-  audit('invite-resent',{uid:uid,email:u.email});
-  toast('📧 Invitation renvoyée à '+u.email);
+function renderProfilReload(){
+  var c=document.getElementById('profil-wrap');
+  if(!c) return;
+  c.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);">Chargement...</div>';
+  if(!window.parent||!window.parent.veraluzSecureRequest) return;
+  window.parent.veraluzSecureRequest('employees-secure',{action:'get_my_profile'})
+    .then(function(res){
+      if(currentTabId!=='profil') return;
+      var c2=document.getElementById('profil-wrap');
+      if(!c2) return;
+      if(res&&res.body&&res.body.ok&&res.body.profile){
+        window._profilData=res.body.profile;
+        c2.innerHTML=_renderProfilCard(res.body.profile);
+      } else {
+        var err=(res&&res.body&&res.body.error)||'inconnue';
+        c2.innerHTML='<div class="empty">Erreur ('+esc(err)+').</div>';
+      }
+    });
+}
+function saveMyProfile(){
+  var btn=document.getElementById('pf-save');
+  var msg=document.getElementById('pf-msg');
+  if(!btn||!msg) return;
+  btn.disabled=true; btn.textContent='Enregistrement...';
+  msg.textContent=''; msg.style.color='';
+  var civEl=document.getElementById('pf-civ');
+  var fnEl =document.getElementById('pf-fn');
+  var lnEl =document.getElementById('pf-ln');
+  var phEl =document.getElementById('pf-ph');
+  var emEl =document.getElementById('pf-em');
+  if(!civEl||!fnEl||!lnEl||!phEl||!emEl){
+    btn.disabled=false; btn.textContent='Enregistrer';
+    msg.textContent='Erreur formulaire.'; msg.style.color='red';
+    return;
+  }
+  var payload={
+    action:'update_my_profile',
+    civility: civEl.value.trim()||null,
+    first_name: fnEl.value.trim()||null,
+    last_name:  lnEl.value.trim()||null,
+    phone:      phEl.value.trim()||null,
+    email:      emEl.value.trim()||null
+  };
+  if(!window.parent||!window.parent.veraluzSecureRequest){
+    btn.disabled=false; btn.textContent='Enregistrer';
+    msg.textContent='Broker non disponible.'; msg.style.color='red';
+    return;
+  }
+  window.parent.veraluzSecureRequest('employees-secure', payload)
+    .then(function(res){
+      btn.disabled=false; btn.textContent='Enregistrer';
+      if(res&&res.body&&res.body.ok&&res.body.profile){
+        window._profilData=res.body.profile;
+        var c=document.getElementById('profil-wrap');
+        if(c) c.innerHTML=_renderProfilCard(res.body.profile);
+        toast('Profil mis à jour','ok');
+      } else {
+        var err=(res&&res.body&&res.body.error)||'inconnue';
+        msg.textContent='Erreur: '+err; msg.style.color='red';
+      }
+    })
+    .catch(function(){
+      btn.disabled=false; btn.textContent='Enregistrer';
+      msg.textContent='Erreur réseau.'; msg.style.color='red';
+    });
+}
+function renderProfil(gen){
+  /* AUTH-R4 : identité dérivée exclusivement de la session serveur (employees-secure) */
+  /* gen = jeton de génération — invalide le callback si onglet changé entre-temps */
+  if(!window.parent||!window.parent.veraluzSecureRequest){
+    return '<div class="empty">Broker non disponible.</div>';
+  }
+  window.parent.veraluzSecureRequest('employees-secure',{action:'get_my_profile'})
+    .then(function(res){
+      if(_renderGen!==gen||currentTabId!=='profil') return;
+      var c=document.getElementById('profil-wrap');
+      if(!c) return;
+      if(res&&res.body&&res.body.ok&&res.body.profile){
+        window._profilData=res.body.profile;
+        c.innerHTML=_renderProfilCard(res.body.profile);
+      } else {
+        var err=(res&&res.body&&res.body.error)||'inconnue';
+        c.innerHTML='<div class="empty">Erreur chargement profil ('+esc(err)+').</div>';
+      }
+    })
+    .catch(function(){
+      if(_renderGen!==gen||currentTabId!=='profil') return;
+      var c=document.getElementById('profil-wrap');
+      if(c) c.innerHTML='<div class="empty">Erreur réseau.</div>';
+    });
+  return '<div id="profil-wrap" style="padding:8px;">'
+    +'<div style="text-align:center;padding:40px;color:var(--text3);">Chargement du profil...</div>'
+    +'</div>';
 }
 
-function renderUsers(){
+function renderUsers(gen){
   var roles=getRoles();
   var lbl={all:'Tous',actif:'Actifs',disabled:'Désactivés'};
   var filters=['all','actif','disabled'];
@@ -876,7 +869,7 @@ function renderUsers(){
 
   /* PROMPT 010 — charger depuis Supabase si pas encore fait */
   if (!_sbEmpLoaded) {
-    loadSBEmployees(function(){ renderTab('users'); });
+    loadSBEmployees(function(){ if(_renderGen===gen&&currentTabId==='users') renderTab('users'); });
     return '<div class="empty"><div class="empty-ico">⏳</div>Chargement des employés…</div>';
   }
 
@@ -942,13 +935,6 @@ function sbStatusBadge(s){
 
 function statusBadge(s){
   return sbStatusBadge(s);
-}
-
-function statusBadge(s){
-  var map={active:'<span class="bdg bdg-green">Actif</span>',
-           pending:'<span class="bdg bdg-yellow">En attente</span>',
-           disabled:'<span class="bdg bdg-red">Désactivé</span>'};
-  return map[s]||'<span class="bdg bdg-gray">'+esc(s)+'</span>';
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1060,58 +1046,83 @@ function togglePermModule(mod){
   if(arrow) arrow.textContent=body.classList.contains('on')?' ▴':' ▾';
 }
 
-function renderRoles(){
-  var roles=getRoles();
-  var selRole=_selectedRole?roles.find(function(r){ return r.id===_selectedRole; }):null;
-  var html='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
-    +'<div style="font-weight:600;">'+roles.length+' rôles configurés</div>'
-    +'<button class="btn btn-primary btn-sm" onclick="openNewRole()">➕ Rôle</button>'
-    +'</div>';
-  
-  roles.forEach(function(r){
-    var isSelected=_selectedRole===r.id;
-    html+='<div class="role-card'+(isSelected?' on':'')+'" style="'+(isSelected?'border-color:var(--acc1);':'')+'" data-rid="'+esc(r.id)+'" onclick="selectRole(this.dataset.rid)">'
-      +'<div style="display:flex;align-items:center;gap:10px;">'
-      +'<div class="role-av" style="background:'+r.color+'20;color:'+r.color+'">'+esc(r.icon)+'</div>'
-      +'<div style="flex:1;">'
-      +'<div style="font-weight:600;">'+esc(r.label)+(r.locked?' <span class="bdg bdg-gray">🔒 Système</span>':'')+'</div>'
-      +'<div style="font-size:12px;color:var(--text2);">'+esc(r.desc||'')+'</div>'
-      +'</div>'
-      +(!r.locked?'<button class="btn btn-primary btn-sm" data-rid="'+esc(r.id)+'" onclick="event.stopPropagation();openEditRole(this.dataset.rid)">✏</button>':'')
-      +'</div>';
-    if(isSelected){
-      html+='<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px;">'
-        +'<div style="font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;">PERMISSIONS</div>';
-      Object.keys(PERM_SCHEMA).forEach(function(mod){
-        var schema=PERM_SCHEMA[mod];
-        html+='<div class="perm-module">'
-          +'<div class="perm-module-hdr" data-mod="'+mod+'" onclick="event.stopPropagation();togglePermModule(this.dataset.mod)">'
-          +esc(schema.label)+'<span id="pm-arrow-'+mod+'"> ▾</span>'
-          +'</div>'
-          +'<div class="perm-module-body" id="pm-body-'+mod+'">';
-        Object.keys(schema.sub).forEach(function(sub){
-          var subDef=schema.sub[sub];
-          html+='<div class="perm-sub"><div class="perm-sub-title">'+esc(subDef.label)+'</div>'
-            +'<div class="perm-actions">';
-          subDef.actions.forEach(function(a){
-            var checked=r.perms&&r.perms[mod]&&r.perms[mod][sub]&&r.perms[mod][sub][a];
-            html+='<label class="perm-chk"><input type="checkbox" onclick="event.stopPropagation()" id="pck-'+mod+'-'+sub+'-'+a+'"'+(checked?' checked':'')
-              +(r.locked?' disabled':'')+'>'+a+'</label>';
-          });
-          html+='</div></div>';
-        });
-        html+='</div></div>';
+/* AUTH-R5 — Matrice RBAC canonique serveur, affichage read-only.
+   Source de verite : _rbac.ts (deploye dans chaque Edge Function).
+   Aucune modification des permissions depuis cette interface. */
+var _RBAC_MATRIX = {
+  gerant:       ['reservations.read','reservations.write','reservations.checkin','reservations.checkout','payments.read','payments.record','payments.manage','restaurant.read','restaurant.order','restaurant.stock','restaurant.room_service','restaurant.assign','housekeeping.read','housekeeping.update','finance.read','finance.manage','employees.directory','employees.manage','messages.read','messages.send','messages.admin','reports.read','settings.read','settings.manage','auth.users.manage','auth.sessions.manage'],
+  manager:      ['reservations.read','reservations.write','reservations.checkin','reservations.checkout','payments.read','payments.record','restaurant.read','restaurant.order','restaurant.stock','restaurant.room_service','restaurant.assign','housekeeping.read','housekeeping.update','finance.read','employees.directory','employees.manage','messages.read','messages.send','messages.admin','reports.read','settings.read'],
+  receptionniste:['reservations.read','reservations.write','reservations.checkin','reservations.checkout','payments.read','payments.record','employees.directory','messages.read','messages.send','settings.read','housekeeping.read','restaurant.room_service','restaurant.assign'],
+  barman:       ['restaurant.read','restaurant.order','restaurant.stock','restaurant.room_service','restaurant.assign','messages.read','messages.send'],
+  cuisinier:    ['restaurant.read','restaurant.stock','messages.read','messages.send'],
+  femme_chambre:['housekeeping.read','housekeeping.update','messages.read','messages.send'],
+  livreur:      ['restaurant.room_service','messages.read'],
+  comptable:    ['finance.read','finance.manage','payments.read','reports.read','employees.directory','messages.read','messages.send','settings.read'],
+  rh:           ['employees.directory','employees.manage','messages.read','messages.send','reports.read'],
+  technicien:   ['housekeeping.read','messages.read','employees.directory'],
+  agent_securite:['employees.directory','messages.read'],
+  staff:        ['messages.read'],
+};
+var _RBAC_LABELS = {
+  gerant:'Gérant / Directeur',manager:'Manager',receptionniste:'Réceptionniste',
+  barman:'Barman / Serveur',cuisinier:'Cuisinier / Chef',femme_chambre:'Femme de chambre',
+  livreur:'Livreur',comptable:'Comptable',rh:'RH',technicien:'Technicien',
+  agent_securite:'Agent Sécurité',staff:'Staff'
+};
+var _rbacSelectedRole = null;
+
+function selectRbacRole(role){
+  _rbacSelectedRole = _rbacSelectedRole===role ? null : role;
+  var wrap = document.getElementById('roles-wrap');
+  if(wrap) wrap.innerHTML = _renderRbacMatrix();
+}
+
+function _renderRbacMatrix(){
+  var html = '<div style="background:rgba(245,158,11,0.1);border:1px solid #f59e0b;border-radius:6px;'
+    +'padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:12px;">'
+    +'&#128274; Matrice RBAC canonique — source de vérité serveur. Lecture seule dans cette interface.</div>';
+  Object.keys(_RBAC_MATRIX).forEach(function(role){
+    var caps = _RBAC_MATRIX[role];
+    var label = _RBAC_LABELS[role]||role;
+    var isOpen = _rbacSelectedRole===role;
+    html+='<div class="role-card'+(isOpen?' on':'')+'" data-role="'+role+'" onclick="selectRbacRole(this.dataset.role)" style="cursor:pointer;'+(isOpen?'border-color:var(--acc1);':'')+'margin-bottom:8px;">';
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;">'
+      +'<div style="font-weight:600;font-size:13px;">'+esc(label)+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+      +'<span style="font-size:11px;color:var(--text3);">'+caps.length+' capabilities</span>'
+      +'<span style="font-size:11px;color:var(--text3);">'+(isOpen?'▴':'▾')+'</span>'
+      +'</div></div>';
+    if(isOpen){
+      html+='<div style="margin-top:10px;border-top:1px solid var(--bg4);padding-top:10px;">';
+      // Group by domain
+      var domains = {};
+      caps.forEach(function(c){
+        var parts=c.split('.');
+        var dom=parts[0];
+        if(!domains[dom]) domains[dom]=[];
+        domains[dom].push(parts.slice(1).join('.'));
       });
-      if(!r.locked){
-        html+='<div class="btn-row">'
-          +'<button class="btn btn-primary" data-rid="'+esc(r.id)+'" onclick="event.stopPropagation();saveRolePerms(this.dataset.rid)">Enregistrer permissions</button>'
-          +'</div>';
-      }
+      Object.keys(domains).sort().forEach(function(dom){
+        html+='<div style="margin-bottom:6px;">'
+          +'<span style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;">'+esc(dom)+'</span> '
+          + domains[dom].map(function(a){
+              return '<span style="display:inline-block;margin:1px 3px;padding:2px 7px;border-radius:10px;font-size:11px;background:var(--acc1)20;color:var(--acc1);font-weight:500;">'+esc(a)+'</span>';
+            }).join('');
+        html+='</div>';
+      });
       html+='</div>';
     }
     html+='</div>';
   });
   return html;
+}
+
+function renderRoles(){
+  setTimeout(function(){
+    var wrap=document.getElementById('roles-wrap');
+    if(wrap) wrap.innerHTML=_renderRbacMatrix();
+  },0);
+  return '<div id="roles-wrap" style="padding:4px;">'+_renderRbacMatrix()+'</div>';
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1172,151 +1183,401 @@ function saveUserPerms(uid){
 }
 
 /* ══════════════════════════════════════════════════════════════
-   TAB: SESSIONS
+   TAB: SESSIONS — AUTH-R6 (données réelles auth-admin-secure)
 ═══════════════════════════════════════════════════════════════ */
-function killSession(sid){
-  if(!confirm('Terminer cette session ?')) return;
-  var sessions=getSessions();
-  var idx=sessions.findIndex(function(s){ return s.id===sid; });
-  if(idx>=0){ sessions[idx].active=false; }
-  try{ localStorage.setItem(STORE_SESS,JSON.stringify(sessions)); }catch(e){}
-  audit('session-kill',{sid:sid});
-  renderTab('sessions');
-  toast('Session terminée');
-}
-function purgeExpired(){
-  var sessions=getSessions().filter(function(s){ return s.active; });
-  try{ localStorage.setItem(STORE_SESS,JSON.stringify(sessions)); }catch(e){}
-  renderTab('sessions');
-  toast('Sessions expirées supprimées');
-}
-function renderSessions(){
-  var sessions=getSessions();
-  if(!sessions.length){
-    return '<div class="empty"><div class="empty-ico">🔑</div>Aucune session</div>';
+var _sessLoaded = false;
+var _sessData   = null; /* { sessions:[], meta:{} } */
+var _sessError  = null;
+
+function loadRealSessions(cb) {
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    _sessError = 'broker_unavailable';
+    _sessLoaded = true;
+    if (cb) cb();
+    return;
   }
-  var active=sessions.filter(function(s){ return s.active; }).length;
-  var html='<div class="stat-row">'
-    +'<div class="stat"><div class="stat-val">'+sessions.length+'</div><div class="stat-lbl">Sessions totales</div></div>'
-    +'<div class="stat"><div class="stat-val" style="color:var(--success);">'+active+'</div><div class="stat-lbl">Actives</div></div>'
-    +'<div class="stat"><div class="stat-val" style="color:var(--text3);">'+(sessions.length-active)+'</div><div class="stat-lbl">Expirées</div></div>'
-    +'</div>'
-    +'<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">'
-    +'<button class="btn btn-sec btn-sm" onclick="purgeExpired()">🗑 Purger</button></div>';
-  sessions.forEach(function(s){
-    html+='<div class="session-entry">'
-      +'<div style="flex:1;">'
-      +'<div style="font-weight:600;">'+esc(s.user_name)+'</div>'
-      +'<div style="font-size:12px;color:var(--text2);margin-top:2px;">'
-      +'🖥 '+esc(s.device)+' &nbsp;&middot;&nbsp; 🌐 '+esc(s.ip)+'</div>'
-      +'<div style="font-size:11px;color:var(--text3);margin-top:2px);">'
-      +'Début: '+fmt_ts(s.created)+' &nbsp;&middot;&nbsp; Actif: '+fmt_ago(s.last_active)+'</div>'
-      +'</div>'
-      +(s.active
-        ?'<button class="btn btn-danger btn-sm" data-sid="'+esc(s.id)+'" onclick="killSession(this.dataset.sid)">✕</button>'
-        :'<span class="bdg bdg-gray">Expirée</span>')
-      +'</div>';
-  });
-  return html;
+  window.parent.veraluzSecureRequest('auth-admin-secure', { action: 'list_sessions' })
+    .then(function(r){ return r.body; })
+    .then(function(res){
+      if (res && res.ok) {
+        _sessData  = res;
+        _sessError = null;
+      } else {
+        _sessError = res && res.error ? res.error : 'server_error';
+      }
+      _sessLoaded = true;
+      if (cb) cb();
+    })
+    .catch(function(){
+      _sessError  = 'network_error';
+      _sessLoaded = true;
+      if (cb) cb();
+    });
 }
 
-/* ══════════════════════════════════════════════════════════════
-   TAB: AUDIT
-═══════════════════════════════════════════════════════════════ */
-var _auditFilter='all';
-var AUDIT_ACTIONS={
-  'user-invite':'Invitation',
-  'user-edit':'Modification',
-  'user-delete':'Suppression',
-  'user-disabled':'Désactivation',
-  'user-enabled':'Activation',
-  'user-perms':'Permissions',
-  'profile-update':'Profil',
-  'password-change':'Mot de passe',
-  'role-create':'Rôle créé',
-  'role-edit':'Rôle modifié',
-  'role-delete':'Rôle supprimé',
-  'role-perms':'Permissions rôle',
-  'session-kill':'Session terminée',
-  'invite-resent':'Invitation renvoyée',
-  'logout':'Déconnexion'
-};
-function setAuditFilter(f){ _auditFilter=f; renderTab('audit'); }
-function renderAudit(){
-  var entries=getAudit();
-  var filters=['all','user-invite','user-edit','user-delete','profile-update','password-change','role-create','session-kill'];
-  var html='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">';
-  filters.forEach(function(f){
-    var lbl=f==='all'?'Tous':(AUDIT_ACTIONS[f]||f);
-    html+='<button class="fchip'+(_auditFilter===f?' on':'')+'" data-f="'+f+'" onclick="setAuditFilter(this.dataset.f)">'+lbl+'</button>';
-  });
-  html+='</div>';
-  var filtered=entries.filter(function(e){
-    return _auditFilter==='all'||e.action===_auditFilter;
-  });
-  if(!filtered.length){
-    html+='<div class="empty"><div class="empty-ico">📋</div>Aucune entrée dans l’audit</div>';
+function reloadSessions() {
+  _sessLoaded = false;
+  _sessData   = null;
+  _sessError  = null;
+  renderTab('sessions');
+}
+
+function killSession(sid) {
+  if (!confirm('Terminer cette session maintenant ?')) return;
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    toast('Broker indisponible', true); return;
+  }
+  window.parent.veraluzSecureRequest('auth-admin-secure', { action: 'revoke_session', session_id: sid })
+    .then(function(r){ return r.body; })
+    .then(function(res){
+      if (res && res.ok) {
+        toast('Session révoquée');
+        reloadSessions();
+      } else {
+        var msg = res && res.error === 'cannot_revoke_own_session'
+          ? 'Impossible de révoquer votre session courante'
+          : (res && res.error ? 'Erreur : ' + res.error : 'Révocation échouée');
+        toast(msg, true);
+      }
+    })
+    .catch(function(){ toast('Erreur réseau', true); });
+}
+
+function revokeAllForEmployee(empId, empName) {
+  if (!confirm('Déconnecter TOUTES les sessions de ' + empName + ' ?')) return;
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    toast('Broker indisponible', true); return;
+  }
+  window.parent.veraluzSecureRequest('auth-admin-secure', { action: 'revoke_employee_sessions', employee_id: empId })
+    .then(function(r){ return r.body; })
+    .then(function(res){
+      if (res && res.ok) {
+        toast('Sessions de ' + esc(empName) + ' révoquées (' + (res.sessions_revoked || 0) + ')');
+        reloadSessions();
+      } else {
+        toast(res && res.error ? 'Erreur : ' + res.error : 'Révocation échouée', true);
+      }
+    })
+    .catch(function(){ toast('Erreur réseau', true); });
+}
+
+function renderSessions() {
+  if (!_sessLoaded) {
+    loadRealSessions(function(){ renderTab('sessions'); });
+    return '<div class="empty"><div class="empty-ico">⏳</div>Chargement des sessions…</div>';
+  }
+
+  if (_sessError === 'broker_unavailable') {
+    return '<div class="card"><div style="color:var(--text2);font-size:13px;">⚠️ Broker de session indisponible — ouvrez AUTH depuis Veraluz OS.</div></div>';
+  }
+  if (_sessError === 'forbidden' || _sessError === 'invalid_or_expired_session') {
+    return '<div class="card"><div style="color:var(--text2);font-size:13px;">🔒 Accès refusé — droits <code>auth.sessions.read</code> requis.</div></div>';
+  }
+  if (_sessError) {
+    return '<div class="card"><div style="color:var(--danger);font-size:13px;">Erreur chargement sessions : ' + esc(_sessError)
+      + ' <button class="btn btn-sec btn-sm" onclick="reloadSessions()" style="margin-left:8px;">↻ Réessayer</button></div></div>';
+  }
+
+  var sessions = (_sessData && _sessData.sessions) || [];
+  var meta     = (_sessData && _sessData.meta)     || { total: 0, active: 0, revoked: 0 };
+
+  var html = '<div class="stat-row">'
+    + '<div class="stat"><div class="stat-val">' + meta.total + '</div><div class="stat-lbl">Sessions total</div></div>'
+    + '<div class="stat"><div class="stat-val" style="color:var(--success);">' + meta.active + '</div><div class="stat-lbl">Actives</div></div>'
+    + '<div class="stat"><div class="stat-val" style="color:var(--text3);">' + meta.revoked + '</div><div class="stat-lbl">Révoquées</div></div>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px;">'
+    + '<button class="btn btn-sec btn-sm" onclick="reloadSessions()">↻ Actualiser</button>'
+    + '</div>';
+
+  if (!sessions.length) {
+    html += '<div class="empty"><div class="empty-ico">🔑</div>Aucune session enregistrée</div>';
     return html;
   }
-  filtered.forEach(function(e){
-    var lbl=AUDIT_ACTIONS[e.action]||e.action;
-    html+='<div class="audit-entry">'
-      +'<div style="font-size:11px;color:var(--text3);flex-shrink:0;">'+fmt_ts(e.ts)+'</div>'
-      +'<div style="flex:1;">'
-      +'<span class="bdg bdg-acc">'+esc(lbl)+'</span> '
-      +'<span style="font-size:13px;">'+esc(e.user_name)+'</span>'
-      +(e.data&&e.data.name?' → '+esc(e.data.name):'')
-      +(e.data&&e.data.email?' ('+esc(e.data.email)+')':'')
-      +'</div>'
-      +'</div>';
+
+  sessions.forEach(function(s) {
+    var isCurrent = s.is_current;
+    var isActive  = s.active;
+    var empName   = (s.employee && s.employee.name) || '—';
+    var empRole   = (s.employee && s.employee.role) || '—';
+    var empId     = (s.employee && s.employee.id)   || '';
+
+    html += '<div class="session-entry" style="' + (isCurrent ? 'border:1.5px solid var(--acc);' : '') + '">'
+      + '<div style="flex:1;">'
+      + '<div style="font-weight:600;">' + esc(empName)
+      + (isCurrent ? ' <span class="bdg bdg-acc" style="font-size:10px;">Cette session</span>' : '')
+      + '</div>'
+      + '<div style="font-size:12px;color:var(--text2);margin-top:2px;">'
+      + '<span class="bdg bdg-gray">' + esc(empRole) + '</span>'
+      + ' &nbsp;·&nbsp; 🖥 ' + esc(s.device || 'Non disponible')
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-top:1px;">'
+      + '🌐 IP&nbsp;: ' + esc(s.ip || 'Non disponible')
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
+      + 'Début : ' + fmt_ts(s.created_at)
+      + (s.last_seen_at ? ' &nbsp;·&nbsp; Actif : ' + fmt_ago(s.last_seen_at) : '')
+      + (s.revoked_at ? ' &nbsp;·&nbsp; Révoquée : ' + fmt_ts(s.revoked_at) : '')
+      + '</div>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">';
+
+    if (isActive && !isCurrent) {
+      html += '<button class="btn btn-danger btn-sm" data-sid="' + esc(s.session_id) + '" onclick="killSession(this.dataset.sid)" title="Révoquer cette session">✕</button>';
+    } else if (isCurrent) {
+      html += '<span class="bdg bdg-green">Active</span>';
+    } else {
+      html += '<span class="bdg bdg-gray">Révoquée</span>';
+    }
+
+    if (isActive && empId && !isCurrent) {
+      html += '<button class="btn btn-warn btn-sm" style="font-size:10px;" data-eid="' + esc(empId) + '" data-ename="' + esc(empName) + '" onclick="revokeAllForEmployee(this.dataset.eid,this.dataset.ename)" title="Révoquer toutes les sessions de cet employé">Tout</button>';
+    }
+
+    html += '</div></div>';
   });
+
   return html;
 }
 
 /* ══════════════════════════════════════════════════════════════
-   TAB: SECURITY
+   TAB: AUDIT — AUTH-R6 (données réelles veraluz_auth_events)
 ═══════════════════════════════════════════════════════════════ */
-function saveSecurityPolicy(){
-  var pol={
-    session_timeout: parseInt((document.getElementById('pol-timeout')||{}).value)||480,
-    max_sessions:    parseInt((document.getElementById('pol-max-sess')||{}).value)||3,
-    password_min_length: parseInt((document.getElementById('pol-pw-len')||{}).value)||8,
-    require_2fa:    (document.getElementById('pol-2fa')||{}).checked||false,
-    invite_expiry_days: parseInt((document.getElementById('pol-invite')||{}).value)||7,
-    log_retention_days: parseInt((document.getElementById('pol-logs')||{}).value)||90,
-    auto_lock:      (document.getElementById('pol-autolock')||{}).checked||false
-  };
-  savePolicy(pol);
-  audit('security-policy-update',{});
-  toast('🔒 Politique de sécurité enregistrée');
-}
-function renderSecurite(){
-  var pol=getPolicy();
-  return '<div class="card"><div class="card-hdr"><div class="card-title">🔒 Politique de sécurité</div></div>'
-    +'<div class="pol-row"><span>Timeout session (minutes)</span>'
-    +'<input class="fi" id="pol-timeout" type="number" value="'+pol.session_timeout+'" style="width:80px;"></div>'
-    +'<div class="pol-row"><span>Sessions simultanées max</span>'
-    +'<input class="fi" id="pol-max-sess" type="number" value="'+pol.max_sessions+'" style="width:80px;"></div>'
-    +'<div class="pol-row"><span>Longueur min. mot de passe</span>'
-    +'<input class="fi" id="pol-pw-len" type="number" value="'+pol.password_min_length+'" style="width:80px;"></div>'
-    +'<div class="pol-row"><span>Expiration invitation (jours)</span>'
-    +'<input class="fi" id="pol-invite" type="number" value="'+pol.invite_expiry_days+'" style="width:80px;"></div>'
-    +'<div class="pol-row"><span>Rétention logs (jours)</span>'
-    +'<input class="fi" id="pol-logs" type="number" value="'+pol.log_retention_days+'" style="width:80px;"></div>'
-    +'<div class="pol-row"><span>Authentification 2FA obligatoire</span>'
-    +'<label class="switch"><input type="checkbox" id="pol-2fa"'+(pol.require_2fa?' checked':'')+' onchange="saveSecurityPolicy()"><span class="switch-sl"></span></label></div>'
-    +'<div class="pol-row"><span>Verrouillage auto après timeout</span>'
-    +'<label class="switch"><input type="checkbox" id="pol-autolock"'+(pol.auto_lock?' checked':'')+' onchange="saveSecurityPolicy()"><span class="switch-sl"></span></label></div>'
-    +'<div class="btn-row"><button class="btn btn-primary" onclick="saveSecurityPolicy()">💾 Enregistrer</button></div>'
-    +'</div>'
-    +'<div class="card"><div class="card-hdr"><div class="card-title">Intégrations à venir</div></div>'
-    +'<div style="color:var(--text2);font-size:13px;line-height:1.6;">'
-    +'🔧 Supabase Auth JWT — en cours<br>'
-    +'📱 Invitations SMS/WhatsApp — planifié<br>'
-    +'🔐 MFA (TOTP) — planifié<br>'
-    +'📊 SSO OAuth2 — planifié</div></div>';
+var _auditLoaded = false;
+var _auditData   = null;
+var _auditError  = null;
+var _auditFilterType = '';
+
+var AUDIT_EVENT_LABELS = {
+  login_success:              'Connexion réussie',
+  login_failed:               'Échec connexion',
+  logout:                     'Déconnexion',
+  pin_reset:                  'PIN réinitialisé',
+  pin_change:                 'PIN modifié',
+  login_must_change_pin:      'PIN provisoire',
+  forced_pin_change_completed:'Nouveau PIN défini',
+  sessions_revoked:           'Sessions révoquées',
+  session_revoked:            'Session révoquée',
+  pin_change_token_issued:    'Jeton PIN émis',
+  resume_token_issued:        'Jeton reprise émis',
+  resume_used:                'Reprise session',
+  access_forbidden:           'Accès refusé'
+};
+
+var AUDIT_FILTER_OPTIONS = [
+  {key:'',               label:'Tous'},
+  {key:'login_success',  label:'Connexions'},
+  {key:'login_failed',   label:'Échecs'},
+  {key:'pin_reset',      label:'Resets PIN'},
+  {key:'logout',         label:'Déconnexions'},
+  {key:'sessions_revoked',label:'Révocations'},
+];
+
+function loadRealAudit(cb) {
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    _auditError = 'broker_unavailable';
+    _auditLoaded = true;
+    if (cb) cb();
+    return;
+  }
+  var payload = { action: 'list_audit', limit: 100 };
+  if (_auditFilterType) payload.event_type = _auditFilterType;
+  window.parent.veraluzSecureRequest('auth-admin-secure', payload)
+    .then(function(r){ return r.body; })
+    .then(function(res){
+      if (res && res.ok) {
+        _auditData  = res;
+        _auditError = null;
+      } else {
+        _auditError = (res && res.error) || 'server_error';
+      }
+      _auditLoaded = true;
+      if (cb) cb();
+    })
+    .catch(function(){
+      _auditError  = 'network_error';
+      _auditLoaded = true;
+      if (cb) cb();
+    });
 }
 
+function setAuditFilter(f) {
+  _auditFilterType = f;
+  _auditLoaded     = false;
+  _auditData       = null;
+  _auditError      = null;
+  renderTab('audit');
+}
+
+function reloadAudit() {
+  _auditLoaded = false;
+  _auditData   = null;
+  _auditError  = null;
+  renderTab('audit');
+}
+
+function renderAudit() {
+  var html = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">';
+  AUDIT_FILTER_OPTIONS.forEach(function(f) {
+    html += '<button class="fchip' + (_auditFilterType === f.key ? ' on' : '') + '" data-f="' + esc(f.key) + '" onclick="setAuditFilter(this.dataset.f)">' + f.label + '</button>';
+  });
+  html += '<button class="btn btn-sec btn-sm" onclick="reloadAudit()" style="margin-left:auto;">↻</button>';
+  html += '</div>';
+
+  if (!_auditLoaded) {
+    loadRealAudit(function(){ renderTab('audit'); });
+    html += '<div class="empty"><div class="empty-ico">⏳</div>Chargement de l\'audit…</div>';
+    return html;
+  }
+
+  if (_auditError === 'broker_unavailable') {
+    html += '<div class="card"><div style="color:var(--text2);font-size:13px;">⚠️ Broker de session indisponible — ouvrez AUTH depuis Veraluz OS.</div></div>';
+    return html;
+  }
+  if (_auditError === 'forbidden' || _auditError === 'invalid_or_expired_session') {
+    html += '<div class="card"><div style="color:var(--text2);font-size:13px;">🔒 Accès refusé — droits <code>auth.audit.read</code> requis.</div></div>';
+    return html;
+  }
+  if (_auditError) {
+    html += '<div class="card"><div style="color:var(--danger);font-size:13px;">Erreur : ' + esc(_auditError) + '</div></div>';
+    return html;
+  }
+
+  var events = (_auditData && _auditData.events) || [];
+  if (!events.length) {
+    html += '<div class="empty"><div class="empty-ico">📋</div>Aucun événement d\'audit</div>';
+    return html;
+  }
+
+  events.forEach(function(e) {
+    var label   = e.event_label || AUDIT_EVENT_LABELS[e.event_type] || e.event_type;
+    var success = e.success !== false;
+    var badgeCls = success ? 'bdg-green' : 'bdg-red';
+
+    html += '<div class="audit-entry">'
+      + '<div style="font-size:11px;color:var(--text3);flex-shrink:0;min-width:90px;">' + fmt_ts(e.created_at) + '</div>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<span class="bdg ' + badgeCls + '">' + esc(label) + '</span>'
+      + (e.performed_by_role ? ' <span class="bdg bdg-gray" style="font-size:10px;">' + esc(e.performed_by_role) + '</span>' : '')
+      + (e.employee_id || e.admin_username
+          ? '<span style="font-size:12px;color:var(--text2);margin-left:6px;">' + esc(e.admin_username || e.employee_id || '') + '</span>'
+          : '')
+      + (e.ip ? '<span style="font-size:11px;color:var(--text3);margin-left:6px;">🌐 ' + esc(e.ip) + '</span>' : '')
+      + (e.details && e.details.reason
+          ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Raison : ' + esc(e.details.reason) + '</div>'
+          : '')
+      + (e.details && e.details.session_count !== undefined
+          ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Sessions : ' + e.details.session_count + '</div>'
+          : '')
+      + '</div></div>';
+  });
+
+  return html;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB: SÉCURITÉ — AUTH-R6 (politiques réelles lecture seule)
+═══════════════════════════════════════════════════════════════ */
+var _secLoaded   = false;
+var _secPolicies = null;
+var _secError    = null;
+
+function loadSecPolicies(cb) {
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    _secError  = 'broker_unavailable';
+    _secLoaded = true;
+    if (cb) cb();
+    return;
+  }
+  window.parent.veraluzSecureRequest('auth-admin-secure', { action: 'get_security_policies' })
+    .then(function(r){ return r.body; })
+    .then(function(res){
+      if (res && res.ok) {
+        _secPolicies = res.policies;
+        _secError    = null;
+      } else {
+        _secError = (res && res.error) || 'server_error';
+      }
+      _secLoaded = true;
+      if (cb) cb();
+    })
+    .catch(function(){
+      _secError  = 'network_error';
+      _secLoaded = true;
+      if (cb) cb();
+    });
+}
+
+function renderSecurite() {
+  if (!_secLoaded) {
+    loadSecPolicies(function(){ renderTab('security'); });
+    return '<div class="empty"><div class="empty-ico">⏳</div>Chargement des politiques…</div>';
+  }
+
+  var amber = 'background:rgba(251,191,36,.12);border:1.5px solid #fbbf24;border-radius:8px;padding:8px 12px;font-size:12px;color:#fbbf24;margin-bottom:14px;';
+  var html = '<div style="' + amber + '">🔒 Politiques de sécurité — lecture seule. Toutes les valeurs sont appliquées côté serveur et ne peuvent pas être modifiées depuis l\'interface.</div>';
+
+  if (_secError === 'broker_unavailable') {
+    return html + '<div class="card"><div style="color:var(--text2);font-size:13px;">⚠️ Broker indisponible — ouvrez AUTH depuis Veraluz OS.</div></div>';
+  }
+  if (_secError) {
+    return html + '<div class="card"><div style="color:var(--danger);font-size:13px;">Erreur chargement politiques : ' + esc(_secError) + '</div></div>';
+  }
+
+  var p = _secPolicies || {};
+
+  function polRow(label, value, note) {
+    return '<div class="pol-row">'
+      + '<div><div style="font-weight:500;">' + label + '</div>'
+      + (note ? '<div style="font-size:11px;color:var(--text3);">' + note + '</div>' : '')
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:8px;">'
+      + '<span style="font-weight:700;color:var(--text1);">' + esc(String(value)) + '</span>'
+      + '<span style="font-size:10px;background:var(--bg3);color:var(--text3);border-radius:4px;padding:1px 6px;">Serveur</span>'
+      + '</div></div>';
+  }
+
+  function polBool(label, value, trueLabel, falseLabel, note) {
+    var v   = value ? (trueLabel || 'Activé') : (falseLabel || 'Non activé');
+    var col = value ? 'var(--success)' : 'var(--text3)';
+    return '<div class="pol-row">'
+      + '<div><div style="font-weight:500;">' + label + '</div>'
+      + (note ? '<div style="font-size:11px;color:var(--text3);">' + note + '</div>' : '')
+      + '</div>'
+      + '<span style="font-weight:700;color:' + col + ';">' + v + '</span>'
+      + '</div>';
+  }
+
+  html += '<div class="card"><div class="card-hdr"><div class="card-title">🔑 PIN Employé</div></div>'
+    + polRow('Longueur PIN', p.pin_digits + ' chiffres', 'Exigé à la connexion')
+    + polRow('Algorithme de hachage', p.pin_hashing || 'bcrypt', 'Jamais stocké en clair')
+    + polBool('Changement forcé (provisoire)', p.must_change_pin_enforced, 'Appliqué', 'Non appliqué', 'must_change_pin côté serveur')
+    + polRow('Expiration PIN temporaire', p.temp_pin_expiry_hours + ' heures', 'Après reset par Direction')
+    + polRow('Jeton changement PIN', p.change_token_minutes + ' minutes', 'Durée jeton one-time')
+    + '</div>';
+
+  html += '<div class="card"><div class="card-hdr"><div class="card-title">🕐 Sessions</div></div>'
+    + polRow('Durée session active', p.session_lifetime_hours + ' heures', 'Configurable dans Settings → Système → Sécurité')
+    + polRow('Durée jeton de reprise', p.resume_token_days + ' jours', 'Configurable dans Settings → Système → Sécurité')
+    + polBool('Révocation de session', p.session_revoke_supported, 'Supportée', 'Non supportée', 'Révocation unitaire ou globale')
+    + polRow('Stockage token brut', 'Non', 'SHA-256 côté serveur uniquement')
+    + polBool('Tracking IP', p.ip_tracking, 'Activé', 'Non activé', 'Configurable dans Settings → Système → Sécurité')
+    + polBool('Tracking appareil', p.user_agent_tracking, 'Activé', 'Non activé', 'Configurable dans Settings → Système → Sécurité')
+    + '</div>';
+
+  html += '<div class="card"><div class="card-hdr"><div class="card-title">🛡 Accès & Rôles</div></div>'
+    + polBool('RBAC capabilities serveur', p.role_capability_enforced, 'Appliqué (R5)', 'Non appliqué', 'employees-secure, room-service, reservation-workflow')
+    + polBool('Authentification 2FA', p.two_factor_auth, 'Activée', 'Non disponible actuellement', '')
+    + '</div>';
+
+  html += '<div class="card"><div class="card-hdr"><div class="card-title">Fonctionnalités à venir</div></div>'
+    + '<div style="color:var(--text2);font-size:13px;line-height:1.8;">'
+    + '🔐 MFA / TOTP — planifié<br>'
+    + '📊 SSO OAuth2 — planifié'
+    + '</div></div>';
+
+  return html;
+}
 </script>
 <
 <script>

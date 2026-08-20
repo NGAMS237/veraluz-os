@@ -459,7 +459,7 @@ function loadDbCanonical(cb){
   fetch(SB_SS, {
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':AK_SS,'Authorization':'Bearer '+AK_SS},
-    body:JSON.stringify({action:'get_settings', keys:['property','contact','booking','wifi','restaurant']})
+    body:JSON.stringify({action:'get_settings', keys:['property','contact','booking','wifi','restaurant','security']})
   })
   .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
   .then(function(d){
@@ -484,6 +484,15 @@ function saveCanonical(key, obj, onDone){
     } else { toast('❌ '+(d&&d.error||'Erreur sauvegarde'), false); }
   })
   .catch(function(){ toast('❌ Erreur réseau', false); });
+}
+
+function saveSecurityParam(field, val){
+  var sec = Object.assign({}, (_dbSett&&_dbSett.security)||{});
+  sec[field] = val;
+  saveCanonical('security', sec, function(){
+    if(!_dbSett) _dbSett={};
+    _dbSett.security = sec;
+  });
 }
 
 /* ── Load / Save ── */
@@ -629,7 +638,7 @@ function renderHotel(){
   +'<div class="row"><label>Nom de la résidence</label><input type="text" id="db-prop-name" value="'+escH(pr.name||'Résidences Veraluz')+'" oninput="markDirty()"></div>'
   +'<div class="row"><label>Slogan / Tagline</label><input type="text" id="db-prop-tagline" value="'+escH(pr.tagline||'')+'" oninput="markDirty()"></div>'
   +'<div class="row"><label>Adresse / Localisation</label><input type="text" id="db-prop-loc" value="'+escH(pr.location||'')+'" oninput="markDirty()"></div>'
-  +'<div class="btn-group"><button class="btn btn-p" onclick="saveHotelProperty()">Enregistrer l'identité</button></div>'
+  +'<div class="btn-group"><button class="btn btn-p" onclick="saveHotelProperty()">Enregistrer l\'identité</button></div>'
   +'</div>'
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.22 1.18 2 2 0 012.22 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.09a16 16 0 006 6l.56-.56a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>Contact (contact)</div>'
@@ -790,7 +799,7 @@ function renderRestaurant(){
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Horaires & Room Service (DB canonique)</div>'
   +'<div class="row2">'
-  +'<div class="row"><label>Heure d'ouverture</label><input type="time" id="db-rs-open" value="'+escH(rs.opening_time||'07:00')+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Heure d\'ouverture</label><input type="time" id="db-rs-open" value="'+escH(rs.opening_time||'07:00')+'" oninput="markDirty()"></div>'
   +'<div class="row"><label>Heure de fermeture</label><input type="time" id="db-rs-close" value="'+escH(rs.closing_time||'23:00')+'" oninput="markDirty()"></div></div>'
   +'<div class="row"><label>Restaurant actif</label><input type="checkbox" id="db-rs-enabled"'+( rs.enabled!==false?' checked':'')+' oninput="markDirty()"> <span style="font-size:11px;color:var(--text3)">Désactiver cache le restaurant dans le Guest Portal</span></div>'
   +'<div class="row"><label>Room Service actif</label><input type="checkbox" id="db-rss-enabled"'+( rs.room_service_enabled!==false?' checked':'')+' oninput="markDirty()"> <span style="font-size:11px;color:var(--text3)">Visible dans le Guest Portal et Booking Engine</span></div>'
@@ -1459,6 +1468,34 @@ function testEmail(){
   });
 }
 
+function renderSecuriteCard(){
+  var sec=(_dbSett&&_dbSett.security)||{};
+  var slh=sec.session_lifetime_hours!==undefined?sec.session_lifetime_hours:12;
+  var rtd=sec.resume_token_days!==undefined?sec.resume_token_days:30;
+  var tpe=sec.temp_pin_expiry_hours!==undefined?sec.temp_pin_expiry_hours:24;
+  var tip=sec.track_ip!==false;
+  var tua=sec.track_user_agent!==false;
+  var h='';
+  h+='<div class="row"><label>Durée session</label>';
+  h+='<input type="number" min="1" max="720" id="sec-slh" value="'+slh+'" onchange="saveSecurityParam(\'session_lifetime_hours\',+this.value)">';
+  h+='<div class="row-hint">Heures · 1–720 · Défaut 12</div></div>';
+  h+='<div class="row"><label>Durée reprise (remember me)</label>';
+  h+='<input type="number" min="1" max="365" id="sec-rtd" value="'+rtd+'" onchange="saveSecurityParam(\'resume_token_days\',+this.value)">';
+  h+='<div class="row-hint">Jours · 1–365 · Défaut 30</div></div>';
+  h+='<div class="row"><label>Expiration PIN temporaire</label>';
+  h+='<input type="number" min="1" max="168" id="sec-tpe" value="'+tpe+'" onchange="saveSecurityParam(\'temp_pin_expiry_hours\',+this.value)">';
+  h+='<div class="row-hint">Heures · 1–168 · Défaut 24</div></div>';
+  h+='<div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Tracking IP sessions</div><div class="toggle-desc">Enregistre l\'IP à chaque connexion</div></div>';
+  h+='<label class="toggle"><input type="checkbox" id="sec-tip"'+(tip?' checked':'');
+  h+=' onchange="saveSecurityParam(\'track_ip\',this.checked)"><div class="toggle-track"></div></label></div>';
+  h+='<div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Tracking User-Agent</div><div class="toggle-desc">Identifie l\'appareil de connexion</div></div>';
+  h+='<label class="toggle"><input type="checkbox" id="sec-tua"'+(tua?' checked':'');
+  h+=' onchange="saveSecurityParam(\'track_user_agent\',this.checked)"><div class="toggle-track"></div></label></div>';
+  h+='<div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:6px;border:1px solid var(--bg4);font-size:11px;color:var(--text2);">';
+  h+='<b>Paramètres imposés par le serveur :</b> PIN 6 chiffres · bcrypt · changement obligatoire · jeton 15 min</div>';
+  return h;
+}
+
 function renderSysteme(){
   var sys=S.systeme;
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>',
@@ -1477,6 +1514,9 @@ function renderSysteme(){
   +toggle('Mode maintenance','Rend l\'application inaccessible aux non-admins','systeme.maintenance_mode',sys.maintenance_mode)
   +'</div>'
   +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Sécurité Authentification</div>'
+  +renderSecuriteCard()
+  
   +'<div class="card-title"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>Réinitialisation</div>'
   +'<div style="display:flex;gap:10px;flex-wrap:wrap;">'
   +'<button class="btn btn-o" onclick="exportSettings()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exporter JSON</button>'

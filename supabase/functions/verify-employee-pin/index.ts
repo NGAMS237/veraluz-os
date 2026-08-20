@@ -1,17 +1,12 @@
 /**
- * VERALUZ — verify-employee-pin — v6 (PROMPT 009)
+ * VERALUZ — verify-employee-pin — v7 (AUTH-SECURITY-FINAL)
  *
- * POST { employee_id, pin }
- * -> si must_change_pin=false : { ok:true, employee, session_token, session_expiry, must_change_pin:false }
- * -> si must_change_pin=true  : { ok:true, auth_state:'must_change_pin', employee:{id,display_name},
- *                                  change_token, change_token_expires_at, must_change_pin:true }
- *    AUCUNE session CORE n'est creee dans ce cas — change_token est a portee strictement
- *    limitee au endpoint complete-forced-pin-change (aucun autre endpoint ne le reconnait).
- * | { ok:false, error }
- *
- * Regles inchangees par rapport a la v5 : verification bcrypt deleguee a
- * veraluz_verify_employee_pin, aucun repli vers pin_code, CORS restreint, rien de
- * sensible journalise.
+ * Nouveautés v7 :
+ * - Session lifetime lue depuis veraluz_settings.security.session_lifetime_hours (fallback 12h)
+ * - IP capturée depuis x-forwarded-for / cf-connecting-ip (jamais du body)
+ * - User-Agent capturé depuis req.headers
+ * - track_ip / track_user_agent respectés depuis security settings
+ * - session_token SUPPRIMÉ du body — auth via X-Veraluz-Session header uniquement
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -44,6 +39,13 @@ function newToken(): string {
   return Array.from(b).map(x => x.toString(16).padStart(2, '0')).join('')
 }
 
+/** IP côté serveur uniquement — jamais acceptée depuis le body */
+function getClientIp(req: Request): string | null {
+  const xff = req.headers.get('x-forwarded-for')
+  if (xff) return xff.split(',')[0].trim().slice(0, 45)
+  return req.headers.get('cf-connecting-ip')?.trim().slice(0, 45) ?? null
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get('origin')
 
@@ -64,6 +66,17 @@ Deno.serve(async (req) => {
     { auth: { autoRefreshToken: false, persistSession: false } },
   )
 
+  // Lire les security settings depuis SSOT veraluz_settings
+  const { data: settingsRow } = await admin
+    .from('veraluz_settings')
+    .select('value')
+    .eq('key', 'security')
+    .maybeSingle()
+  const sec = (settingsRow?.value || {}) as Record<string, unknown>
+  const sessionLifetimeHours = Number(sec.session_lifetime_hours) || 12
+  const trackIp              = sec.track_ip !== false
+  const trackUa              = sec.track_user_agent !== false
+
   const { data, error } = await admin.rpc('veraluz_verify_employee_pin', {
     p_employee_id: employeeId, p_pin: pin,
   })
@@ -78,7 +91,6 @@ Deno.serve(async (req) => {
   if (!res || !res.ok) {
     const code = res?.error || 'invalid_credentials'
     const status = code === 'too_many_attempts' ? 429 : 401
-    /* Journaliser l'echec — jamais le PIN. */
     await admin.from('veraluz_auth_events').insert({
       event_type: 'login_failed', employee_id: employeeId, success: false,
       details_json: { error: code },
@@ -90,7 +102,7 @@ Deno.serve(async (req) => {
   if (res.must_change_pin === true) {
     const changeToken = newToken()
     const changeTokenHash = await sha256Hex(changeToken)
-    const changeExpiresAt = new Date(Date.now() + 15 * 60 * 1000) /* 15 min — courte duree, usage unique */
+    const changeExpiresAt = new Date(Date.now() + 15 * 60 * 1000)
 
     const { error: ctErr } = await admin.from('veraluz_employee_change_tokens').insert({
       employee_id: employeeId, token_hash: changeTokenHash, expires_at: changeExpiresAt.toISOString(),
@@ -114,21 +126,28 @@ Deno.serve(async (req) => {
         full_name: emp.full_name, public_display_name: emp.public_display_name,
         role: emp.role, department: emp.department,
       },
-      change_token: changeToken,                 // retourne UNE SEULE FOIS
+      change_token: changeToken,
       change_token_expires_at: changeExpiresAt.toISOString(),
     }, 200, origin)
   }
 
-  /* ── Cas B : PIN permanent normal — session CORE complete, comportement existant. ── */
+  /* ── Cas B : PIN permanent normal — session CORE complète. ── */
   const token = newToken()
   const tokenHash = await sha256Hex(token)
-  const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000)
+  const expiresAt = new Date(Date.now() + sessionLifetimeHours * 60 * 60 * 1000)
+
+  // IP et UA depuis les headers réseau (jamais du body)
+  const clientIp  = trackIp ? getClientIp(req) : null
+  const userAgent = trackUa ? (req.headers.get('user-agent')?.slice(0, 255) ?? null) : null
 
   const { error: sErr } = await admin.from('veraluz_employee_sessions').insert({
-    employee_id: employeeId,
-    token_hash: tokenHash,
-    expires_at: expiresAt.toISOString(),
+    employee_id:  employeeId,
+    token_hash:   tokenHash,
+    expires_at:   expiresAt.toISOString(),
     last_seen_at: new Date().toISOString(),
+    created_ip:   clientIp,
+    last_ip:      clientIp,
+    user_agent:   userAgent,
   })
 
   if (sErr) {
@@ -146,7 +165,7 @@ Deno.serve(async (req) => {
     ok: true,
     auth_state: 'ok',
     employee: emp,
-    session_token: token,                    // retourne UNE SEULE FOIS
+    session_token: token,
     session_expiry: expiresAt.toISOString(),
     must_change_pin: false,
   }, 200, origin)

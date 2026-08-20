@@ -8,7 +8,7 @@
  * Sécurité:
  *   - Employee session validée via X-Veraluz-Session header
  *   - Rôle direction/gerant requis pour écriture
- *   - Clés autorisées: property, contact, booking, wifi, restaurant, branding
+ *   - Clés autorisées: property, contact, booking, wifi, restaurant, branding, security
  *   - Secrets jamais dans settings (RESEND_API_KEY, service_role, etc.)
  *   - wifi.password jamais renvoyé par get_settings ni loggué
  */
@@ -29,7 +29,13 @@ const DIRECTION_ROLES = new Set([
 ]);
 
 const WRITABLE_KEYS = new Set([
-  'property','contact','booking','wifi','restaurant','branding',
+  'property','contact','booking','wifi','restaurant','branding','security',
+]);
+
+// Champs autorisés pour la clé 'security' (whitelist stricte)
+const SECURITY_ALLOWED_FIELDS = new Set([
+  'session_lifetime_hours','resume_token_days','temp_pin_expiry_hours',
+  'track_ip','track_user_agent',
 ]);
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -146,14 +152,33 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'invalid_value' }, 400, cors);
     }
 
-    // Refuse tout champ ressemblant à un secret
-    const SECRET_PATTERNS = [/key/i, /secret/i, /token/i, /password.*api/i, /private/i];
-    for (const [k, v] of Object.entries(value)) {
-      if (SECRET_PATTERNS.some(p => p.test(k)) && k !== 'password') {
-        // Allow wifi.password only
-        return json({ ok: false, error: 'secret_field_rejected', field: k }, 400, cors);
+    // Validation spécifique security — whitelist stricte + ranges + types
+    if (key === 'security') {
+      for (const k of Object.keys(value)) {
+        if (!SECURITY_ALLOWED_FIELDS.has(k)) {
+          return json({ ok: false, error: 'secret_field_rejected', field: k }, 400, cors);
+        }
+      }
+      const v = value as Record<string, unknown>;
+      const slh = Number(v.session_lifetime_hours ?? 12);
+      const rtd = Number(v.resume_token_days ?? 30);
+      const tpe = Number(v.temp_pin_expiry_hours ?? 24);
+      if (!Number.isFinite(slh) || slh < 1 || slh > 720) return json({ ok: false, error: 'invalid_security_value', field: 'session_lifetime_hours' }, 400, cors);
+      if (!Number.isFinite(rtd)  || rtd < 1  || rtd > 365) return json({ ok: false, error: 'invalid_security_value', field: 'resume_token_days' }, 400, cors);
+      if (!Number.isFinite(tpe)  || tpe < 1  || tpe > 168) return json({ ok: false, error: 'invalid_security_value', field: 'temp_pin_expiry_hours' }, 400, cors);
+      if ('track_ip' in v && typeof v.track_ip !== 'boolean') return json({ ok: false, error: 'invalid_security_value', field: 'track_ip' }, 400, cors);
+      if ('track_user_agent' in v && typeof v.track_user_agent !== 'boolean') return json({ ok: false, error: 'invalid_security_value', field: 'track_user_agent' }, 400, cors);
+    } else {
+      // Pour toutes les autres clés : refuser les champs ressemblant à des secrets
+      const SECRET_PATTERNS = [/key/i, /secret/i, /token/i, /password.*api/i, /private/i];
+      for (const k of Object.keys(value)) {
+        if (SECRET_PATTERNS.some(p => p.test(k)) && k !== 'password') {
+          // Allow wifi.password only
+          return json({ ok: false, error: 'secret_field_rejected', field: k }, 400, cors);
+        }
       }
     }
+
 
     // Merge avec valeur existante pour ne pas écraser les champs non envoyés
     const { data: existing } = await db

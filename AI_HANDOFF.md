@@ -9,9 +9,11 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## Lots actifs
 
-AUTH UI BLOCKERS FINAL | claude/auth-final-integration | AUTH LAST HUMAN RETEST READY — settings-secure security key + renderProfil/Users gen guard (363797a)
+SETTINGS-SSOT-1 | main | PROCHAINE PHASE — AUTH CLOSED (merge 2026-08-20)
 
 ## Transmissions récentes
+
+`2026-08-20 | Claude | AUTH CLOSED + MERGE MAIN | main | merge claude/auth-final-integration | AUTH PHASE TERMINÉE — anomalie UI AUTH-UI-1 en backlog (Profil/Users vue croisée, non bloquante sécurité). Livrés : profil serveur, team_name, PIN/reset/forced change, sessions/F5, multi-session, RBAC serveur, Sessions/Audit/Sécurité réels, IP/UA tracking, security settings SSOT, X-Veraluz-Session header only, session_token hors body. Prochaine phase : SETTINGS-SSOT-1 | AUTH CLOSED | aucun LOCK | démarrer SETTINGS-SSOT-1`
 
 `2026-08-20 | Claude | AUTH UI BLOCKERS FINAL | claude/auth-final-integration | 363797a | settings-secure v4: WRITABLE_KEYS+security, SECURITY_ALLOWED_FIELDS whitelist 5 champs, SECRET_PATTERNS dans else seulement — resume_token_days sauvegardable. AUTH_EMBEDDED: _renderGen counter + renderProfil(gen)/_renderGen!==gen double-guard + renderUsers(gen)/loadSBEmployees double-guard + renderProfilReload guard. 15/15 tests PASS. EF déployé ACTIVE | AUTH LAST HUMAN RETEST READY | aucun LOCK | tester: Settings→Sécurité save 12→13→reload→13 puis 12→reload→12 | Profil/Users navigation rapide sans pollution croisée`
 

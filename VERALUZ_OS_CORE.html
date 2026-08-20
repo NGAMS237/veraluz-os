@@ -3861,6 +3861,41 @@ var VERALUZ_BROKER_ALLOWED_ENDPOINTS = [
   'auth-admin-secure'
 ];
 var VERALUZ_BROKER_EDGE_BASE = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/';
+/* ── SETTINGS-SSOT-1A — Storage upload broker ─────────────────────────────
+   Appelé par les iframes via window.parent.veraluzStorageUpload(bucket, path, file).
+   Utilise la clé anon (publique) + bucket logos public.
+   Jamais service_role côté frontend.
+   Retourne Promise<{ok:bool, url:string|null, error:string|null}>
+──────────────────────────────────────────────────────────────────────── */
+var VERALUZ_STORAGE_ALLOWED_BUCKETS = ['logos'];
+var VERALUZ_STORAGE_MAX_BYTES = 2 * 1024 * 1024; /* 2 MB */
+var VERALUZ_STORAGE_ALLOWED_TYPES = ['image/png','image/jpeg','image/webp'];
+window.veraluzStorageUpload = function(bucket, path, file) {
+  if (!bucket || VERALUZ_STORAGE_ALLOWED_BUCKETS.indexOf(bucket) === -1) {
+    return Promise.resolve({ok:false, url:null, error:'bucket_not_allowed'});
+  }
+  if (!file || VERALUZ_STORAGE_ALLOWED_TYPES.indexOf(file.type) === -1) {
+    return Promise.resolve({ok:false, url:null, error:'type_not_allowed: ' + (file ? file.type : 'null')});
+  }
+  if (file.size > VERALUZ_STORAGE_MAX_BYTES) {
+    return Promise.resolve({ok:false, url:null, error:'file_too_large (max 2 MB)'});
+  }
+  /* sanitize path — jamais de traversal */
+  var safePath = String(path).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 128);
+  var uploadUrl = SB_URL + '/storage/v1/object/' + bucket + '/' + safePath;
+  return fetch(uploadUrl, {
+    method: 'POST',
+    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': file.type, 'x-upsert': 'true' },
+    body: file
+  }).then(function(r) {
+    if (!r.ok) return r.text().then(function(t) { return {ok:false, url:null, error:'storage_http_' + r.status + ': ' + t.slice(0,200)}; });
+    var publicUrl = SB_URL + '/storage/v1/object/public/' + bucket + '/' + safePath;
+    return {ok:true, url:publicUrl, error:null};
+  }).catch(function(e) {
+    return {ok:false, url:null, error:'network_error: ' + String(e)};
+  });
+};
+
 window.veraluzSecureRequest = function (endpoint, payload) {
   if (typeof endpoint !== 'string' || VERALUZ_BROKER_ALLOWED_ENDPOINTS.indexOf(endpoint) === -1) {
     return Promise.resolve({ status: 400, body: { ok: false, error: 'endpoint_not_whitelisted' } });

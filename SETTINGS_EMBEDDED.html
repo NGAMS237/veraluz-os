@@ -683,11 +683,19 @@ function renderBranding(){
   +(hasLogo?'<img src="'+escH(b.logo_url)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;lp-placeholder&quot;>Image introuvable</div>\'">'
     :'<div class="lp-placeholder">Aucun logo configuré</div>')
   +'</div>'
-  +'<div class="row"><label>URL du logo (Supabase Storage)</label>'
+  +'<div class="row"><label>Upload logo (PNG / JPG / WebP · max 2 Mo)</label>'
+  +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+  +'<button class="btn" onclick="document.getElementById(\'branding-logo-file\').click()" style="padding:6px 14px;font-size:12px;">📁 Choisir un fichier</button>'
+  +'<span id="branding-logo-filename" style="font-size:11px;color:var(--fg2);"></span>'
+  +'<button id="branding-logo-upload-btn" class="btn btn-p" onclick="handleLogoUpload()" style="padding:6px 14px;font-size:12px;display:none;">⬆ Uploader vers Storage</button>'
+  +'</div>'
+  +'<input type="file" id="branding-logo-file" accept="image/png,image/jpeg,image/webp" style="display:none;" onchange="onLogoFileSelect(this)">'
+  +'<div class="row-hint" id="branding-logo-upload-status">→ Le fichier sera uploadé dans le bucket <code>logos</code> de Supabase Storage.</div>'
+  +'</div>'
+  +'<div class="row"><label>Ou coller une URL Storage existante</label>'
   +'<input type="url" id="branding-logo-url" value="'+escH(b.logo_url||'')+'"'
   +' placeholder="https://dfdmasejsoibxrvubegu.supabase.co/storage/v1/object/public/logos/veraluz-logo.png"'
   +' oninput="previewLogoDb(this.value)" style="width:100%;">'
-  +'<div class="row-hint">→ Uploader d\'abord dans Supabase Storage → Buckets → logos → copier l\'URL publique ici</div>'
   +'</div>'
   +toggle('Afficher le logo dans le header','Remplace le texte "Veraluz OS" par l\'image','__branding_show_logo',b.show_logo)
   +'<div class="btn-group"><button class="btn btn-p" onclick="saveBranding()">Enregistrer le branding (DB)</button></div>'
@@ -713,6 +721,69 @@ function previewLogoDb(url){
     prev.innerHTML = '<div class="lp-placeholder">URL invalide</div>';
   }
   markDirty();
+}
+
+/* ── SETTINGS-SSOT-1A — Upload logo vers Supabase Storage ──────────────
+   Interdit : base64/dataURL, localStorage, blob local.
+   Flux : fichier → veraluzStorageUpload (broker CORE) → URL publique → DB.
+─────────────────────────────────────────────────────────────────────── */
+var _pendingLogoFile = null;
+
+function onLogoFileSelect(input){
+  var file = input && input.files && input.files[0];
+  if(!file){ _pendingLogoFile = null; return; }
+  /* Validation type + taille (double check, le broker re-valide) */
+  var allowed = ['image/png','image/jpeg','image/webp'];
+  if(allowed.indexOf(file.type) === -1){
+    toast('❌ Type non supporté — PNG, JPG ou WebP uniquement', false);
+    input.value = ''; _pendingLogoFile = null; return;
+  }
+  if(file.size > 2 * 1024 * 1024){
+    toast('❌ Fichier trop grand — maximum 2 Mo', false);
+    input.value = ''; _pendingLogoFile = null; return;
+  }
+  _pendingLogoFile = file;
+  var nameEl = document.getElementById('branding-logo-filename');
+  if(nameEl) nameEl.textContent = file.name + ' (' + Math.round(file.size/1024) + ' Ko)';
+  var btnEl = document.getElementById('branding-logo-upload-btn');
+  if(btnEl) btnEl.style.display = '';
+  var statusEl = document.getElementById('branding-logo-upload-status');
+  if(statusEl) statusEl.textContent = '✓ Fichier prêt — cliquer "Uploader vers Storage"';
+}
+
+function handleLogoUpload(){
+  if(!_pendingLogoFile){
+    toast('❌ Aucun fichier sélectionné', false); return;
+  }
+  if(!window.parent || typeof window.parent.veraluzStorageUpload !== 'function'){
+    toast('❌ Broker Storage indisponible — vérifier que Settings est chargé dans CORE', false); return;
+  }
+  var ext = _pendingLogoFile.type === 'image/png' ? 'png' : (_pendingLogoFile.type === 'image/webp' ? 'webp' : 'jpg');
+  var path = 'veraluz-logo.' + ext;
+  var btnEl = document.getElementById('branding-logo-upload-btn');
+  var statusEl = document.getElementById('branding-logo-upload-status');
+  if(btnEl){ btnEl.disabled = true; btnEl.textContent = '⏳ Upload…'; }
+  if(statusEl) statusEl.textContent = '⏳ Upload en cours vers Storage…';
+  window.parent.veraluzStorageUpload('logos', path, _pendingLogoFile)
+    .then(function(result){
+      if(btnEl){ btnEl.disabled = false; btnEl.textContent = '⬆ Uploader vers Storage'; }
+      if(!result.ok){
+        toast('❌ Upload Storage échoué : ' + result.error, false);
+        if(statusEl) statusEl.textContent = '❌ ' + result.error;
+        return;
+      }
+      /* Succès — mettre à jour le champ URL et prévisualiser */
+      var urlInput = document.getElementById('branding-logo-url');
+      if(urlInput){ urlInput.value = result.url; }
+      previewLogoDb(result.url);
+      _pendingLogoFile = null;
+      if(statusEl) statusEl.textContent = '✓ Uploadé : ' + result.url;
+      toast('✓ Logo uploadé dans Storage — cliquer "Enregistrer le branding (DB)" pour sauvegarder', true);
+    })
+    .catch(function(e){
+      if(btnEl){ btnEl.disabled = false; btnEl.textContent = '⬆ Uploader vers Storage'; }
+      toast('❌ Erreur upload : ' + String(e), false);
+    });
 }
 
 function saveBranding(){

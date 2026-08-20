@@ -9,9 +9,11 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## Lots actifs
 
-AUTH-SECURITY-FINAL | claude/auth-final-integration | PRÊT POUR RETEST — IP/UA tracking + SSOT security + CORE broker fix (0289347)
+AUTH-SECURITY-FINAL-PATCH | claude/auth-final-integration | AUTH FINAL HUMAN TEST READY — header-only session token + SSOT expiries + RBAC manager revert + SETTINGS SyntaxError fix (ca4569b)
 
 ## Transmissions récentes
+
+`2026-08-20 | Claude | AUTH-SECURITY-FINAL-PATCH | claude/auth-final-integration | ca4569b | CORE: issueCoreResumeToken+direct fetch+change-pin fetch → X-Veraluz-Session header (session_token hors body); issue-resume-token v4 (header + resume_token_days SSOT); reset-employee-pin v10 (header + temp_pin_expiry_hours SSOT + p_expires_at RPC); change-employee-pin v7 (header auth); auth-admin-secure v3 (_rbac.ts manager sans auth.sessions/audit.read); SETTINGS_EMBEDDED renderSecuriteCard() standalone (SyntaxErrors apostrophes résolus); 18/18 tests PASS | AUTH FINAL HUMAN TEST READY | aucun LOCK | tester login+F5, Settings→Sécurité éditables, reset PIN direction, resume_token_days appliqué, no session_token dans body réseau`
 
 `2026-08-20 | Claude | AUTH-SECURITY-FINAL | claude/auth-final-integration | 0289347 | verify-employee-pin v9 (IP/UA tracking, session_lifetime depuis DB); resume-employee-session v4 (post-RPC last_ip/ua); auth-admin-secure v2 (IMMUTABLE+configurable policies, device/ip réels); settings-secure v3 (security key + validation ranges); _rbac.ts (auth.sessions/audit.read manager); VERALUZ_OS_CORE: reqBody.session_token supprimé; SETTINGS_EMBEDDED: section Sécurité Authentification; AUTH_EMBEDDED: polBool notes et feat card nettoyée; veraluz-git skill: token éphémère | PRÊT POUR RETEST | aucun LOCK | tester connexion (IP enregistrée), Auth→Sécurité (params DB), Settings→Système→Sécurité (éditables)`
 

@@ -755,8 +755,105 @@ function _renderProfilCard(emp){
     +'<div style="background:rgba(245,158,11,0.1);border:1px solid #f59e0b;border-radius:6px;'
     +'padding:8px 12px;font-size:12px;color:var(--text2);margin-bottom:10px;">'
     +'&#128274; Le PIN est géré via <strong>Réinitialiser le PIN</strong> dans l\'onglet Employés.</div>'
-    +'<button class="btn btn-danger" onclick="doLogout()">Déconnexion</button>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+    +'<button class="btn btn-sec btn-sm" onclick="showProfilEdit()">✏️ Modifier mes infos</button>'
+    +'<button class="btn btn-danger btn-sm" onclick="doLogout()">Déconnexion</button>'
+    +'</div>'
     +'</div></div>';
+}
+function showProfilEdit(){
+  var c=document.getElementById('profil-wrap');
+  if(!c) return;
+  /* Read current values from hidden data store */
+  var emp=window._profilData||{};
+  var civOpts=['','M.','Mme','Dr','Pr'].map(function(v){
+    return '<option value="'+v+'"'+(emp.civility===v?' selected':'')+'>'+v+'</option>';
+  }).join('');
+  c.innerHTML='<div class="card" style="padding:20px;">'
+    +'<div style="font-size:15px;font-weight:700;margin-bottom:14px;">Modifier mes informations</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;">'
+    +'<label style="font-size:12px;color:var(--text3);">Civilité'
+    +'<select id="pf-civ" class="fi" style="width:100%;margin-top:4px;">'+civOpts+'</select></label>'
+    +'<label style="font-size:12px;color:var(--text3);">Prénom'
+    +'<input id="pf-fn" class="fi" style="width:100%;margin-top:4px;" value="'+esc(emp.first_name||'')+'" maxlength="80"></label>'
+    +'<label style="font-size:12px;color:var(--text3);">Nom'
+    +'<input id="pf-ln" class="fi" style="width:100%;margin-top:4px;" value="'+esc(emp.last_name||'')+'" maxlength="80"></label>'
+    +'<label style="font-size:12px;color:var(--text3);">Téléphone'
+    +'<input id="pf-ph" class="fi" style="width:100%;margin-top:4px;" value="'+esc(emp.phone||'')+'" maxlength="64"></label>'
+    +'<label style="font-size:12px;color:var(--text3);">Email'
+    +'<input id="pf-em" class="fi" style="width:100%;margin-top:4px;" type="email" value="'+esc(emp.email||'')+'" maxlength="254"></label>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:16px;">'
+    +'<button class="btn btn-prim btn-sm" onclick="saveMyProfile()" id="pf-save">Enregistrer</button>'
+    +'<button class="btn btn-sec btn-sm" onclick="renderProfilReload()">Annuler</button>'
+    +'</div>'
+    +'<div id="pf-msg" style="margin-top:8px;font-size:12px;"></div>'
+    +'</div>';
+}
+function renderProfilReload(){
+  var c=document.getElementById('profil-wrap');
+  if(!c) return;
+  c.innerHTML='<div style="text-align:center;padding:40px;color:var(--text3);">Chargement...</div>';
+  if(!window.parent||!window.parent.veraluzSecureRequest) return;
+  window.parent.veraluzSecureRequest('employees-secure',{action:'get_my_profile'})
+    .then(function(res){
+      var c2=document.getElementById('profil-wrap');
+      if(!c2) return;
+      if(res&&res.body&&res.body.ok&&res.body.profile){
+        window._profilData=res.body.profile;
+        c2.innerHTML=_renderProfilCard(res.body.profile);
+      } else {
+        var err=(res&&res.body&&res.body.error)||'inconnue';
+        c2.innerHTML='<div class="empty">Erreur ('+esc(err)+').</div>';
+      }
+    });
+}
+function saveMyProfile(){
+  var btn=document.getElementById('pf-save');
+  var msg=document.getElementById('pf-msg');
+  if(!btn||!msg) return;
+  btn.disabled=true; btn.textContent='Enregistrement...';
+  msg.textContent=''; msg.style.color='';
+  var civEl=document.getElementById('pf-civ');
+  var fnEl =document.getElementById('pf-fn');
+  var lnEl =document.getElementById('pf-ln');
+  var phEl =document.getElementById('pf-ph');
+  var emEl =document.getElementById('pf-em');
+  if(!civEl||!fnEl||!lnEl||!phEl||!emEl){
+    btn.disabled=false; btn.textContent='Enregistrer';
+    msg.textContent='Erreur formulaire.'; msg.style.color='red';
+    return;
+  }
+  var payload={
+    action:'update_my_profile',
+    civility: civEl.value.trim()||null,
+    first_name: fnEl.value.trim()||null,
+    last_name:  lnEl.value.trim()||null,
+    phone:      phEl.value.trim()||null,
+    email:      emEl.value.trim()||null
+  };
+  if(!window.parent||!window.parent.veraluzSecureRequest){
+    btn.disabled=false; btn.textContent='Enregistrer';
+    msg.textContent='Broker non disponible.'; msg.style.color='red';
+    return;
+  }
+  window.parent.veraluzSecureRequest('employees-secure', payload)
+    .then(function(res){
+      btn.disabled=false; btn.textContent='Enregistrer';
+      if(res&&res.body&&res.body.ok&&res.body.profile){
+        window._profilData=res.body.profile;
+        var c=document.getElementById('profil-wrap');
+        if(c) c.innerHTML=_renderProfilCard(res.body.profile);
+        toast('Profil mis à jour','ok');
+      } else {
+        var err=(res&&res.body&&res.body.error)||'inconnue';
+        msg.textContent='Erreur: '+err; msg.style.color='red';
+      }
+    })
+    .catch(function(){
+      btn.disabled=false; btn.textContent='Enregistrer';
+      msg.textContent='Erreur réseau.'; msg.style.color='red';
+    });
 }
 function renderProfil(){
   /* AUTH-R4 : identité dérivée exclusivement de la session serveur (employees-secure) */
@@ -768,6 +865,7 @@ function renderProfil(){
       var c=document.getElementById('profil-wrap');
       if(!c) return;
       if(res&&res.body&&res.body.ok&&res.body.profile){
+        window._profilData=res.body.profile;
         c.innerHTML=_renderProfilCard(res.body.profile);
       } else {
         var err=(res&&res.body&&res.body.error)||'inconnue';

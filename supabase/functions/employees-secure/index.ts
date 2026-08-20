@@ -66,6 +66,7 @@ const RH_UPDATE_FIELDS = new Set([
 ]);
 const GET_MY_DELIVERY_PROFILE_FIELDS = new Set(['action']);
 const UPDATE_MY_PHOTO_FIELDS = new Set(['action', 'photo_url']);
+const UPDATE_MY_PROFILE_FIELDS = new Set(['action', 'civility', 'first_name', 'last_name', 'phone', 'email', 'photo_url']);
 
 type Actor = { id: string; role: string; roleClass: string };
 type DbClient = ReturnType<typeof createClient>;
@@ -313,6 +314,61 @@ Deno.serve(async (req) => {
     if (error) {
       console.error('[employees-secure] get_my_profile_failed code=', error.code);
       return json({ ok: false, error: 'server_error' }, 500, origin);
+    }
+    if (!profile) return json({ ok: false, error: 'employee_not_found' }, 404, origin);
+    return json({ ok: true, profile }, 200, origin);
+  }
+
+  if (action === 'update_my_profile') {
+    if (!validateFields(body, UPDATE_MY_PROFILE_FIELDS)) {
+      return json({ ok: false, error: 'invalid_profile_fields' }, 400, origin);
+    }
+    // Build update — only whitelisted fields, reject unknown keys
+    const update: Record<string, unknown> = {};
+    if ('civility' in body)    update.civility    = optionalText(body.civility, 32);
+    if ('first_name' in body)  update.first_name  = optionalText(body.first_name, 80);
+    if ('last_name' in body)   update.last_name   = optionalText(body.last_name, 80);
+    if ('phone' in body)       update.phone       = optionalText(body.phone, 64);
+    if ('email' in body)       update.email       = optionalText(body.email, 254);
+    if ('photo_url' in body) {
+      const photoUrl = validEmployeePhotoUrl(body.photo_url);
+      if (body.photo_url !== null && body.photo_url !== '' && photoUrl === null) {
+        return json({ ok: false, error: 'invalid_photo_url' }, 400, origin);
+      }
+      update.photo_url = photoUrl;
+    }
+    if (!Object.keys(update).length) {
+      return json({ ok: false, error: 'no_profile_fields' }, 400, origin);
+    }
+    // Recalculate full_name server-side if first or last name changes
+    const fn = update.first_name as string | null | undefined;
+    const ln = update.last_name  as string | null | undefined;
+    if (fn !== undefined || ln !== undefined) {
+      // Fetch current values to fill missing side
+      const { data: cur } = await db
+        .from('veraluz_employees')
+        .select('first_name,last_name')
+        .eq('id', actor.id)
+        .maybeSingle();
+      const newFirst = fn !== undefined ? fn : (cur?.first_name || null);
+      const newLast  = ln !== undefined ? ln : (cur?.last_name  || null);
+      if (newFirst && newLast) {
+        update.full_name = newFirst + ' ' + newLast;
+      } else if (newFirst) {
+        update.full_name = newFirst;
+      } else if (newLast) {
+        update.full_name = newLast;
+      }
+    }
+    const { data: profile, error } = await db
+      .from('veraluz_employees')
+      .update(update)
+      .eq('id', actor.id)
+      .select('id,full_name,civility,first_name,last_name,role,phone,email,hire_date,team_id,department,status,photo_url,public_display_name,public_role_label,identity_verified')
+      .maybeSingle();
+    if (error) {
+      console.error('[employees-secure] update_my_profile_failed code=', error.code);
+      return json({ ok: false, error: 'profile_update_failed' }, 500, origin);
     }
     if (!profile) return json({ ok: false, error: 'employee_not_found' }, 404, origin);
     return json({ ok: true, profile }, 200, origin);

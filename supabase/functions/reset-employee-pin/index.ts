@@ -104,7 +104,13 @@ Deno.serve(async (req) => {
   /* 2. Générer le PIN côté serveur (6 chiffres crypto, jamais journalisé). */
   const tempPin = generateSecurePin()
 
-  /* 3. RPC atomique : bcrypt + must_change_pin + révocation sessions + resume_tokens.
+  /* 3. Lire temp_pin_expiry_hours depuis SSOT avant l'appel RPC (expiresAt requis en param). */
+  const { data: secRow } = await admin.from('veraluz_settings').select('value').eq('key','security').maybeSingle()
+  const sec = (secRow?.value || {}) as Record<string, unknown>
+  const tempPinExpiryHours = Number(sec.temp_pin_expiry_hours) || 24
+  const expiresAt = new Date(Date.now() + tempPinExpiryHours * 60 * 60 * 1000)
+
+  /* 4. RPC atomique : bcrypt + must_change_pin + révocation sessions + resume_tokens.
    *    UNE SEULE TRANSACTION — si une étape échoue → ROLLBACK total → jamais de ok:true partiel.
    *    L'EF ne fait PLUS d'appel séparé à veraluz_revoke_employee_sessions. */
   const { data: rpcRes, error: rpcErr } = await admin.rpc('veraluz_reset_employee_pin', {
@@ -122,12 +128,7 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: rpc?.error || 'reset_failed' }, 400, origin)
   }
 
-  /* 4. Succès total confirmé — journaliser APRÈS la transaction (jamais le PIN, jamais un hash). */
-  // Lire temp_pin_expiry_hours depuis SSOT veraluz_settings.security
-  const { data: secRow } = await admin.from('veraluz_settings').select('value').eq('key','security').maybeSingle()
-  const sec = (secRow?.value || {}) as Record<string, unknown>
-  const tempPinExpiryHours = Number(sec.temp_pin_expiry_hours) || 24
-  const expiresAt = new Date(Date.now() + tempPinExpiryHours * 60 * 60 * 1000)
+  /* 5. Succès total confirmé — journaliser APRÈS la transaction (jamais le PIN, jamais un hash). */
   await admin.from('veraluz_auth_events').insert({
     event_type: 'pin_reset', employee_id: targetId,
     performed_by: callerId, performed_by_role: callerRole, success: true,

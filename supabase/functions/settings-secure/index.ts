@@ -1,5 +1,5 @@
 /**
- * SETTINGS-1 — settings-secure Edge Function v1
+ * SETTINGS-SSOT-1A — settings-secure Edge Function v2
  *
  * Actions:
  *   get_settings    — lecture publique, wifi.password toujours masqué
@@ -8,9 +8,15 @@
  * Sécurité:
  *   - Employee session validée via X-Veraluz-Session header
  *   - Rôle direction/gerant requis pour écriture
- *   - Clés autorisées: property, contact, booking, wifi, restaurant, branding, security
+ *   - Clés autorisées: property, contact, booking, wifi, restaurant, branding, security, localization
  *   - Secrets jamais dans settings (RESEND_API_KEY, service_role, etc.)
  *   - wifi.password jamais renvoyé par get_settings ni loggué
+ *   - logo_url : URL Supabase Storage uniquement — jamais base64/dataURL
+ *
+ * v2 (SETTINGS-SSOT-1A):
+ *   + localization ajouté (language, locale, primary_currency, secondary_currency,
+ *     timezone, date_format, time_format)
+ *   + validation logo_url : base64 refusé côté EF
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -29,7 +35,13 @@ const DIRECTION_ROLES = new Set([
 ]);
 
 const WRITABLE_KEYS = new Set([
-  'property','contact','booking','wifi','restaurant','branding','security',
+  'property','contact','booking','wifi','restaurant','branding','security','localization',
+]);
+
+// Champs autorisés pour la clé 'localization' (whitelist stricte)
+const LOCALIZATION_ALLOWED_FIELDS = new Set([
+  'language','locale','primary_currency','secondary_currency',
+  'timezone','date_format','time_format',
 ]);
 
 // Champs autorisés pour la clé 'security' (whitelist stricte)
@@ -150,6 +162,24 @@ Deno.serve(async (req) => {
     }
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return json({ ok: false, error: 'invalid_value' }, 400, cors);
+    }
+
+    // Validation spécifique branding — refuser base64/dataURL pour logo_url
+    if (key === 'branding' && value.logo_url !== undefined) {
+      const logoUrl = String(value.logo_url);
+      if (logoUrl && logoUrl.startsWith('data:')) {
+        return json({ ok: false, error: 'logo_url_base64_rejected',
+          hint: 'Upload the image to Supabase Storage and store the public URL only.' }, 400, cors);
+      }
+    }
+
+    // Validation spécifique localization — whitelist stricte
+    if (key === 'localization') {
+      for (const k of Object.keys(value)) {
+        if (!LOCALIZATION_ALLOWED_FIELDS.has(k)) {
+          return json({ ok: false, error: 'localization_field_rejected', field: k }, 400, cors);
+        }
+      }
     }
 
     // Validation spécifique security — whitelist stricte + ranges + types

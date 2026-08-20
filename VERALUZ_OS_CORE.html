@@ -1356,6 +1356,24 @@ function isModuleEnabled(moduleKey) {
 }
 
 /* ── applyTenantBranding ──────────────────────────────────────────── */
+/* ── SETTINGS-SSOT-1A — Applique les tokens branding DB canonical ─── */
+function applyBrandingTokens(b) {
+  if (!b) return;
+  if (b.primary_color)   document.documentElement.style.setProperty('--accent', b.primary_color);
+  if (b.secondary_color) document.documentElement.style.setProperty('--acc2',   b.secondary_color);
+  if (b.bg_color)        document.documentElement.style.setProperty('--bg',      b.bg_color);
+  /* Logo — URL Storage uniquement, jamais base64 */
+  if (b.logo_url && !b.logo_url.startsWith('data:')) {
+    var li = document.getElementById('sb-logo-img');
+    var le = document.getElementById('sb-logo-emoji');
+    if (li) {
+      li.src = b.logo_url;
+      li.style.display = b.show_logo !== false ? 'block' : 'none';
+    }
+    if (le) le.style.display = b.show_logo !== false ? 'none' : '';
+  }
+}
+
 function applyTenantBranding() {
   var t = _TENANT;
   if (t.primary_color)   document.documentElement.style.setProperty('--accent', t.primary_color);
@@ -1366,12 +1384,7 @@ function applyTenantBranding() {
   var subEl = document.querySelector('.sb-logo-sub');
   if (subEl && (t.city||t.country))
     subEl.textContent = [t.city,t.country].filter(Boolean).join(' · ');
-  if (t.logo_url && !localStorage.getItem('vz_logo_url')) {
-    var li=document.getElementById('sb-logo-img');
-    var le=document.getElementById('sb-logo-emoji');
-    if (li){ li.src=t.logo_url; li.style.display='block'; }
-    if (le) le.style.display='none';
-  }
+  /* SETTINGS-SSOT-1A: logo lu depuis DB branding via applyBrandingTokens() au boot */
   if (t.name) document.title = t.name + ' — OS';
 }
 
@@ -3909,15 +3922,22 @@ document.addEventListener('DOMContentLoaded', function(){
   /* PROMPT 010B — Mode DEV unlock (TEMP DEV ONLY — à supprimer avant production) */
   if (handleDevUnlock()) return; /* Si mode DEV actif, court-circuit checkAuth() normal */
   checkAuth();
-  /* ─── Restore logo from localStorage on boot ─── */
+  /* SETTINGS-SSOT-1A — Branding boot depuis DB canonical (jamais localStorage) */
   (function() {
-    var savedLogo = localStorage.getItem('vz_logo_url');
-    if (savedLogo) {
-      var li = document.getElementById('sb-logo-img');
-      var le = document.getElementById('sb-logo-emoji');
-      if (li) { li.src = savedLogo; li.style.display = 'block'; }
-      if (le) le.style.display = 'none';
-    }
+    var SB_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/settings-secure';
+    var ANON_K = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+    fetch(SB_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': ANON_K, 'Authorization': 'Bearer ' + ANON_K },
+      body: JSON.stringify({ action: 'get_settings', keys: ['branding'] })
+    }).then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(d) {
+      if (!d || !d.ok || !d.settings || !d.settings.branding) return;
+      applyBrandingTokens(d.settings.branding);
+      console.log('[Core] Branding chargé depuis DB canonical');
+    }).catch(function(e) {
+      console.warn('[Core] Branding boot DB: dégradé (pas de crash)', e);
+    });
   })();
 });
 
@@ -4320,40 +4340,33 @@ var EventBus = {
       });
     }
 
-        /* ── Logo mis à jour depuis Settings ── */
+        /* ── Logo mis à jour depuis Settings (SETTINGS-SSOT-1A : URL Storage, jamais base64) ── */
     if (source === 'veraluz-settings' && type === 'logo-updated' && data.logo_url) {
       var logoImg   = document.getElementById('sb-logo-img');
       var logoEmoji = document.getElementById('sb-logo-emoji');
-      if (logoImg) {
+      if (logoImg && data.logo_url && !data.logo_url.startsWith('data:')) {
         logoImg.src = data.logo_url;
         logoImg.style.display = 'block';
-        if(logoEmoji) logoEmoji.style.display = 'none';
-        logoImg.style.display = 'block';
         if (logoEmoji) logoEmoji.style.display = 'none';
-        try { localStorage.setItem('vz_logo_url', data.logo_url); } catch(e){}
+        /* SETTINGS-SSOT-1A: pas d'écriture localStorage — URL lue depuis DB au boot */
       }
-      console.log('[Core] Logo mis à jour:', data.logo_url);
+      console.log('[Core] Logo mis à jour (DB canonical):', data.logo_url);
     }
 
-    /* ── Locale (langue/devise/taxes) mis à jour depuis Settings ── */
+    /* ── Branding mis à jour (SETTINGS-SSOT-1A) ── */
+    if (source === 'veraluz-settings' && type === 'branding-updated' && data.branding) {
+      applyBrandingTokens(data.branding);
+      console.log('[Core] Branding mis à jour (DB canonical)');
+    }
+
+    /* ── Locale (langue/devise) mis à jour depuis Settings ── */
     if (source === 'veraluz-settings' && type === 'locale-updated') {
+      /* SETTINGS-SSOT-1A: vz_locale peut rester en cache court-terme — DB est source de vérité */
       try { localStorage.setItem('vz_locale', JSON.stringify(data)); } catch(e){}
-      console.log('[Core] Locale mis à jour:', data);
+      console.log('[Core] Locale mis à jour (DB canonical):', data.language, data.currency);
     }
 
-        /* ── Appliquer les permissions mises à jour depuis Settings ── */
-    if (source === 'veraluz-settings' && type === 'permissions-updated' && data.permissions) {
-      var permsMap = data.permissions;
-      /* Mettre à jour dynamiquement ROLES[role].modules selon la matrice */
-      Object.keys(permsMap).forEach(function(role) {
-        if (!ROLES[role]) return;
-        var mods = permsMap[role];
-        ROLES[role].modules = Object.keys(mods).filter(function(mod){ return mods[mod] === true; });
-      });
-      /* Rafraîchir la barre latérale si un utilisateur est connecté */
-      if (currentUser) renderSidebar();
-      console.log('[Core] Permissions mises à jour depuis Settings');
-    }
+    /* SETTINGS-SSOT-1A: permissions-updated supprimé — AUTH/_rbac.ts est l'autorité serveur */
 
     /* ── WhatsApp open depuis un module ── */
     if (type === 'whatsapp-open' && data && data.phone) {

@@ -459,7 +459,7 @@ function loadDbCanonical(cb){
   fetch(SB_SS, {
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':AK_SS,'Authorization':'Bearer '+AK_SS},
-    body:JSON.stringify({action:'get_settings', keys:['property','contact','booking','wifi','restaurant','security']})
+    body:JSON.stringify({action:'get_settings', keys:['property','contact','booking','wifi','restaurant','security','branding','localization']})
   })
   .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
   .then(function(d){
@@ -545,9 +545,9 @@ function saveAll(){
     toast('✓ Paramètres enregistrés');
     /* Propager au Core */
     emit('settings-updated', {section:currentSection, ts:new Date().toISOString()});
-    /* Propager les infos hôtel vers le Booking Engine */
+    /* Propager les infos hôtel vers le Booking Engine — lecture DB uniquement, pas d'écriture localStorage */
     if(S.hotel){
-      try{ localStorage.setItem('vz_hotel_info', JSON.stringify(S.hotel)); }catch(e){}
+      /* SETTINGS-SSOT-1A: vz_hotel_info localStorage supprimé — property/contact sont DB canoniques */
       emit('hotel-info-updated', {
         name:    S.hotel.name    || 'Résidence Veraluz',
         tagline: S.hotel.tagline || '',
@@ -558,11 +558,7 @@ function saveAll(){
         ts: new Date().toISOString()
       });
     }
-    /* Propager logo si changé */
-    if(S.branding && S.branding.logo_url){
-      emit('logo-updated', {logo_url:S.branding.logo_url, ts:new Date().toISOString()});
-      try{ localStorage.setItem('vz_logo_data', S.branding.logo_url); }catch(e2){}
-    }
+    /* SETTINGS-SSOT-1A: logo_url est DB canonique via saveCanonical('branding',...) — pas de localStorage */
     /* Sauvegarder Template ID EmailJS */
     if(S.email && S.email.template_id){
       try{ localStorage.setItem('vz_email_template', S.email.template_id); }catch(e2){}
@@ -580,10 +576,7 @@ function saveAll(){
       tax_service: S.tarifs.tax_service,
       ts: new Date().toISOString()
     });
-    /* Propager permissions — RES-LIFECYCLE-1/A4: uniquement depuis onglet Permissions */
-    if(S.permissions && currentSection === 'permissions'){
-      emit('permissions-updated', {permissions:S.permissions, ts:new Date().toISOString()});
-    }
+    /* SETTINGS-SSOT-1A: permissions-updated supprimé — AUTH/_rbac.ts est l'autorité serveur */
   }catch(e){ toast('❌ Erreur sauvegarde', false); }
 }
 
@@ -665,37 +658,91 @@ function saveHotelContact(){
   saveCanonical('contact', obj, function(){ markClean(); });
 }
 
+/* ══════════════════════════════════════════════════════════
+   SETTINGS-SSOT-1A — Branding : source canonique DB
+   Lecture : _dbSett.branding  (settings-secure EF)
+   Écriture : saveBranding()  via broker CORE
+   Logo : URL Supabase Storage uniquement (jamais base64)
+══════════════════════════════════════════════════════════ */
+
 function renderBranding(){
-  var b=S.branding;
+  /* SETTINGS-SSOT-1A: lire depuis DB canonical, fallback DEFAULTS si pas encore chargé */
+  var b = Object.assign({
+    logo_url:'', primary_color:'#22d3a5', secondary_color:'#1ba87f',
+    bg_color:'#0f1117', font:'Inter', show_logo:true
+  }, _dbSett.branding || {});
   var hasLogo = b.logo_url && b.logo_url.length > 0;
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>',
-    'Branding & Logo', 'Identité visuelle appliquée à toute l\'application')
+    'Branding & Logo', 'Identité visuelle — source canonique DB (cross-device)')
+  +'<div class="card" style="background:rgba(34,211,165,.04);border-color:rgba(34,211,165,.2);">'
+  +'<p style="font-size:11px;color:var(--acc);">→ Branding enregistré en DB et appliqué cross-device. Logo = URL Supabase Storage uniquement (jamais base64).</p>'
+  +'</div>'
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Logo</div>'
-  +'<div id="logo-preview" onclick="document.getElementById(\'logo-url-input\').focus()">'
+  +'<div id="logo-preview">'
   +(hasLogo?'<img src="'+escH(b.logo_url)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;lp-placeholder&quot;>Image introuvable</div>\'">'
-    :'<div class="lp-placeholder">Cliquer pour définir<br>le logo</div>')
+    :'<div class="lp-placeholder">Aucun logo configuré</div>')
   +'</div>'
-  +'<div class="row"><label>Uploader un logo (PNG, JPG, SVG)</label>'
-  +'<div style="display:flex;gap:8px;align-items:center;">'
-  +'<label style="cursor:pointer;background:var(--bg3);border:1px solid var(--bg4);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--text2);">📁 Choisir un fichier<input type="file" accept="image/*" style="display:none" onchange="uploadLogo(this)"></label>'
-  +'<span style="color:var(--text3);font-size:11px;">ou</span>'
-  +'<input type="url" id="logo-url-input" data-field="branding.logo_url" value="'+escH(b.logo_url||'')+'"'
-  +' placeholder="https://example.com/logo.png" oninput="markDirty();previewLogo(this.value)" style="flex:1;">'
+  +'<div class="row"><label>URL du logo (Supabase Storage)</label>'
+  +'<input type="url" id="branding-logo-url" value="'+escH(b.logo_url||'')+'"'
+  +' placeholder="https://dfdmasejsoibxrvubegu.supabase.co/storage/v1/object/public/logos/veraluz-logo.png"'
+  +' oninput="previewLogoDb(this.value)" style="width:100%;">'
+  +'<div class="row-hint">→ Uploader d\'abord dans Supabase Storage → Buckets → logos → copier l\'URL publique ici</div>'
   +'</div>'
-  +'<div class="row-hint">→ Le logo s\'applique à la barre de navigation et au Booking Engine</div>'
-  +'</div>'
-  +toggle('Afficher le logo dans le header','Remplace le texte "Veraluz OS" par l\'image','branding.show_logo',b.show_logo)
+  +toggle('Afficher le logo dans le header','Remplace le texte "Veraluz OS" par l\'image','__branding_show_logo',b.show_logo)
+  +'<div class="btn-group"><button class="btn btn-p" onclick="saveBranding()">Enregistrer le branding (DB)</button></div>'
   +'</div>'
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>Couleurs</div>'
   +'<div class="color-row"><label>Couleur principale (accent)</label>'
-  +'<input type="color" data-field="branding.primary_color" value="'+b.primary_color+'" oninput="markDirty()"><span class="color-val">'+b.primary_color+'</span></div>'
+  +'<input type="color" id="branding-primary" value="'+b.primary_color+'" oninput="markDirty()"><span class="color-val" id="branding-primary-val">'+b.primary_color+'</span></div>'
   +'<div class="color-row"><label>Couleur secondaire</label>'
-  +'<input type="color" data-field="branding.secondary_color" value="'+b.secondary_color+'" oninput="markDirty()"><span class="color-val">'+b.secondary_color+'</span></div>'
+  +'<input type="color" id="branding-secondary" value="'+b.secondary_color+'" oninput="markDirty()"><span class="color-val" id="branding-secondary-val">'+b.secondary_color+'</span></div>'
   +'<div class="color-row"><label>Fond général</label>'
-  +'<input type="color" data-field="branding.bg_color" value="'+b.bg_color+'" oninput="markDirty()"><span class="color-val">'+b.bg_color+'</span></div>'
+  +'<input type="color" id="branding-bg" value="'+b.bg_color+'" oninput="markDirty()"><span class="color-val" id="branding-bg-val">'+b.bg_color+'</span></div>'
+  +'<div class="btn-group"><button class="btn btn-p" onclick="saveBranding()">Enregistrer les couleurs (DB)</button></div>'
   +'</div>';
+}
+
+function previewLogoDb(url){
+  var prev = document.getElementById('logo-preview');
+  if(!prev) return;
+  if(url && url.startsWith('http')){
+    prev.innerHTML = '<img src="'+escH(url)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;lp-placeholder&quot;>Image introuvable</div>\'">';
+  } else {
+    prev.innerHTML = '<div class="lp-placeholder">URL invalide</div>';
+  }
+  markDirty();
+}
+
+function saveBranding(){
+  var logoUrl   = (document.getElementById('branding-logo-url')||{}).value||'';
+  var showLogo  = !!(document.getElementById('__branding_show_logo_cb')||document.querySelector('[data-field="__branding_show_logo"]')||{checked:true}).checked;
+  var primary   = (document.getElementById('branding-primary')||{}).value||'#22d3a5';
+  var secondary = (document.getElementById('branding-secondary')||{}).value||'#1ba87f';
+  var bgColor   = (document.getElementById('branding-bg')||{}).value||'#0f1117';
+
+  /* Refuser base64 côté frontend avant même l'envoi */
+  if(logoUrl && logoUrl.startsWith('data:')){
+    toast('❌ Logo : URL Storage uniquement — pas de base64', false); return;
+  }
+
+  var showEl = document.querySelector('[data-field="__branding_show_logo"]');
+  var showLogoVal = showEl ? !!showEl.checked : true;
+
+  var obj = {
+    logo_url:        logoUrl,
+    show_logo:       showLogoVal,
+    primary_color:   primary,
+    secondary_color: secondary,
+    bg_color:        bgColor,
+    font:            (_dbSett.branding||{}).font || 'Inter'
+  };
+  saveCanonical('branding', obj, function(){
+    emit('logo-updated', {logo_url:logoUrl, ts:new Date().toISOString()});
+    emit('branding-updated', {branding:obj, ts:new Date().toISOString()});
+    markClean();
+  });
 }
 
 function renderChambres(){
@@ -752,81 +799,161 @@ function renderTarifs(){
   +'</div>';
 }
 
+/* ══════════════════════════════════════════════════════════
+   SETTINGS-SSOT-1A — Localization : source canonique DB
+   Clé DB : veraluz_settings.localization
+   Ancien nom métier "devises" conservé en interne pour la nav
+   mais la donnée vient de _dbSett.localization
+   Aucune conversion FX — secondary_currency = affichage seul
+   Timezone établissement : Africa/Douala (défaut DB)
+══════════════════════════════════════════════════════════ */
+
 function renderDevises(){
-  var d=S.devises;
+  /* SETTINGS-SSOT-1A: source = _dbSett.localization (DB canonical) */
+  var d = Object.assign({
+    language:'fr', locale:'fr-CM', primary_currency:'XAF',
+    secondary_currency:'EUR', timezone:'Africa/Douala',
+    date_format:'DD/MM/YYYY', time_format:'24h'
+  }, _dbSett.localization || {});
+
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z"/></svg>',
-    'Langue & Devise', 'Localisation appliquée à toute l\'application après sauvegarde')
+    'Localisation', 'Langue, devise et formats — source canonique DB (cross-device)')
   +'<div class="card" style="background:rgba(34,211,165,.05);border-color:rgba(34,211,165,.2);">'
-  +'<p style="font-size:11px;color:var(--acc);">→ Toute modification ici est propagée automatiquement aux modules Réservations, Finance, Restaurant et Paiements.</p>'
+  +'<p style="font-size:11px;color:var(--acc);">→ Valeurs lues depuis DB et propagées cross-device. Devise secondaire = affichage uniquement, aucune conversion FX.</p>'
   +'</div>'
   +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>Langue</div>'
-  +sel('Langue d\'interface','devises.language',d.language,[
-    ['fr','Français'],['en','English'],['es','Español'],
-  ])
-  +sel('Format de date','devises.date_format',d.date_format,[
-    ['DD/MM/YYYY','DD/MM/YYYY (ex: 18/05/2026)'],
-    ['MM/DD/YYYY','MM/DD/YYYY (ex: 05/18/2026)'],
-    ['YYYY-MM-DD','YYYY-MM-DD (ISO)'],
-  ])
-  +sel('Format heure','devises.time_format',d.time_format,[
-    ['24h','24h (ex: 14:30)'],['12h','12h AM/PM (ex: 2:30 PM)'],
-  ])
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>Langue & Formats</div>'
+  +'<div class="row"><label>Langue d\'interface</label><select id="loc-language">'
+  +[['fr','Français'],['en','English'],['es','Español']].map(function(o){ return '<option value="'+o[0]+'"'+(o[0]===d.language?' selected':'')+'>'+o[1]+'</option>'; }).join('')
+  +'</select></div>'
+  +'<div class="row"><label>Format de date</label><select id="loc-date-format">'
+  +[['DD/MM/YYYY','DD/MM/YYYY (ex: 18/05/2026)'],['MM/DD/YYYY','MM/DD/YYYY (ex: 05/18/2026)'],['YYYY-MM-DD','YYYY-MM-DD (ISO)']].map(function(o){ return '<option value="'+o[0]+'"'+(o[0]===d.date_format?' selected':'')+'>'+o[1]+'</option>'; }).join('')
+  +'</select></div>'
+  +'<div class="row"><label>Format heure</label><select id="loc-time-format">'
+  +[['24h','24h (ex: 14:30)'],['12h','12h AM/PM (ex: 2:30 PM)']].map(function(o){ return '<option value="'+o[0]+'"'+(o[0]===d.time_format?' selected':'')+'>'+o[1]+'</option>'; }).join('')
+  +'</select></div>'
+  +'<div class="row"><label>Fuseau horaire</label><select id="loc-timezone">'
+  +[['Africa/Douala','Africa/Douala (GMT+1) — défaut établissement'],['Europe/Paris','Europe/Paris (GMT+1/+2)'],['America/Toronto','America/Toronto (GMT-5/-4)'],['UTC','UTC']].map(function(o){ return '<option value="'+o[0]+'"'+(o[0]===d.timezone?' selected':'')+'>'+o[1]+'</option>'; }).join('')
+  +'</select></div>'
   +'</div>'
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Devise</div>'
-  +sel('Devise principale','devises.primary',d.primary,[
-    ['XAF','XAF — Franc CFA (BEAC)'],['EUR','EUR — Euro'],
-    ['USD','USD — Dollar américain'],['CAD','CAD — Dollar canadien'],
-  ])
-  +sel('Devise secondaire (affichage)','devises.secondary',d.secondary,[
-    ['EUR','EUR — Euro'],['USD','USD — Dollar américain'],
-    ['CAD','CAD — Dollar canadien'],['XAF','XAF — Franc CFA'],
-  ])
+  +'<div class="row"><label>Devise principale</label><select id="loc-primary-currency">'
+  +[['XAF','XAF — Franc CFA (BEAC)'],['EUR','EUR — Euro'],['USD','USD — Dollar américain'],['CAD','CAD — Dollar canadien']].map(function(o){ return '<option value="'+o[0]+'"'+(o[0]===d.primary_currency?' selected':'')+'>'+o[1]+'</option>'; }).join('')
+  +'</select></div>'
+  +'<div class="row"><label>Devise secondaire <span style="color:var(--text3);font-size:10px;">(affichage uniquement — aucune conversion FX)</span></label><select id="loc-secondary-currency">'
+  +[['EUR','EUR — Euro'],['USD','USD — Dollar américain'],['CAD','CAD — Dollar canadien'],['XAF','XAF — Franc CFA']].map(function(o){ return '<option value="'+o[0]+'"'+(o[0]===d.secondary_currency?' selected':'')+'>'+o[1]+'</option>'; }).join('')
+  +'</select></div>'
+  +'<div class="btn-group"><button class="btn btn-p" onclick="saveLocalization()">Enregistrer la localisation (DB)</button></div>'
   +'</div>';
 }
 
-function renderRestaurant(){
-  /* SETTINGS-1: leading section is DB canonical (opening/closing/room_service_enabled) */
-  var rs = _dbSett.restaurant || {};
-  var r  = S.restaurant;
-  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>',
-    'Restaurant & Bar', 'Horaires et Room Service — source DB + paramètres locaux')
-  +'<div class="card" style="background:rgba(34,211,165,.04);border-color:rgba(34,211,165,.2);">'
-  +'<p style="font-size:11px;color:var(--acc);">→ Horaires et Room Service sont la <strong>source canonique DB</strong> lue par le Guest Portal. Les autres paramètres restent en configuration locale.</p>'
-  +'</div>'
-  /* ── Canonical section (DB) ── */
-  +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Horaires & Room Service (DB canonique)</div>'
-  +'<div class="row2">'
-  +'<div class="row"><label>Heure d\'ouverture</label><input type="time" id="db-rs-open" value="'+escH(rs.opening_time||'07:00')+'" oninput="markDirty()"></div>'
-  +'<div class="row"><label>Heure de fermeture</label><input type="time" id="db-rs-close" value="'+escH(rs.closing_time||'23:00')+'" oninput="markDirty()"></div></div>'
-  +'<div class="row"><label>Restaurant actif</label><input type="checkbox" id="db-rs-enabled"'+( rs.enabled!==false?' checked':'')+' oninput="markDirty()"> <span style="font-size:11px;color:var(--text3)">Désactiver cache le restaurant dans le Guest Portal</span></div>'
-  +'<div class="row"><label>Room Service actif</label><input type="checkbox" id="db-rss-enabled"'+( rs.room_service_enabled!==false?' checked':'')+' oninput="markDirty()"> <span style="font-size:11px;color:var(--text3)">Visible dans le Guest Portal et Booking Engine</span></div>'
-  +'<div class="btn-group"><button class="btn btn-p" onclick="saveRestaurantCanonical()">Enregistrer (DB)</button></div>'
-  +'</div>'
-  /* ── Local section (localStorage) ── */
-  +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>Détails locaux (configuration interne)</div>'
-  +field('Nom du restaurant','restaurant.name',r.name)
-  +field('Capacité (couverts)','restaurant.capacity',r.capacity,'number')
-  +'<div class="row2">'+field('Petit-déj. début','restaurant.breakfast_start',r.breakfast_start,'time')+field('Petit-déj. fin','restaurant.breakfast_end',r.breakfast_end,'time')+'</div>'
-  +'<div class="row2">'+field('Déjeuner début','restaurant.lunch_start',r.lunch_start,'time')+field('Déjeuner fin','restaurant.lunch_end',r.lunch_end,'time')+'</div>'
-  +'<div class="row2">'+field('Dîner début','restaurant.dinner_start',r.dinner_start,'time')+field('Dîner fin','restaurant.dinner_end',r.dinner_end,'time')+'</div>'
-  +toggle('Bar Lounge actif','Espace bar indépendant','restaurant.bar_active',r.bar_active)
-  +'<div class="row2">'+field('Bar ouverture','restaurant.bar_open',r.bar_open,'time')+field('Bar fermeture','restaurant.bar_close',r.bar_close,'time')+'</div>'
-  +field('TVA restaurant (%)','restaurant.tva',r.tva,'number')
-  +field('Charge de service (%)','restaurant.service_charge',r.service_charge,'number')
-  +field('Commande minimale (XAF)','restaurant.min_order',r.min_order,'number')
-  +'</div>';
+function saveLocalization(){
+  var obj = {
+    language:           (document.getElementById('loc-language')||{}).value||'fr',
+    locale:             (document.getElementById('loc-language')||{}).value==='fr' ? 'fr-CM' : ((document.getElementById('loc-language')||{}).value||'fr'),
+    primary_currency:   (document.getElementById('loc-primary-currency')||{}).value||'XAF',
+    secondary_currency: (document.getElementById('loc-secondary-currency')||{}).value||'EUR',
+    timezone:           (document.getElementById('loc-timezone')||{}).value||'Africa/Douala',
+    date_format:        (document.getElementById('loc-date-format')||{}).value||'DD/MM/YYYY',
+    time_format:        (document.getElementById('loc-time-format')||{}).value||'24h'
+  };
+  saveCanonical('localization', obj, function(){
+    emit('locale-updated', {
+      language:  obj.language,
+      currency:  obj.primary_currency,
+      currency2: obj.secondary_currency,
+      date_fmt:  obj.date_format,
+      time_fmt:  obj.time_format,
+      timezone:  obj.timezone,
+      ts: new Date().toISOString()
+    });
+    markClean();
+  });
 }
+
+/* ══════════════════════════════════════════════════════════
+   SETTINGS-SSOT-1A — Restaurant : canonicalisation complète
+   Source = _dbSett.restaurant pour TOUS les champs non-financiers
+   Champs financiers (tva, service_charge) → SETTINGS-FISCAL-1
+══════════════════════════════════════════════════════════ */
+
+function renderRestaurant(){
+  var rs = Object.assign({
+    enabled:true, opening_time:'07:00', closing_time:'23:00', room_service_enabled:true,
+    name:'Le Mako Lounge', capacity:40,
+    breakfast_start:'07:00', breakfast_end:'10:30',
+    lunch_start:'12:00',    lunch_end:'14:30',
+    dinner_start:'19:00',   dinner_end:'22:30',
+    bar_active:true, bar_open:'10:00', bar_close:'00:00',
+    min_order:3000
+  }, _dbSett.restaurant || {});
+
+  return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>',
+    'Restaurant & Bar', 'Paramètres opérationnels — source canonique DB (hors taxes)')
+  +'<div class="card" style="background:rgba(34,211,165,.04);border-color:rgba(34,211,165,.2);">'
+  +'<p style="font-size:11px;color:var(--acc);">→ Tous les champs non-financiers sont désormais DB canoniques (cross-device). TVA et charges de service → SETTINGS-FISCAL-1 (prochain lot).</p>'
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>Identité & Capacité</div>'
+  +'<div class="row"><label>Nom du restaurant</label><input type="text" id="db-rs-name" value="'+escH(rs.name)+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Capacité (couverts)</label><input type="number" id="db-rs-capacity" value="'+rs.capacity+'" min="1" oninput="markDirty()"></div>'
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Horaires & Disponibilité</div>'
+  +'<div class="row"><label>Restaurant actif</label><input type="checkbox" id="db-rs-enabled"'+(rs.enabled!==false?' checked':'')+' oninput="markDirty()"> <span style="font-size:11px;color:var(--text3)">Désactiver cache le restaurant dans le Guest Portal</span></div>'
+  +'<div class="row2"><div class="row"><label>Ouverture générale</label><input type="time" id="db-rs-open" value="'+escH(rs.opening_time)+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Fermeture générale</label><input type="time" id="db-rs-close" value="'+escH(rs.closing_time)+'" oninput="markDirty()"></div></div>'
+  +'<div class="row2"><div class="row"><label>Petit-déj. début</label><input type="time" id="db-rs-bk-s" value="'+escH(rs.breakfast_start)+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Petit-déj. fin</label><input type="time" id="db-rs-bk-e" value="'+escH(rs.breakfast_end)+'" oninput="markDirty()"></div></div>'
+  +'<div class="row2"><div class="row"><label>Déjeuner début</label><input type="time" id="db-rs-ln-s" value="'+escH(rs.lunch_start)+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Déjeuner fin</label><input type="time" id="db-rs-ln-e" value="'+escH(rs.lunch_end)+'" oninput="markDirty()"></div></div>'
+  +'<div class="row2"><div class="row"><label>Dîner début</label><input type="time" id="db-rs-dn-s" value="'+escH(rs.dinner_start)+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Dîner fin</label><input type="time" id="db-rs-dn-e" value="'+escH(rs.dinner_end)+'" oninput="markDirty()"></div></div>'
+  +'</div>'
+  +'<div class="card">'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>Bar & Room Service</div>'
+  +'<div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Bar Lounge actif</div><div class="toggle-desc">Espace bar indépendant</div></div>'
+  +'<label class="toggle"><input type="checkbox" id="db-rs-bar"'+(rs.bar_active?' checked':'')+' onchange="markDirty()"><div class="toggle-track"></div></label></div>'
+  +'<div class="row2"><div class="row"><label>Bar ouverture</label><input type="time" id="db-rs-bar-s" value="'+escH(rs.bar_open)+'" oninput="markDirty()"></div>'
+  +'<div class="row"><label>Bar fermeture</label><input type="time" id="db-rs-bar-e" value="'+escH(rs.bar_close)+'" oninput="markDirty()"></div></div>'
+  +'<div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Room Service actif</div><div class="toggle-desc">Visible dans le Guest Portal et Booking Engine</div></div>'
+  +'<label class="toggle"><input type="checkbox" id="db-rss-enabled"'+(rs.room_service_enabled!==false?' checked':'')+' onchange="markDirty()"><div class="toggle-track"></div></label></div>'
+  +'<div class="row"><label>Commande minimale (XAF)</label><input type="number" id="db-rs-minorder" value="'+rs.min_order+'" min="0" oninput="markDirty()"></div>'
+  +'</div>'
+  +'<div class="card" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.2);">'
+  +'<p style="font-size:11px;color:var(--amber);">⚠ TVA restaurant et Charge de service → lot SETTINGS-FISCAL-1 (moteur fiscal dédié avec consommateurs réels).</p>'
+  +'</div>'
+  +'<div class="btn-group"><button class="btn btn-p" onclick="saveRestaurantCanonical()">Enregistrer le restaurant (DB)</button></div>';
+}
+
 function saveRestaurantCanonical(){
   var prev = _dbSett.restaurant || {};
+  var get  = function(id){ return document.getElementById(id); };
+  var chk  = function(id){ var el=get(id); return el ? !!el.checked : false; };
+  var val  = function(id, def){ var el=get(id); return el ? (el.value||def) : def; };
+
   var obj = Object.assign({}, prev, {
-    enabled:             !!(document.getElementById('db-rs-enabled')||{}).checked
-    ,opening_time:       (document.getElementById('db-rs-open')||{}).value||'07:00'
-    ,closing_time:       (document.getElementById('db-rs-close')||{}).value||'23:00'
-    ,room_service_enabled:!!(document.getElementById('db-rss-enabled')||{}).checked
+    /* Identité */
+    name:               val('db-rs-name','Le Mako Lounge'),
+    capacity:           parseInt(val('db-rs-capacity','40'),10)||40,
+    /* Disponibilité */
+    enabled:            chk('db-rs-enabled'),
+    opening_time:       val('db-rs-open','07:00'),
+    closing_time:       val('db-rs-close','23:00'),
+    breakfast_start:    val('db-rs-bk-s','07:00'),
+    breakfast_end:      val('db-rs-bk-e','10:30'),
+    lunch_start:        val('db-rs-ln-s','12:00'),
+    lunch_end:          val('db-rs-ln-e','14:30'),
+    dinner_start:       val('db-rs-dn-s','19:00'),
+    dinner_end:         val('db-rs-dn-e','22:30'),
+    /* Bar & RS */
+    bar_active:         chk('db-rs-bar'),
+    bar_open:           val('db-rs-bar-s','10:00'),
+    bar_close:          val('db-rs-bar-e','00:00'),
+    room_service_enabled: chk('db-rss-enabled'),
+    min_order:          parseInt(val('db-rs-minorder','3000'),10)||3000
+    /* tva, service_charge : SETTINGS-FISCAL-1 — conserver existant via prev */
   });
   saveCanonical('restaurant', obj, function(){ markClean(); });
 }
@@ -915,17 +1042,32 @@ function renderNotifs(){
   +'</div>';
 }
 
+/* ══════════════════════════════════════════════════════════
+   SETTINGS-SSOT-1A — Permissions : vue informative uniquement
+   Autorité réelle = AUTH / _rbac.ts (serveur)
+   La matrice localStorage ne contrôle plus aucun accès réel
+   → remplacée par une vue de référence read-only
+══════════════════════════════════════════════════════════ */
+
 function renderPermissions(){
-  var p=S.permissions;
+  /* Matrice de référence statique — affichage seulement */
   var roles=['admin','gerant','receptionist','housekeeping','restaurant'];
   var mods=['reservations','paiements','housekeeping','restaurant','rh','finance','analytics','audit','settings'];
   var modLabels={reservations:'Réservations',paiements:'Paiements',housekeeping:'Housekeeping',
     restaurant:'Restaurant',rh:'RH',finance:'Finance',analytics:'Analytics',audit:'Audit',settings:'Paramètres'};
   var roleLabels={admin:'Admin',gerant:'Gérant',receptionist:'Réception',housekeeping:'Housekeeping',restaurant:'Restaurant'};
+  /* Matrice de référence lisible (AUTH/_rbac.ts fait foi) */
+  var REF = {
+    admin:       {reservations:true,  paiements:true,  housekeeping:true,  restaurant:true,  rh:true,   finance:true,  analytics:true, audit:true,  settings:true},
+    gerant:      {reservations:true,  paiements:true,  housekeeping:true,  restaurant:true,  rh:true,   finance:true,  analytics:true, audit:true,  settings:true},
+    receptionist:{reservations:true,  paiements:true,  housekeeping:false, restaurant:false, rh:false,  finance:false, analytics:false,audit:false, settings:false},
+    housekeeping:{reservations:false, paiements:false, housekeeping:true,  restaurant:false, rh:false,  finance:false, analytics:false,audit:false, settings:false},
+    restaurant:  {reservations:false, paiements:false, housekeeping:false, restaurant:true,  rh:false,  finance:false, analytics:false,audit:false, settings:false},
+  };
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
-    'Permissions & Accès', 'Matrice d\'accès par rôle — appliquée immédiatement au Core après sauvegarde')
-  +'<div class="card" style="background:rgba(34,211,165,.05);border-color:rgba(34,211,165,.2);">'
-  +'<p style="font-size:11px;color:var(--acc);">→ Après sauvegarde, la barre de navigation se met à jour en temps réel pour chaque utilisateur selon son rôle. Différent de AUTH (qui gère <em>qui est</em> l\'utilisateur).</p>'
+    'Permissions & Accès', 'Vue de référence — autorité réelle = AUTH · module Équipe')
+  +'<div class="card" style="background:rgba(245,158,11,.06);border-color:rgba(245,158,11,.25);">'
+  +'<p style="font-size:11px;color:var(--amber);">⚠ <strong>SETTINGS-SSOT-1A :</strong> Cette vue est désormais <em>informative uniquement</em>. Les permissions réelles sont gérées par le serveur AUTH (<code>_rbac.ts</code>). Aucune modification ici n\'affecte les accès. Pour modifier les rôles → module <strong>Équipe → AUTH → Rôles</strong>.</p>'
   +'</div>'
   +'<div class="card"><div style="overflow-x:auto;">'
   +'<table class="perm-table"><thead><tr><th>Module</th>'
@@ -934,15 +1076,13 @@ function renderPermissions(){
   +mods.map(function(mod){
     return '<tr><td>'+modLabels[mod]+'</td>'
     +roles.map(function(role){
-      var chk = p[role] && p[role][mod];
-      return '<td><input type="checkbox" '+(chk?'checked':'')+' onchange="onPermChange(this,\''+role+'\',\''+mod+'\')" '
-        +(role==='admin'?'disabled title="Admin a toujours accès complet"':'')+' /></td>';
+      var chk = REF[role] && REF[role][mod];
+      /* disabled + pointer-events:none = purement informatif */
+      return '<td><input type="checkbox" '+(chk?'checked':'')+' disabled style="opacity:0.6;cursor:not-allowed;" /></td>';
     }).join('')+'</tr>';
   }).join('')
-  +'</tbody></table>'
-  +'</div>'
-  +'<div class="btn-group"><button class="btn btn-p" onclick="saveAll()">Appliquer les permissions</button>'
-  +'<button class="btn btn-o" onclick="resetPerms()">Réinitialiser</button></div>'
+  +'</tbody></table></div>'
+  +'<p style="font-size:10px;color:var(--text3);margin-top:12px;padding:0 4px;">→ Matrice de référence. Source de vérité : <code>supabase/functions/_shared/_rbac.ts</code></p>'
   +'</div>';
 }
 
@@ -1549,34 +1689,14 @@ function renderSection(id){
 }
 
 /* ── Actions ── */
-function onPermChange(el, role, mod){
-  if(!S.permissions[role]) S.permissions[role]={};
-  S.permissions[role][mod]=el.checked; markDirty();
-}
-function resetPerms(){
-  S.permissions=JSON.parse(JSON.stringify(DEFAULTS.permissions));
-  renderSection('permissions'); toast('Permissions réinitialisées');
-}
+/* SETTINGS-SSOT-1A: onPermChange / resetPerms supprimés — permissions are AUTH server-side */
+/* SETTINGS-SSOT-1A: uploadLogo (base64→localStorage) supprimé — logo = URL Storage uniquement */
 function previewLogo(url){
+  /* legacy prévisualisation (utilisé si appelé depuis autre endroit) */
   var prev=document.getElementById('logo-preview');
   if(!prev) return;
   prev.innerHTML=url?'<img src="'+escH(url)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;lp-placeholder&quot;>Image introuvable</div>\'">'
-    :'<div class="lp-placeholder">Cliquer pour définir<br>le logo</div>';
-}
-function uploadLogo(input){
-  var file=input.files[0]; if(!file) return;
-  var reader=new FileReader();
-  reader.onload=function(e){
-    var dataUrl=e.target.result;
-    S.branding.logo_url=dataUrl;
-    var urlInput=document.getElementById('logo-url-input');
-    if(urlInput){ urlInput.value='[image uploadée]'; urlInput.setAttribute('data-field-override','true'); }
-    previewLogo(dataUrl);
-    try{ localStorage.setItem('vz_logo_data', dataUrl); }catch(e2){}
-    markDirty();
-    toast('✓ Logo chargé');
-  };
-  reader.readAsDataURL(file);
+    :'<div class="lp-placeholder">Aucun logo configuré</div>';
 }
 function updateRoom(i, key, val){ S.chambres[i][key]=val; markDirty(); }
 function addRoom(){

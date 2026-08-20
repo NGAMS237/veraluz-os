@@ -1422,7 +1422,7 @@ function renderAudit() {
 
   if (!_auditLoaded) {
     loadRealAudit(function(){ renderTab('audit'); });
-    html += '<div class="empty"><div class="empty-ico">⏳</div>Chargement de l'audit…</div>';
+    html += '<div class="empty"><div class="empty-ico">⏳</div>Chargement de l\'audit…</div>';
     return html;
   }
 
@@ -1441,7 +1441,7 @@ function renderAudit() {
 
   var events = (_auditData && _auditData.events) || [];
   if (!events.length) {
-    html += '<div class="empty"><div class="empty-ico">📋</div>Aucun événement d'audit</div>';
+    html += '<div class="empty"><div class="empty-ico">📋</div>Aucun événement d\'audit</div>';
     return html;
   }
 
@@ -1511,7 +1511,7 @@ function renderSecurite() {
   }
 
   var amber = 'background:rgba(251,191,36,.12);border:1.5px solid #fbbf24;border-radius:8px;padding:8px 12px;font-size:12px;color:#fbbf24;margin-bottom:14px;';
-  var html = '<div style="' + amber + '">🔒 Politiques de sécurité — lecture seule. Toutes les valeurs sont appliquées côté serveur et ne peuvent pas être modifiées depuis l'interface.</div>';
+  var html = '<div style="' + amber + '">🔒 Politiques de sécurité — lecture seule. Toutes les valeurs sont appliquées côté serveur et ne peuvent pas être modifiées depuis l\'interface.</div>';
 
   if (_secError === 'broker_unavailable') {
     return html + '<div class="card"><div style="color:var(--text2);font-size:13px;">⚠️ Broker indisponible — ouvrez AUTH depuis Veraluz OS.</div></div>';

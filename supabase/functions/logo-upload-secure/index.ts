@@ -159,19 +159,39 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'file_empty' }, 400, cors);
   }
 
-  /* ── Path généré côté serveur ─────────────────────────────────────────────
-     Nom fixe par établissement — le client ne passe pas de path.
-     Un futur multi-tenant préfixerait par tenant_id ici.           */
-  const ext  = MIME_EXT[file.type];
-  const path = `veraluz-logo.${ext}`;
+  /* ── Path unique côté serveur ────────────────────────────────────────────
+     SETTINGS-SSOT-1A : plus d'upsert sur path fixe.
+     Chaque upload génère un path unique (timestamp + random) pour éviter
+     toute collision de cache CDN et permettre la suppression best-effort
+     de l'ancien objet après succès complet.
+     Le client ne contrôle jamais le path.
+     Un futur multi-tenant préfixerait par tenant_id ici.              */
+  const ext   = MIME_EXT[file.type];
+  const ts    = Date.now();
+  const rand  = Math.random().toString(36).slice(2, 8);
+  const newPath = `veraluz-logo-${ts}-${rand}.${ext}`;
 
-  /* ── Upload Storage via service_role ─────────────────────────────────────── */
+  /* ── Lire l'ancien logo_url AVANT tout upload ─────────────────────────── */
+  const { data: existingBranding } = await db
+    .from('veraluz_settings')
+    .select('value')
+    .eq('key', 'branding')
+    .maybeSingle();
+
+  /* Extraire l'ancien path Storage depuis l'URL DB (best-effort — null si absent) */
+  const oldLogoUrl  = existingBranding?.value?.logo_url as string | undefined;
+  const storageBase = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/`;
+  const oldPath     = oldLogoUrl?.startsWith(storageBase)
+    ? oldLogoUrl.slice(storageBase.length)
+    : null;
+
+  /* ── Upload Storage — nouveau path unique ────────────────────────────── */
   const arrayBuffer = await file.arrayBuffer();
   const { error: storageErr } = await db.storage
     .from(BUCKET)
-    .upload(path, arrayBuffer, {
+    .upload(newPath, arrayBuffer, {
       contentType: file.type,
-      upsert:      true,  /* remplacement idempotent */
+      upsert:      false,   /* path unique → pas d'upsert nécessaire */
     });
 
   if (storageErr) {
@@ -179,47 +199,55 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: 'storage_error', detail: storageErr.message }, 500, cors);
   }
 
-  /* ── URL publique ─────────────────────────────────────────────────────────── */
-  const { data: publicData } = db.storage.from(BUCKET).getPublicUrl(path);
+  /* ── URL publique ─────────────────────────────────────────────────────── */
+  const { data: publicData } = db.storage.from(BUCKET).getPublicUrl(newPath);
   const publicUrl = publicData?.publicUrl
-    ?? `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
+    ?? `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${newPath}`;
 
-  /* ── Persister branding.logo_url en DB ───────────────────────────────────── */
-  const { data: existing } = await db
-    .from('veraluz_settings')
-    .select('value')
-    .eq('key', 'branding')
-    .maybeSingle();
-
-  const merged = Object.assign({}, existing?.value ?? {}, { logo_url: publicUrl });
+  /* ── Persister branding.logo_url en DB ──────────────────────────────── */
+  const merged = Object.assign({}, existingBranding?.value ?? {}, { logo_url: publicUrl });
   const { error: dbErr } = await db
     .from('veraluz_settings')
     .upsert({ key: 'branding', value: merged, updated_at: new Date().toISOString() }, { onConflict: 'key' });
 
   if (dbErr) {
     /* ATOMICITÉ : Storage a réussi mais DB a échoué.
-       Tenter de supprimer l'objet uploadé pour éviter une divergence état.
+       Supprimer UNIQUEMENT le NOUVEL objet uploadé — l'ancien logo reste intact.
        Ne pas retourner 207 (succès partiel interdit).
-       HTTP 500 — le client devra réessayer l'opération complète.     */
-    console.error('[logo-upload-secure] DB persist error — attempting Storage cleanup:', dbErr.message);
-    const { error: removeErr } = await db.storage.from(BUCKET).remove([path]);
+       HTTP 500 — le client devra réessayer l'opération complète.          */
+    console.error('[logo-upload-secure] DB persist error — cleaning up NEW upload:', dbErr.message);
+    const { error: removeErr } = await db.storage.from(BUCKET).remove([newPath]);
     if (removeErr) {
-      console.error('[logo-upload-secure] Storage cleanup failed:', removeErr.message);
+      console.error('[logo-upload-secure] Storage cleanup of new object failed:', removeErr.message);
     }
     return json({
       ok:    false,
       error: 'db_write_error',
       detail: dbErr.message,
       storage_cleanup_attempted: true,
+      old_logo_preserved: true,
     }, 500, cors);
   }
 
-  /* ── Succès complet : Storage OK + DB canonical OK ───────────────────────── */
+  /* ── Succès complet : Storage OK + DB canonical OK ──────────────────────
+     Supprimer l'ANCIEN objet best-effort — échec non bloquant.
+     L'ancien path n'est supprimé qu'après que les deux opérations critiques
+     (Storage + DB) ont réussi.                                             */
+  if (oldPath && oldPath !== newPath) {
+    const { error: oldRemoveErr } = await db.storage.from(BUCKET).remove([oldPath]);
+    if (oldRemoveErr) {
+      console.warn('[logo-upload-secure] Old logo cleanup failed (non-blocking):', oldRemoveErr.message);
+    } else {
+      console.log('[logo-upload-secure] Old logo removed:', oldPath);
+    }
+  }
+
   return json({
     ok:           true,
     url:          publicUrl,
     db_persisted: true,
-    path,
+    path:         newPath,
+    old_path_removed: oldPath && oldPath !== newPath ? true : null,
     uploaded_by:  employee.full_name,
   }, 200, cors);
 });

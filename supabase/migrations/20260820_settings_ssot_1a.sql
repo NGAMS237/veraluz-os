@@ -66,7 +66,60 @@ SET
 WHERE key = 'restaurant'
   AND NOT (value ? 'name');   -- idempotent : ne ré-applique pas si déjà là
 
--- ── 4. RLS — s'assurer que localization est lisible publiquement ──────────────
+-- ── 4. BRANDING LEGACY MIGRATION — camelCase → snake_case ───────────────────
+-- La PROD peut contenir des clés legacy (logoUrl, heroImage, accentColor,
+-- primaryColor, theme) issues d'une version antérieure.
+-- Migration idempotente : ne remplace une clé snake_case que si elle est absente
+-- ou vide, et supprime les clés camelCase après migration.
+-- Exécution safe si aucune clé legacy n'existe (aucun effet).
+-- Sans perte : les valeurs canoniques déjà définies par le gérant ne sont pas écrasées.
+UPDATE veraluz_settings
+SET value = (
+  WITH legacy AS (
+    SELECT
+      value->>'logoUrl'     AS logo_url_leg,
+      value->>'heroImage'   AS hero_image_leg,
+      value->>'accentColor' AS accent_color_leg,
+      value->>'primaryColor' AS primary_color_leg
+      /* 'theme' : clé obsolète, non migrée — discardée ci-dessous */
+  )
+  SELECT
+    /* Appliquer migration camelCase→snake_case uniquement si valeur absente/vide côté snake_case */
+    (value
+      /* logo_url */
+      || CASE WHEN (value->>'logo_url' IS NULL OR value->>'logo_url' = '')
+                   AND logo_url_leg IS NOT NULL AND logo_url_leg <> ''
+              THEN jsonb_build_object('logo_url', logo_url_leg)
+              ELSE '{}'::jsonb END
+      /* hero_image */
+      || CASE WHEN (value->>'hero_image' IS NULL OR value->>'hero_image' = '')
+                   AND hero_image_leg IS NOT NULL AND hero_image_leg <> ''
+              THEN jsonb_build_object('hero_image', hero_image_leg)
+              ELSE '{}'::jsonb END
+      /* accent_color */
+      || CASE WHEN (value->>'accent_color' IS NULL OR value->>'accent_color' = '')
+                   AND accent_color_leg IS NOT NULL AND accent_color_leg <> ''
+              THEN jsonb_build_object('accent_color', accent_color_leg)
+              ELSE '{}'::jsonb END
+      /* primary_color */
+      || CASE WHEN (value->>'primary_color' IS NULL OR value->>'primary_color' = '')
+                   AND primary_color_leg IS NOT NULL AND primary_color_leg <> ''
+              THEN jsonb_build_object('primary_color', primary_color_leg)
+              ELSE '{}'::jsonb END
+      /* Supprimer les clés camelCase et theme (obsolète) après migration */
+      - 'logoUrl' - 'heroImage' - 'accentColor' - 'primaryColor' - 'theme'
+    )
+  FROM legacy
+)
+, updated_at = now()
+WHERE key = 'branding'
+  /* N'exécuter que si au moins une clé legacy est présente */
+  AND (
+    value ? 'logoUrl' OR value ? 'heroImage' OR
+    value ? 'accentColor' OR value ? 'primaryColor' OR value ? 'theme'
+  );
+
+-- ── 5. RLS — s'assurer que localization est lisible publiquement ──────────────
 -- La politique veraluz_settings_anon_read existante couvre toutes les lignes ;
 -- aucun ajustement RLS nécessaire pour la nouvelle clé.
 -- Rappel de la politique existante (documentation, pas de re-création) :

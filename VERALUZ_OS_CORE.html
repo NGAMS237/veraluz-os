@@ -4403,8 +4403,7 @@ var EventBus = {
 
     /* ── Locale (langue/devise) mis à jour depuis Settings ── */
     if (source === 'veraluz-settings' && type === 'locale-updated') {
-      /* SETTINGS-SSOT-1A: vz_locale peut rester en cache court-terme — DB est source de vérité */
-      try { localStorage.setItem('vz_locale', JSON.stringify(data)); } catch(e){}
+      /* SETTINGS-SSOT-1A: vz_locale localStorage supprimé — DB est SSOT, aucun cache local écrit */
       console.log('[Core] Locale mis à jour (DB canonical):', data.language, data.currency);
     }
 

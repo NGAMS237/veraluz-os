@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { normalizeRole, hasCapability } from "./_rbac.ts";
 
 const SUPA_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -29,10 +30,7 @@ const STATUS_MAP: Record<string, string> = {
   cancel:   "cancelled",
 };
 
-const ALLOWED_ROLES = new Set([
-  "gerant","direction","directrice","manager","admin","superadmin",
-  "receptionniste","reception",
-]);
+// AUTH-R5: ALLOWED_ROLES remplacé par capability check via _rbac.ts
 
 async function sha256hex(msg: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(msg));
@@ -64,7 +62,8 @@ Deno.serve(async (req: Request) => {
   const db = createClient(SUPA_URL, SERVICE_KEY);
   const employee = await validateSession(db, token);
   if (!employee) return fail("invalid_session", 401);
-  if (!ALLOWED_ROLES.has(employee.role)) return fail("forbidden", 403, { role: employee.role });
+  const actorRole = normalizeRole(employee.role);
+  if (!hasCapability(actorRole, 'reservations.read')) return fail("forbidden", 403, { role: employee.role });
 
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return fail("invalid_json"); }

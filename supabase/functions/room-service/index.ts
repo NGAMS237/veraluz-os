@@ -12,6 +12,7 @@
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { normalizeRole, hasCapability } from './_rbac.ts';
 
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const SVC_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -34,16 +35,22 @@ async function sha256hex(text: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function validateEmployeeSession(db: any, token: string): Promise<string | null> {
+async function validateEmployeeSession(db: any, token: string): Promise<{ employeeId: string; role: string } | null> {
   if (!token || token.length < 16) return null;
   const hash = await sha256hex(token);
-  const { data } = await db
+  const { data: sess } = await db
     .from('veraluz_employee_sessions')
     .select('employee_id, expires_at, revoked_at')
     .eq('token_hash', hash)
     .maybeSingle();
-  if (!data || data.revoked_at || new Date(data.expires_at) < new Date()) return null;
-  return data.employee_id as string;
+  if (!sess || sess.revoked_at || new Date(sess.expires_at) < new Date()) return null;
+  const { data: emp } = await db
+    .from('veraluz_employees')
+    .select('id, role, status')
+    .eq('id', sess.employee_id)
+    .maybeSingle();
+  if (!emp || !['actif','active'].includes(String(emp.status||'').toLowerCase())) return null;
+  return { employeeId: String(sess.employee_id), role: normalizeRole(emp.role) };
 }
 
 function todayStartUTC(): string {
@@ -74,6 +81,14 @@ serve(async (req) => {
     // list_on_duty_employees
     // ============================================================
     if (action === 'list_on_duty_employees') {
+      // AUTH-R5 : session requise même pour lecture des employés de service
+      const _lstSession = await validateEmployeeSession(db, sessionToken);
+      if (!_lstSession) return json({ ok: false, error: 'session_required' }, 401);
+      if (!hasCapability(_lstSession.role, 'restaurant.room_service') &&
+          !hasCapability(_lstSession.role, 'reservations.read') &&
+          !hasCapability(_lstSession.role, 'employees.directory')) {
+        return json({ ok: false, error: 'forbidden' }, 403);
+      }
       const { data: settings } = await db
         .from('veraluz_settings').select('value').eq('key', 'restaurant').maybeSingle();
       const allowedRoles: string[] = (settings?.value)?.room_service_allowed_roles
@@ -118,8 +133,10 @@ serve(async (req) => {
     }
 
     // Toutes les autres actions : session requise
-    const employeeId = await validateEmployeeSession(db, sessionToken);
-    if (!employeeId) return json({ ok: false, error: 'session_required' }, 401);
+    const actorSession = await validateEmployeeSession(db, sessionToken);
+    if (!actorSession) return json({ ok: false, error: 'session_required' }, 401);
+    const employeeId = actorSession.employeeId;
+    const actorRole  = actorSession.role;
 
     // ============================================================
     // get_my_room_service_tasks
@@ -139,6 +156,10 @@ serve(async (req) => {
     // assign_room_service
     // ============================================================
     if (action === 'assign_room_service') {
+      // AUTH-R5: seuls les rôles avec restaurant.assign peuvent dispatcher
+      if (!hasCapability(actorRole, 'restaurant.assign')) {
+        return json({ ok: false, error: 'forbidden', required_capability: 'restaurant.assign' }, 403);
+      }
       const orderId          = body.order_id           as string | undefined;
       const targetEmployeeId = body.target_employee_id as string | undefined;
       if (!orderId || !targetEmployeeId)

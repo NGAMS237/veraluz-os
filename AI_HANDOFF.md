@@ -9,13 +9,19 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## Lots actifs
 
-SETTINGS-SSOT-1A | claude/settings-ssot-1a | IMPLÉMENTÉ — en attente retest humain + merge Blaise
-SETTINGS-FISCAL-1 | (à créer) | PROCHAINE PHASE — TVA/taxe touristique/charge service/early-checkout
-CATALOG-SSOT-1 | (à créer) | veraluz_unit_types canonical — cartographie effectuée, pas de table créée
+SETTINGS-SSOT-1A | claude/settings-ssot-1a | HEAD 7416774 | READY LOCAL — push manuel requis (push_settings_ssot_1a.bat)
+SETTINGS-FISCAL-1 | claude/settings-ssot-1a | HEAD f883b36 | READY LOCAL — tests/SETTINGS_FISCAL_1_TESTS.md (7 cas A-G)
+CATALOG-SSOT-1 | claude/settings-ssot-1a | HEAD bb32ec3 | READY LOCAL — tests/CATALOG_SSOT_1_TESTS.md (10 cas A-J)
+
+Prochaine phase : notifications / system / integrations / email cleanup → Guest Portal
 
 ## Transmissions récentes
 
-`2026-08-20 | Claude | SETTINGS-SSOT-1A | claude/settings-ssot-1a | ff2dd79 | 17/17 checks PASS | IMPLÉMENTÉ — PUSH BLOQUÉ proxy session (push manuel requis) | aucun LOCK | HUMAN RETEST 20 cas (tests/SETTINGS_SSOT_1A_TESTS.md) puis merge main si OK — Fichiers: migration 20260820_settings_ssot_1a.sql (branding+localization seed, restaurant extend idempotent), settings-secure v2 (localization WRITABLE, base64 reject, whitelist), SETTINGS_EMBEDDED (DB canonical branding/localization/restaurant, permissions read-only, 3 LS writes supprimés), CORE (applyBrandingTokens, boot DB branding fetch, permissions-updated handler supprimé). Prochaine: SETTINGS-FISCAL-1 (tva/service_charge/taxes) + CATALOG-SSOT-1 (veraluz_unit_types)`
+`2026-08-20 | Claude | CATALOG-SSOT-1 | claude/settings-ssot-1a | bb32ec3 | 10 cas CATALOG_SSOT_1_TESTS.md | READY LOCAL | aucun LOCK | HUMAN RETEST puis merge main si OK — catalog-secure EF (get_catalog anon, upsert_unit+delete_unit settings.manage), SETTINGS_EMBEDDED renderChambres() via veraluz_units DB, migration 20260820_catalog_ssot_1.sql seed 3 unités. S.chambres localStorage éliminé.`
+
+`2026-08-20 | Claude | SETTINGS-FISCAL-1 | claude/settings-ssot-1a | f883b36 | 7 cas SETTINGS_FISCAL_1_TESTS.md | READY LOCAL | aucun LOCK | HUMAN RETEST puis merge main si OK — settings-secure EF ajout fiscal key+validation, SETTINGS_EMBEDDED renderTarifs() lit _dbSett.fiscal, saveFiscalCanonical(), RESERVATIONS_EMBEDDED tax readonly depuis DB, migration 20260820_settings_fiscal_1.sql. S.tarifs localStorage éliminé.`
+
+`2026-08-20 | Claude | SETTINGS-SSOT-1A | claude/settings-ssot-1a | 7416774 | 17/17 checks PASS | READY LOCAL — push manuel requis (push_settings_ssot_1a.bat) | aucun LOCK | HUMAN RETEST 20 cas (tests/SETTINGS_SSOT_1A_TESTS.md) puis merge main si OK — Fichiers: migration 20260820_settings_ssot_1a.sql (branding+localization seed, restaurant extend idempotent, legacy camelCase→snake_case), settings-secure v2 (localization WRITABLE, base64 reject, whitelist), logo-upload-secure v2 (path unique, atomicité Storage+DB), SETTINGS_EMBEDDED (DB canonical branding/localization/restaurant, tri-state badge, saveAll() filtre canonical), CORE (vz_locale localStorage supprimé)`
 
 `2026-08-20 | Claude | AUTH CLOSED + MERGE MAIN | main | merge claude/auth-final-integration | AUTH PHASE TERMINÉE — anomalie UI AUTH-UI-1 en backlog (Profil/Users vue croisée, non bloquante sécurité). Livrés : profil serveur, team_name, PIN/reset/forced change, sessions/F5, multi-session, RBAC serveur, Sessions/Audit/Sécurité réels, IP/UA tracking, security settings SSOT, X-Veraluz-Session header only, session_token hors body. Prochaine phase : SETTINGS-SSOT-1 | AUTH CLOSED | aucun LOCK | démarrer SETTINGS-SSOT-1`
 

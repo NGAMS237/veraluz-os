@@ -19,13 +19,10 @@ const ALLOWED_ORIGINS = [
 
 const ACTIVE_STATUSES = new Set(['actif', 'active']);
 
-// Politiques réelles lues depuis les constantes des EFs (non configurables DB)
-const REAL_SECURITY_POLICIES = {
+// Politiques IMMUABLES serveur — ne jamais modifier sans déploiement EF
+const IMMUTABLE_POLICIES = {
   pin_digits:               6,
   pin_hashing:              'bcrypt',
-  session_lifetime_hours:   12,
-  resume_token_days:        30,
-  temp_pin_expiry_hours:    24,
   change_token_minutes:     15,
   must_change_pin_enforced: true,
   session_revoke_supported: true,
@@ -33,9 +30,20 @@ const REAL_SECURITY_POLICIES = {
   token_hash_stored:        'SHA-256 côté serveur uniquement',
   raw_token_stored:         false,
   two_factor_auth:          false,
-  ip_tracking:              false,  // pas de colonne ip dans veraluz_employee_sessions
-  user_agent_tracking:      false,  // pas de colonne user_agent dans veraluz_employee_sessions
 };
+
+/** Lire les params configurables depuis veraluz_settings.security */
+async function loadSecuritySettings(db: DbClient): Promise<Record<string, unknown>> {
+  const { data } = await db.from('veraluz_settings').select('value').eq('key', 'security').maybeSingle();
+  const s = (data?.value || {}) as Record<string, unknown>;
+  return {
+    session_lifetime_hours: Number(s.session_lifetime_hours) || 12,
+    resume_token_days:      Number(s.resume_token_days)      || 30,
+    temp_pin_expiry_hours:  Number(s.temp_pin_expiry_hours)  || 24,
+    track_ip:               s.track_ip !== false,
+    track_user_agent:       s.track_user_agent !== false,
+  };
+}
 
 // Clés de details_json autorisées à être exposées (whitelist)
 const SAFE_DETAIL_KEYS = new Set([
@@ -200,7 +208,16 @@ Deno.serve(async (req) => {
   // get_security_policies — tout employé authentifié
   // ============================================================
   if (action === 'get_security_policies') {
-    return json({ ok: true, policies: REAL_SECURITY_POLICIES }, 200, origin);
+    const configurable = await loadSecuritySettings(db);
+    const policies = {
+      ...IMMUTABLE_POLICIES,
+      session_lifetime_hours: configurable.session_lifetime_hours,
+      resume_token_days:      configurable.resume_token_days,
+      temp_pin_expiry_hours:  configurable.temp_pin_expiry_hours,
+      ip_tracking:            configurable.track_ip,
+      user_agent_tracking:    configurable.track_user_agent,
+    };
+    return json({ ok: true, policies }, 200, origin);
   }
 
   // ============================================================
@@ -214,7 +231,7 @@ Deno.serve(async (req) => {
     const now = new Date().toISOString();
     const { data: rows, error } = await db
       .from('veraluz_employee_sessions')
-      .select('id, employee_id, created_at, expires_at, last_seen_at, revoked_at, revoked_reason')
+      .select('id, employee_id, created_at, expires_at, last_seen_at, revoked_at, revoked_reason, created_ip, last_ip, user_agent')
       .order('created_at', { ascending: false })
       .limit(200);
 
@@ -257,8 +274,8 @@ Deno.serve(async (req) => {
         active:         isActive,
         revoked_at:     s.revoked_at || null,
         revoked_reason: s.revoked_reason || null,
-        device:         'Non disponible',  // pas de user_agent dans la table
-        ip:             null,              // pas de ip dans la table
+        device:         parseUserAgent(s.user_agent),
+        ip:             s.last_ip || s.created_ip || null,
         is_current:     false,             // calculé ci-dessous
       };
     });

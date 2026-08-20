@@ -1554,12 +1554,12 @@ function renderSecurite() {
     + '</div>';
 
   html += '<div class="card"><div class="card-hdr"><div class="card-title">🕐 Sessions</div></div>'
-    + polRow('Durée session active', p.session_lifetime_hours + ' heures', 'verify-employee-pin → expires_at')
-    + polRow('Durée jeton de reprise', p.resume_token_days + ' jours', 'issue-resume-token → 30j')
+    + polRow('Durée session active', p.session_lifetime_hours + ' heures', 'Configurable dans Settings → Système → Sécurité')
+    + polRow('Durée jeton de reprise', p.resume_token_days + ' jours', 'Configurable dans Settings → Système → Sécurité')
     + polBool('Révocation de session', p.session_revoke_supported, 'Supportée', 'Non supportée', 'Révocation unitaire ou globale')
     + polRow('Stockage token brut', 'Non', 'SHA-256 côté serveur uniquement')
-    + polBool('Tracking IP', p.ip_tracking, 'Activé', 'Non activé', 'Pas de colonne ip dans veraluz_employee_sessions')
-    + polBool('Tracking appareil', p.user_agent_tracking, 'Activé', 'Non activé', 'Pas de colonne user_agent dans veraluz_employee_sessions')
+    + polBool('Tracking IP', p.ip_tracking, 'Activé', 'Non activé', 'Configurable dans Settings → Système → Sécurité')
+    + polBool('Tracking appareil', p.user_agent_tracking, 'Activé', 'Non activé', 'Configurable dans Settings → Système → Sécurité')
     + '</div>';
 
   html += '<div class="card"><div class="card-hdr"><div class="card-title">🛡 Accès & Rôles</div></div>'
@@ -1569,7 +1569,6 @@ function renderSecurite() {
 
   html += '<div class="card"><div class="card-hdr"><div class="card-title">Fonctionnalités à venir</div></div>'
     + '<div style="color:var(--text2);font-size:13px;line-height:1.8;">'
-    + '📱 Tracking IP / User-Agent — non implémenté<br>'
     + '🔐 MFA / TOTP — planifié<br>'
     + '📊 SSO OAuth2 — planifié'
     + '</div></div>';

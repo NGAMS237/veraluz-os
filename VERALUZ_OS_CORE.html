@@ -3840,7 +3840,7 @@ window.veraluzSecureRequest = function (endpoint, payload) {
   }
   var reqBody = {};
   try { for (var k in (payload || {})) { reqBody[k] = payload[k]; } } catch (e) {}
-  reqBody.session_token = tok;
+  // session_token removed from body — auth only via X-Veraluz-Session header
   return fetch(VERALUZ_BROKER_EDGE_BASE + endpoint, {
     method: 'POST', mode: 'cors', credentials: 'omit',
     headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'X-Veraluz-Session': tok },

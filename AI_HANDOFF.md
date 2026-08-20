@@ -39,3 +39,5 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 LOCK : `LOCK | agent | branche | tâche | fichiers/zones`
 
 `2026-08-19 | Claude | RBAC-C1 CONTAINMENT | claude/rbac-c1-containment | a1ac14d | loadDashboardData dispatché par rôle: restaurant→_loadDashRestaurant (commandes/stock), housekeeping→_loadDashHousekeeping (tâches), global→_loadDashGlobal (finance gated); revenus/paiements masqués non-finance; noms clients protection; 15/15 tests statiques PASS | READY FOR HUMAN TEST | aucun LOCK | push GitHub (credentials manquants sandbox)`
+
+`2026-08-20 | Claude | ROOM-SERVICE-OPS-1A | claude/room-service-ops-1a | 26e6bc1 | veraluz_attendance source canonique; todayDouala(); list_on_duty_employees session-gated; assign re-vérifie check_in/check_out/status/rôle serveur; 11/11 tests live PASS | READY FOR HUMAN TEST | aucun LOCK | push GitHub (credentials manquants sandbox)`

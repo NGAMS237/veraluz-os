@@ -3861,36 +3861,43 @@ var VERALUZ_BROKER_ALLOWED_ENDPOINTS = [
   'auth-admin-secure'
 ];
 var VERALUZ_BROKER_EDGE_BASE = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/';
-/* ── SETTINGS-SSOT-1A — Storage upload broker ─────────────────────────────
-   Appelé par les iframes via window.parent.veraluzStorageUpload(bucket, path, file).
-   Utilise la clé anon (publique) + bucket logos public.
-   Jamais service_role côté frontend.
+
+/* ── SETTINGS-SSOT-1A — Logo upload broker sécurisé ──────────────────────────
+   Appelé par les iframes Settings via window.parent.veraluzLogoUpload(file).
+   Délègue à l'EF logo-upload-secure (service_role côté serveur uniquement).
+   Aucune écriture Storage directe depuis le frontend — jamais anon.
+   Contrat : X-Veraluz-Session + multipart/form-data champ "logo".
    Retourne Promise<{ok:bool, url:string|null, error:string|null}>
-──────────────────────────────────────────────────────────────────────── */
-var VERALUZ_STORAGE_ALLOWED_BUCKETS = ['logos'];
-var VERALUZ_STORAGE_MAX_BYTES = 2 * 1024 * 1024; /* 2 MB */
-var VERALUZ_STORAGE_ALLOWED_TYPES = ['image/png','image/jpeg','image/webp'];
-window.veraluzStorageUpload = function(bucket, path, file) {
-  if (!bucket || VERALUZ_STORAGE_ALLOWED_BUCKETS.indexOf(bucket) === -1) {
-    return Promise.resolve({ok:false, url:null, error:'bucket_not_allowed'});
-  }
-  if (!file || VERALUZ_STORAGE_ALLOWED_TYPES.indexOf(file.type) === -1) {
+──────────────────────────────────────────────────────────────────────────── */
+var VERALUZ_LOGO_ALLOWED_TYPES = ['image/png','image/jpeg','image/webp'];
+var VERALUZ_LOGO_MAX_BYTES     = 2 * 1024 * 1024; /* 2 Mo */
+window.veraluzLogoUpload = function(file) {
+  /* Validation préalable côté CORE (défense en profondeur) */
+  if (!file || VERALUZ_LOGO_ALLOWED_TYPES.indexOf(file.type) === -1) {
     return Promise.resolve({ok:false, url:null, error:'type_not_allowed: ' + (file ? file.type : 'null')});
   }
-  if (file.size > VERALUZ_STORAGE_MAX_BYTES) {
-    return Promise.resolve({ok:false, url:null, error:'file_too_large (max 2 MB)'});
+  if (file.size > VERALUZ_LOGO_MAX_BYTES) {
+    return Promise.resolve({ok:false, url:null, error:'file_too_large (max 2 Mo)'});
   }
-  /* sanitize path — jamais de traversal */
-  var safePath = String(path).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 128);
-  var uploadUrl = SB_URL + '/storage/v1/object/' + bucket + '/' + safePath;
-  return fetch(uploadUrl, {
-    method: 'POST',
-    headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': file.type, 'x-upsert': 'true' },
-    body: file
+  var tok = getSessionToken();
+  if (!tok) {
+    return Promise.resolve({ok:false, url:null, error:'not_logged_in'});
+  }
+  var fd = new FormData();
+  fd.append('logo', file);
+  return fetch(VERALUZ_BROKER_EDGE_BASE + 'logo-upload-secure', {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'X-Veraluz-Session': tok
+      /* Content-Type: multipart/form-data posé automatiquement par FormData */
+    },
+    body: fd
   }).then(function(r) {
-    if (!r.ok) return r.text().then(function(t) { return {ok:false, url:null, error:'storage_http_' + r.status + ': ' + t.slice(0,200)}; });
-    var publicUrl = SB_URL + '/storage/v1/object/public/' + bucket + '/' + safePath;
-    return {ok:true, url:publicUrl, error:null};
+    return r.json()
+      .then(function(j) { return {ok:!!j.ok, url:j.url||null, error:j.error||null}; })
+      .catch(function() { return {ok:false, url:null, error:'invalid_json_response'}; });
   }).catch(function(e) {
     return {ok:false, url:null, error:'network_error: ' + String(e)};
   });

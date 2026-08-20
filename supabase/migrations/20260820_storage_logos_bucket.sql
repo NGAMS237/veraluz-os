@@ -2,49 +2,46 @@
 -- SETTINGS-SSOT-1A  —  Supabase Storage bucket "logos"
 -- Branche : claude/settings-ssot-1a  —  2026-08-20
 --
--- PRÉ-REQUIS :
---   Créer le bucket "logos" (public) via Supabase Dashboard :
---     Storage → New bucket → name: logos → Public bucket: ON
---   Ou via CLI : supabase storage create logos --project-ref dfdmasejsoibxrvubegu --public
---
--- Ce fichier configure uniquement les politiques RLS sur storage.objects.
+-- Sécurité :
+--   Upload uniquement via Edge Function logo-upload-secure (service_role).
+--   AUCUNE écriture anon depuis le frontend — politique DELETE si elle existait.
+--   Lecture publique assurée par le bucket public (pas de policy SELECT requise).
 -- ════════════════════════════════════════════════════════════════════════════
 
--- ── Politique SELECT (lecture publique) ──────────────────────────────────────
--- Déjà couverte par le bucket public — documentée pour référence.
+-- ── 1. Créer le bucket "logos" s'il n'existe pas ─────────────────────────────
+-- public = true  → GET /storage/v1/object/public/logos/{path} sans token
+-- file_size_limit = 2 Mo  → défense en profondeur côté Storage
+-- allowed_mime_types → whitelist stricte côté Storage
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'logos',
+  'logos',
+  true,
+  2097152,  /* 2 Mo */
+  ARRAY['image/png', 'image/jpeg', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE
+  SET public             = true,
+      file_size_limit    = 2097152,
+      allowed_mime_types = ARRAY['image/png', 'image/jpeg', 'image/webp'],
+      updated_at         = now();
 
--- ── Politique INSERT (upload anon avec apikey) ───────────────────────────────
--- Autorise les requêtes authentifiées avec la clé anon à uploader dans logos/.
--- La clé anon est validée par Supabase (verify_jwt) avant que cette politique s'applique.
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'storage'
-      AND tablename  = 'objects'
-      AND policyname = 'logos_anon_insert'
-  ) THEN
-    EXECUTE $pol$
-      CREATE POLICY logos_anon_insert ON storage.objects
-        FOR INSERT TO anon
-        WITH CHECK (bucket_id = 'logos')
-    $pol$;
-  END IF;
-END $$;
+-- ── 2. Supprimer les policies anon éventuelles (idempotent) ─────────────────
+-- Sécurité : aucune écriture Storage directe depuis frontend anon.
+-- L'upload passe UNIQUEMENT par logo-upload-secure EF (service_role).
+DROP POLICY IF EXISTS logos_anon_insert ON storage.objects;
+DROP POLICY IF EXISTS logos_anon_update ON storage.objects;
 
--- ── Politique UPDATE (remplacement via x-upsert: true) ───────────────────────
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'storage'
-      AND tablename  = 'objects'
-      AND policyname = 'logos_anon_update'
-  ) THEN
-    EXECUTE $pol$
-      CREATE POLICY logos_anon_update ON storage.objects
-        FOR UPDATE TO anon
-        USING (bucket_id = 'logos')
-    $pol$;
-  END IF;
-END $$;
+-- ── 3. SELECT publique — déjà couverte par bucket.public = true ──────────────
+-- Une policy explicite n'est pas requise pour la lecture publique quand le
+-- bucket est marqué public. Documentée pour transparence.
+
+-- ── 4. Rappel architecture ────────────────────────────────────────────────────
+-- Flux unique autorisé pour l'écriture :
+--   frontend → broker CORE (veraluzLogoUpload) → logo-upload-secure EF
+--             → validateEmployeeSession (direction/gérant)
+--             → supabase.storage.from('logos').upload(...) [service_role]
+--             → retourne URL publique canonique
+--             → persiste branding.logo_url en DB
+--
+-- Aucune autre route d'écriture n'est ouverte.

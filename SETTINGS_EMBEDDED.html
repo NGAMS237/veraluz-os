@@ -723,16 +723,20 @@ function previewLogoDb(url){
   markDirty();
 }
 
-/* ── SETTINGS-SSOT-1A — Upload logo vers Supabase Storage ──────────────
-   Interdit : base64/dataURL, localStorage, blob local.
-   Flux : fichier → veraluzStorageUpload (broker CORE) → URL publique → DB.
+/* ── SETTINGS-SSOT-1A — Upload logo via EF sécurisée ───────────────────
+   Interdit : base64/dataURL, localStorage, blob local, anon Storage write.
+   Flux : fichier → window.parent.veraluzLogoUpload (broker CORE)
+          → logo-upload-secure EF (X-Veraluz-Session + service_role)
+          → Storage upload + branding.logo_url persisté en DB
+          → URL publique retournée au frontend.
+   Le frontend ne touche jamais Storage directement.
 ─────────────────────────────────────────────────────────────────────── */
 var _pendingLogoFile = null;
 
 function onLogoFileSelect(input){
   var file = input && input.files && input.files[0];
   if(!file){ _pendingLogoFile = null; return; }
-  /* Validation type + taille (double check, le broker re-valide) */
+  /* Validation type + taille (double check — EF revalide côté serveur) */
   var allowed = ['image/png','image/jpeg','image/webp'];
   if(allowed.indexOf(file.type) === -1){
     toast('❌ Type non supporté — PNG, JPG ou WebP uniquement', false);
@@ -755,30 +759,32 @@ function handleLogoUpload(){
   if(!_pendingLogoFile){
     toast('❌ Aucun fichier sélectionné', false); return;
   }
-  if(!window.parent || typeof window.parent.veraluzStorageUpload !== 'function'){
-    toast('❌ Broker Storage indisponible — vérifier que Settings est chargé dans CORE', false); return;
+  /* Broker sécurisé CORE — jamais appel Storage direct depuis Settings */
+  if(!window.parent || typeof window.parent.veraluzLogoUpload !== 'function'){
+    toast('❌ Broker logo indisponible — vérifier que Settings est chargé dans CORE', false); return;
   }
-  var ext = _pendingLogoFile.type === 'image/png' ? 'png' : (_pendingLogoFile.type === 'image/webp' ? 'webp' : 'jpg');
-  var path = 'veraluz-logo.' + ext;
-  var btnEl = document.getElementById('branding-logo-upload-btn');
+  var btnEl    = document.getElementById('branding-logo-upload-btn');
   var statusEl = document.getElementById('branding-logo-upload-status');
   if(btnEl){ btnEl.disabled = true; btnEl.textContent = '⏳ Upload…'; }
-  if(statusEl) statusEl.textContent = '⏳ Upload en cours vers Storage…';
-  window.parent.veraluzStorageUpload('logos', path, _pendingLogoFile)
+  if(statusEl) statusEl.textContent = '⏳ Upload en cours via EF sécurisée…';
+  window.parent.veraluzLogoUpload(_pendingLogoFile)
     .then(function(result){
       if(btnEl){ btnEl.disabled = false; btnEl.textContent = '⬆ Uploader vers Storage'; }
       if(!result.ok){
-        toast('❌ Upload Storage échoué : ' + result.error, false);
+        toast('❌ Upload échoué : ' + result.error, false);
         if(statusEl) statusEl.textContent = '❌ ' + result.error;
         return;
       }
-      /* Succès — mettre à jour le champ URL et prévisualiser */
+      /* Succès — URL déjà persistée en DB par l'EF ; mettre à jour le champ URL */
       var urlInput = document.getElementById('branding-logo-url');
       if(urlInput){ urlInput.value = result.url; }
       previewLogoDb(result.url);
+      /* Recharger le canonical DB pour afficher la nouvelle valeur */
+      if(typeof loadDbCanonical === 'function') loadDbCanonical();
       _pendingLogoFile = null;
-      if(statusEl) statusEl.textContent = '✓ Uploadé : ' + result.url;
-      toast('✓ Logo uploadé dans Storage — cliquer "Enregistrer le branding (DB)" pour sauvegarder', true);
+      if(statusEl) statusEl.textContent = '✓ Logo uploadé et enregistré (DB) : ' + result.url;
+      emit('logo-updated', {logo_url: result.url, ts: new Date().toISOString()});
+      toast('✓ Logo uploadé et branding.logo_url enregistré en DB', true);
     })
     .catch(function(e){
       if(btnEl){ btnEl.disabled = false; btnEl.textContent = '⬆ Uploader vers Storage'; }

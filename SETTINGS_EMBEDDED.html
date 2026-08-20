@@ -450,17 +450,24 @@ var S = {};
    Source de vérité = veraluz_settings DB
    Écriture via broker CORE → settings-secure EF (direction only)
 ══════════════════════════════════════════════════════════ */
+/* _dbSett: domaines canoniques DB — property, contact, booking, wifi, restaurant, security, branding, localization, fiscal (SETTINGS-FISCAL-1) */
 var _dbSett = {};
 var _dbSettLoaded = false;
 var _dbSettError  = false;   /* SETTINGS-SSOT-1A: tri-state load — false=loading, true+!error=OK, true+error=KO */
-var SB_SS = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/settings-secure';
-var AK_SS = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+var SB_SS   = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/settings-secure';
+var AK_SS   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+var SB_BASE = 'https://dfdmasejsoibxrvubegu.supabase.co';
+
+/* CATALOG-SSOT-1: catalog état */
+var _dbCatalog       = [];
+var _dbCatalogLoaded = false;
+var _dbCatalogError  = false;
 
 function loadDbCanonical(cb){
   fetch(SB_SS, {
     method:'POST',
     headers:{'Content-Type':'application/json','apikey':AK_SS,'Authorization':'Bearer '+AK_SS},
-    body:JSON.stringify({action:'get_settings', keys:['property','contact','booking','wifi','restaurant','security','branding','localization']})
+    body:JSON.stringify({action:'get_settings', keys:['property','contact','booking','wifi','restaurant','security','branding','localization','fiscal']})
   })
   .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
   .then(function(d){
@@ -550,7 +557,7 @@ function goSection(id){
    Domaines non encore migrés (chambres, tarifs, sejour, notifs, integrations, systeme, email, devises) :
      → persistés en localStorage comme avant.
    locale-updated supprimé ici : saveLocalization() est la voie canonique.           */
-var _LS_CANONICAL = ['branding','localization','restaurant'];   /* hotel = property/contact → DB via saveHotelProperty/Contact */
+var _LS_CANONICAL = ['branding','localization','restaurant','tarifs','chambres'];   /* SETTINGS-FISCAL-1: tarifs → fiscal canonical DB | CATALOG-SSOT-1: chambres → veraluz_units DB */
 function saveAll(){
   collectForm();
   try{
@@ -838,57 +845,160 @@ function saveBranding(){
 }
 
 function renderChambres(){
-  var rooms=S.chambres;
+  /* CATALOG-SSOT-1: source canonique = veraluz_units DB */
+  var badge = _dbCatalogError
+    ? '<span style="font-size:9px;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">DB KO</span>'
+    : _dbCatalogLoaded
+      ? '<span style="font-size:9px;background:rgba(34,211,165,.15);color:var(--acc);border:1px solid rgba(34,211,165,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">DB</span>'
+      : '<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">chargement…</span>';
+  var degradeMsg = _dbCatalogError
+    ? '<div class="card" style="background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.3);"><p style="font-size:11px;color:var(--red);">⚠ <strong>DB indisponible — mode dégradé.</strong> Le catalogue d\'hébergement ne peut pas être chargé ni modifié.</p></div>'
+    : '';
+  var rows = _dbCatalog.length
+    ? _dbCatalog.map(function(u){
+        var statusBdg = u.status==='available'
+          ? '<span class="bdg bdg-g" style="font-size:9px;">Disponible</span>'
+          : u.status==='maintenance'
+            ? '<span class="bdg bdg-a" style="font-size:9px;">Maintenance</span>'
+            : '<span class="bdg" style="font-size:9px;background:var(--bg4);color:var(--text3);">'+escH(u.status||'—')+'</span>';
+        return '<tr>'
+          +'<td style="font-weight:600;">'+escH(u.name||'—')+'</td>'
+          +'<td>'+escH(u.type||'—')+'</td>'
+          +'<td style="text-align:center;">'+escH(String(u.capacity||'—'))+'</td>'
+          +'<td style="text-align:right;">'+escH(String(u.price||0))+' XAF</td>'
+          +'<td>'+statusBdg+'</td>'
+          +'<td style="font-size:11px;color:var(--text3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escH(u.amenities||'')+'</td>'
+          +'<td><div style="display:flex;gap:4px;">'
+          +'<button class="btn btn-o btn-sm" onclick="openCatalogUnitEditor(\''+escH(u.id)+'\')">✏️</button>'
+          +'<button class="btn btn-r btn-sm" onclick="deleteCatalogUnit(\''+escH(u.id)+'\',\''+escH(u.name||'')+'\')">✕</button>'
+          +'</div></td>'
+          +'</tr>';
+      }).join('')
+    : '<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:24px;">Aucune unité dans la base · Cliquez "Ajouter" pour créer la première</td></tr>';
+
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M2 4v16M22 4v16M2 12h20M12 4v8"/><rect x="2" y="4" width="20" height="16" rx="1"/></svg>',
-    'Types de chambres', 'Catégories et prix de base utilisés par le Booking Engine et les Réservations')
-  +'<div class="card" style="background:rgba(59,130,246,.05);border-color:rgba(59,130,246,.2);">'
-  +'<p style="font-size:11px;color:var(--blue);">ℹ Ces types définissent le <strong>catalogue</strong> disponible à la réservation. Les chambres individuelles sont gérées dans le module Réservations via Supabase.</p>'
+    'Catalogue d\'hébergement'+badge, 'Source canonique : veraluz_units · partagée avec Réservations et Booking Engine')
+  + degradeMsg
+  +'<div class="card" style="background:rgba(34,211,165,.04);border-color:rgba(34,211,165,.2);">'
+  +'<p style="font-size:11px;color:var(--acc);">→ Le catalogue est géré ici et synchronisé avec le module <strong>Réservations → Chambres</strong> et le <strong>Booking Engine</strong> en temps réel.</p>'
   +'</div>'
   +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Catalogue</div>'
+  +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+  +'<div class="card-title" style="margin:0;"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>Unités d\'hébergement ('+_dbCatalog.length+')</div>'
+  +(_dbCatalogError ? '' : '<button class="btn btn-p btn-sm" onclick="openCatalogUnitEditor(null)">+ Ajouter</button>')
+  +'</div>'
   +'<div style="overflow-x:auto;"><table class="tbl"><thead><tr>'
-  +'<th>Nom</th><th>Qté</th><th>Capacité</th><th>Prix/nuit (XAF)</th><th>Équipements</th><th></th>'
-  +'</tr></thead><tbody id="rooms-tbody">'
-  +rooms.map(function(r,i){
-    return '<tr><td><input type="text" style="background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:5px 8px;width:140px;color:var(--text);font-size:12px;" value="'+escH(r.name)+'" onchange="updateRoom('+i+',\'name\',this.value)">'
-    +'</td><td><input type="number" style="background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:5px 8px;width:55px;color:var(--text);font-size:12px;" value="'+r.count+'" onchange="updateRoom('+i+',\'count\',+this.value)">'
-    +'</td><td><input type="number" style="background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:5px 8px;width:55px;color:var(--text);font-size:12px;" value="'+r.capacity+'" onchange="updateRoom('+i+',\'capacity\',+this.value)">'
-    +'</td><td><input type="number" style="background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:5px 8px;width:90px;color:var(--text);font-size:12px;" value="'+r.price+'" onchange="updateRoom('+i+',\'price\',+this.value)">'
-    +'</td><td style="max-width:180px;"><input type="text" style="background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:5px 8px;width:100%;color:var(--text);font-size:11px;" value="'+escH(r.amenities)+'" onchange="updateRoom('+i+',\'amenities\',this.value)">'
-    +'</td><td><button class="btn btn-r btn-sm" onclick="removeRoom('+i+')">✕</button></td></tr>';
-  }).join('')
-  +'</tbody></table></div>'
-  +'<div class="btn-group"><button class="btn btn-o" onclick="addRoom()">+ Ajouter un type</button>'
-  +'<button class="btn btn-p" onclick="saveAll()">Enregistrer le catalogue</button></div>'
-  +'</div>';
+  +'<th>Nom</th><th>Type</th><th>Cap.</th><th style="text-align:right;">Prix/nuit</th><th>Statut</th><th>Équipements</th><th></th>'
+  +'</tr></thead><tbody>'+rows+'</tbody></table></div>'
+  +'</div>'
+  +'<div id="catalog-editor-wrap"></div>';
 }
 
 function renderTarifs(){
-  var t=S.tarifs;
+  /* SETTINGS-FISCAL-1: source canonique DB — veraluz_settings.fiscal */
+  var f = Object.assign({
+    vat_enabled:true, vat_rate:19.25,
+    tourist_tax_enabled:true, tourist_tax_type:'fixed', tourist_tax_value:2000,
+    service_charge_enabled:true, service_charge_rate:10,
+    municipal_tax_enabled:false, municipal_tax_value:0,
+    early_checkin_enabled:true, early_checkin_fee:15000,
+    late_checkout_enabled:true, late_checkout_fee:12000,
+    extra_bed_fee:10000, cancellation_pct:30
+  }, _dbSett.fiscal || {});
+  var badge = _dbSettError
+    ? '<span style="font-size:9px;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">DB KO</span>'
+    : _dbSettLoaded
+      ? '<span style="font-size:9px;background:rgba(34,211,165,.15);color:var(--acc);border:1px solid rgba(34,211,165,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">DB</span>'
+      : '<span style="font-size:9px;background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">chargement…</span>';
+  var degradeMsg = _dbSettError
+    ? '<div class="card" style="background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.3);"><p style="font-size:11px;color:var(--red);">⚠ <strong>DB indisponible — mode dégradé.</strong> Les paramètres fiscaux ne peuvent pas être lus ni modifiés.</p></div>'
+    : '';
+  function fToggle(id, label, desc, checked){
+    return '<div class="toggle-row"><div class="toggle-info"><div class="toggle-label">'+label+'</div>'+(desc?'<div class="toggle-desc">'+desc+'</div>':'')+'</div>'
+      +'<label class="toggle"><input type="checkbox" id="'+id+'"'+(checked?' checked':'')+' onchange="markDirty()"><div class="toggle-track"></div></label></div>';
+  }
+  function fField(label, id, val, type, hint){
+    type=type||'number';
+    var h='<div class="row"><label>'+label+'</label>';
+    h+='<input type="'+type+'" id="'+id+'" value="'+escH(String(val||''))+'" oninput="markDirty()">';
+    if(hint) h+='<div class="row-hint">'+hint+'</div>';
+    h+='</div>'; return h;
+  }
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
-    'Tarifs & Taxes', 'Taxes et frais supplémentaires appliqués aux réservations')
+    'Tarifs & Fiscalité'+badge, 'Source canonique DB — appliquée dans Réservations et Finance')
+  + degradeMsg
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>Taxes applicables</div>'
-  +toggle('TVA ('+t.tax_tva.rate+'%)','Taxe sur la Valeur Ajoutée Cameroun','tarifs.tax_tva.active',t.tax_tva.active)
-  +'<div class="row2">'+field('Taux TVA (%)','tarifs.tax_tva.rate',t.tax_tva.rate,'number')
-  +field('Libellé','tarifs.tax_tva.name',t.tax_tva.name)+'</div>'
-  +toggle('Taxe touristique','Fixe par nuit en XAF','tarifs.tax_tourist.active',t.tax_tourist.active)
-  +field('Montant taxe touristique (XAF/nuit)','tarifs.tax_tourist.rate',t.tax_tourist.rate,'number')
-  +toggle('Charge de service','% sur total de la facture','tarifs.tax_service.active',t.tax_service.active)
-  +field('Taux charge de service (%)','tarifs.tax_service.rate',t.tax_service.rate,'number')
-  +toggle('Taxe communale (XAF)','Fixe par séjour','tarifs.tax_municipal.active',t.tax_municipal.active)
-  +field('Montant taxe communale','tarifs.tax_municipal.rate',t.tax_municipal.rate,'number')
+  +fToggle('fsc-vat-enabled','TVA','Taxe sur la Valeur Ajoutée Cameroun',f.vat_enabled)
+  +'<div class="row2">'
+  +fField('Taux TVA (%)','fsc-vat-rate',f.vat_rate,'number','0–100 · Cameroun : 19.25%')
+  +'</div>'
+  +fToggle('fsc-tt-enabled','Taxe touristique','Par nuit de séjour hébergement',f.tourist_tax_enabled)
+  +'<div class="row"><label>Type taxe touristique</label><select id="fsc-tt-type" onchange="markDirty()">'
+  +'<option value="fixed"'+(f.tourist_tax_type==='fixed'?' selected':'')+'>Fixe (XAF/nuit)</option>'
+  +'<option value="pct"'+(f.tourist_tax_type==='pct'?' selected':'')+'>% du prix hébergement</option>'
+  +'</select></div>'
+  +fField('Valeur taxe touristique','fsc-tt-value',f.tourist_tax_value,'number','XAF si fixe, % si proportionnel')
+  +fToggle('fsc-sc-enabled','Charge de service','% appliqué sur le total de la facture',f.service_charge_enabled)
+  +fField('Taux charge de service (%)','fsc-sc-rate',f.service_charge_rate,'number','0–100')
+  +fToggle('fsc-mt-enabled','Taxe communale','Fixe par séjour (XAF)',f.municipal_tax_enabled)
+  +fField('Montant taxe communale (XAF)','fsc-mt-value',f.municipal_tax_value,'number')
   +'</div>'
   +'<div class="card">'
-  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Frais supplémentaires</div>'
+  +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Frais supplémentaires hébergement</div>'
   +'<div class="row2">'
-  +field('Early check-in (XAF)','tarifs.early_checkin',t.early_checkin,'number')
-  +field('Late check-out (XAF)','tarifs.late_checkout',t.late_checkout,'number')
-  +field('Lit supplémentaire (XAF)','tarifs.extra_bed',t.extra_bed,'number')
-  +field('Annulation (% retenu)','tarifs.cancellation_pct',t.cancellation_pct,'number')
+  +fToggle('fsc-eci-enabled','Early check-in','Frais si arrivée avant 14h00',f.early_checkin_enabled)
+  +fField('Early check-in (XAF)','fsc-eci-fee',f.early_checkin_fee)
+  +fToggle('fsc-lco-enabled','Late check-out','Frais si départ après 11h00',f.late_checkout_enabled)
+  +fField('Late check-out (XAF)','fsc-lco-fee',f.late_checkout_fee)
   +'</div>'
-  +'<div class="row-hint" style="margin-top:8px;">→ Ces taxes sont appliquées automatiquement dans le module Réservations et la Finance</div>'
+  +'<div class="row2">'
+  +fField('Lit supplémentaire (XAF)','fsc-eb-fee',f.extra_bed_fee)
+  +fField('Annulation (% retenu)','fsc-canc-pct',f.cancellation_pct,'number','0–100')
+  +'</div>'
+  +'<div class="row-hint">→ Ces paramètres sont appliqués côté serveur dans le moteur de réservation et la Finance. IA n\'applique pas les taxes.</div>'
+  +'</div>'
+  +'<div class="btn-group">'
+  +(_dbSettError ? '<button class="btn btn-o" disabled>DB indisponible</button>'
+    : '<button class="btn btn-p" onclick="saveFiscalCanonical()">Enregistrer la fiscalité</button>')
   +'</div>';
+}
+
+function saveFiscalCanonical(){
+  /* SETTINGS-FISCAL-1: collecte depuis DOM, validation client, write via saveCanonical */
+  function gv(id){ var el=document.getElementById(id); return el?el.value:''; }
+  function gb(id){ var el=document.getElementById(id); return !!(el&&el.checked); }
+  function gn(id,def){ var v=parseFloat(gv(id)); return isNaN(v)?def:v; }
+  var f = {
+    vat_enabled:             gb('fsc-vat-enabled'),
+    vat_rate:                gn('fsc-vat-rate', 19.25),
+    tourist_tax_enabled:     gb('fsc-tt-enabled'),
+    tourist_tax_type:        gv('fsc-tt-type') || 'fixed',
+    tourist_tax_value:       gn('fsc-tt-value', 0),
+    service_charge_enabled:  gb('fsc-sc-enabled'),
+    service_charge_rate:     gn('fsc-sc-rate', 0),
+    municipal_tax_enabled:   gb('fsc-mt-enabled'),
+    municipal_tax_value:     gn('fsc-mt-value', 0),
+    early_checkin_enabled:   gb('fsc-eci-enabled'),
+    early_checkin_fee:       gn('fsc-eci-fee', 0),
+    late_checkout_enabled:   gb('fsc-lco-enabled'),
+    late_checkout_fee:       gn('fsc-lco-fee', 0),
+    extra_bed_fee:           gn('fsc-eb-fee', 0),
+    cancellation_pct:        gn('fsc-canc-pct', 0)
+  };
+  /* Validation client-side */
+  if(f.vat_rate < 0 || f.vat_rate > 100){ toast('❌ Taux TVA invalide (0–100%)', false); return; }
+  if(f.service_charge_rate < 0 || f.service_charge_rate > 100){ toast('❌ Charge de service invalide (0–100%)', false); return; }
+  if(f.cancellation_pct < 0 || f.cancellation_pct > 100){ toast('❌ % annulation invalide (0–100)', false); return; }
+  if(f.tourist_tax_value < 0 || f.early_checkin_fee < 0 || f.late_checkout_fee < 0 || f.extra_bed_fee < 0 || f.municipal_tax_value < 0){
+    toast('❌ Montants ne peuvent pas être négatifs', false); return;
+  }
+  if(f.tourist_tax_type !== 'fixed' && f.tourist_tax_type !== 'pct'){
+    toast('❌ Type taxe touristique invalide', false); return;
+  }
+  saveCanonical('fiscal', f, function(){
+    Object.assign(_dbSett.fiscal = _dbSett.fiscal || {}, f);
+  });
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -1790,12 +1900,119 @@ function previewLogo(url){
   prev.innerHTML=url?'<img src="'+escH(url)+'" onerror="this.parentNode.innerHTML=\'<div class=&quot;lp-placeholder&quot;>Image introuvable</div>\'">'
     :'<div class="lp-placeholder">Aucun logo configuré</div>';
 }
-function updateRoom(i, key, val){ S.chambres[i][key]=val; markDirty(); }
-function addRoom(){
-  S.chambres.push({id:'rm_'+Date.now(),name:'Nouvelle catégorie',count:1,capacity:2,price:50000,amenities:'WiFi, Climatisation'});
-  renderSection('chambres'); markDirty();
+/* CATALOG-SSOT-1: addRoom/updateRoom/removeRoom supprimés — catalogue géré dans veraluz_units DB */
+
+function loadCatalogFromDB(){
+  /* CATALOG-SSOT-1: lecture directe veraluz_units via anon key */
+  fetch(SB_BASE+'/rest/v1/veraluz_units?select=id,name,type,floor,capacity,price,description,amenities,status,sort_order&order=sort_order.asc,name.asc', {
+    headers:{'apikey':AK_SS,'Authorization':'Bearer '+AK_SS}
+  })
+  .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
+  .then(function(data){
+    _dbCatalog = Array.isArray(data) ? data : [];
+    _dbCatalogLoaded = true;
+    _dbCatalogError  = false;
+    if(currentSection==='chambres') renderSection('chambres');
+  })
+  .catch(function(e){
+    console.warn('[SETTINGS] catalog load failed', e);
+    _dbCatalogLoaded = true;
+    _dbCatalogError  = true;
+    if(currentSection==='chambres') renderSection('chambres');
+  });
 }
-function removeRoom(i){ S.chambres.splice(i,1); renderSection('chambres'); markDirty(); }
+
+function openCatalogUnitEditor(unitId){
+  var unit = null;
+  if(unitId){ for(var i=0;i<_dbCatalog.length;i++){ if(_dbCatalog[i].id===unitId){ unit=_dbCatalog[i]; break; } } }
+  var wrap = document.getElementById('catalog-editor-wrap');
+  if(!wrap) return;
+  var u = unit || {name:'',type:'chambre',floor:1,capacity:2,price:35000,description:'',amenities:'WiFi, Climatisation',status:'available',sort_order:0};
+  var typeOpts = ['chambre','studio','appartement','suite','villa','bungalow'];
+  var statusOpts = [['available','Disponible'],['maintenance','Maintenance'],['occupied','Occupé']];
+  wrap.innerHTML = '<div class="card" style="border-color:var(--acc);">'
+    +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>'+(unitId?'Modifier':'Nouvelle')+' unité</div>'
+    +(unitId?'<input type="hidden" id="cu-id" value="'+escH(unitId)+'">':'')
+    +'<div class="row"><label>Nom</label><input type="text" id="cu-name" value="'+escH(u.name)+'" placeholder="Ex: Chambre 101"></div>'
+    +'<div class="row2">'
+    +'<div class="row"><label>Type</label><select id="cu-type">'
+    +typeOpts.map(function(t){ return '<option value="'+t+'"'+(t===u.type?' selected':'')+'>'+t+'</option>'; }).join('')
+    +'</select></div>'
+    +'<div class="row"><label>Statut</label><select id="cu-status">'
+    +statusOpts.map(function(o){ return '<option value="'+o[0]+'"'+(o[0]===u.status?' selected':'')+'>'+o[1]+'</option>'; }).join('')
+    +'</select></div>'
+    +'</div>'
+    +'<div class="row2">'
+    +'<div class="row"><label>Capacité (pers.)</label><input type="number" min="1" max="20" id="cu-capacity" value="'+escH(String(u.capacity||2))+'"></div>'
+    +'<div class="row"><label>Prix/nuit (XAF)</label><input type="number" min="0" id="cu-price" value="'+escH(String(u.price||0))+'"></div>'
+    +'</div>'
+    +'<div class="row2">'
+    +'<div class="row"><label>Étage</label><input type="number" id="cu-floor" value="'+escH(String(u.floor||0))+'"></div>'
+    +'<div class="row"><label>Ordre d\'affichage</label><input type="number" min="0" id="cu-sort" value="'+escH(String(u.sort_order||0))+'"></div>'
+    +'</div>'
+    +'<div class="row"><label>Équipements</label><input type="text" id="cu-amenities" value="'+escH(u.amenities||'')+'" placeholder="WiFi, Climatisation, TV…"></div>'
+    +'<div class="row"><label>Description</label><textarea id="cu-desc" style="width:100%;background:var(--bg3);border:1px solid var(--bg4);border-radius:6px;padding:8px;color:var(--text);font-size:12px;resize:vertical;">'+escH(u.description||'')+'</textarea></div>'
+    +'<div class="btn-group">'
+    +'<button class="btn btn-p" onclick="commitCatalogUnit()">💾 Enregistrer</button>'
+    +'<button class="btn btn-o" onclick="document.getElementById(\'catalog-editor-wrap\').innerHTML=\'\'">Annuler</button>'
+    +'</div></div>';
+}
+
+function commitCatalogUnit(){
+  var gv = function(id){ var el=document.getElementById(id); return el?el.value:''; };
+  var gn = function(id,def){ var v=parseFloat(gv(id)); return isNaN(v)?def:v; };
+  var unitId = gv('cu-id') || null;
+  var name = gv('cu-name').trim();
+  if(!name){ toast('❌ Nom requis', false); return; }
+  var capacity = gn('cu-capacity', 2);
+  var price    = gn('cu-price', 0);
+  if(capacity < 1 || capacity > 20){ toast('❌ Capacité 1–20', false); return; }
+  if(price < 0){ toast('❌ Prix invalide', false); return; }
+  var payload = {
+    action: 'upsert_unit',
+    unit: {
+      id:          unitId || undefined,
+      name:        name,
+      type:        gv('cu-type') || 'chambre',
+      status:      gv('cu-status') || 'available',
+      capacity:    capacity,
+      price:       price,
+      floor:       gn('cu-floor', 0),
+      sort_order:  gn('cu-sort', 0),
+      amenities:   gv('cu-amenities'),
+      description: gv('cu-desc')
+    }
+  };
+  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
+    toast('❌ Session requise', false); return;
+  }
+  window.parent.veraluzSecureRequest('catalog-secure', payload)
+  .then(function(r){
+    var d = r && r.body ? r.body : r;
+    if(d && d.ok){
+      toast('✓ Unité enregistrée (DB)');
+      document.getElementById('catalog-editor-wrap').innerHTML='';
+      loadCatalogFromDB();
+    } else { toast('❌ '+(d&&d.error||'Erreur'), false); }
+  })
+  .catch(function(){ toast('❌ Erreur réseau', false); });
+}
+
+function deleteCatalogUnit(unitId, name){
+  if(!confirm('Supprimer l\'unité "'+name+'" ? Cette action est irréversible.')) return;
+  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
+    toast('❌ Session requise', false); return;
+  }
+  window.parent.veraluzSecureRequest('catalog-secure', {action:'delete_unit', id:unitId})
+  .then(function(r){
+    var d = r && r.body ? r.body : r;
+    if(d && d.ok){
+      toast('✓ Unité supprimée');
+      loadCatalogFromDB();
+    } else { toast('❌ '+(d&&d.error||'Erreur'), false); }
+  })
+  .catch(function(){ toast('❌ Erreur réseau', false); });
+}
 function exportSettings(){
   var blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
   var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
@@ -1852,11 +2069,12 @@ window.addEventListener('message', function(ev){
 /* ── Init ── */
 window.addEventListener('load', function(){
   loadSettings();
-  /* SETTINGS-1: load canonical DB settings then render */
+  /* SETTINGS-FISCAL-1 + CATALOG-SSOT-1: load canonical DB settings then render */
   loadDbCanonical(function(){
     goSection('hotel');
-    emit('module-ready', {module:'settings', version:'3.1'});
+    emit('module-ready', {module:'settings', version:'3.2'});
   });
+  loadCatalogFromDB();   /* CATALOG-SSOT-1: async, renders chambres section when ready */
 });
 </script>
 

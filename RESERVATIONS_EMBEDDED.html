@@ -1951,7 +1951,7 @@ function renderParams(){
     '<div class="param-row-p"><span class="param-lbl-p">WhatsApp réception</span><input class="param-inp-p" id="p-wa" value="'+esc(_settings.whatsapp||'')+'" placeholder="+237 6XX…"></div>'+
     '<div class="param-row-p"><span class="param-lbl-p">Petit-déjeuner (FCFA/pers.)</span><input class="param-inp-p" type="number" id="p-bkf" value="'+(_settings.breakfast_price||0)+'"></div>'+
     '<div class="param-row-p"><span class="param-lbl-p">Transfert aéroport (FCFA)</span><input class="param-inp-p" type="number" id="p-trf" value="'+(_settings.transfer_price||0)+'"></div>'+
-    '<div class="param-row-p"><span class="param-lbl-p">Taxe de séjour (%)</span><input class="param-inp-p" type="number" id="p-tax" value="'+(_settings.tax_pct||0)+'"></div>'+
+    '<div class="param-row-p"><span class="param-lbl-p">Taxe de séjour / TVA (%)</span><input class="param-inp-p" type="number" id="p-tax" value="'+((_dbSettings.fiscal&&_dbSettings.fiscal.vat_rate)||(_settings.tax_pct||0))+'" readonly style="background:var(--bg4);color:var(--text3);cursor:default;" title="Géré dans Paramètres → Fiscalité"></div>'+
     '<button class="btn-save-p" onclick="saveSettings()">✓ Enregistrer les paramètres</button>';
 
   el.innerHTML =
@@ -2326,7 +2326,7 @@ function loadSettingsFromDB(){
     console.warn('[RES] settings broker unavailable'); return;
   }
   window.parent.veraluzSecureRequest('settings-secure', {
-    action:'get_settings', keys:['booking','wifi','restaurant','contact','property']
+    action:'get_settings', keys:['booking','wifi','restaurant','contact','property','fiscal']
   })
   .then(function(r){
     var d=r&&r.body?r.body:r;
@@ -2493,7 +2493,7 @@ function saveSettings(){
   _settings.whatsapp     =(document.getElementById('p-wa')||{}).value||'';
   _settings.breakfast_price=parseFloat((document.getElementById('p-bkf')||{}).value||0);
   _settings.transfer_price =parseFloat((document.getElementById('p-trf')||{}).value||0);
-  _settings.tax_pct        =parseFloat((document.getElementById('p-tax')||{}).value||0);
+  /* SETTINGS-FISCAL-1: tax_pct supprimé — TVA lue depuis _dbSettings.fiscal.vat_rate (canonical DB) */
   try{localStorage.setItem('vlz_settings',JSON.stringify(_settings));}catch(e){}
   toast('Paramètres généraux sauvegardés ✓','success');
 }

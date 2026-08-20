@@ -31,8 +31,20 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8080',
 ];
 
+/* SETTINGS-FISCAL-1: fiscal ajouté comme clé canonique DB */
 const WRITABLE_KEYS = new Set([
-  'property','contact','booking','wifi','restaurant','branding','security','localization',
+  'property','contact','booking','wifi','restaurant','branding','security','localization','fiscal',
+]);
+
+// Champs autorisés pour la clé 'fiscal' (whitelist stricte)
+const FISCAL_ALLOWED_FIELDS = new Set([
+  'vat_enabled','vat_rate',
+  'tourist_tax_enabled','tourist_tax_type','tourist_tax_value',
+  'service_charge_enabled','service_charge_rate',
+  'municipal_tax_enabled','municipal_tax_value',
+  'early_checkin_enabled','early_checkin_fee',
+  'late_checkout_enabled','late_checkout_fee',
+  'extra_bed_fee','cancellation_pct',
 ]);
 
 // Champs autorisés pour la clé 'localization' (whitelist stricte)
@@ -194,6 +206,52 @@ Deno.serve(async (req) => {
       if (!Number.isFinite(tpe)  || tpe < 1  || tpe > 168) return json({ ok: false, error: 'invalid_security_value', field: 'temp_pin_expiry_hours' }, 400, cors);
       if ('track_ip' in v && typeof v.track_ip !== 'boolean') return json({ ok: false, error: 'invalid_security_value', field: 'track_ip' }, 400, cors);
       if ('track_user_agent' in v && typeof v.track_user_agent !== 'boolean') return json({ ok: false, error: 'invalid_security_value', field: 'track_user_agent' }, 400, cors);
+    } else if (key === 'fiscal') {
+      /* SETTINGS-FISCAL-1: whitelist stricte + validation des plages */
+      const v = value as Record<string, unknown>;
+      for (const k of Object.keys(v)) {
+        if (!FISCAL_ALLOWED_FIELDS.has(k)) {
+          return json({ ok: false, error: 'fiscal_field_rejected', field: k }, 400, cors);
+        }
+      }
+      // Validation booléens *_enabled
+      const boolFields = ['vat_enabled','tourist_tax_enabled','service_charge_enabled','municipal_tax_enabled','early_checkin_enabled','late_checkout_enabled'];
+      for (const bf of boolFields) {
+        if (bf in v && typeof v[bf] !== 'boolean') {
+          return json({ ok: false, error: 'invalid_fiscal_value', field: bf, expected: 'boolean' }, 400, cors);
+        }
+      }
+      // Validation tourist_tax_type
+      if ('tourist_tax_type' in v && v.tourist_tax_type !== 'fixed' && v.tourist_tax_type !== 'pct') {
+        return json({ ok: false, error: 'invalid_fiscal_value', field: 'tourist_tax_type', expected: "'fixed'|'pct'" }, 400, cors);
+      }
+      // Validation plages numériques
+      const checkRate = (field: string, min: number, max: number) => {
+        if (!(field in v)) return null;
+        const n = Number(v[field]);
+        if (!Number.isFinite(n) || n < min || n > max) {
+          return json({ ok: false, error: 'invalid_fiscal_value', field, range: `${min}–${max}` }, 400, cors);
+        }
+        return null;
+      };
+      const checkNonNeg = (field: string) => {
+        if (!(field in v)) return null;
+        const n = Number(v[field]);
+        if (!Number.isFinite(n) || n < 0) {
+          return json({ ok: false, error: 'invalid_fiscal_value', field, range: '>= 0' }, 400, cors);
+        }
+        return null;
+      };
+      const rateErr =
+        checkRate('vat_rate', 0, 100) ||
+        checkRate('service_charge_rate', 0, 100) ||
+        checkRate('cancellation_pct', 0, 100) ||
+        checkNonNeg('tourist_tax_value') ||
+        checkNonNeg('municipal_tax_value') ||
+        checkNonNeg('early_checkin_fee') ||
+        checkNonNeg('late_checkout_fee') ||
+        checkNonNeg('extra_bed_fee');
+      if (rateErr) return rateErr;
     } else {
       // Pour toutes les autres clés : refuser les champs ressemblant à des secrets
       const SECRET_PATTERNS = [/key/i, /secret/i, /token/i, /password.*api/i, /private/i];

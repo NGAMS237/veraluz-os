@@ -2144,11 +2144,27 @@ function logoutCoreSessionBestEffort(sessionToken, resumeToken) {
 }
 
 function issueCoreResumeToken(sessionToken) {
-  return authEdgePost(EDGE_ISSUE_RESUME_URL, { session_token: sessionToken }, 9000)
-    .then(function(data) {
-      if (!data || !data.resume_token) throw new Error('resume_token_missing');
-      return data;
-    });
+  // Contrat canonique: session_token via X-Veraluz-Session header uniquement (jamais dans body)
+  return new Promise(function(resolve, reject) {
+    var settled = false;
+    var timer = setTimeout(function() {
+      if (settled) return; settled = true; var e=new Error('timeout'); e.status=0; reject(e);
+    }, 9000);
+    fetch(EDGE_ISSUE_RESUME_URL, {
+      method: 'POST', mode: 'cors', credentials: 'omit',
+      headers: {
+        'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,
+        'X-Veraluz-Session': sessionToken
+      },
+      body: JSON.stringify({})
+    }).then(function(r){ return r.json().catch(function(){ return {}; }); })
+      .then(function(data){
+        if (settled) return; settled = true; clearTimeout(timer);
+        if (!data || !data.resume_token) { var e=new Error('resume_token_missing'); reject(e); return; }
+        resolve(data);
+      })
+      .catch(function(e){ if (settled) return; settled=true; clearTimeout(timer); reject(e); });
+  });
 }
 
 function stabilizeCoreEmployeeLogin(serverData, sessionToken, btnLogin, errEl) {
@@ -2484,10 +2500,11 @@ function doLoginPin() {
     (function() {
       var tok = getSessionToken();
       if (!tok) return;
+      // Contrat canonique: session_token via header (jamais dans body)
       fetch(EDGE_ISSUE_RESUME_URL, {
         method: 'POST',
-        headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY },
-        body: JSON.stringify({ session_token: tok })
+        headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'X-Veraluz-Session':tok },
+        body: JSON.stringify({})
       }).then(function(r){ return r.ok ? r.json() : null; })
         .then(function(d){
           if (d && d.resume_token) {
@@ -3502,10 +3519,11 @@ function submitEmpPinChange() {
   var btn = document.querySelector('#emp-pin-change-form .emp-mod-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Enregistrement…'; }
 
+  // Contrat canonique: session_token via X-Veraluz-Session header (jamais dans body)
   fetch(EDGE_CHANGE_PIN_URL, {
     method: 'POST', mode: 'cors', credentials: 'omit',
-    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
-    body: JSON.stringify({ session_token: tok, current_pin: currentPin, new_pin: newPin })
+    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'X-Veraluz-Session': tok },
+    body: JSON.stringify({ current_pin: currentPin, new_pin: newPin })
   })
   .then(function(r) { return r.json(); })
   .then(function(result) {

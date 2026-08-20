@@ -698,8 +698,9 @@ function _renderProfilCard(emp){
   if(emp.last_name)  rows.push(['Nom',          esc(emp.last_name)]);
   if(dispName&&dispName!==shortName) rows.push(['Nom affiché',esc(dispName)]);
   rows.push(['Rôle','<span class="bdg bdg-blue">'+esc(roleLabel)+'</span>']);
-  if(emp.department) rows.push(['Département',  esc(emp.department)]);
-  if(emp.team_id)    rows.push(['Équipe',       esc(emp.team_id)]);
+  var dept=emp.department||null;
+  if(dept && !/^team-/i.test(String(dept))) rows.push(['Département', esc(dept)]);
+  rows.push(['Équipe', esc(emp.team_name||'Non renseignée')]);
   if(emp.phone)      rows.push(['Téléphone',    esc(emp.phone)]);
   if(emp.email)      rows.push(['Email',        esc(emp.email)]);
   if(emp.hire_date)  rows.push(['Embauché le',  esc(emp.hire_date)]);

@@ -1,0 +1,40 @@
+# veraluz-git
+
+Protocole Git pour le projet Résidence Veraluz.
+
+## Règles absolues
+
+- NE PAS MERGER claude/auth-final-integration dans main sans autorisation Blaise.
+- NE PAS déployer sans autorisation explicite.
+- Ne demander aucune commande Git à Blaise.
+- Ne pas utiliser Computer Use pour Git — utiliser bash uniquement.
+- Ne pas créer de branche depuis main sans instruction.
+
+## Workflow standard
+
+1. Lire AI_HANDOFF.md pour connaître l'état actuel.
+2. Travailler sur la branche désignée (actuellement `claude/auth-final-integration`).
+3. Commit atomique par fonctionnalité, message en français structuré.
+4. Push via token `ghp_*` stocké dans `token operation.txt`.
+5. Mettre à jour AI_HANDOFF.md avec le nouveau HEAD.
+6. Ne jamais merger sans autorisation explicite.
+
+## Clone (si index.lock bloqué sur OneDrive)
+
+```bash
+git clone --no-local https://github.com/NGAMS237/veraluz-os.git
+```
+
+## Push authentifié
+
+```bash
+TOKEN=$(cat "token operation.txt")
+git remote set-url origin "https://x-access-token:${TOKEN}@github.com/NGAMS237/veraluz-os.git"
+git push origin <branche>
+```
+
+## État actuel
+
+Branche : claude/auth-final-integration
+HEAD : 167d400 (2026-08-20)
+Base : main @ 76e618d (merge AUTH-FINAL-INTEGRATION)

@@ -503,32 +503,7 @@ var DEFAULT_ROLES = [
 ];
 
 /* ── Demo Users ────────────────────────────────────────────────────────────── */
-var DEMO_USERS = [
-  { id:'u1', name:'Smith Ngams',  email:'smith@veraluz.cm', phone:'+237 6 90 00 00 01',
-    role:'superadmin', status:'active',  created:'2026-01-01', last_login:'2026-05-17',
-    invite_sent:null, invite_token:null, employee_id:'E001' },
-  { id:'u2', name:'Marie Ateba',  email:'marie@veraluz.cm', phone:'+237 6 90 00 00 02',
-    role:'admin',     status:'active',  created:'2026-01-15', last_login:'2026-05-16',
-    invite_sent:'2026-01-15', invite_token:null, employee_id:'E002' },
-  { id:'u3', name:'Paul Biya',    email:'paul@veraluz.cm', phone:'+237 6 90 00 00 03',
-    role:'receptionist', status:'active', created:'2026-02-01', last_login:'2026-05-15',
-    invite_sent:'2026-02-01', invite_token:null, employee_id:'E003' },
-  { id:'u4', name:'Carine Ngo',   email:'carine@veraluz.cm', phone:'+237 6 90 00 00 04',
-    role:'housekeeping', status:'active', created:'2026-02-10', last_login:'2026-05-14',
-    invite_sent:'2026-02-10', invite_token:null, employee_id:'E004' },
-  { id:'u5', name:'Jean Mbarga',  email:'jean@veraluz.cm', phone:'+237 6 90 00 00 05',
-    role:'restaurant', status:'active', created:'2026-03-01', last_login:'2026-05-13',
-    invite_sent:'2026-03-01', invite_token:null, employee_id:'E005' },
-  { id:'u6', name:'Sophie Fouda', email:'sophie@veraluz.cm', phone:'+237 6 90 00 00 06',
-    role:'finance',   status:'active',  created:'2026-03-15', last_login:'2026-05-12',
-    invite_sent:'2026-03-15', invite_token:null, employee_id:'E006' },
-  { id:'u7', name:'Lucas Essam',  email:'lucas@veraluz.cm', phone:'+237 6 90 00 00 07',
-    role:'rh',        status:'disabled',created:'2026-04-15', last_login:'2026-04-15',
-    invite_sent:'2026-04-15', invite_token:null, employee_id:'E007' },
-  { id:'u8', name:'Kevin Ateba',  email:'kevin@veraluz.cm', phone:'+237 6 91 00 00 08',
-    role:'finance',   status:'pending', created:'2026-05-10', last_login:null,
-    invite_sent:'2026-05-10', invite_token:'inv_abc123', employee_id:null }
-];
+var DEMO_USERS = []; /* R6: supprimé — utiliser employees-secure */
 
 /* ── Storage ───────────────────────────────────────────────────────────────── */
 var STORE_USERS = 'vlz_auth_users_v2';
@@ -553,8 +528,7 @@ function getAudit(){
   catch(e){ return []; }
 }
 function getSessions(){
-  try{ var d=localStorage.getItem(STORE_SESS); return d?JSON.parse(d):DEMO_SESSIONS.slice();}
-  catch(e){ return DEMO_SESSIONS.slice(); }
+  return DEMO_SESSIONS.slice(); /* R6: toujours vide, utiliser loadRealSessions() */
 }
 function getPolicy(){
   try{ var d=localStorage.getItem(STORE_POL); return d?JSON.parse(d):DEFAULT_POLICY;}
@@ -562,19 +536,11 @@ function getPolicy(){
 }
 function savePolicy(p){ try{localStorage.setItem(STORE_POL,JSON.stringify(p));}catch(e){} }
 function getCurrentUser(){
-  try{ var d=localStorage.getItem(STORE_CU); return d?JSON.parse(d):DEMO_USERS[0];}
-  catch(e){ return DEMO_USERS[0]; }
+  return null; /* R6: plus de fallback fictif — identité depuis session serveur */
 }
 
-/* ── Demo Sessions ─────────────────────────────────────────────────────────── */
-var DEMO_SESSIONS = [
-  { id:'s1', user_id:'u1', user_name:'Smith Ngams', ip:'192.168.1.10', device:'Chrome/macOS',
-    created:'2026-05-17T08:00:00Z', last_active:'2026-05-17T14:30:00Z', active:true },
-  { id:'s2', user_id:'u2', user_name:'Marie Ateba', ip:'192.168.1.11', device:'Safari/iPhone',
-    created:'2026-05-17T09:15:00Z', last_active:'2026-05-17T13:00:00Z', active:true },
-  { id:'s3', user_id:'u3', user_name:'Paul Biya',   ip:'192.168.1.12', device:'Firefox/Windows',
-    created:'2026-05-16T10:00:00Z', last_active:'2026-05-16T18:00:00Z', active:false }
-];
+/* ── Demo Sessions (supprimées R6 — utiliser auth-admin-secure) ──────────────── */
+var DEMO_SESSIONS = []; /* R6: supprimé — utiliser loadRealSessions() */
 
 /* ── Default Policy ────────────────────────────────────────────────────────── */
 var DEFAULT_POLICY = {
@@ -1216,151 +1182,399 @@ function saveUserPerms(uid){
 }
 
 /* ══════════════════════════════════════════════════════════════
-   TAB: SESSIONS
+   TAB: SESSIONS — AUTH-R6 (données réelles auth-admin-secure)
 ═══════════════════════════════════════════════════════════════ */
-function killSession(sid){
-  if(!confirm('Terminer cette session ?')) return;
-  var sessions=getSessions();
-  var idx=sessions.findIndex(function(s){ return s.id===sid; });
-  if(idx>=0){ sessions[idx].active=false; }
-  try{ localStorage.setItem(STORE_SESS,JSON.stringify(sessions)); }catch(e){}
-  audit('session-kill',{sid:sid});
-  renderTab('sessions');
-  toast('Session terminée');
-}
-function purgeExpired(){
-  var sessions=getSessions().filter(function(s){ return s.active; });
-  try{ localStorage.setItem(STORE_SESS,JSON.stringify(sessions)); }catch(e){}
-  renderTab('sessions');
-  toast('Sessions expirées supprimées');
-}
-function renderSessions(){
-  var sessions=getSessions();
-  if(!sessions.length){
-    return '<div class="empty"><div class="empty-ico">🔑</div>Aucune session</div>';
+var _sessLoaded = false;
+var _sessData   = null; /* { sessions:[], meta:{} } */
+var _sessError  = null;
+
+function loadRealSessions(cb) {
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    _sessError = 'broker_unavailable';
+    _sessLoaded = true;
+    if (cb) cb();
+    return;
   }
-  var active=sessions.filter(function(s){ return s.active; }).length;
-  var html='<div class="stat-row">'
-    +'<div class="stat"><div class="stat-val">'+sessions.length+'</div><div class="stat-lbl">Sessions totales</div></div>'
-    +'<div class="stat"><div class="stat-val" style="color:var(--success);">'+active+'</div><div class="stat-lbl">Actives</div></div>'
-    +'<div class="stat"><div class="stat-val" style="color:var(--text3);">'+(sessions.length-active)+'</div><div class="stat-lbl">Expirées</div></div>'
-    +'</div>'
-    +'<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">'
-    +'<button class="btn btn-sec btn-sm" onclick="purgeExpired()">🗑 Purger</button></div>';
-  sessions.forEach(function(s){
-    html+='<div class="session-entry">'
-      +'<div style="flex:1;">'
-      +'<div style="font-weight:600;">'+esc(s.user_name)+'</div>'
-      +'<div style="font-size:12px;color:var(--text2);margin-top:2px;">'
-      +'🖥 '+esc(s.device)+' &nbsp;&middot;&nbsp; 🌐 '+esc(s.ip)+'</div>'
-      +'<div style="font-size:11px;color:var(--text3);margin-top:2px);">'
-      +'Début: '+fmt_ts(s.created)+' &nbsp;&middot;&nbsp; Actif: '+fmt_ago(s.last_active)+'</div>'
-      +'</div>'
-      +(s.active
-        ?'<button class="btn btn-danger btn-sm" data-sid="'+esc(s.id)+'" onclick="killSession(this.dataset.sid)">✕</button>'
-        :'<span class="bdg bdg-gray">Expirée</span>')
-      +'</div>';
-  });
-  return html;
+  window.parent.veraluzSecureRequest('auth-admin-secure', { action: 'list_sessions' })
+    .then(function(r){ return r.body; })
+    .then(function(res){
+      if (res && res.ok) {
+        _sessData  = res;
+        _sessError = null;
+      } else {
+        _sessError = res && res.error ? res.error : 'server_error';
+      }
+      _sessLoaded = true;
+      if (cb) cb();
+    })
+    .catch(function(){
+      _sessError  = 'network_error';
+      _sessLoaded = true;
+      if (cb) cb();
+    });
 }
 
-/* ══════════════════════════════════════════════════════════════
-   TAB: AUDIT
-═══════════════════════════════════════════════════════════════ */
-var _auditFilter='all';
-var AUDIT_ACTIONS={
-  'user-invite':'Invitation',
-  'user-edit':'Modification',
-  'user-delete':'Suppression',
-  'user-disabled':'Désactivation',
-  'user-enabled':'Activation',
-  'user-perms':'Permissions',
-  'profile-update':'Profil',
-  'password-change':'Mot de passe',
-  'role-create':'Rôle créé',
-  'role-edit':'Rôle modifié',
-  'role-delete':'Rôle supprimé',
-  'role-perms':'Permissions rôle',
-  'session-kill':'Session terminée',
-  'invite-resent':'Invitation renvoyée',
-  'logout':'Déconnexion'
-};
-function setAuditFilter(f){ _auditFilter=f; renderTab('audit'); }
-function renderAudit(){
-  var entries=getAudit();
-  var filters=['all','user-invite','user-edit','user-delete','profile-update','password-change','role-create','session-kill'];
-  var html='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">';
-  filters.forEach(function(f){
-    var lbl=f==='all'?'Tous':(AUDIT_ACTIONS[f]||f);
-    html+='<button class="fchip'+(_auditFilter===f?' on':'')+'" data-f="'+f+'" onclick="setAuditFilter(this.dataset.f)">'+lbl+'</button>';
-  });
-  html+='</div>';
-  var filtered=entries.filter(function(e){
-    return _auditFilter==='all'||e.action===_auditFilter;
-  });
-  if(!filtered.length){
-    html+='<div class="empty"><div class="empty-ico">📋</div>Aucune entrée dans l’audit</div>';
+function reloadSessions() {
+  _sessLoaded = false;
+  _sessData   = null;
+  _sessError  = null;
+  renderTab('sessions');
+}
+
+function killSession(sid) {
+  if (!confirm('Terminer cette session maintenant ?')) return;
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    toast('Broker indisponible', true); return;
+  }
+  window.parent.veraluzSecureRequest('auth-admin-secure', { action: 'revoke_session', session_id: sid })
+    .then(function(r){ return r.body; })
+    .then(function(res){
+      if (res && res.ok) {
+        toast('Session révoquée');
+        reloadSessions();
+      } else {
+        var msg = res && res.error === 'cannot_revoke_own_session'
+          ? 'Impossible de révoquer votre session courante'
+          : (res && res.error ? 'Erreur : ' + res.error : 'Révocation échouée');
+        toast(msg, true);
+      }
+    })
+    .catch(function(){ toast('Erreur réseau', true); });
+}
+
+function revokeAllForEmployee(empId, empName) {
+  if (!confirm('Déconnecter TOUTES les sessions de ' + empName + ' ?')) return;
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    toast('Broker indisponible', true); return;
+  }
+  window.parent.veraluzSecureRequest('auth-admin-secure', { action: 'revoke_employee_sessions', employee_id: empId })
+    .then(function(r){ return r.body; })
+    .then(function(res){
+      if (res && res.ok) {
+        toast('Sessions de ' + esc(empName) + ' révoquées (' + (res.sessions_revoked || 0) + ')');
+        reloadSessions();
+      } else {
+        toast(res && res.error ? 'Erreur : ' + res.error : 'Révocation échouée', true);
+      }
+    })
+    .catch(function(){ toast('Erreur réseau', true); });
+}
+
+function renderSessions() {
+  if (!_sessLoaded) {
+    loadRealSessions(function(){ renderTab('sessions'); });
+    return '<div class="empty"><div class="empty-ico">⏳</div>Chargement des sessions…</div>';
+  }
+
+  if (_sessError === 'broker_unavailable') {
+    return '<div class="card"><div style="color:var(--text2);font-size:13px;">⚠️ Broker de session indisponible — ouvrez AUTH depuis Veraluz OS.</div></div>';
+  }
+  if (_sessError === 'forbidden' || _sessError === 'invalid_or_expired_session') {
+    return '<div class="card"><div style="color:var(--text2);font-size:13px;">🔒 Accès refusé — droits <code>auth.sessions.read</code> requis.</div></div>';
+  }
+  if (_sessError) {
+    return '<div class="card"><div style="color:var(--danger);font-size:13px;">Erreur chargement sessions : ' + esc(_sessError)
+      + ' <button class="btn btn-sec btn-sm" onclick="reloadSessions()" style="margin-left:8px;">↻ Réessayer</button></div></div>';
+  }
+
+  var sessions = (_sessData && _sessData.sessions) || [];
+  var meta     = (_sessData && _sessData.meta)     || { total: 0, active: 0, revoked: 0 };
+
+  var html = '<div class="stat-row">'
+    + '<div class="stat"><div class="stat-val">' + meta.total + '</div><div class="stat-lbl">Sessions total</div></div>'
+    + '<div class="stat"><div class="stat-val" style="color:var(--success);">' + meta.active + '</div><div class="stat-lbl">Actives</div></div>'
+    + '<div class="stat"><div class="stat-val" style="color:var(--text3);">' + meta.revoked + '</div><div class="stat-lbl">Révoquées</div></div>'
+    + '</div>'
+    + '<div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:8px;">'
+    + '<button class="btn btn-sec btn-sm" onclick="reloadSessions()">↻ Actualiser</button>'
+    + '</div>';
+
+  if (!sessions.length) {
+    html += '<div class="empty"><div class="empty-ico">🔑</div>Aucune session enregistrée</div>';
     return html;
   }
-  filtered.forEach(function(e){
-    var lbl=AUDIT_ACTIONS[e.action]||e.action;
-    html+='<div class="audit-entry">'
-      +'<div style="font-size:11px;color:var(--text3);flex-shrink:0;">'+fmt_ts(e.ts)+'</div>'
-      +'<div style="flex:1;">'
-      +'<span class="bdg bdg-acc">'+esc(lbl)+'</span> '
-      +'<span style="font-size:13px;">'+esc(e.user_name)+'</span>'
-      +(e.data&&e.data.name?' → '+esc(e.data.name):'')
-      +(e.data&&e.data.email?' ('+esc(e.data.email)+')':'')
-      +'</div>'
-      +'</div>';
+
+  sessions.forEach(function(s) {
+    var isCurrent = s.is_current;
+    var isActive  = s.active;
+    var empName   = (s.employee && s.employee.name) || '—';
+    var empRole   = (s.employee && s.employee.role) || '—';
+    var empId     = (s.employee && s.employee.id)   || '';
+
+    html += '<div class="session-entry" style="' + (isCurrent ? 'border:1.5px solid var(--acc);' : '') + '">'
+      + '<div style="flex:1;">'
+      + '<div style="font-weight:600;">' + esc(empName)
+      + (isCurrent ? ' <span class="bdg bdg-acc" style="font-size:10px;">Cette session</span>' : '')
+      + '</div>'
+      + '<div style="font-size:12px;color:var(--text2);margin-top:2px;">'
+      + '<span class="bdg bdg-gray">' + esc(empRole) + '</span>'
+      + ' &nbsp;·&nbsp; 🖥 ' + esc(s.device || 'Non disponible')
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
+      + 'Début : ' + fmt_ts(s.created_at)
+      + (s.last_seen_at ? ' &nbsp;·&nbsp; Actif : ' + fmt_ago(s.last_seen_at) : '')
+      + (s.revoked_at ? ' &nbsp;·&nbsp; Révoquée : ' + fmt_ts(s.revoked_at) : '')
+      + '</div>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">';
+
+    if (isActive && !isCurrent) {
+      html += '<button class="btn btn-danger btn-sm" data-sid="' + esc(s.session_id) + '" onclick="killSession(this.dataset.sid)" title="Révoquer cette session">✕</button>';
+    } else if (isCurrent) {
+      html += '<span class="bdg bdg-green">Active</span>';
+    } else {
+      html += '<span class="bdg bdg-gray">Révoquée</span>';
+    }
+
+    if (isActive && empId && !isCurrent) {
+      html += '<button class="btn btn-warn btn-sm" style="font-size:10px;" data-eid="' + esc(empId) + '" data-ename="' + esc(empName) + '" onclick="revokeAllForEmployee(this.dataset.eid,this.dataset.ename)" title="Révoquer toutes les sessions de cet employé">Tout</button>';
+    }
+
+    html += '</div></div>';
   });
+
   return html;
 }
 
 /* ══════════════════════════════════════════════════════════════
-   TAB: SECURITY
+   TAB: AUDIT — AUTH-R6 (données réelles veraluz_auth_events)
 ═══════════════════════════════════════════════════════════════ */
-function saveSecurityPolicy(){
-  var pol={
-    session_timeout: parseInt((document.getElementById('pol-timeout')||{}).value)||480,
-    max_sessions:    parseInt((document.getElementById('pol-max-sess')||{}).value)||3,
-    password_min_length: parseInt((document.getElementById('pol-pw-len')||{}).value)||8,
-    require_2fa:    (document.getElementById('pol-2fa')||{}).checked||false,
-    invite_expiry_days: parseInt((document.getElementById('pol-invite')||{}).value)||7,
-    log_retention_days: parseInt((document.getElementById('pol-logs')||{}).value)||90,
-    auto_lock:      (document.getElementById('pol-autolock')||{}).checked||false
-  };
-  savePolicy(pol);
-  audit('security-policy-update',{});
-  toast('🔒 Politique de sécurité enregistrée');
-}
-function renderSecurite(){
-  var pol=getPolicy();
-  return '<div class="card"><div class="card-hdr"><div class="card-title">🔒 Politique de sécurité</div></div>'
-    +'<div class="pol-row"><span>Timeout session (minutes)</span>'
-    +'<input class="fi" id="pol-timeout" type="number" value="'+pol.session_timeout+'" style="width:80px;"></div>'
-    +'<div class="pol-row"><span>Sessions simultanées max</span>'
-    +'<input class="fi" id="pol-max-sess" type="number" value="'+pol.max_sessions+'" style="width:80px;"></div>'
-    +'<div class="pol-row"><span>Longueur min. mot de passe</span>'
-    +'<input class="fi" id="pol-pw-len" type="number" value="'+pol.password_min_length+'" style="width:80px;"></div>'
-    +'<div class="pol-row"><span>Expiration invitation (jours)</span>'
-    +'<input class="fi" id="pol-invite" type="number" value="'+pol.invite_expiry_days+'" style="width:80px;"></div>'
-    +'<div class="pol-row"><span>Rétention logs (jours)</span>'
-    +'<input class="fi" id="pol-logs" type="number" value="'+pol.log_retention_days+'" style="width:80px;"></div>'
-    +'<div class="pol-row"><span>Authentification 2FA obligatoire</span>'
-    +'<label class="switch"><input type="checkbox" id="pol-2fa"'+(pol.require_2fa?' checked':'')+' onchange="saveSecurityPolicy()"><span class="switch-sl"></span></label></div>'
-    +'<div class="pol-row"><span>Verrouillage auto après timeout</span>'
-    +'<label class="switch"><input type="checkbox" id="pol-autolock"'+(pol.auto_lock?' checked':'')+' onchange="saveSecurityPolicy()"><span class="switch-sl"></span></label></div>'
-    +'<div class="btn-row"><button class="btn btn-primary" onclick="saveSecurityPolicy()">💾 Enregistrer</button></div>'
-    +'</div>'
-    +'<div class="card"><div class="card-hdr"><div class="card-title">Intégrations à venir</div></div>'
-    +'<div style="color:var(--text2);font-size:13px;line-height:1.6;">'
-    +'🔧 Supabase Auth JWT — en cours<br>'
-    +'📱 Invitations SMS/WhatsApp — planifié<br>'
-    +'🔐 MFA (TOTP) — planifié<br>'
-    +'📊 SSO OAuth2 — planifié</div></div>';
+var _auditLoaded = false;
+var _auditData   = null;
+var _auditError  = null;
+var _auditFilterType = '';
+
+var AUDIT_EVENT_LABELS = {
+  login_success:              'Connexion réussie',
+  login_failed:               'Échec connexion',
+  logout:                     'Déconnexion',
+  pin_reset:                  'PIN réinitialisé',
+  pin_change:                 'PIN modifié',
+  login_must_change_pin:      'PIN provisoire',
+  forced_pin_change_completed:'Nouveau PIN défini',
+  sessions_revoked:           'Sessions révoquées',
+  session_revoked:            'Session révoquée',
+  pin_change_token_issued:    'Jeton PIN émis',
+  resume_token_issued:        'Jeton reprise émis',
+  resume_used:                'Reprise session',
+  access_forbidden:           'Accès refusé'
+};
+
+var AUDIT_FILTER_OPTIONS = [
+  {key:'',               label:'Tous'},
+  {key:'login_success',  label:'Connexions'},
+  {key:'login_failed',   label:'Échecs'},
+  {key:'pin_reset',      label:'Resets PIN'},
+  {key:'logout',         label:'Déconnexions'},
+  {key:'sessions_revoked',label:'Révocations'},
+];
+
+function loadRealAudit(cb) {
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    _auditError = 'broker_unavailable';
+    _auditLoaded = true;
+    if (cb) cb();
+    return;
+  }
+  var payload = { action: 'list_audit', limit: 100 };
+  if (_auditFilterType) payload.event_type = _auditFilterType;
+  window.parent.veraluzSecureRequest('auth-admin-secure', payload)
+    .then(function(r){ return r.body; })
+    .then(function(res){
+      if (res && res.ok) {
+        _auditData  = res;
+        _auditError = null;
+      } else {
+        _auditError = (res && res.error) || 'server_error';
+      }
+      _auditLoaded = true;
+      if (cb) cb();
+    })
+    .catch(function(){
+      _auditError  = 'network_error';
+      _auditLoaded = true;
+      if (cb) cb();
+    });
 }
 
+function setAuditFilter(f) {
+  _auditFilterType = f;
+  _auditLoaded     = false;
+  _auditData       = null;
+  _auditError      = null;
+  renderTab('audit');
+}
+
+function reloadAudit() {
+  _auditLoaded = false;
+  _auditData   = null;
+  _auditError  = null;
+  renderTab('audit');
+}
+
+function renderAudit() {
+  var html = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">';
+  AUDIT_FILTER_OPTIONS.forEach(function(f) {
+    html += '<button class="fchip' + (_auditFilterType === f.key ? ' on' : '') + '" data-f="' + esc(f.key) + '" onclick="setAuditFilter(this.dataset.f)">' + f.label + '</button>';
+  });
+  html += '<button class="btn btn-sec btn-sm" onclick="reloadAudit()" style="margin-left:auto;">↻</button>';
+  html += '</div>';
+
+  if (!_auditLoaded) {
+    loadRealAudit(function(){ renderTab('audit'); });
+    html += '<div class="empty"><div class="empty-ico">⏳</div>Chargement de l'audit…</div>';
+    return html;
+  }
+
+  if (_auditError === 'broker_unavailable') {
+    html += '<div class="card"><div style="color:var(--text2);font-size:13px;">⚠️ Broker de session indisponible — ouvrez AUTH depuis Veraluz OS.</div></div>';
+    return html;
+  }
+  if (_auditError === 'forbidden' || _auditError === 'invalid_or_expired_session') {
+    html += '<div class="card"><div style="color:var(--text2);font-size:13px;">🔒 Accès refusé — droits <code>auth.audit.read</code> requis.</div></div>';
+    return html;
+  }
+  if (_auditError) {
+    html += '<div class="card"><div style="color:var(--danger);font-size:13px;">Erreur : ' + esc(_auditError) + '</div></div>';
+    return html;
+  }
+
+  var events = (_auditData && _auditData.events) || [];
+  if (!events.length) {
+    html += '<div class="empty"><div class="empty-ico">📋</div>Aucun événement d'audit</div>';
+    return html;
+  }
+
+  events.forEach(function(e) {
+    var label   = e.event_label || AUDIT_EVENT_LABELS[e.event_type] || e.event_type;
+    var success = e.success !== false;
+    var badgeCls = success ? 'bdg-green' : 'bdg-red';
+
+    html += '<div class="audit-entry">'
+      + '<div style="font-size:11px;color:var(--text3);flex-shrink:0;min-width:90px;">' + fmt_ts(e.created_at) + '</div>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<span class="bdg ' + badgeCls + '">' + esc(label) + '</span>'
+      + (e.performed_by_role ? ' <span class="bdg bdg-gray" style="font-size:10px;">' + esc(e.performed_by_role) + '</span>' : '')
+      + (e.employee_id || e.admin_username
+          ? '<span style="font-size:12px;color:var(--text2);margin-left:6px;">' + esc(e.admin_username || e.employee_id || '') + '</span>'
+          : '')
+      + (e.ip ? '<span style="font-size:11px;color:var(--text3);margin-left:6px;">🌐 ' + esc(e.ip) + '</span>' : '')
+      + (e.details && e.details.reason
+          ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Raison : ' + esc(e.details.reason) + '</div>'
+          : '')
+      + (e.details && e.details.session_count !== undefined
+          ? '<div style="font-size:11px;color:var(--text3);margin-top:2px;">Sessions : ' + e.details.session_count + '</div>'
+          : '')
+      + '</div></div>';
+  });
+
+  return html;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TAB: SÉCURITÉ — AUTH-R6 (politiques réelles lecture seule)
+═══════════════════════════════════════════════════════════════ */
+var _secLoaded   = false;
+var _secPolicies = null;
+var _secError    = null;
+
+function loadSecPolicies(cb) {
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    _secError  = 'broker_unavailable';
+    _secLoaded = true;
+    if (cb) cb();
+    return;
+  }
+  window.parent.veraluzSecureRequest('auth-admin-secure', { action: 'get_security_policies' })
+    .then(function(r){ return r.body; })
+    .then(function(res){
+      if (res && res.ok) {
+        _secPolicies = res.policies;
+        _secError    = null;
+      } else {
+        _secError = (res && res.error) || 'server_error';
+      }
+      _secLoaded = true;
+      if (cb) cb();
+    })
+    .catch(function(){
+      _secError  = 'network_error';
+      _secLoaded = true;
+      if (cb) cb();
+    });
+}
+
+function renderSecurite() {
+  if (!_secLoaded) {
+    loadSecPolicies(function(){ renderTab('security'); });
+    return '<div class="empty"><div class="empty-ico">⏳</div>Chargement des politiques…</div>';
+  }
+
+  var amber = 'background:rgba(251,191,36,.12);border:1.5px solid #fbbf24;border-radius:8px;padding:8px 12px;font-size:12px;color:#fbbf24;margin-bottom:14px;';
+  var html = '<div style="' + amber + '">🔒 Politiques de sécurité — lecture seule. Toutes les valeurs sont appliquées côté serveur et ne peuvent pas être modifiées depuis l'interface.</div>';
+
+  if (_secError === 'broker_unavailable') {
+    return html + '<div class="card"><div style="color:var(--text2);font-size:13px;">⚠️ Broker indisponible — ouvrez AUTH depuis Veraluz OS.</div></div>';
+  }
+  if (_secError) {
+    return html + '<div class="card"><div style="color:var(--danger);font-size:13px;">Erreur chargement politiques : ' + esc(_secError) + '</div></div>';
+  }
+
+  var p = _secPolicies || {};
+
+  function polRow(label, value, note) {
+    return '<div class="pol-row">'
+      + '<div><div style="font-weight:500;">' + label + '</div>'
+      + (note ? '<div style="font-size:11px;color:var(--text3);">' + note + '</div>' : '')
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:8px;">'
+      + '<span style="font-weight:700;color:var(--text1);">' + esc(String(value)) + '</span>'
+      + '<span style="font-size:10px;background:var(--bg3);color:var(--text3);border-radius:4px;padding:1px 6px;">Serveur</span>'
+      + '</div></div>';
+  }
+
+  function polBool(label, value, trueLabel, falseLabel, note) {
+    var v   = value ? (trueLabel || 'Activé') : (falseLabel || 'Non activé');
+    var col = value ? 'var(--success)' : 'var(--text3)';
+    return '<div class="pol-row">'
+      + '<div><div style="font-weight:500;">' + label + '</div>'
+      + (note ? '<div style="font-size:11px;color:var(--text3);">' + note + '</div>' : '')
+      + '</div>'
+      + '<span style="font-weight:700;color:' + col + ';">' + v + '</span>'
+      + '</div>';
+  }
+
+  html += '<div class="card"><div class="card-hdr"><div class="card-title">🔑 PIN Employé</div></div>'
+    + polRow('Longueur PIN', p.pin_digits + ' chiffres', 'Exigé à la connexion')
+    + polRow('Algorithme de hachage', p.pin_hashing || 'bcrypt', 'Jamais stocké en clair')
+    + polBool('Changement forcé (provisoire)', p.must_change_pin_enforced, 'Appliqué', 'Non appliqué', 'must_change_pin côté serveur')
+    + polRow('Expiration PIN temporaire', p.temp_pin_expiry_hours + ' heures', 'Après reset par Direction')
+    + polRow('Jeton changement PIN', p.change_token_minutes + ' minutes', 'Durée jeton one-time')
+    + '</div>';
+
+  html += '<div class="card"><div class="card-hdr"><div class="card-title">🕐 Sessions</div></div>'
+    + polRow('Durée session active', p.session_lifetime_hours + ' heures', 'verify-employee-pin → expires_at')
+    + polRow('Durée jeton de reprise', p.resume_token_days + ' jours', 'issue-resume-token → 30j')
+    + polBool('Révocation de session', p.session_revoke_supported, 'Supportée', 'Non supportée', 'Révocation unitaire ou globale')
+    + polRow('Stockage token brut', 'Non', 'SHA-256 côté serveur uniquement')
+    + polBool('Tracking IP', p.ip_tracking, 'Activé', 'Non activé', 'Pas de colonne ip dans veraluz_employee_sessions')
+    + polBool('Tracking appareil', p.user_agent_tracking, 'Activé', 'Non activé', 'Pas de colonne user_agent dans veraluz_employee_sessions')
+    + '</div>';
+
+  html += '<div class="card"><div class="card-hdr"><div class="card-title">🛡 Accès & Rôles</div></div>'
+    + polBool('RBAC capabilities serveur', p.role_capability_enforced, 'Appliqué (R5)', 'Non appliqué', 'employees-secure, room-service, reservation-workflow')
+    + polBool('Authentification 2FA', p.two_factor_auth, 'Activée', 'Non disponible actuellement', '')
+    + '</div>';
+
+  html += '<div class="card"><div class="card-hdr"><div class="card-title">Fonctionnalités à venir</div></div>'
+    + '<div style="color:var(--text2);font-size:13px;line-height:1.8;">'
+    + '📱 Tracking IP / User-Agent — non implémenté<br>'
+    + '🔐 MFA / TOTP — planifié<br>'
+    + '📊 SSO OAuth2 — planifié'
+    + '</div></div>';
+
+  return html;
+}
 </script>
 <
 <script>

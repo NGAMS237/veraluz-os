@@ -2064,17 +2064,17 @@ function checkAuth() {
        mais que les métadonnées locales + un resume_token existent,
        tenter une reprise silencieuse avant d'afficher le login. */
     if (!getSessionToken()) {
-      var resumeToken = localStorage.getItem('vz_resume');
-      var sessionStr0 = localStorage.getItem('veraluz_auth_v1');
+      var resumeToken = sessionStorage.getItem('vz_resume');
+      var sessionStr0 = sessionStorage.getItem('veraluz_auth_v1');
       if (resumeToken && sessionStr0) {
-        try { var s0=JSON.parse(sessionStr0); if(!s0||s0.expires<Date.now())throw'x'; } catch(e){ localStorage.removeItem('vz_resume'); showAuthOverlay(); return; }
+        try { var s0=JSON.parse(sessionStr0); if(!s0||s0.expires<Date.now())throw'x'; } catch(e){ sessionStorage.removeItem('vz_resume'); showAuthOverlay(); return; }
         if (_isResuming) return; /* MICRO CORE BOOT — empêcher appels concurrents */
         _isResuming = true;
         showReconnecting(); /* MICRO CORE BOOT — masquer CORE vide pendant reprise */
         var _resumeTimer = setTimeout(function() { /* MICRO CORE BOOT — timeout 9s */
           if (!_isResuming) return;
           _isResuming = false;
-          localStorage.removeItem('vz_resume');
+          sessionStorage.removeItem('vz_resume');
           hideReconnecting();
           showAuthOverlay();
         }, 9000);
@@ -2089,11 +2089,11 @@ function checkAuth() {
             hideReconnecting();
             if (d && d.session_token) {
               setSessionToken(d.session_token, d.expires_at);
-              if (d.resume_token) localStorage.setItem('vz_resume', d.resume_token);
+              if (d.resume_token) sessionStorage.setItem('vz_resume', d.resume_token);
               /* Reprendre avec les métadonnées locales (rôle, nom, etc.) */
               checkAuth();
             } else {
-              localStorage.removeItem('vz_resume');
+              sessionStorage.removeItem('vz_resume');
               showAuthOverlay();
             }
           }).catch(function(){
@@ -2105,11 +2105,11 @@ function checkAuth() {
         return; /* attendre la réponse async */
       }
     }
-    var sessionStr = localStorage.getItem('veraluz_auth_v1');
+    var sessionStr = sessionStorage.getItem('veraluz_auth_v1');
     if (!sessionStr) { showAuthOverlay(); return; }
     var session = JSON.parse(sessionStr);
     if (session.expires && session.expires < Date.now()) {
-      localStorage.removeItem('veraluz_auth_v1');
+      sessionStorage.removeItem('veraluz_auth_v1');
       showAuthOverlay(); return;
     }
     var rc = ROLES[session.role] || {};
@@ -2245,9 +2245,9 @@ function doLoginPin() {
       loginAt:         Date.now(),
       expires:         expires
     };
-    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
     /* PROMPT 038 — alias veraluz_session pour les modules (Messages, etc.) */
-    localStorage.setItem('veraluz_session', JSON.stringify({
+    sessionStorage.setItem('veraluz_session', JSON.stringify({
       user_id:    empId,
       id:         empId,
       name:       empName2,
@@ -2280,7 +2280,7 @@ function doLoginPin() {
       }).then(function(r){ return r.ok ? r.json() : null; })
         .then(function(d){
           if (d && d.resume_token) {
-            localStorage.setItem('vz_resume', d.resume_token);
+            sessionStorage.setItem('vz_resume', d.resume_token);
           }
         }).catch(function(){});
     })();
@@ -2352,9 +2352,9 @@ function doLogin() {
       loginAt:         Date.now(),
       expires:         expires
     };
-    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
     /* PROMPT 038 — alias veraluz_session pour les modules */
-    localStorage.setItem('veraluz_session', JSON.stringify({
+    sessionStorage.setItem('veraluz_session', JSON.stringify({
       user_id:    adminObj.id || adminObj.username,
       id:         adminObj.id || adminObj.username,
       name:       adminObj.name,
@@ -2512,7 +2512,7 @@ function handleDevUnlock() {
     dev_mode:      true /* PROMPT 010C — remplace dev_unlock */
   };
 
-  localStorage.setItem('veraluz_auth_v1', JSON.stringify(devSession));
+  sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(devSession));
   currentUser = {
     username:        devSession.username,
     name:            devSession.name,
@@ -2544,7 +2544,7 @@ function showDevBanner() {
   /* PROMPT 010C — Détecter le type de session DEV */
   var isDevMode = false;
   try {
-    var _s = JSON.parse(localStorage.getItem('veraluz_auth_v1') || '{}');
+    var _s = JSON.parse(sessionStorage.getItem('veraluz_auth_v1') || '{}');
     isDevMode = !!(_s.dev_mode);
   } catch(e) {}
 
@@ -2945,9 +2945,9 @@ function doChangePin() {
       loginAt:         Date.now(),
       expires:         expires
     };
-    localStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
+    sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
     /* PROMPT 038 — alias veraluz_session pour les modules */
-    localStorage.setItem('veraluz_session', JSON.stringify({
+    sessionStorage.setItem('veraluz_session', JSON.stringify({
       user_id:    empId2,
       id:         empId2,
       name:       empName2,
@@ -3312,8 +3312,8 @@ function submitEmpPinChange() {
        déconnexion locale immédiate, sans confirm() ni appel logout redondant. */
     alert('Code PIN modifié avec succès. Vous allez être déconnecté — reconnectez-vous avec votre nouveau code PIN.');
     clearSessionToken();
-    localStorage.removeItem('veraluz_auth_v1');
-    localStorage.removeItem('veraluz_session');
+    sessionStorage.removeItem('veraluz_auth_v1');
+    sessionStorage.removeItem('veraluz_session');
     currentUser = null;
     showAuthOverlay();
   })
@@ -3488,9 +3488,9 @@ function logout() {
   clearSessionToken();
   logAuthEvent('logout', currentUser ? currentUser.name||currentUser.username : '?',
                          currentUser ? currentUser.role : '?');
-  localStorage.removeItem('veraluz_auth_v1');
-  localStorage.removeItem('veraluz_session'); /* PROMPT 038 */
-  localStorage.removeItem('vz_resume');       /* PROMPT 010I — révocation resume token */
+  sessionStorage.removeItem('veraluz_auth_v1');
+  sessionStorage.removeItem('veraluz_session'); /* PROMPT 038 */
+  sessionStorage.removeItem('vz_resume');       /* PROMPT 010I — révocation resume token */
   currentUser = null;
   _pinBuffer = '';
   updateTopbarUser();
@@ -3662,7 +3662,7 @@ document.addEventListener('DOMContentLoaded', function(){
   /* PROMPT 016A + PROMPT 019 — Migration auto session DEV existante */
   (function patchDevSessionModules(){
     try {
-      var raw = localStorage.getItem('veraluz_auth_v1');
+      var raw = sessionStorage.getItem('veraluz_auth_v1');
       if (!raw) return;
       var s = JSON.parse(raw);
       if (!s.dev_mode) return; /* Toucher uniquement les sessions DEV */
@@ -3682,7 +3682,7 @@ document.addEventListener('DOMContentLoaded', function(){
         s.allowed_modules.push('messages'); patched = true;
         console.warn('[VERALUZ 031C] Session DEV patchée — messages ajouté à allowed_modules');
       }
-      if (patched) localStorage.setItem('veraluz_auth_v1', JSON.stringify(s));
+      if (patched) sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(s));
     } catch(e) { console.warn('[VERALUZ 016A] Patch session DEV échoué :', e); }
   })();
 

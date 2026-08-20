@@ -1,7 +1,7 @@
 /**
  * VERALUZ — change-employee-pin — v4 (PROMPT 009 : ajout journalisation §13)
  *
- * POST { session_token, current_pin, new_pin } -> { ok:true }
+ * POST { current_pin, new_pin } -> { ok:true }  (session_token via X-Veraluz-Session header)
  *
  * Logique inchangee par rapport a la v3 (deja correcte) :
  *  - employee_id deduit de la session, jamais du corps ;

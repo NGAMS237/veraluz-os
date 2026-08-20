@@ -41,7 +41,7 @@ const ROLE_CAPS: Record<string, readonly string[]> = {
     'employees.directory','employees.manage',
     'messages.read','messages.send','messages.admin',
     'reports.read','settings.read','settings.manage',
-    'auth.users.manage','auth.sessions.manage',
+    'auth.users.manage','auth.sessions.manage','auth.sessions.read','auth.audit.read',
   ],
   manager: [
     'reservations.read','reservations.write','reservations.checkin','reservations.checkout',

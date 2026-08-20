@@ -9,11 +9,13 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## Lots actifs
 
-AUTH-FINAL-FIX | claude/auth-final-integration | PRÊT POUR HUMAN RETEST — 2 bugs corrigés (167d400)
+AUTH-SECURITY-FINAL | claude/auth-final-integration | PRÊT POUR RETEST — IP/UA tracking + SSOT security + CORE broker fix (0289347)
 
 ## Transmissions récentes
 
-`2026-08-20 | Claude | AUTH-FINAL-FIX | claude/auth-final-integration | 167d400 | fix(auth): team_name résolu depuis veraluz_teams, dept filtre ID techniques; employees-secure v4 déployé (strip session_token + team_name lookup); AUTH_EMBEDDED.html L701-703 patchés; metadata skills ajoutés (.agents/skills/, .claude/skills/, CLAUDE.md, AGENTS.md, AI_COLLABORATION.md) | PRÊT POUR HUMAN RETEST | aucun LOCK | Blaise reteste: Profil→Modifier→Enregistrer (plus invalid_profile_fields) + Équipe affiche nom réel (plus team-005)`
+`2026-08-20 | Claude | AUTH-SECURITY-FINAL | claude/auth-final-integration | 0289347 | verify-employee-pin v9 (IP/UA tracking, session_lifetime depuis DB); resume-employee-session v4 (post-RPC last_ip/ua); auth-admin-secure v2 (IMMUTABLE+configurable policies, device/ip réels); settings-secure v3 (security key + validation ranges); _rbac.ts (auth.sessions/audit.read manager); VERALUZ_OS_CORE: reqBody.session_token supprimé; SETTINGS_EMBEDDED: section Sécurité Authentification; AUTH_EMBEDDED: polBool notes et feat card nettoyée; veraluz-git skill: token éphémère | PRÊT POUR RETEST | aucun LOCK | tester connexion (IP enregistrée), Auth→Sécurité (params DB), Settings→Système→Sécurité (éditables)`
+
+`2026-08-20 | Claude | AUTH-FINAL-FIX | claude/auth-final-integration | 167d400 | fix(auth): team_name résolu depuis veraluz_teams, dept filtre ID techniques; employees-secure v4 déployé; AUTH_EMBEDDED.html patchés | COMPLET | aucun LOCK | AUTH-SECURITY-FINAL`
 
 `2026-08-19 | Claude | AUTH SyntaxError fixes | claude/auth-final-integration | d7486e2 | AUTH_EMBEDDED 3 apostrophes + SETTINGS_EMBEDDED 2 apostrophes corrigés via GitHub web editor | COMPLET | aucun LOCK | AUTH-FINAL-FIX`
 
@@ -41,5 +43,7 @@ LOCK : `LOCK | agent | branche | tâche | fichiers/zones`
 
 1. AUTH → Profil → Modifier mes infos → Enregistrer → doit retourner OK (plus `invalid_profile_fields`)
 2. AUTH → Profil → Équipe → doit afficher nom réel (ex: "Livraisons") et jamais `team-005`
-3. AUTH → Profil → Département → ne doit pas afficher un ID `team-*`
-4. F5 après save → données conservées
+3. AUTH → Sécurité → Politiques — params configurables doivent refléter les valeurs DB (session 12h, resume 30j, track_ip=true)
+4. AUTH → Sessions — device et IP doivent s'afficher (non "Appareil inconnu" / null) pour les nouvelles connexions
+5. Settings → Système → Sécurité — section éditable visible avec toggles IP/UA et champs numériques
+6. CORE broker: vérifier que session_token n'est plus envoyé dans le body (inspecter requête réseau)

@@ -265,6 +265,7 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
 'use strict';
 var MODULE_VER = '2.0';
 var currentTabId = 'profil';
+var _renderGen   = 0; // Incrémenté à chaque renderTab — invalide les callbacks async en vol
 
 /* ── Supabase config (héritée du parent CORE.html) — clé anon publique safe ── */
 var _SB_URL  = (function(){ try{ return window.parent.SUPA_URL || ''; }catch(e){ return ''; } })()
@@ -629,10 +630,12 @@ function goTab(el){
   renderTab(currentTabId);
 }
 function renderTab(id){
+  _renderGen++;
+  var gen=_renderGen;
   var fns={profil:renderProfil,users:renderUsers,roles:renderRoles,
            sessions:renderSessions,audit:renderAudit,security:renderSecurite};
   var c=document.getElementById('main-content');
-  if(c&&fns[id]) c.innerHTML=fns[id]();
+  if(c&&fns[id]) c.innerHTML=fns[id](gen);
 }
 
 /* ── Audit ─────────────────────────────────────────────────────────────────── */
@@ -764,6 +767,7 @@ function renderProfilReload(){
   if(!window.parent||!window.parent.veraluzSecureRequest) return;
   window.parent.veraluzSecureRequest('employees-secure',{action:'get_my_profile'})
     .then(function(res){
+      if(currentTabId!=='profil') return;
       var c2=document.getElementById('profil-wrap');
       if(!c2) return;
       if(res&&res.body&&res.body.ok&&res.body.profile){
@@ -822,14 +826,15 @@ function saveMyProfile(){
       msg.textContent='Erreur réseau.'; msg.style.color='red';
     });
 }
-function renderProfil(){
+function renderProfil(gen){
   /* AUTH-R4 : identité dérivée exclusivement de la session serveur (employees-secure) */
+  /* gen = jeton de génération — invalide le callback si onglet changé entre-temps */
   if(!window.parent||!window.parent.veraluzSecureRequest){
     return '<div class="empty">Broker non disponible.</div>';
   }
   window.parent.veraluzSecureRequest('employees-secure',{action:'get_my_profile'})
     .then(function(res){
-      if(currentTabId!=='profil') return;
+      if(_renderGen!==gen||currentTabId!=='profil') return;
       var c=document.getElementById('profil-wrap');
       if(!c) return;
       if(res&&res.body&&res.body.ok&&res.body.profile){
@@ -841,6 +846,7 @@ function renderProfil(){
       }
     })
     .catch(function(){
+      if(_renderGen!==gen||currentTabId!=='profil') return;
       var c=document.getElementById('profil-wrap');
       if(c) c.innerHTML='<div class="empty">Erreur réseau.</div>';
     });
@@ -849,7 +855,7 @@ function renderProfil(){
     +'</div>';
 }
 
-function renderUsers(){
+function renderUsers(gen){
   var roles=getRoles();
   var lbl={all:'Tous',actif:'Actifs',disabled:'Désactivés'};
   var filters=['all','actif','disabled'];
@@ -863,7 +869,7 @@ function renderUsers(){
 
   /* PROMPT 010 — charger depuis Supabase si pas encore fait */
   if (!_sbEmpLoaded) {
-    loadSBEmployees(function(){ if(currentTabId==='users') renderTab('users'); });
+    loadSBEmployees(function(){ if(_renderGen===gen&&currentTabId==='users') renderTab('users'); });
     return '<div class="empty"><div class="empty-ico">⏳</div>Chargement des employés…</div>';
   }
 

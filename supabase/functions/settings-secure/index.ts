@@ -146,18 +146,14 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'invalid_value' }, 400, cors);
     }
 
-    // Refuse tout champ ressemblant à un secret
-    const SECRET_PATTERNS = [/key/i, /secret/i, /token/i, /password.*api/i, /private/i];
-    for (const [k, v] of Object.entries(value)) {
-      if (SECRET_PATTERNS.some(p => p.test(k)) && k !== 'password') {
-        // Allow wifi.password only
-        return json({ ok: false, error: 'secret_field_rejected', field: k }, 400, cors);
-      }
-    }
-
-    // Validation spécifique security — ranges et types
+    // Validation spécifique security — whitelist stricte + ranges + types
     if (key === 'security') {
-      const v = value;
+      for (const k of Object.keys(value)) {
+        if (!SECURITY_ALLOWED_FIELDS.has(k)) {
+          return json({ ok: false, error: 'secret_field_rejected', field: k }, 400, cors);
+        }
+      }
+      const v = value as Record<string, unknown>;
       const slh = Number(v.session_lifetime_hours ?? 12);
       const rtd = Number(v.resume_token_days ?? 30);
       const tpe = Number(v.temp_pin_expiry_hours ?? 24);
@@ -166,14 +162,17 @@ Deno.serve(async (req) => {
       if (!Number.isFinite(tpe)  || tpe < 1  || tpe > 168) return json({ ok: false, error: 'invalid_security_value', field: 'temp_pin_expiry_hours' }, 400, cors);
       if ('track_ip' in v && typeof v.track_ip !== 'boolean') return json({ ok: false, error: 'invalid_security_value', field: 'track_ip' }, 400, cors);
       if ('track_user_agent' in v && typeof v.track_user_agent !== 'boolean') return json({ ok: false, error: 'invalid_security_value', field: 'track_user_agent' }, 400, cors);
+    } else {
+      // Pour toutes les autres clés : refuser les champs ressemblant à des secrets
+      const SECRET_PATTERNS = [/key/i, /secret/i, /token/i, /password.*api/i, /private/i];
+      for (const k of Object.keys(value)) {
+        if (SECRET_PATTERNS.some(p => p.test(k)) && k !== 'password') {
+          // Allow wifi.password only
+          return json({ ok: false, error: 'secret_field_rejected', field: k }, 400, cors);
+        }
+      }
     }
 
-    // Merge avec valeur existante pour ne pas écraser les champs non envoyés
-    const { data: existing } = await db
-      .from('veraluz_settings')
-      .select('value')
-      .eq('key', key)
-      .maybeSingle();
 
     const merged = Object.assign({}, existing?.value ?? {}, value);
     if (

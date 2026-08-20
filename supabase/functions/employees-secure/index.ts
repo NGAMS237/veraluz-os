@@ -6,6 +6,7 @@
  * X-Veraluz-Session. Le service_role reste strictement cote serveur.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { normalizeRole, hasCapability, isPrivilegedRole } from './_rbac.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -19,30 +20,12 @@ const ALLOWED_ORIGINS = [
 const ACTIVE_STATUSES = new Set(['actif', 'active']);
 const VALID_EMPLOYEE_STATUSES = new Set(['actif', 'active', 'conge', 'inactif', 'inactive']);
 
-const ROLE_CLASS: Record<string, string> = {
-  gerant: 'superadmin', directeur: 'superadmin', direction: 'superadmin',
-  directrice: 'superadmin', admin: 'superadmin', administrateur: 'superadmin',
-  superadmin: 'superadmin', proprietaire: 'superadmin', owner: 'superadmin',
-  manager: 'manager', superviseur: 'manager', chef_equipe: 'manager',
-  receptionniste: 'reception', receptioniste: 'reception',
-  agent_accueil: 'reception', reception: 'reception',
-  comptable: 'accountant', financier: 'accountant', finance: 'accountant',
-  accountant: 'accountant',
-  rh: 'rh', ressources_humaines: 'rh', hr: 'rh',
-  barman: 'restaurant', serveur: 'restaurant', restaurant: 'restaurant', waiter: 'restaurant',
-  cuisinier: 'kitchen', chef: 'kitchen', chef_cuisinier: 'kitchen',
-  kitchen: 'kitchen', aide_cuisine: 'kitchen', cook: 'kitchen', cuisine: 'kitchen',
-};
-
-const DIRECTORY_ROLE_CLASSES = new Set(['superadmin', 'manager', 'reception']);
-const OPERATIONAL_ROLE_CLASSES = new Set(['superadmin', 'manager', 'restaurant', 'kitchen']);
-const ANALYTICS_ROLE_CLASSES = new Set(['superadmin', 'accountant']);
-const RH_ROLE_CLASSES = new Set(['superadmin', 'manager', 'rh']);
+// AUTH-R5 : normalisation et capabilities via _rbac.ts (source canonique)
 
 // Liste fermée alignée sur ROLE_MAP (CORE) et le sélecteur RH existant.
 // AUTH-R5 décidera plus tard d'une éventuelle source RBAC canonique en DB.
 const KNOWN_EMPLOYEE_ROLES = new Set([
-  ...Object.keys(ROLE_CLASS),
+  'gerant','directeur','directrice','direction','admin','administrateur','superadmin','proprietaire','owner',
   'femme_chambre', 'agent_menage', 'housekeeping', 'menage', 'cleaner', 'housekeeper',
   'technicien', 'maintenance', 'plombier', 'electricien', 'agent_securite',
   'livreur', 'coursier', 'driver', 'delivery', 'chauffeur',
@@ -68,7 +51,7 @@ const GET_MY_DELIVERY_PROFILE_FIELDS = new Set(['action']);
 const UPDATE_MY_PHOTO_FIELDS = new Set(['action', 'photo_url']);
 const UPDATE_MY_PROFILE_FIELDS = new Set(['action', 'civility', 'first_name', 'last_name', 'phone', 'email', 'photo_url']);
 
-type Actor = { id: string; role: string; roleClass: string };
+type Actor = { id: string; role: string; rawRole: string };
 type DbClient = ReturnType<typeof createClient>;
 type TargetAccess =
   | { ok: true; target: { id: string; role: string } }
@@ -98,10 +81,7 @@ async function sha256Hex(value: string) {
     .map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-function roleClass(role: unknown) {
-  const normalized = String(role || '').trim().toLowerCase();
-  return ROLE_CLASS[normalized] || normalized;
-}
+// AUTH-R5: roleClass replaced by normalizeRole from _rbac.ts
 
 async function validateEmployeeSession(
   db: DbClient,
@@ -141,31 +121,23 @@ async function validateEmployeeSession(
   return {
     actor: {
       id: String(employee.id),
-      role: String(employee.role || '').toLowerCase(),
-      roleClass: roleClass(employee.role),
+      role: normalizeRole(employee.role),
+      rawRole: String(employee.role || '').toLowerCase(),
     },
     serverError: false,
   };
 }
 
-function requireRole(actor: Actor, allowed: Set<string>) {
-  return allowed.has(actor.roleClass);
-}
+// AUTH-R5: requireRole removed — use hasCapability(actor.role, cap) directly
 
 function isDeliveryTeamName(value: unknown) {
   return String(value || '').trim().toLowerCase() === 'livreurs';
 }
 
-function isPrivilegedRole(role: unknown) {
-  return roleClass(role) === 'superadmin';
-}
-
-function isPrivilegedActor(actor: Actor) {
-  return actor.roleClass === 'superadmin';
-}
+// AUTH-R5: isPrivilegedRole/Actor — delegated to _rbac.ts hasCapability('auth.users.manage')
 
 function canAssignRole(actor: Actor, targetRole: string) {
-  return isPrivilegedActor(actor) || !isPrivilegedRole(targetRole);
+  return hasCapability(actor.role, 'auth.users.manage') || !isPrivilegedRole(targetRole);
 }
 
 async function authorizeTargetMutation(
@@ -184,7 +156,7 @@ async function authorizeTargetMutation(
     return { ok: false, status: 500, error: 'server_error' };
   }
   if (!target) return { ok: false, status: 404, error: 'employee_not_found' };
-  if (!isPrivilegedActor(actor) && isPrivilegedRole(target.role)) {
+  if (!hasCapability(actor.role, 'auth.users.manage') && isPrivilegedRole(target.role)) {
     return { ok: false, status: 403, error: 'privileged_target_forbidden' };
   }
   return { ok: true, target: { id: String(target.id), role: String(target.role || '') } };
@@ -439,7 +411,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'list_directory') {
-    if (!requireRole(actor, DIRECTORY_ROLE_CLASSES)) {
+    if (!hasCapability(actor.role, 'employees.directory')) {
       return json({ ok: false, error: 'forbidden' }, 403, origin);
     }
     const { data: employees, error } = await db
@@ -454,7 +426,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'list_operational_roster') {
-    if (!requireRole(actor, OPERATIONAL_ROLE_CLASSES)) {
+    if (!hasCapability(actor.role, 'restaurant.read')) {
       return json({ ok: false, error: 'forbidden' }, 403, origin);
     }
     const { data: employees, error } = await db
@@ -470,7 +442,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'list_analytics') {
-    if (!requireRole(actor, ANALYTICS_ROLE_CLASSES)) {
+    if (!hasCapability(actor.role, 'finance.read')) {
       return json({ ok: false, error: 'forbidden' }, 403, origin);
     }
     const { data: employees, error } = await db
@@ -485,7 +457,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'rh_list') {
-    if (!requireRole(actor, RH_ROLE_CLASSES)) {
+    if (!hasCapability(actor.role, 'employees.manage')) {
       return json({ ok: false, error: 'forbidden' }, 403, origin);
     }
     const result = await selectRhEmployees(db);
@@ -497,7 +469,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'rh_create') {
-    if (!requireRole(actor, RH_ROLE_CLASSES)) {
+    if (!hasCapability(actor.role, 'employees.manage')) {
       return json({ ok: false, error: 'forbidden' }, 403, origin);
     }
     const input = body.employee;
@@ -545,7 +517,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'rh_update') {
-    if (!requireRole(actor, RH_ROLE_CLASSES)) {
+    if (!hasCapability(actor.role, 'employees.manage')) {
       return json({ ok: false, error: 'forbidden' }, 403, origin);
     }
     const employeeId = targetEmployeeId(body.employee_id);
@@ -603,7 +575,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'rh_set_status') {
-    if (!requireRole(actor, RH_ROLE_CLASSES)) {
+    if (!hasCapability(actor.role, 'employees.manage')) {
       return json({ ok: false, error: 'forbidden' }, 403, origin);
     }
     const employeeId = targetEmployeeId(body.employee_id);
@@ -631,7 +603,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'rh_update_compensation') {
-    if (!requireRole(actor, RH_ROLE_CLASSES)) {
+    if (!hasCapability(actor.role, 'employees.manage')) {
       return json({ ok: false, error: 'forbidden' }, 403, origin);
     }
     const employeeId = targetEmployeeId(body.employee_id);

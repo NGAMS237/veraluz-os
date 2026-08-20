@@ -9,9 +9,11 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## Lots actifs
 
-AUTH-SECURITY-FINAL-PATCH | claude/auth-final-integration | AUTH FINAL HUMAN TEST READY — header-only session token + SSOT expiries + RBAC manager revert + SETTINGS SyntaxError fix (ca4569b)
+AUTH UI POLISH | claude/auth-final-integration | AUTH UI FINAL RETEST READY — Profil/Users isolation + Sessions IP + Settings Sécurité layout (eaa1b05)
 
 ## Transmissions récentes
+
+`2026-08-20 | Claude | AUTH UI POLISH | claude/auth-final-integration | eaa1b05 | AUTH_EMBEDDED: loadSBEmployees cb guarded (currentTabId==='users'); renderProfil .then() guarded (currentTabId!=='profil'); Sessions affiche IP réelle / 'Non disponible' si null; statusBadge dupliqué supprimé. SETTINGS_EMBEDDED: card imbriquée retirée renderSysteme; renderSecuriteCard() réécriture classes natives .row/.toggle-info/.toggle-label/.toggle-track/.row-hint. 17/17 tests PASS | AUTH UI FINAL RETEST READY | aucun LOCK | tester: Profil≠Utilisateurs, Sessions affiche IP, Settings Sécurité lisible et champs éditables`
 
 `2026-08-20 | Claude | AUTH-SECURITY-FINAL-PATCH | claude/auth-final-integration | ca4569b | CORE: issueCoreResumeToken+direct fetch+change-pin fetch → X-Veraluz-Session header (session_token hors body); issue-resume-token v4 (header + resume_token_days SSOT); reset-employee-pin v10 (header + temp_pin_expiry_hours SSOT + p_expires_at RPC); change-employee-pin v7 (header auth); auth-admin-secure v3 (_rbac.ts manager sans auth.sessions/audit.read); SETTINGS_EMBEDDED renderSecuriteCard() standalone (SyntaxErrors apostrophes résolus); 18/18 tests PASS | AUTH FINAL HUMAN TEST READY | aucun LOCK | tester login+F5, Settings→Sécurité éditables, reset PIN direction, resume_token_days appliqué, no session_token dans body réseau`
 

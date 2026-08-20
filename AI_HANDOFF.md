@@ -9,9 +9,13 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## Lots actifs
 
-SETTINGS-SSOT-1 | main | PROCHAINE PHASE — AUTH CLOSED (merge 2026-08-20)
+SETTINGS-SSOT-1A | claude/settings-ssot-1a | IMPLÉMENTÉ — en attente retest humain + merge Blaise
+SETTINGS-FISCAL-1 | (à créer) | PROCHAINE PHASE — TVA/taxe touristique/charge service/early-checkout
+CATALOG-SSOT-1 | (à créer) | veraluz_unit_types canonical — cartographie effectuée, pas de table créée
 
 ## Transmissions récentes
+
+`2026-08-20 | Claude | SETTINGS-SSOT-1A | claude/settings-ssot-1a | ff2dd79 | 17/17 checks PASS | IMPLÉMENTÉ — PUSH BLOQUÉ proxy session (push manuel requis) | aucun LOCK | HUMAN RETEST 20 cas (tests/SETTINGS_SSOT_1A_TESTS.md) puis merge main si OK — Fichiers: migration 20260820_settings_ssot_1a.sql (branding+localization seed, restaurant extend idempotent), settings-secure v2 (localization WRITABLE, base64 reject, whitelist), SETTINGS_EMBEDDED (DB canonical branding/localization/restaurant, permissions read-only, 3 LS writes supprimés), CORE (applyBrandingTokens, boot DB branding fetch, permissions-updated handler supprimé). Prochaine: SETTINGS-FISCAL-1 (tva/service_charge/taxes) + CATALOG-SSOT-1 (veraluz_unit_types)`
 
 `2026-08-20 | Claude | AUTH CLOSED + MERGE MAIN | main | merge claude/auth-final-integration | AUTH PHASE TERMINÉE — anomalie UI AUTH-UI-1 en backlog (Profil/Users vue croisée, non bloquante sécurité). Livrés : profil serveur, team_name, PIN/reset/forced change, sessions/F5, multi-session, RBAC serveur, Sessions/Audit/Sécurité réels, IP/UA tracking, security settings SSOT, X-Veraluz-Session header only, session_token hors body. Prochaine phase : SETTINGS-SSOT-1 | AUTH CLOSED | aucun LOCK | démarrer SETTINGS-SSOT-1`
 

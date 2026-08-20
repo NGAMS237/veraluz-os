@@ -829,6 +829,7 @@ function renderProfil(){
   }
   window.parent.veraluzSecureRequest('employees-secure',{action:'get_my_profile'})
     .then(function(res){
+      if(currentTabId!=='profil') return;
       var c=document.getElementById('profil-wrap');
       if(!c) return;
       if(res&&res.body&&res.body.ok&&res.body.profile){
@@ -862,7 +863,7 @@ function renderUsers(){
 
   /* PROMPT 010 — charger depuis Supabase si pas encore fait */
   if (!_sbEmpLoaded) {
-    loadSBEmployees(function(){ renderTab('users'); });
+    loadSBEmployees(function(){ if(currentTabId==='users') renderTab('users'); });
     return '<div class="empty"><div class="empty-ico">⏳</div>Chargement des employés…</div>';
   }
 
@@ -928,13 +929,6 @@ function sbStatusBadge(s){
 
 function statusBadge(s){
   return sbStatusBadge(s);
-}
-
-function statusBadge(s){
-  var map={active:'<span class="bdg bdg-green">Actif</span>',
-           pending:'<span class="bdg bdg-yellow">En attente</span>',
-           disabled:'<span class="bdg bdg-red">Désactivé</span>'};
-  return map[s]||'<span class="bdg bdg-gray">'+esc(s)+'</span>';
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1310,6 +1304,9 @@ function renderSessions() {
       + '<div style="font-size:12px;color:var(--text2);margin-top:2px;">'
       + '<span class="bdg bdg-gray">' + esc(empRole) + '</span>'
       + ' &nbsp;·&nbsp; 🖥 ' + esc(s.device || 'Non disponible')
+      + '</div>'
+      + '<div style="font-size:11px;color:var(--text3);margin-top:1px;">'
+      + '🌐 IP&nbsp;: ' + esc(s.ip || 'Non disponible')
       + '</div>'
       + '<div style="font-size:11px;color:var(--text3);margin-top:2px;">'
       + 'Début : ' + fmt_ts(s.created_at)

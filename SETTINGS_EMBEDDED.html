@@ -1476,20 +1476,23 @@ function renderSecuriteCard(){
   var tip=sec.track_ip!==false;
   var tua=sec.track_user_agent!==false;
   var h='';
-  h+='<div class="field-row"><label class="field-lbl">Durée session (heures)<span class="field-hint">1–720 h. Défaut: 12</span></label>';
-  h+='<input type="number" min="1" max="720" class="field-inp" id="sec-slh" value="'+slh+'" onchange="saveSecurityParam(\'session_lifetime_hours\',+this.value)"></div>';
-  h+='<div class="field-row"><label class="field-lbl">Durée remember-me (jours)<span class="field-hint">1–365 j. Défaut: 30</span></label>';
-  h+='<input type="number" min="1" max="365" class="field-inp" id="sec-rtd" value="'+rtd+'" onchange="saveSecurityParam(\'resume_token_days\',+this.value)"></div>';
-  h+='<div class="field-row"><label class="field-lbl">Expiry PIN temporaire (heures)<span class="field-hint">1–168 h. Défaut: 24</span></label>';
-  h+='<input type="number" min="1" max="168" class="field-inp" id="sec-tpe" value="'+tpe+'" onchange="saveSecurityParam(\'temp_pin_expiry_hours\',+this.value)"></div>';
-  h+='<div class="toggle-row"><div><div class="toggle-lbl">Tracking IP sessions</div><div class="toggle-sub">Enregistre l\'IP à chaque connexion</div></div>';
+  h+='<div class="row"><label>Durée session</label>';
+  h+='<input type="number" min="1" max="720" id="sec-slh" value="'+slh+'" onchange="saveSecurityParam(\'session_lifetime_hours\',+this.value)">';
+  h+='<div class="row-hint">Heures · 1–720 · Défaut 12</div></div>';
+  h+='<div class="row"><label>Durée reprise (remember me)</label>';
+  h+='<input type="number" min="1" max="365" id="sec-rtd" value="'+rtd+'" onchange="saveSecurityParam(\'resume_token_days\',+this.value)">';
+  h+='<div class="row-hint">Jours · 1–365 · Défaut 30</div></div>';
+  h+='<div class="row"><label>Expiration PIN temporaire</label>';
+  h+='<input type="number" min="1" max="168" id="sec-tpe" value="'+tpe+'" onchange="saveSecurityParam(\'temp_pin_expiry_hours\',+this.value)">';
+  h+='<div class="row-hint">Heures · 1–168 · Défaut 24</div></div>';
+  h+='<div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Tracking IP sessions</div><div class="toggle-desc">Enregistre l\'IP à chaque connexion</div></div>';
   h+='<label class="toggle"><input type="checkbox" id="sec-tip"'+(tip?' checked':'');
-  h+=' onchange="saveSecurityParam(\'track_ip\',this.checked)"><span class="slider"></span></label></div>';
-  h+='<div class="toggle-row"><div><div class="toggle-lbl">Tracking User-Agent</div><div class="toggle-sub">Identifie l\'appareil de connexion</div></div>';
+  h+=' onchange="saveSecurityParam(\'track_ip\',this.checked)"><div class="toggle-track"></div></label></div>';
+  h+='<div class="toggle-row"><div class="toggle-info"><div class="toggle-label">Tracking User-Agent</div><div class="toggle-desc">Identifie l\'appareil de connexion</div></div>';
   h+='<label class="toggle"><input type="checkbox" id="sec-tua"'+(tua?' checked':'');
-  h+=' onchange="saveSecurityParam(\'track_user_agent\',this.checked)"><span class="slider"></span></label></div>';
-  h+='<div style="margin-top:10px;padding:10px;background:var(--bg2);border-radius:6px;font-size:11px;color:var(--txt2);">';
-  h+='<b>Paramètres immuables (serveur) :</b> PIN 6 chiffres · bcrypt · Token changement 15 min · must_change_pin activé</div>';
+  h+=' onchange="saveSecurityParam(\'track_user_agent\',this.checked)"><div class="toggle-track"></div></label></div>';
+  h+='<div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:6px;border:1px solid var(--bg4);font-size:11px;color:var(--text2);">';
+  h+='<b>Paramètres imposés par le serveur :</b> PIN 6 chiffres · bcrypt · changement obligatoire · jeton 15 min</div>';
   return h;
 }
 
@@ -1511,10 +1514,8 @@ function renderSysteme(){
   +toggle('Mode maintenance','Rend l\'application inaccessible aux non-admins','systeme.maintenance_mode',sys.maintenance_mode)
   +'</div>'
   +'<div class="card">'
-    +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Sécurité Authentification</div>'
   +renderSecuriteCard()
-    +'</div>'
   
   +'<div class="card-title"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>Réinitialisation</div>'
   +'<div style="display:flex;gap:10px;flex-wrap:wrap;">'

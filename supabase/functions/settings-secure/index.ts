@@ -1,24 +1,25 @@
 /**
- * SETTINGS-SSOT-1A — settings-secure Edge Function v2
+ * SETTINGS-SSOT-1A — settings-secure Edge Function v3
  *
  * Actions:
  *   get_settings    — lecture publique, wifi.password toujours masqué
- *   update_settings — écriture sécurisée (direction/gerant uniquement)
+ *   update_settings — écriture sécurisée (capability settings.manage uniquement)
  *
  * Sécurité:
  *   - Employee session validée via X-Veraluz-Session header
- *   - Rôle direction/gerant requis pour écriture
+ *   - Capability settings.manage requise pour écriture (RBAC canonique _rbac.ts)
+ *   - manager = settings.read seulement → 403 sur update_settings
  *   - Clés autorisées: property, contact, booking, wifi, restaurant, branding, security, localization
  *   - Secrets jamais dans settings (RESEND_API_KEY, service_role, etc.)
  *   - wifi.password jamais renvoyé par get_settings ni loggué
  *   - logo_url : URL Supabase Storage uniquement — jamais base64/dataURL
  *
- * v2 (SETTINGS-SSOT-1A):
- *   + localization ajouté (language, locale, primary_currency, secondary_currency,
- *     timezone, date_format, time_format)
- *   + validation logo_url : base64 refusé côté EF
+ * v3 (SETTINGS-SSOT-1A hardening):
+ *   + RBAC via hasCapability(role, 'settings.manage') — plus de whitelist locale
+ *   + manager exclu de update_settings (settings.read seulement)
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { hasCapability } from './_rbac.ts';
 
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -29,10 +30,6 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:8080',
 ];
-
-const DIRECTION_ROLES = new Set([
-  'gerant','direction','directrice','manager','admin','superadmin',
-]);
 
 const WRITABLE_KEYS = new Set([
   'property','contact','booking','wifi','restaurant','branding','security','localization',
@@ -149,9 +146,8 @@ Deno.serve(async (req) => {
     const employee = await validateEmployeeSession(db, sessionToken);
     if (!employee) return json({ ok: false, error: 'auth_required' }, 401, cors);
 
-    const role = (employee.role ?? '').toLowerCase();
-    if (!DIRECTION_ROLES.has(role)) {
-      return json({ ok: false, error: 'forbidden', required_role: 'direction' }, 403, cors);
+    if (!hasCapability(employee.role, 'settings.manage')) {
+      return json({ ok: false, error: 'forbidden', required_capability: 'settings.manage' }, 403, cors);
     }
 
     const key   = body.key as string | undefined;

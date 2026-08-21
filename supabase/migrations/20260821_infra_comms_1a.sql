@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS veraluz_communication_jobs (
     CHECK (channel IN ('email', 'internal', 'guest_portal')),
   recipient_ref text        NOT NULL,        -- email, guest_session_id::text, ou 'department:xxx'
   status        text        NOT NULL DEFAULT 'pending'
-    CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'dead')),
+    CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'dead', 'blocked_provider')),
   attempt       int         NOT NULL DEFAULT 0,
   max_attempts  int         NOT NULL DEFAULT 4,
   last_error    text,
@@ -77,6 +77,11 @@ CREATE TABLE IF NOT EXISTS veraluz_communication_jobs (
 CREATE INDEX IF NOT EXISTS idx_comm_jobs_status_created
   ON veraluz_communication_jobs (status, created_at)
   WHERE status = 'pending';
+
+-- Index séparé pour blocked_provider → visibilité opérationnelle (infra-health, dashboard)
+CREATE INDEX IF NOT EXISTS idx_comm_jobs_blocked_provider
+  ON veraluz_communication_jobs (created_at)
+  WHERE status = 'blocked_provider';
 
 ALTER TABLE veraluz_communication_jobs ENABLE ROW LEVEL SECURITY;
 

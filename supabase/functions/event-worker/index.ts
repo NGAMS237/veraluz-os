@@ -142,10 +142,10 @@ async function runHandler(
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 
-  // Sécurité : service_role uniquement
+  // Sécurité : service_role uniquement — correspondance EXACTE Bearer <key>
   const authHeader = req.headers.get('Authorization') ?? '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  if (!serviceKey || !authHeader.endsWith(serviceKey)) {
+  if (!serviceKey || authHeader !== `Bearer ${serviceKey}`) {
     return json({ ok: false, error: 'service_role_required' }, 403);
   }
 
@@ -163,11 +163,18 @@ serve(async (req: Request) => {
     error?:   string;
   }> = [];
 
+  // Lire worker_id depuis le body (transmis par infra-scheduler pour traçabilité run→worker→job)
+  let worker_id = '';
+  try {
+    const body = await req.json() as Record<string, unknown>;
+    worker_id  = (body['worker_id'] as string) || '';
+  } catch { /* body vide ou absent — worker_id reste '' */ }
+
   // ── Verrou atomique via RPC ───────────────────────────────────
   // claim_event_jobs retourne UNIQUEMENT les jobs réclamés.
   // Si 0 lignes → aucun travail, retour immédiat.
   const { data: jobs, error: claimErr } = await admin
-    .rpc('claim_event_jobs', { p_batch: BATCH_SIZE });
+    .rpc('claim_event_jobs', { p_batch: BATCH_SIZE, p_worker_id: worker_id || null });
 
   if (claimErr) {
     console.error('[event-worker] claim_event_jobs error:', claimErr.message);

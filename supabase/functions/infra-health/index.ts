@@ -108,7 +108,8 @@ serve(async (req: Request) => {
     .limit(10);
 
   // ── Comms (veraluz_communication_jobs) — sans recipient ni body ─
-  const commStatuses = ['pending', 'processing', 'completed', 'failed', 'dead'] as const;
+  // blocked_provider = email parqué car Resend non configuré (retries préservés)
+  const commStatuses = ['pending', 'processing', 'completed', 'failed', 'dead', 'blocked_provider'] as const;
   const commCounts: Record<string, number> = {};
 
   await Promise.all(commStatuses.map(async (st) => {
@@ -139,6 +140,32 @@ serve(async (req: Request) => {
     eventsByType[t] = (eventsByType[t] ?? 0) + 1;
   }
 
+  // ── Documents (veraluz_document_jobs + veraluz_documents) ───────────────
+  const docStatuses = ['pending', 'processing', 'completed', 'failed', 'dead'] as const;
+  const docJobCounts: Record<string, number> = {};
+
+  await Promise.all(docStatuses.map(async (st) => {
+    const { count } = await admin
+      .from('veraluz_document_jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', st);
+    docJobCounts[st] = count ?? 0;
+  }));
+
+  const { data: lastDocGenerated } = await admin
+    .from('veraluz_documents')
+    .select('id, document_type, related_record_id, status, generated_at, file_size_bytes')
+    .order('generated_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  const { data: failedDocs } = await admin
+    .from('veraluz_documents')
+    .select('id, document_type, related_record_id, error_message, updated_at')
+    .eq('status', 'failed')
+    .order('updated_at', { ascending: false })
+    .limit(5);
+
   // ── Oldest pending ages (watchdog) ───────────────────────────
   const { data: oldestEventPending } = await admin
     .from('veraluz_event_jobs')
@@ -167,7 +194,7 @@ serve(async (req: Request) => {
   // ── Scheduler : dernière run ─────────────────────────────────
   const { data: lastRun } = await admin
     .from('veraluz_infra_runs')
-    .select('id, started_at, finished_at, status, duration_ms, trigger_source, recovered_jobs, event_processed, comm_processed, event_failed, comm_failed, event_dead, comm_dead')
+    .select('id, started_at, finished_at, status, duration_ms, trigger_source, recovered_jobs, event_processed, comm_processed, event_failed, comm_failed, event_dead, comm_dead, doc_processed, doc_completed, doc_failed, doc_dead')
     .order('started_at', { ascending: false })
     .limit(1)
     .single();
@@ -178,16 +205,21 @@ serve(async (req: Request) => {
 
   // ── Niveaux d'alerte ─────────────────────────────────────────
   const hasDead =
-    (deadJobs?.length   ?? 0) > 0 ||
-    (deadCommJobs?.length ?? 0) > 0;
+    (deadJobs?.length    ?? 0) > 0 ||
+    (deadCommJobs?.length ?? 0) > 0 ||
+    (docJobCounts['dead'] ?? 0) > 0;
   const schedulerStale  = schedulerAgeMs === null || schedulerAgeMs > FIVE_MINUTES_MS;
   const pendingStale    =
     (oldestEventAgeMs !== null && oldestEventAgeMs > FIVE_MINUTES_MS) ||
     (oldestCommAgeMs  !== null && oldestCommAgeMs  > FIVE_MINUTES_MS);
+  // blocked_provider > 0 → WARNING : emails en attente d'activation du provider email
+  const hasBlockedProvider = (commCounts['blocked_provider'] ?? 0) > 0;
+  // docs failed → WARNING : au moins un PDF n'a pas pu être généré
+  const hasDocFailed = (failedDocs?.length ?? 0) > 0;
 
   const alert_level: 'OK' | 'WARNING' | 'CRITICAL' =
-    hasDead || schedulerStale   ? 'CRITICAL' :
-    pendingStale                ? 'WARNING'  : 'OK';
+    hasDead || schedulerStale                              ? 'CRITICAL' :
+    pendingStale || hasBlockedProvider || hasDocFailed     ? 'WARNING'  : 'OK';
 
   return json({
     ok: true,
@@ -204,8 +236,10 @@ serve(async (req: Request) => {
       // Statistiques dernière run (sans données sensibles)
       last_event_processed: (lastRun?.event_processed as number) ?? null,
       last_comm_processed:  (lastRun?.comm_processed  as number) ?? null,
+      last_doc_processed:   (lastRun?.doc_processed   as number) ?? null,
       last_event_failed:    (lastRun?.event_failed     as number) ?? null,
       last_comm_failed:     (lastRun?.comm_failed      as number) ?? null,
+      last_doc_failed:      (lastRun?.doc_failed       as number) ?? null,
       last_recovered_jobs:  (lastRun?.recovered_jobs   as number) ?? null,
     },
     jobs: {
@@ -221,11 +255,20 @@ serve(async (req: Request) => {
       recent:         recentEvents ?? [],
     },
     comms: {
-      counts:                commCounts,
-      recent:                recentCommJobs  ?? [],
-      dead:                  deadCommJobs    ?? [],
-      has_dead:              (deadCommJobs?.length ?? 0) > 0,
-      oldest_pending_age_ms: oldestCommAgeMs,
+      counts:                   commCounts,
+      recent:                   recentCommJobs  ?? [],
+      dead:                     deadCommJobs    ?? [],
+      has_dead:                 (deadCommJobs?.length ?? 0) > 0,
+      oldest_pending_age_ms:    oldestCommAgeMs,
+      // blocked_provider : jobs email en attente d'activation Resend — retries intacts
+      blocked_provider_count:   commCounts['blocked_provider'] ?? 0,
+      has_blocked_provider:     hasBlockedProvider,
+    },
+    documents: {
+      job_counts:          docJobCounts,
+      last_generated:      lastDocGenerated ?? null,
+      failed:              failedDocs       ?? [],
+      has_failed:          hasDocFailed,
     },
   });
 });

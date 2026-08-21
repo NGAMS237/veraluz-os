@@ -51,6 +51,7 @@ async function callWorker(
   sbUrl:      string,
   serviceKey: string,
   workerName: string,
+  workerId?:  string,
 ): Promise<WorkerResult> {
   const t0 = Date.now();
   try {
@@ -60,7 +61,8 @@ async function callWorker(
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${serviceKey}`,
       },
-      body: JSON.stringify({}),
+      // Transmettre worker_id = run_id pour traçabilité scheduler→worker→job
+      body: JSON.stringify(workerId ? { worker_id: workerId } : {}),
     });
 
     if (!resp.ok) {
@@ -176,24 +178,35 @@ serve(async (req: Request) => {
   }
 
   // ── 2. event-worker ────────────────────────────────────────────────────
-  const ewResult = await callWorker(sbUrl, serviceKey, 'event-worker');
+  // run_id transmis comme worker_id → gravé dans claimed_at/worker_id du job (traçabilité)
+  const ewResult = await callWorker(sbUrl, serviceKey, 'event-worker', run_id);
   console.log(
     `[infra-scheduler] run=${run_id} event-worker processed=${ewResult.processed}` +
     ` completed=${ewResult.completed} failed=${ewResult.failed} dead=${ewResult.dead}` +
     (ewResult.error ? ` error=${ewResult.error}` : ''),
   );
 
-  // ── 3. comms-worker ────────────────────────────────────────────────────
-  const cwResult = await callWorker(sbUrl, serviceKey, 'comms-worker');
+  // ── 3. document-worker ─────────────────────────────────────────────────────
+  // Après event-worker : les document_jobs ont été créés par les triggers DB.
+  // document-worker génère les PDFs déterministes et les stocke dans veraluz-documents-private.
+  const dwResult = await callWorker(sbUrl, serviceKey, 'document-worker', run_id);
+  console.log(
+    `[infra-scheduler] run=${run_id} document-worker processed=${dwResult.processed}` +
+    ` completed=${dwResult.completed} failed=${dwResult.failed} dead=${dwResult.dead}` +
+    (dwResult.error ? ` error=${dwResult.error}` : ''),
+  );
+
+  // ── 4. comms-worker ────────────────────────────────────────────────────
+  const cwResult = await callWorker(sbUrl, serviceKey, 'comms-worker', run_id);
   console.log(
     `[infra-scheduler] run=${run_id} comms-worker processed=${cwResult.processed}` +
     ` completed=${cwResult.completed} failed=${cwResult.failed} dead=${cwResult.dead}` +
     (cwResult.error ? ` error=${cwResult.error}` : ''),
   );
 
-  // ── 4. Finaliser run ───────────────────────────────────────────────────
+  // ── 5. Finaliser run ───────────────────────────────────────────────────
   const duration_ms = Date.now() - started_at;
-  const hasError    = !!(ewResult.error || cwResult.error);
+  const hasError    = !!(ewResult.error || dwResult.error || cwResult.error);
   const runStatus   = hasError ? 'partial' : 'completed';
 
   await admin
@@ -205,6 +218,10 @@ serve(async (req: Request) => {
       event_completed: ewResult.completed,
       event_failed:    ewResult.failed,
       event_dead:      ewResult.dead,
+      doc_processed:   dwResult.processed,
+      doc_completed:   dwResult.completed,
+      doc_failed:      dwResult.failed,
+      doc_dead:        dwResult.dead,
       comm_processed:  cwResult.processed,
       comm_completed:  cwResult.completed,
       comm_failed:     cwResult.failed,
@@ -212,17 +229,17 @@ serve(async (req: Request) => {
       recovered_jobs,
       duration_ms,
       error_message:   hasError
-        ? [ewResult.error, cwResult.error].filter(Boolean).join(' | ')
+        ? [ewResult.error, dwResult.error, cwResult.error].filter(Boolean).join(' | ')
         : null,
     })
     .eq('id', runDbId);
 
-  // ── 5. Réponse non sensible ────────────────────────────────────────────
+  // ── 6. Réponse non sensible ────────────────────────────────────────────
   return json({
-    ok:           true,
+    ok:              true,
     run_id,
-    trigger:      trigger_source,
-    timestamp:    new Date().toISOString(),
+    trigger:         trigger_source,
+    timestamp:       new Date().toISOString(),
     duration_ms,
     recovered_jobs,
     event_worker: {
@@ -230,6 +247,12 @@ serve(async (req: Request) => {
       completed: ewResult.completed,
       failed:    ewResult.failed,
       dead:      ewResult.dead,
+    },
+    document_worker: {
+      processed: dwResult.processed,
+      completed: dwResult.completed,
+      failed:    dwResult.failed,
+      dead:      dwResult.dead,
     },
     comms_worker: {
       processed: cwResult.processed,

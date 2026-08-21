@@ -16,6 +16,15 @@ import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { renderSubject, renderBody, TemplateContext } from '../_shared/templates.ts';
 
+// Erreur sentinelle : provider email non configuré (Resend absent)
+// → job parqué en 'blocked_provider', sans consommer les tentatives de retry
+class ProviderNotConfiguredError extends Error {
+  constructor() {
+    super('provider_not_configured');
+    this.name = 'ProviderNotConfiguredError';
+  }
+}
+
 const BATCH_SIZE    = 20;
 const TENANT        = 'veraluz-001';
 const SYSTEM_NAME   = 'Système Veraluz';
@@ -211,7 +220,14 @@ async function processEmail(
     throw new Error(`dispatch_worker_email failed: ${data.error ?? resp.status}`);
   }
 
-  // Statuts acceptables : sent, pending_channel (Resend non configuré — non bloquant)
+  // pending_channel = Resend non configuré → aucun email envoyé.
+  // On ne traite PAS ça comme un succès : on lève ProviderNotConfiguredError
+  // pour que le caller puisse parquer le job en 'blocked_provider' sans brûler les retries.
+  if (data.status === 'pending_channel') {
+    throw new ProviderNotConfiguredError();
+  }
+
+  // Statuts acceptables : sent, skipped_duplicate, skipped_no_email
   console.log(`[comms-worker] email dispatched job=${job['id']} status=${data.status} log=${data.log_id}`);
 }
 
@@ -222,10 +238,10 @@ async function processEmail(
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 
-  // Sécurité : service_role uniquement
+  // Sécurité : service_role uniquement — correspondance EXACTE Bearer <key>
   const authHeader = req.headers.get('Authorization') ?? '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  if (!serviceKey || !authHeader.endsWith(serviceKey)) {
+  if (!serviceKey || authHeader !== `Bearer ${serviceKey}`) {
     return json({ ok: false, error: 'service_role_required' }, 403);
   }
 
@@ -244,9 +260,16 @@ serve(async (req: Request) => {
     error?:       string;
   }> = [];
 
+  // Lire worker_id depuis le body (transmis par infra-scheduler pour traçabilité run→worker→job)
+  let worker_id = '';
+  try {
+    const body = await req.json() as Record<string, unknown>;
+    worker_id  = (body['worker_id'] as string) || '';
+  } catch { /* body vide ou absent — worker_id reste '' */ }
+
   // ── Verrou atomique ────────────────────────────────────────
   const { data: jobs, error: claimErr } = await admin
-    .rpc('claim_communication_jobs', { p_batch: BATCH_SIZE });
+    .rpc('claim_communication_jobs', { p_batch: BATCH_SIZE, p_worker_id: worker_id || null });
 
   if (claimErr) {
     console.error('[comms-worker] claim_communication_jobs error:', claimErr.message);
@@ -275,18 +298,27 @@ serve(async (req: Request) => {
 
         results.push({ job_id: job.id, template_key: templateKey, channel: 'email', status: 'completed', attempt });
       } catch (err: unknown) {
-        const lastError = err instanceof Error ? err.message : String(err);
-        const isDead    = attempt >= (job.max_attempts as number);
-
-        await admin.from('veraluz_communication_jobs').update({
-          status:       isDead ? 'dead' : 'pending',
-          last_error:   lastError,
-          processed_at: isDead ? new Date().toISOString() : null,
-          updated_at:   new Date().toISOString(),
-        }).eq('id', job.id);
-
-        results.push({ job_id: job.id, template_key: templateKey, channel: 'email', status: isDead ? 'dead' : 'failed', attempt, error: lastError });
-        console.error(`[comms-worker] email job=${job.id} attempt=${attempt} status=${isDead ? 'dead' : 'failed'} error=${lastError}`);
+        // Provider non configuré → bloquer sans consommer les retries
+        if (err instanceof ProviderNotConfiguredError) {
+          await admin.from('veraluz_communication_jobs').update({
+            status:     'blocked_provider',
+            last_error: 'Resend non configuré — en attente activation provider email',
+            updated_at: new Date().toISOString(),
+          }).eq('id', job.id);
+          results.push({ job_id: job.id, template_key: templateKey, channel: 'email', status: 'blocked_provider', attempt });
+          console.log(`[comms-worker] email job=${job.id} status=blocked_provider (provider non configuré — retries préservés)`);
+        } else {
+          const lastError = err instanceof Error ? err.message : String(err);
+          const isDead    = attempt >= (job.max_attempts as number);
+          await admin.from('veraluz_communication_jobs').update({
+            status:       isDead ? 'dead' : 'pending',
+            last_error:   lastError,
+            processed_at: isDead ? new Date().toISOString() : null,
+            updated_at:   new Date().toISOString(),
+          }).eq('id', job.id);
+          results.push({ job_id: job.id, template_key: templateKey, channel: 'email', status: isDead ? 'dead' : 'failed', attempt, error: lastError });
+          console.error(`[comms-worker] email job=${job.id} attempt=${attempt} status=${isDead ? 'dead' : 'failed'} error=${lastError}`);
+        }
       }
       continue;
     }
@@ -358,11 +390,12 @@ serve(async (req: Request) => {
 
   const duration_ms = Date.now() - started_at;
   const summary = {
-    ok:        true,
-    processed: results.length,
-    completed: results.filter(r => r.status === 'completed').length,
-    failed:    results.filter(r => r.status === 'failed').length,
-    dead:      results.filter(r => r.status === 'dead').length,
+    ok:               true,
+    processed:        results.length,
+    completed:        results.filter(r => r.status === 'completed').length,
+    failed:           results.filter(r => r.status === 'failed').length,
+    dead:             results.filter(r => r.status === 'dead').length,
+    blocked_provider: results.filter(r => r.status === 'blocked_provider').length,
     duration_ms,
     results,
   };

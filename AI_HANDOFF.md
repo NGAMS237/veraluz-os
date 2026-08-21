@@ -9,7 +9,7 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## Lots actifs
 
-SETTINGS-SSOT-1A | claude/settings-ssot-1a | HEAD 7416774 | READY LOCAL — push manuel requis (push_settings_ssot_1a.bat)
+SETTINGS-SSOT-1A | claude/settings-ssot-1a | HEAD b6657c1 | READY LOCAL — push manuel requis (bundle: veraluz_predeploy_guards.bundle)
 SETTINGS-FISCAL-1 | claude/settings-ssot-1a | HEAD f883b36 | READY LOCAL (review fixes appliqués — commit pending)
 CATALOG-SSOT-1 | claude/settings-ssot-1a | HEAD bb32ec3 | READY LOCAL (review fixes appliqués — commit pending)
 REVIEW-FIX-FISCAL-CATALOG | claude/settings-ssot-1a | HEAD pending | PRÊT COMMIT — 7 blockers fermés (amenities JSONB, status active/maint/oos, delete unit_id FK, tourist_tax_type pct cap, LS SSOT import, DB KO branding/restaurant/localisation, fiscal fallback supprimé)
@@ -17,6 +17,8 @@ REVIEW-FIX-FISCAL-CATALOG | claude/settings-ssot-1a | HEAD pending | PRÊT COMMI
 Prochaine phase : notifications / system / integrations / email cleanup → Guest Portal
 
 ## Transmissions récentes
+
+`2026-08-21 | Claude | MICRO-PATCH-PREDEPLOY | claude/settings-ssot-1a | b6657c1 | 10 cas H1–H10 ajoutés SETTINGS_SSOT_1A_TESTS.md | READY LOCAL push bloqué CCR → bundle veraluz_predeploy_guards.bundle | aucun LOCK | 7 fixes : _LS_CANONICAL+devises/fiscal, exportSettings() filtre canonical, saveCanonical() guard DB KO, logo-upload-secure branding error+old_path_removed réel, legacy logoUrl migration, fiscal partial update bypass fermé (existing DB read avant validation), guest-access checkout_time '12:00'`
 
 `2026-08-20 | Claude | REVIEW-FIX-FISCAL-CATALOG | claude/settings-ssot-1a | pending | 11 cas CATALOG + 11 cas FISCAL (STATIC+runtime) | PRÊT COMMIT | aucun LOCK | 7 blockers fermés : catalog-secure v2 (statuts active/maintenance/out_of_service, amenities JSONB array, delete .eq('unit_id') FK correcte, countErr guard), migration catalog (amenities::jsonb, status='active'), settings-secure tourist_tax_type pct cap, SETTINGS_EMBEDDED importSettings() + loadSettings() filtrent _LS_CANONICAL, DB KO branding/restaurant/localisation, RESERVATIONS tax_pct fallback supprimé, texte UI fiscal non-trompeur`
 

@@ -178,6 +178,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);
     <button class="tab"        onclick="goTab('simulator')"  id="tab-simulator">🧪 Simulateur</button>
     <button class="tab"        onclick="goTab('custom')"     id="tab-custom">⚙️ Règles custom</button>
     <button class="tab"        onclick="goTab('docs')"       id="tab-docs">📖 Docs API</button>
+    <button class="tab"        onclick="goTab('durables')"   id="tab-durables">🗄️ Durables DB</button>
   </div>
 
   <!-- Status bar -->
@@ -833,8 +834,163 @@ function renderTab(id) {
   else if (id==='simulator') html = renderSimulator();
   else if (id==='custom')    html = renderCustom();
   else if (id==='docs')      html = renderDocs();
+  else if (id==='durables')  { html = renderDurablesLoading(); loadDurables(); }
   c.innerHTML = html;
   c.scrollTop = 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   INFRA-OPS-1 — Onglet Durables DB (observabilité events/jobs)
+   Appelle infra-health via le broker CORE (gérant uniquement).
+   Aucune donnée sensible — read-only.
+══════════════════════════════════════════════════════════════ */
+function renderDurablesLoading() {
+  return '<div style="padding:24px;text-align:center;color:var(--text2)">⏳ Chargement des données durables…</div>';
+}
+
+function loadDurables() {
+  if (typeof window.parent.veraluzSecureRequest !== 'function') {
+    var c = document.getElementById('content');
+    if (c) c.innerHTML = '<div style="padding:24px;color:var(--red)">⚠️ Broker CORE non disponible (hors contexte iframe ?)</div>';
+    return;
+  }
+  window.parent.veraluzSecureRequest('infra-health', {})
+    .then(function(res) {
+      var data = res && (res.body || res);
+      var c = document.getElementById('content');
+      if (!c || currentTab !== 'durables') return;
+      if (!data || !data.ok) {
+        if (data && data.error === 'access_denied') {
+          c.innerHTML = '<div style="padding:24px;color:var(--amber)">🔒 Accès réservé aux gérants.</div>';
+        } else {
+          c.innerHTML = '<div style="padding:24px;color:var(--red)">⚠️ Erreur : ' + escH((data && data.error) || 'inconnue') + '</div>';
+        }
+        return;
+      }
+      c.innerHTML = renderDurables(data);
+    })
+    .catch(function(err) {
+      var c = document.getElementById('content');
+      if (c && currentTab === 'durables')
+        c.innerHTML = '<div style="padding:24px;color:var(--red)">⚠️ Impossible de contacter infra-health : ' + escH(String(err)) + '</div>';
+    });
+}
+
+function escH(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderDurables(data) {
+  var jobs    = data.jobs   || {};
+  var events  = data.events || {};
+  var counts  = jobs.counts || {};
+  var recent  = jobs.recent || [];
+  var dead    = jobs.dead   || [];
+  var byType  = events.by_type || {};
+  var recEvts = events.recent  || [];
+  var checkedAt = data.checked_at ? new Date(data.checked_at).toLocaleTimeString('fr-FR') : '—';
+
+  var hasDead = dead.length > 0;
+  var STATUS_COLORS = {
+    pending:'var(--amber)',processing:'var(--blue)',
+    completed:'var(--green)',failed:'var(--orange)',dead:'var(--red)'
+  };
+
+  // KPI cards jobs
+  var jobKpis = ['pending','processing','completed','failed','dead'].map(function(st) {
+    var n = counts[st] || 0;
+    var color = STATUS_COLORS[st] || 'var(--text)';
+    return '<div class="kpi-card"><div style="font-size:12px;color:var(--text2);margin-bottom:2px;">' + st + '</div>'
+      + '<div style="font-size:24px;font-weight:700;color:' + color + '">' + n + '</div></div>';
+  }).join('');
+
+  // Events by type
+  var evTypeRows = Object.keys(byType).map(function(t) {
+    return '<tr><td style="padding:6px 10px;font-size:12px;font-family:monospace;color:var(--acc)">' + escH(t)
+      + '</td><td style="padding:6px 10px;font-size:13px;font-weight:700">' + byType[t] + '</td></tr>';
+  }).join('') || '<tr><td colspan="2" style="padding:12px;text-align:center;color:var(--text3)">Aucun événement dans les 24h</td></tr>';
+
+  // Dead jobs alert
+  var deadAlert = hasDead
+    ? '<div style="background:rgba(239,68,68,.12);border:1px solid var(--red);border-radius:8px;padding:12px 14px;margin-bottom:14px">'
+      + '<div style="color:var(--red);font-weight:700;margin-bottom:6px">🚨 ' + dead.length + ' job(s) DEAD — intervention requise</div>'
+      + dead.map(function(j) {
+          return '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">'
+            + '• handler: <span style="color:var(--text);font-family:monospace">' + escH(j.handler) + '</span>'
+            + ' | attempts: ' + escH(String(j.attempt))
+            + ' | erreur: ' + escH(j.last_error || '—')
+            + '</div>';
+        }).join('')
+      + '</div>'
+    : '';
+
+  // Recent jobs table (last 20)
+  var jobRows = recent.slice(0, 20).map(function(j) {
+    var color = STATUS_COLORS[j.status] || 'var(--text)';
+    return '<tr>'
+      + '<td style="padding:5px 8px;font-size:10px;font-family:monospace;color:var(--text2)">' + escH(String(j.id||'').slice(-8)) + '</td>'
+      + '<td style="padding:5px 8px;font-size:11px;font-family:monospace">' + escH(j.handler||'') + '</td>'
+      + '<td style="padding:5px 8px"><span style="background:rgba(255,255,255,.07);color:' + color + ';padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600">' + escH(j.status||'') + '</span></td>'
+      + '<td style="padding:5px 8px;font-size:10px;color:var(--text2)">' + escH(String(j.attempt||0)) + '/' + 4 + '</td>'
+      + '<td style="padding:5px 8px;font-size:10px;color:var(--text3)">' + (j.created_at ? fmtTs(j.created_at) : '—') + '</td>'
+      + '</tr>';
+  }).join('') || '<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--text3)">Aucun job</td></tr>';
+
+  // Recent events table (last 15)
+  var evRows = recEvts.slice(0, 15).map(function(e) {
+    return '<tr>'
+      + '<td style="padding:5px 8px;font-size:11px;font-family:monospace;color:var(--acc)">' + escH(e.event_type||'') + '</td>'
+      + '<td style="padding:5px 8px;font-size:10px;color:var(--text2)">' + escH(e.source_fn||'—') + '</td>'
+      + '<td style="padding:5px 8px;font-size:10px;color:var(--text3)">' + (e.emitted_at ? fmtTs(e.emitted_at) : '—') + '</td>'
+      + '</tr>';
+  }).join('') || '<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--text3)">Aucun événement récent</td></tr>';
+
+  return ''
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
+    +   '<span style="font-size:13px;font-weight:700">🗄️ Événements durables (DB)</span>'
+    +   '<span style="font-size:11px;color:var(--text3)">Actualisé à ' + checkedAt + ' · '
+    +     '<button class="btn btn-secondary" style="font-size:10px;padding:3px 8px" onclick="loadDurables()">🔄 Rafraîchir</button>'
+    +   '</span>'
+    + '</div>'
+
+    + deadAlert
+
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Jobs par statut</div>'
+    + '<div class="kpi-grid" style="margin-bottom:16px">' + jobKpis + '</div>'
+
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'
+    +   '<div class="card">'
+    +     '<div class="card-title">📊 Événements (24h) par type</div>'
+    +     '<table style="width:100%;border-collapse:collapse">'
+    +       '<tbody>' + evTypeRows + '</tbody>'
+    +     '</table>'
+    +   '</div>'
+    +   '<div class="card">'
+    +     '<div class="card-title">⚡ Événements récents</div>'
+    +     '<table style="width:100%;border-collapse:collapse">'
+    +       '<thead><tr>'
+    +         '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Type</th>'
+    +         '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Source</th>'
+    +         '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Il y a</th>'
+    +       '</tr></thead>'
+    +       '<tbody>' + evRows + '</tbody>'
+    +     '</table>'
+    +   '</div>'
+    + '</div>'
+
+    + '<div class="card">'
+    +   '<div class="card-title">🔧 Jobs récents</div>'
+    +   '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:500px">'
+    +     '<thead><tr>'
+    +       '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">ID (fin)</th>'
+    +       '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Handler</th>'
+    +       '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Statut</th>'
+    +       '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Tentatives</th>'
+    +       '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">Créé</th>'
+    +     '</tr></thead>'
+    +     '<tbody>' + jobRows + '</tbody>'
+    +   '</table></div>'
+    + '</div>';
 }
 </script>
 </body>

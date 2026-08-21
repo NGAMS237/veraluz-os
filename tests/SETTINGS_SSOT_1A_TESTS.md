@@ -90,3 +90,25 @@
 ---
 
 **Total : 20 tests (A:8, B:7, C:2, D:5, E:5, F:6, G:3 info)**
+
+---
+
+## H — MICRO PATCH PRE-DEPLOY GUARDS (fix(settings): final pre-deploy guards)
+
+| # | Test | Attendu | Résultat |
+|---|------|---------|----------|
+| H1 | `_LS_CANONICAL` contient `'devises'` et `'fiscal'` | `_LS_CANONICAL.includes('devises') === true` · `_LS_CANONICAL.includes('fiscal') === true` — ni l'un ni l'autre ne doit jamais être écrit en localStorage | ⬜ |
+| H2 | `exportSettings()` produit `{_meta, settings}` sans domaines canonical | Le JSON exporté ne contient PAS de clé `branding`, `localization`, `restaurant`, `tarifs`, `chambres`, `devises`, `fiscal` dans `settings`. Le champ `_meta.excluded` liste ces domaines. Le fichier se nomme `veraluz_settings_local_AAAA-MM-JJ.json` | ⬜ |
+| H3 | `saveCanonical()` refusé si `_dbSettError === true` | Simuler un boot DB KO (`_dbSettError=true`) → appeler `saveCanonical('branding',{})` → toast `❌ DB indisponible — sauvegarde impossible` — aucun appel réseau effectué | ⬜ |
+| H4 | `logo-upload-secure` : erreur lecture branding → HTTP 500, aucun upload Storage | Simuler erreur DB sur `maybeSingle()` branding → l'EF retourne `{ok:false, error:'branding_read_error'}` · aucun fichier uploadé dans le bucket `logos` | ⬜ |
+| H5 | `logo-upload-secure` : `old_path_removed` reflète le résultat réel du cleanup | Si suppression de l'ancien objet réussit → `old_path_removed: true`. Si elle échoue (non-bloquant) → `old_path_removed: false`. Si aucun ancien objet → `old_path_removed: null` | ⬜ |
+| H6 | Migration legacy `logoUrl` → `logo_url` (branding PROD camelCase HTTP) | Si `_dbSett.branding.logoUrl` commence par `https://` et `logo_url` absent → `_dbSett.branding.logo_url` est renseigné · `saveCanonical('branding', {legacy_logo_url:..., logo_url:...})` est appelé (fire-and-forget) | ⬜ |
+| H7 | Migration legacy `logoUrl` relatif → PAS de promotion `logo_url` | Si `logoUrl = '/uploads/logo.png'` (pas `http://`) → `logo_url` reste absent · `legacy_logo_url` seul enregistré | ⬜ |
+| H8 | `settings-secure` fiscal : update partiel `{tourist_tax_value: 150}` bloqué si DB type = `pct` | POST `{action:"update_settings", key:"fiscal", value:{tourist_tax_value:150}}` alors que DB a `tourist_tax_type:'pct'` → HTTP 400 `invalid_fiscal_value` field=`tourist_tax_value` range=`0–100 (type=pct)` | ⬜ |
+| H9 | `settings-secure` fiscal : update partiel `{tourist_tax_value: 150}` autorisé si DB type = `fixed` | Même payload alors que DB a `tourist_tax_type:'fixed'` → HTTP 200 `ok:true` | ⬜ |
+| H10 | `guest-access` : `checkout_time` défaut `'12:00'` | Si `booking.checkout_time` est absent/null → la réponse contient `checkout_time:'12:00'` et non `'11:00'` | ⬜ |
+
+---
+
+**Total section H : 10 tests (H1–H10)**
+**Total général après patch : 30 tests fonctionnels + 3 informatifs**

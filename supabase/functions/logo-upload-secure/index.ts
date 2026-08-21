@@ -172,11 +172,18 @@ Deno.serve(async (req) => {
   const newPath = `veraluz-logo-${ts}-${rand}.${ext}`;
 
   /* ── Lire l'ancien logo_url AVANT tout upload ─────────────────────────── */
-  const { data: existingBranding } = await db
+  /* Fix 4 — SETTINGS-SSOT-1A: vérifier l'erreur de lecture branding avant tout upload */
+  const { data: existingBranding, error: brandingErr } = await db
     .from('veraluz_settings')
     .select('value')
     .eq('key', 'branding')
     .maybeSingle();
+
+  if (brandingErr) {
+    console.error('[logo-upload-secure] Branding read failed — aborting upload:', brandingErr.message);
+    return json({ ok: false, error: 'branding_read_error', detail: brandingErr.message }, 500, cors);
+  }
+  /* existingBranding === null sans erreur = branding absent → {} acceptable */
 
   /* Extraire l'ancien path Storage depuis l'URL DB (best-effort — null si absent) */
   const oldLogoUrl  = existingBranding?.value?.logo_url as string | undefined;
@@ -233,12 +240,16 @@ Deno.serve(async (req) => {
      Supprimer l'ANCIEN objet best-effort — échec non bloquant.
      L'ancien path n'est supprimé qu'après que les deux opérations critiques
      (Storage + DB) ont réussi.                                             */
+  /* Fix 4 — SETTINGS-SSOT-1A: tracker le résultat réel du cleanup (ne pas toujours retourner true) */
+  let oldPathRemoved: boolean | null = null;
   if (oldPath && oldPath !== newPath) {
     const { error: oldRemoveErr } = await db.storage.from(BUCKET).remove([oldPath]);
     if (oldRemoveErr) {
       console.warn('[logo-upload-secure] Old logo cleanup failed (non-blocking):', oldRemoveErr.message);
+      oldPathRemoved = false;
     } else {
       console.log('[logo-upload-secure] Old logo removed:', oldPath);
+      oldPathRemoved = true;
     }
   }
 
@@ -247,7 +258,7 @@ Deno.serve(async (req) => {
     url:          publicUrl,
     db_persisted: true,
     path:         newPath,
-    old_path_removed: oldPath && oldPath !== newPath ? true : null,
+    old_path_removed: oldPathRemoved,
     uploaded_by:  employee.full_name,
   }, 200, cors);
 });

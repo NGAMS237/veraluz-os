@@ -172,6 +172,14 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'invalid_value' }, 400, cors);
     }
 
+    // Fix 6 — SETTINGS-FISCAL-1: lire la valeur existante AVANT les validations fiscales
+    // pour pouvoir utiliser tourist_tax_type DB comme type effectif lors d'un update partiel.
+    const { data: existing } = await db
+      .from('veraluz_settings')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
+
     // Validation spécifique branding — refuser base64/dataURL pour logo_url
     if (key === 'branding' && value.logo_url !== undefined) {
       const logoUrl = String(value.logo_url);
@@ -242,11 +250,16 @@ Deno.serve(async (req) => {
         }
         return null;
       };
-      /* tourist_tax_value : plage dépend de tourist_tax_type envoyé dans ce payload.
-         Si tourist_tax_type absent du payload → on valide uniquement >= 0 (type inchangé côté DB).
-         Si tourist_tax_type = 'pct' → tourist_tax_value doit être 0–100.
+      /* tourist_tax_value : plage dépend du type effectif.
+         Fix 6 — SETTINGS-FISCAL-1: si tourist_tax_type absent du payload, utiliser la
+         valeur existante en DB (evite bypass de la limite 0–100 lors d'un update partiel).
+         Fallback final : 'fixed' (permissif, >= 0 seulement).
+         Si tourist_tax_type = 'pct' (payload ou DB) → tourist_tax_value doit être 0–100.
          Si tourist_tax_type = 'fixed' → tourist_tax_value >= 0 (XAF).              */
-      const ttType = typeof v.tourist_tax_type === 'string' ? v.tourist_tax_type : 'fixed';
+      const _existingFiscal = existing?.value as Record<string,unknown> | undefined;
+      const ttType = typeof v.tourist_tax_type === 'string'
+        ? v.tourist_tax_type
+        : (typeof _existingFiscal?.tourist_tax_type === 'string' ? _existingFiscal.tourist_tax_type : 'fixed');
       const checkTouristTaxValue = () => {
         if (!('tourist_tax_value' in v)) return null;
         const n = Number(v.tourist_tax_value);
@@ -282,12 +295,7 @@ Deno.serve(async (req) => {
 
 
     // Merge avec valeur existante pour ne pas écraser les champs non envoyés
-    const { data: existing } = await db
-      .from('veraluz_settings')
-      .select('value')
-      .eq('key', key)
-      .maybeSingle();
-
+    // (existing déjà lu en amont — Fix 6)
     const merged = Object.assign({}, existing?.value ?? {}, value);
     if (
       key === 'wifi' &&

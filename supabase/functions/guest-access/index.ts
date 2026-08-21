@@ -424,7 +424,7 @@ Deno.serve(async (req: Request) => {
         check_in:          res.check_in,
         check_out:         res.check_out,
         checkin_time:      booking.checkin_time  || '15:00',
-        checkout_time:     booking.checkout_time || '11:00',
+        checkout_time:     booking.checkout_time || '12:00',  /* Fix 7 — SETTINGS-SSOT-1A: défaut canonique 12:00 */
         reservation_status: resStatus,
         guests:            res.guests,
         contact: {

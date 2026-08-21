@@ -472,6 +472,18 @@ function loadDbCanonical(cb){
   .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
   .then(function(d){
     if(d && d.ok && d.settings){ Object.assign(_dbSett, d.settings); }
+    /* Fix 5 — SETTINGS-SSOT-1A: migration legacy logoUrl (camelCase, PROD) → logo_url canonical (idempotent) */
+    if(_dbSett.branding && _dbSett.branding.logoUrl !== undefined && !_dbSett.branding.logo_url){
+      var _legacyLogo = _dbSett.branding.logoUrl;
+      var _migPatch = { legacy_logo_url: _legacyLogo };
+      if(_legacyLogo && (_legacyLogo.startsWith('http://') || _legacyLogo.startsWith('https://'))){
+        _migPatch.logo_url = _legacyLogo;
+        _dbSett.branding.logo_url = _legacyLogo;
+      }
+      _dbSett.branding.legacy_logo_url = _legacyLogo;
+      /* fire-and-forget — _dbSettError sera false ici (succès du fetch) */
+      saveCanonical('branding', _migPatch, null);
+    }
     _dbSettLoaded = true;
     _dbSettError  = false;
     if(cb) cb();
@@ -485,6 +497,10 @@ function loadDbCanonical(cb){
 }
 
 function saveCanonical(key, obj, onDone){
+  /* Fix 3 — SETTINGS-SSOT-1A: refus si DB canonical non chargée (évite écrasement DB par fallback) */
+  if(_dbSettError){
+    toast('❌ DB indisponible — sauvegarde impossible', false); return;
+  }
   if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
     toast('❌ Session requise pour sauvegarder', false); return;
   }
@@ -570,7 +586,7 @@ function goSection(id){
    hotel/branding/localization/restaurant → settings-secure EF (veraluz_settings)
    tarifs → settings-secure EF clé 'fiscal' (SETTINGS-FISCAL-1)
    chambres → catalog-secure EF / veraluz_units (CATALOG-SSOT-1)                              */
-var _LS_CANONICAL = ['hotel','branding','localization','restaurant','tarifs','chambres'];
+var _LS_CANONICAL = ['hotel','branding','localization','restaurant','tarifs','chambres','devises','fiscal'];
 function saveAll(){
   collectForm();
   try{
@@ -2067,9 +2083,25 @@ function deleteCatalogUnit(unitId, name){
   .catch(function(){ toast('❌ Erreur réseau', false); });
 }
 function exportSettings(){
-  var blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+  /* Fix 2 — SETTINGS-SSOT-1A: exporter uniquement les domaines locaux (non-canonical).
+     Les domaines canonical DB (branding, localization, restaurant, fiscal, devises, etc.)
+     sont exclus pour éviter qu'un ré-import ne les écrase comme vérité locale.              */
+  var localOnly = {};
+  Object.keys(S).forEach(function(k){
+    if(_LS_CANONICAL.indexOf(k) === -1) localOnly[k] = S[k];
+  });
+  var exportObj = {
+    _meta: {
+      exported_at: new Date().toISOString(),
+      version: 1,
+      note: 'canonical_domains_excluded_see_DB',
+      excluded: _LS_CANONICAL
+    },
+    settings: localOnly
+  };
+  var blob=new Blob([JSON.stringify(exportObj,null,2)],{type:'application/json'});
   var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='veraluz_settings_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  a.download='veraluz_settings_local_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
 }
 function importSettings(input){
   /* SETTINGS-FISCAL-1 / CATALOG-SSOT-1: importSettings() ne doit jamais recréer

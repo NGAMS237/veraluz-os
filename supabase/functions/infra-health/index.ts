@@ -139,14 +139,81 @@ serve(async (req: Request) => {
     eventsByType[t] = (eventsByType[t] ?? 0) + 1;
   }
 
+  // ── Oldest pending ages (watchdog) ───────────────────────────
+  const { data: oldestEventPending } = await admin
+    .from('veraluz_event_jobs')
+    .select('created_at')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .single();
+
+  const { data: oldestCommPending } = await admin
+    .from('veraluz_communication_jobs')
+    .select('created_at')
+    .eq('status', 'pending')
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .single();
+
+  const now = Date.now();
+  const oldestEventAgeMs = oldestEventPending?.created_at
+    ? now - new Date(oldestEventPending.created_at as string).getTime()
+    : null;
+  const oldestCommAgeMs = oldestCommPending?.created_at
+    ? now - new Date(oldestCommPending.created_at as string).getTime()
+    : null;
+
+  // ── Scheduler : dernière run ─────────────────────────────────
+  const { data: lastRun } = await admin
+    .from('veraluz_infra_runs')
+    .select('id, started_at, finished_at, status, duration_ms, trigger_source, recovered_jobs, event_processed, comm_processed, event_failed, comm_failed, event_dead, comm_dead')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  const lastRunStartedAt = lastRun?.started_at ? new Date(lastRun.started_at as string).getTime() : null;
+  const schedulerAgeMs   = lastRunStartedAt ? now - lastRunStartedAt : null;
+  const FIVE_MINUTES_MS  = 5 * 60 * 1000;
+
+  // ── Niveaux d'alerte ─────────────────────────────────────────
+  const hasDead =
+    (deadJobs?.length   ?? 0) > 0 ||
+    (deadCommJobs?.length ?? 0) > 0;
+  const schedulerStale  = schedulerAgeMs === null || schedulerAgeMs > FIVE_MINUTES_MS;
+  const pendingStale    =
+    (oldestEventAgeMs !== null && oldestEventAgeMs > FIVE_MINUTES_MS) ||
+    (oldestCommAgeMs  !== null && oldestCommAgeMs  > FIVE_MINUTES_MS);
+
+  const alert_level: 'OK' | 'WARNING' | 'CRITICAL' =
+    hasDead || schedulerStale   ? 'CRITICAL' :
+    pendingStale                ? 'WARNING'  : 'OK';
+
   return json({
     ok: true,
-    checked_at: new Date().toISOString(),
+    checked_at:  new Date().toISOString(),
+    alert_level,
+    scheduler: {
+      last_run_at:       lastRun?.started_at         ?? null,
+      last_run_status:   lastRun?.status              ?? null,
+      last_run_duration_ms: lastRun?.duration_ms      ?? null,
+      last_run_trigger:  lastRun?.trigger_source      ?? null,
+      last_run_id:       lastRun?.id                  ?? null,
+      age_ms:            schedulerAgeMs,
+      stale:             schedulerStale,
+      // Statistiques dernière run (sans données sensibles)
+      last_event_processed: (lastRun?.event_processed as number) ?? null,
+      last_comm_processed:  (lastRun?.comm_processed  as number) ?? null,
+      last_event_failed:    (lastRun?.event_failed     as number) ?? null,
+      last_comm_failed:     (lastRun?.comm_failed      as number) ?? null,
+      last_recovered_jobs:  (lastRun?.recovered_jobs   as number) ?? null,
+    },
     jobs: {
-      counts:   jobCounts,
-      recent:   recentJobs  ?? [],
-      dead:     deadJobs    ?? [],
-      has_dead: (deadJobs?.length ?? 0) > 0,
+      counts:                jobCounts,
+      recent:                recentJobs  ?? [],
+      dead:                  deadJobs    ?? [],
+      has_dead:              (deadJobs?.length ?? 0) > 0,
+      oldest_pending_age_ms: oldestEventAgeMs,
     },
     events: {
       last_24h_total: recentEvents?.length ?? 0,
@@ -154,10 +221,11 @@ serve(async (req: Request) => {
       recent:         recentEvents ?? [],
     },
     comms: {
-      counts:   commCounts,
-      recent:   recentCommJobs  ?? [],
-      dead:     deadCommJobs    ?? [],
-      has_dead: (deadCommJobs?.length ?? 0) > 0,
+      counts:                commCounts,
+      recent:                recentCommJobs  ?? [],
+      dead:                  deadCommJobs    ?? [],
+      has_dead:              (deadCommJobs?.length ?? 0) > 0,
+      oldest_pending_age_ms: oldestCommAgeMs,
     },
   });
 });

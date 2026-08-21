@@ -2,6 +2,11 @@
 -- SETTINGS-CLEANUP-2 + GUEST-5 + GUEST-6
 -- Date: 2026-08-21
 -- Branche: claude/settings-ssot-1a
+-- CORRIGÉ IN PLACE (INFRA-SCHED-1 pre-flight) :
+--   reservation_id TEXT (pas UUID — BK-xxx ou UUID-texte)
+--   unit_id        TEXT (pas UUID)
+--   staff_id       TEXT (pas UUID — 'system' ou id employé)
+--   ENABLE ROW LEVEL SECURITY (jamais DISABLE)
 -- ═══════════════════════════════════════════════════════════════
 
 -- ─── 1. veraluz_settings : seed canonical domains ─────────────
@@ -56,11 +61,16 @@ VALUES ('system', jsonb_build_object(
 ON CONFLICT (key) DO NOTHING;
 
 -- ─── 2. veraluz_guest_service_requests (GUEST-5) ──────────────
+-- CANONIQUE :
+--   reservation_id TEXT  (BK-1786581754 ou UUID-texte)
+--   unit_id        TEXT  (idem)
+--   guest_session_id UUID (clé de session invité)
+-- ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS veraluz_guest_service_requests (
   id               uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
   guest_session_id uuid        NOT NULL,
-  reservation_id   uuid        NOT NULL,
-  unit_id          uuid,
+  reservation_id   text        NOT NULL,   -- TEXT : BK-xxx ou UUID stocké texte
+  unit_id          text,                   -- TEXT : même raison
   service_type     text        NOT NULL
     CHECK (service_type IN ('housekeeping','towels','maintenance','reception','other')),
   note             text,
@@ -70,8 +80,8 @@ CREATE TABLE IF NOT EXISTS veraluz_guest_service_requests (
   updated_at       timestamptz DEFAULT now()
 );
 
-/* RLS : aucune politique RLS — accès via service_role dans l'EF uniquement */
-ALTER TABLE veraluz_guest_service_requests DISABLE ROW LEVEL SECURITY;
+-- RLS activé — accès via service_role (BYPASSRLS) dans les EF uniquement
+ALTER TABLE veraluz_guest_service_requests ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_vgsr_guest_session
   ON veraluz_guest_service_requests (guest_session_id);
@@ -82,23 +92,28 @@ CREATE INDEX IF NOT EXISTS idx_vgsr_service_type
 CREATE INDEX IF NOT EXISTS idx_vgsr_status
   ON veraluz_guest_service_requests (status);
 
--- ─── 3. veraluz_guest_messages (GUEST-6) ─────────────────────
+-- ─── 3. veraluz_guest_messages (GUEST-6) ──────────────────────
+-- CANONIQUE :
+--   reservation_id TEXT  (BK-xxx ou UUID-texte)
+--   staff_id       TEXT  ('system', ou id employé UUID converti texte)
+-- ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS veraluz_guest_messages (
   id               uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
-  reservation_id   uuid        NOT NULL,
-  guest_session_id uuid,                          /* null si envoi staff */
+  reservation_id   text        NOT NULL,   -- TEXT : BK-xxx ou UUID stocké texte
+  guest_session_id uuid,                   -- null si envoi staff entrant
   sender_type      text        NOT NULL DEFAULT 'guest'
     CHECK (sender_type IN ('guest','staff')),
-  staff_id         uuid,                          /* null si sender_type=guest */
+  staff_id         text,                   -- TEXT : 'system' ou UUID-texte employé
   staff_name       text,
   channel          text        NOT NULL DEFAULT 'reception'
-    CHECK (channel IN ('reception','direction')), /* direction = privé gérant/manager */
+    CHECK (channel IN ('reception','direction')), -- direction = privé gérant
   message          text        NOT NULL CHECK (char_length(message) BETWEEN 1 AND 2000),
   created_at       timestamptz DEFAULT now(),
-  read_at          timestamptz                    /* null = non lu côté staff */
+  read_at          timestamptz             -- null = non lu côté staff
 );
 
-ALTER TABLE veraluz_guest_messages DISABLE ROW LEVEL SECURITY;
+-- RLS activé — accès via service_role (BYPASSRLS) dans les EF uniquement
+ALTER TABLE veraluz_guest_messages ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_vgm_reservation
   ON veraluz_guest_messages (reservation_id);

@@ -163,11 +163,11 @@ async function processGuestPortal(
         reservation_id:   ctx['reservation_id'] || null,
         guest_session_id: guestSessionId,
         sender_type:      'staff',
-        staff_id:         SYSTEM_SENDER,
+        staff_id:         SYSTEM_SENDER,   // TEXT ('system') — schéma canonique
         staff_name:       SYSTEM_NAME,
-        content:          `**${subject}**\n\n${message}`,
+        message:          `${subject}\n\n${message}`,  // colonne TEXT, pas content
         channel:          'reception',
-        is_read:          false,
+        // read_at null = non lu côté staff (schéma canonique, pas is_read)
         source_event_job,
         created_at:       new Date().toISOString(),
       },

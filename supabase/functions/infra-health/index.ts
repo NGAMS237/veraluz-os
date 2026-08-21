@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════
-// infra-health — INFRA-OPS-1
+// infra-health — INFRA-OPS-1R (aligned with canonical schema)
 // Endpoint read-only : statut des events + jobs (observabilité).
-// Accès réservé aux gérants (settings.manage) via JWT employé.
+// Accès réservé aux gérants (settings.manage) via X-Veraluz-Session.
+// Auth : SHA-256(raw_token) → token_hash (pas session_token/is_active).
 // Aucune donnée sensible dans la réponse.
 // ═══════════════════════════════════════════════════════════════
 // INTERDIT : stocker API key / secret / token / password / credentials
@@ -12,11 +13,25 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { hasCapability, normalizeRole } from '../_shared/_rbac.ts';
 
 const cors = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin':  '*',
   'Access-Control-Allow-Headers': 'authorization, content-type, x-veraluz-session',
 };
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...cors } });
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...cors },
+  });
+
+// ── SHA-256 canonique ────────────────────────────────────────
+async function sha256hex(msg: string): Promise<string> {
+  const buf = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(msg),
+  );
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
@@ -27,19 +42,21 @@ serve(async (req: Request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // ── Auth : JWT employé requis (gérant uniquement) ────────────
-  const sessionToken = req.headers.get('X-Veraluz-Session') ?? '';
-  if (!sessionToken) return json({ ok: false, error: 'auth_required' }, 401);
+  // ── Auth : X-Veraluz-Session → SHA-256 → token_hash ─────────
+  const rawToken = req.headers.get('X-Veraluz-Session') ?? '';
+  if (!rawToken) return json({ ok: false, error: 'auth_required' }, 401);
+
+  const tokenHash = await sha256hex(rawToken);
 
   const { data: session } = await admin
     .from('veraluz_employee_sessions')
-    .select('employee_id, expires_at')
-    .eq('session_token', sessionToken)
-    .eq('is_active', true)
+    .select('employee_id, expires_at, revoked_at')
+    .eq('token_hash', tokenHash)
     .single();
 
-  if (!session) return json({ ok: false, error: 'invalid_session' }, 401);
-  if (new Date(session.expires_at) < new Date()) return json({ ok: false, error: 'session_expired' }, 401);
+  if (!session)                                           return json({ ok: false, error: 'invalid_session'  }, 401);
+  if (session.revoked_at)                                 return json({ ok: false, error: 'session_revoked'  }, 401);
+  if (new Date(session.expires_at) < new Date())          return json({ ok: false, error: 'session_expired'  }, 401);
 
   const { data: actor } = await admin
     .from('veraluz_employees')
@@ -55,9 +72,7 @@ serve(async (req: Request) => {
   }
 
   // ── Requêtes read-only ───────────────────────────────────────
-
-  // Comptages jobs par statut
-  const statuses = ['pending','processing','completed','failed','dead'] as const;
+  const statuses = ['pending', 'processing', 'completed', 'failed', 'dead'] as const;
   const jobCounts: Record<string, number> = {};
 
   await Promise.all(statuses.map(async (st) => {
@@ -68,23 +83,23 @@ serve(async (req: Request) => {
     jobCounts[st] = count ?? 0;
   }));
 
-  // Événements des 24 dernières heures par type
+  // Événements 24h — colonnes canoniques (created_at, source)
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { data: recentEvents } = await admin
     .from('veraluz_events')
-    .select('id, event_type, emitted_at, source_fn')
-    .gte('emitted_at', since24h)
-    .order('emitted_at', { ascending: false })
+    .select('id, event_type, source, created_at')
+    .gte('created_at', since24h)
+    .order('created_at', { ascending: false })
     .limit(50);
 
-  // Derniers jobs (tous statuts) — sans payload/secrets
+  // Jobs récents — sans payload ni secrets
   const { data: recentJobs } = await admin
     .from('veraluz_event_jobs')
     .select('id, event_id, handler, status, attempt, last_error, processed_at, created_at')
     .order('created_at', { ascending: false })
     .limit(50);
 
-  // Jobs dead (max 10) pour alerte
+  // Jobs dead (alerte)
   const { data: deadJobs } = await admin
     .from('veraluz_event_jobs')
     .select('id, event_id, handler, attempt, last_error, created_at')
@@ -92,7 +107,7 @@ serve(async (req: Request) => {
     .order('created_at', { ascending: false })
     .limit(10);
 
-  // Comptage événements par type (24h)
+  // Agréger par type
   const eventsByType: Record<string, number> = {};
   for (const ev of recentEvents ?? []) {
     const t = ev.event_type as string;
@@ -104,14 +119,14 @@ serve(async (req: Request) => {
     checked_at: new Date().toISOString(),
     jobs: {
       counts:   jobCounts,
-      recent:   recentJobs ?? [],
-      dead:     deadJobs   ?? [],
+      recent:   recentJobs  ?? [],
+      dead:     deadJobs    ?? [],
       has_dead: (deadJobs?.length ?? 0) > 0,
     },
     events: {
-      last_24h_total:  recentEvents?.length ?? 0,
-      by_type:         eventsByType,
-      recent:          recentEvents ?? [],
+      last_24h_total: recentEvents?.length ?? 0,
+      by_type:        eventsByType,
+      recent:         recentEvents ?? [],
     },
   });
 });

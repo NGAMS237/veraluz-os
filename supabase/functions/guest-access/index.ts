@@ -19,7 +19,7 @@
  *   - no IP, no fingerprint, no raw token logged
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { emitEvent, EVENT_TYPES } from '../_shared/events.ts';
+// emitEvent supprimé INFRA-OPS-1R : le trigger DB vz_emit_service_request_event gère l'émission
 
 const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -1388,23 +1388,8 @@ Deno.serve(async (req: Request) => {
 
     if (srErr) return json({ ok: false, error: 'create_failed' }, 500, cors);
 
-    // ── INFRA-OPS-1 : outbox event service_requested ─────────
-    // Émet guest_service_requested → event-worker notifie le staff
-    emitEvent(
-      db,
-      EVENT_TYPES.GUEST_SERVICE_REQUESTED,
-      {
-        reservation_id:  session!.reservation_id,
-        unit_id:         session!.unit_id ?? null,
-        service_type:    serviceType,
-        note:            note ?? null,
-        guest_session_id: session!.id,
-        service_request_id: sr!.id,
-      },
-      'guest-access',
-    ).catch((e: unknown) => {
-      console.error('[guest-access] emitEvent guest_service_requested error:', e);
-    });
+    // INFRA-OPS-1R : émission via trigger DB vz_emit_service_request_event
+    // (AFTER INSERT ON veraluz_guest_service_requests — atomique, pas de fire-and-forget)
 
     return json({ ok: true, request: sr }, 201, cors);
   }

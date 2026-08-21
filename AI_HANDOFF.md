@@ -9,14 +9,13 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## Lots actifs
 
-SETTINGS-SSOT-1A | claude/settings-ssot-1a | HEAD b6657c1 | READY LOCAL — push manuel requis (bundle: veraluz_predeploy_guards.bundle)
-SETTINGS-FISCAL-1 | claude/settings-ssot-1a | HEAD f883b36 | READY LOCAL (review fixes appliqués — commit pending)
-CATALOG-SSOT-1 | claude/settings-ssot-1a | HEAD bb32ec3 | READY LOCAL (review fixes appliqués — commit pending)
-REVIEW-FIX-FISCAL-CATALOG | claude/settings-ssot-1a | HEAD pending | PRÊT COMMIT — 7 blockers fermés (amenities JSONB, status active/maint/oos, delete unit_id FK, tourist_tax_type pct cap, LS SSOT import, DB KO branding/restaurant/localisation, fiscal fallback supprimé)
-
-Prochaine phase : notifications / system / integrations / email cleanup → Guest Portal
+PHASE-1-GUEST-SERVICES-MESSAGES | claude/settings-ssot-1a | HEAD 5a8ba28 | READY LOCAL — push bloqué CCR → bundle veraluz_phase1_guest_services_messages.bundle requis
 
 ## Transmissions récentes
+
+`2026-08-21 | Claude | GUEST-5+GUEST-6 | claude/settings-ssot-1a | 5a8ba28 | READY LOCAL | aucun LOCK | Services: create_service_request (checkedin, 5 types), get_my_service_requests (own session scope); Portal: nav activé, 5 boutons quick-request, historique statuts, 'Autre' avec note. Messages: send_message (reception channel, 1–2000 chars), get_my_messages (channel='reception' strict, strip staff_id); Portal: nav activé, thread chat, polling 15s, badge non-lu, compose auto-resize`
+
+`2026-08-21 | Claude | SETTINGS-CLEANUP-2 | claude/settings-ssot-1a | 21df6df | READY LOCAL | aucun LOCK | Seed canonical: notifications/integrations/email/system dans veraluz_settings. settings-secure WRITABLE_KEYS+4 whitelists (NOTIFICATIONS_ALLOWED_FIELDS, INTEGRATIONS_ALLOWED_FIELDS, EMAIL_ALLOWED_FIELDS, SYSTEM_ALLOWED_FIELDS). integrations whitelist bloque *_key/*_secret/*_token. system supprime session_timeout (D-doublon), auto_backup/backup_freq/log_retention (D-dead). renderNotifs()/renderIntegrations()/renderEmailConfig()/renderSysteme() → _dbSett.*, DB badges, saveNotifs()/saveIntegrations()/saveEmailConfig()/saveSystem().`
 
 `2026-08-21 | Claude | MICRO-PATCH-PREDEPLOY | claude/settings-ssot-1a | b6657c1 | 10 cas H1–H10 ajoutés SETTINGS_SSOT_1A_TESTS.md | READY LOCAL push bloqué CCR → bundle veraluz_predeploy_guards.bundle | aucun LOCK | 7 fixes : _LS_CANONICAL+devises/fiscal, exportSettings() filtre canonical, saveCanonical() guard DB KO, logo-upload-secure branding error+old_path_removed réel, legacy logoUrl migration, fiscal partial update bypass fermé (existing DB read avant validation), guest-access checkout_time '12:00'`
 

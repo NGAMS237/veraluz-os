@@ -1457,16 +1457,22 @@ Deno.serve(async (req: Request) => {
     );
     if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
 
-    // Scope: own reservation messages on 'reception' channel only.
-    // 'direction' channel is staff-to-staff; guests NEVER see direction messages.
-    const { data: messages, error: mErr } = await db
+    // Optional channel param — guests can see their own messages in any allowed channel.
+    // ALLOWED_CHANNELS enforced server-side; no client-supplied channel can bypass scope.
+    const ALLOWED_CHANNELS = new Set(['reception','direction']);
+    const rawChannel = String(body.channel ?? '').trim().toLowerCase();
+    const channelFilter = (rawChannel && ALLOWED_CHANNELS.has(rawChannel)) ? rawChannel : null;
+
+    let q: any = db
       .from('veraluz_guest_messages')
       .select('id, sender_type, staff_name, channel, message, created_at, read_at')
       .eq('reservation_id', session!.reservation_id)
-      .eq('channel', 'reception')      // strict: guests only ever see reception channel
       .order('created_at', { ascending: true })
       .limit(200);
 
+    if (channelFilter) q = q.eq('channel', channelFilter);
+
+    const { data: messages, error: mErr } = await q;
     if (mErr) return json({ ok: false, error: 'fetch_failed' }, 500, cors);
 
     // Strip internal fields: never expose staff_id or guest_session_id to guest
@@ -1474,12 +1480,230 @@ Deno.serve(async (req: Request) => {
       id:           m.id,
       sender_type:  m.sender_type,
       staff_name:   m.staff_name ?? null,
+      channel:      m.channel,
       message:      m.message,
       created_at:   m.created_at,
       is_read:      !!m.read_at,
     }));
 
-    return json({ ok: true, messages: safe }, 200, cors);
+    return json({ ok: true, messages: safe, channel: channelFilter ?? 'all' }, 200, cors);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GUEST-FIN-1 — Payments list
+  // Returns individual payment records from veraluz_payments (staff-recorded).
+  // Uses reservation.paid as canonical balance (no double-counting).
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (action === 'get_my_payments') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error: tokErr, session } = await validateGuestToken(
+      db, rawToken, ['checkedin','checkedout'],
+    );
+    if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
+
+    const reservationId = session!.reservation_id;
+
+    const { data: payments, error: pErr } = await db
+      .from('veraluz_payments')
+      .select('id, amount, method, status, created_at')
+      .eq('reservation_id', reservationId)
+      .eq('status', 'validated')
+      .order('created_at', { ascending: true });
+
+    if (pErr) return json({ ok: false, error: 'fetch_failed' }, 500, cors);
+
+    return json({ ok: true, payments: payments ?? [] }, 200, cors);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GUEST-FIN-1 — Folio HTML (printable — deterministic, no AI)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (action === 'get_folio_html') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error: tokErr, session } = await validateGuestToken(
+      db, rawToken, ['checkedin','checkedout'],
+    );
+    if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
+
+    if (!(session!.scopes as string[]).includes('folio.read'))
+      return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
+
+    const reservationId = session!.reservation_id;
+    const { data: res, error: resErr } = await db
+      .from('veraluz_reservations')
+      .select('id, status, total, paid, check_in, check_out, nights, unit_id, client_name')
+      .eq('id', reservationId).single();
+    if (resErr || !res) return json({ ok: false, error: 'reservation_not_found' }, 404, cors);
+
+    if (['cancelled','no_show'].includes(res.status as string))
+      return json({ ok: false, error: 'folio_unavailable', status: res.status }, 403, cors);
+
+    const accommodation: number = res.total ?? 0;
+
+    const { data: rawCharges } = await db
+      .from('veraluz_room_charges')
+      .select('id, created_at, posted_at, charge_type, label, description, amount, reversal_of_charge_id')
+      .eq('reservation_id', reservationId)
+      .order('created_at', { ascending: true });
+
+    const charges = rawCharges ?? [];
+    const restaurant: number = charges.filter((c: any) => (c.charge_type ?? 'restaurant') === 'restaurant')
+      .reduce((s: number, c: any) => s + (c.amount ?? 0), 0);
+    const other: number = charges.filter((c: any) => (c.charge_type ?? 'restaurant') !== 'restaurant')
+      .reduce((s: number, c: any) => s + (c.amount ?? 0), 0);
+    const total   = accommodation + restaurant + other;
+    const payments: number = res.paid ?? 0;
+    const balance = total - payments;
+
+    const { data: payRows } = await db
+      .from('veraluz_payments')
+      .select('id, amount, method, created_at')
+      .eq('reservation_id', reservationId)
+      .eq('status', 'validated')
+      .order('created_at', { ascending: true });
+
+    const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(n);
+    const fmtDate = (d: string) => d ? d.slice(0,10) : '';
+
+    const chargeRows = charges.map((c: any) => `
+      <tr>
+        <td>${fmtDate(c.posted_at ?? c.created_at)}</td>
+        <td>${c.label ?? c.description ?? 'Charge'}</td>
+        <td style="text-align:right">${fmt(c.amount ?? 0)}</td>
+      </tr>`).join('');
+
+    const payRowsHtml = (payRows ?? []).map((p: any) => `
+      <tr>
+        <td>${fmtDate(p.created_at)}</td>
+        <td>Paiement — ${(p.method ?? '').replace('_',' ')}</td>
+        <td style="text-align:right;color:#1a7a3f">${fmt(p.amount ?? 0)}</td>
+      </tr>`).join('');
+
+    const html = `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8">
+<title>Folio — ${res.client_name ?? 'Client'}</title>
+<style>
+  body{font-family:Arial,sans-serif;font-size:13px;color:#222;margin:32px 40px;}
+  h1{font-size:20px;margin-bottom:4px;}
+  .subtitle{color:#666;font-size:12px;margin-bottom:24px;}
+  table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+  th{background:#f0f0f0;text-align:left;padding:6px 8px;font-size:12px;}
+  td{padding:5px 8px;border-bottom:1px solid #eee;}
+  .summary-table td{font-weight:bold;}
+  .balance{font-size:15px;font-weight:bold;color:${balance <= 0 ? '#1a7a3f' : '#c0392b'};}
+  @media print{body{margin:16px 20px;}}
+</style>
+</head><body>
+<h1>Résidence Veraluz — Folio de séjour</h1>
+<div class="subtitle">Généré le ${new Date().toLocaleDateString('fr-FR')} · Réservation #${reservationId.slice(-10).toUpperCase()}</div>
+<table>
+  <tr><td><strong>Client</strong></td><td>${res.client_name ?? '—'}</td>
+      <td><strong>Arrivée</strong></td><td>${fmtDate(res.check_in)}</td></tr>
+  <tr><td><strong>Chambre</strong></td><td>${res.unit_id ?? '—'}</td>
+      <td><strong>Départ</strong></td><td>${fmtDate(res.check_out)}</td></tr>
+  <tr><td><strong>Statut</strong></td><td>${res.status}</td>
+      <td><strong>Nuits</strong></td><td>${res.nights ?? 1}</td></tr>
+</table>
+
+<h3>Détail des charges</h3>
+<table>
+  <tr><th>Date</th><th>Description</th><th style="text-align:right">Montant</th></tr>
+  <tr><td>${fmtDate(res.check_in)}</td><td>Hébergement (${res.nights ?? 1} nuit${(res.nights ?? 1) > 1 ? 's' : ''})</td><td style="text-align:right">${fmt(accommodation)}</td></tr>
+  ${chargeRows}
+</table>
+
+<h3>Paiements reçus</h3>
+<table>
+  <tr><th>Date</th><th>Description</th><th style="text-align:right">Montant</th></tr>
+  ${payRowsHtml || '<tr><td colspan="3" style="color:#999">Aucun paiement enregistré</td></tr>'}
+</table>
+
+<table class="summary-table">
+  <tr><td>Hébergement</td><td style="text-align:right">${fmt(accommodation)}</td></tr>
+  ${restaurant > 0 ? `<tr><td>Restaurant</td><td style="text-align:right">${fmt(restaurant)}</td></tr>` : ''}
+  ${other > 0      ? `<tr><td>Autres charges</td><td style="text-align:right">${fmt(other)}</td></tr>` : ''}
+  <tr><td>Total</td><td style="text-align:right">${fmt(total)}</td></tr>
+  <tr><td>Paiements</td><td style="text-align:right">-${fmt(payments)}</td></tr>
+  <tr><td class="balance">Solde</td><td class="balance" style="text-align:right">${fmt(balance)}</td></tr>
+</table>
+<p style="color:#888;font-size:11px;margin-top:32px">Document généré automatiquement — Résidence Veraluz, Kribi, Cameroun</p>
+</body></html>`;
+
+    return new Response(JSON.stringify({ ok: true, html }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', ...cors }
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GUEST-FIN-1 — Receipt HTML for a single payment (deterministic, no AI)
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (action === 'get_receipt_html') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error: tokErr, session } = await validateGuestToken(
+      db, rawToken, ['checkedin','checkedout'],
+    );
+    if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
+
+    const paymentId = String(body.payment_id ?? '').trim();
+    if (!paymentId) return json({ ok: false, error: 'payment_id_required' }, 400, cors);
+
+    // Verify payment belongs to this guest's reservation (scope isolation)
+    const { data: pay, error: payErr } = await db
+      .from('veraluz_payments')
+      .select('id, reservation_id, amount, method, status, guest_name, created_at')
+      .eq('id', paymentId)
+      .eq('reservation_id', session!.reservation_id)
+      .eq('status', 'validated')
+      .single();
+
+    if (payErr || !pay) return json({ ok: false, error: 'payment_not_found' }, 404, cors);
+
+    const { data: res } = await db
+      .from('veraluz_reservations')
+      .select('client_name, unit_id, check_in, check_out')
+      .eq('id', session!.reservation_id).single();
+
+    const fmt = (n: number) => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XAF', maximumFractionDigits: 0 }).format(n);
+    const fmtDate = (d: string) => d ? d.slice(0,10) : '';
+    const methodLabels: Record<string,string> = {
+      cash: 'Espèces', card: 'Carte bancaire', mobile_money: 'Mobile Money',
+      bank_transfer: 'Virement bancaire', other: 'Autre'
+    };
+    const methodLabel = methodLabels[(pay.method ?? 'other')] ?? pay.method ?? 'Autre';
+    const receiptNum = `VLZ-${(pay.id as string).slice(-8).toUpperCase()}`;
+
+    const html = `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8">
+<title>Reçu ${receiptNum}</title>
+<style>
+  body{font-family:Arial,sans-serif;font-size:13px;color:#222;margin:32px 40px;max-width:500px;}
+  h1{font-size:18px;border-bottom:2px solid #222;padding-bottom:8px;margin-bottom:20px;}
+  .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #eee;}
+  .amount{font-size:24px;font-weight:bold;color:#1a7a3f;text-align:center;margin:20px 0;}
+  .footer{color:#888;font-size:11px;margin-top:32px;text-align:center;}
+  @media print{body{margin:16px;}}
+</style>
+</head><body>
+<h1>Résidence Veraluz — Reçu de paiement</h1>
+<div class="row"><span>N° Reçu</span><strong>${receiptNum}</strong></div>
+<div class="row"><span>Date</span><strong>${fmtDate(pay.created_at)}</strong></div>
+<div class="row"><span>Client</span><strong>${(res?.client_name ?? pay.guest_name ?? '—')}</strong></div>
+<div class="row"><span>Chambre</span><strong>${res?.unit_id ?? '—'}</strong></div>
+<div class="row"><span>Séjour</span><strong>${fmtDate(res?.check_in ?? '')} → ${fmtDate(res?.check_out ?? '')}</strong></div>
+<div class="row"><span>Mode de paiement</span><strong>${methodLabel}</strong></div>
+<div class="amount">${fmt(pay.amount ?? 0)}</div>
+<p style="text-align:center;color:#555">Paiement reçu et validé</p>
+<div class="footer">Résidence Veraluz · Kribi, Cameroun<br>Document généré le ${new Date().toLocaleDateString('fr-FR')}</div>
+</body></html>`;
+
+    return new Response(JSON.stringify({ ok: true, html, receipt_number: receiptNum }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', ...cors }
+    });
   }
 
   return json({ error: 'unknown_action' }, 400, cors);

@@ -350,7 +350,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 .svc-status-badge.completed{background:#d1fae5;color:#065f46}
 .svc-status-badge.cancelled{background:#fee2e2;color:#991b1b}
 /* ── GUEST-6 Messages ── */
-.msg-view-body{display:flex;flex-direction:column;height:calc(100vh - 130px);padding:0}
+.msg-view-body{display:flex;flex-direction:column;height:calc(100vh - 176px);padding:0}
 .msg-thread{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
 .msg-compose{display:flex;align-items:flex-end;gap:8px;padding:10px 14px;border-top:1px solid #e2e8f0;background:#fff}
 .msg-bubble{max-width:78%;padding:10px 13px;border-radius:16px;font-size:14px;line-height:1.45;word-break:break-word}
@@ -689,6 +689,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
           </div>
         </div>
 
+        <!-- Paiements individuels (GUEST-FIN-1) -->
+        <div class="folio-card" id="folio-payments-card" style="display:none">
+          <div class="folio-card-hdr">
+            <div style="display:flex;align-items:center;gap:8px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1a7a3f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              <span class="folio-card-title">Paiements reçus</span>
+            </div>
+          </div>
+          <div class="folio-card-body" id="folio-payments-list"></div>
+          <div style="padding:10px 16px 14px">
+            <button onclick="printFolio()" style="width:100%;padding:10px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+              Télécharger le folio complet
+            </button>
+          </div>
+        </div>
+
         <div style="font-size:11px;color:var(--text-3);text-align:center;padding:8px 0 4px;line-height:1.5">
           Ce folio est indicatif. Le solde final est établi au départ.
         </div>
@@ -747,17 +763,28 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
     </div>
   </div><!-- /view-services -->
 
-  <!-- ══ VIEW: MESSAGES (GUEST-6) ══════════════════════════════════ -->
+  <!-- ══ VIEW: MESSAGES (GUEST-6 + GUEST-6B) ═════════════════════ -->
   <div id="view-messages" class="view">
     <header class="vhdr">
       <div class="vhdr-inner">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <div>
-          <div class="vhdr-title">Messages</div>
-          <div class="vhdr-sub">Réception · Résidence Veraluz</div>
+          <div class="vhdr-title" id="msg-hdr-title">Messages</div>
+          <div class="vhdr-sub" id="msg-hdr-sub">Réception · Résidence Veraluz</div>
         </div>
       </div>
     </header>
+    <!-- Channel tabs -->
+    <div style="display:flex;border-bottom:1.5px solid #e2e8f0;background:#fff;">
+      <button id="msg-tab-reception" onclick="switchMsgChannel('reception')"
+        style="flex:1;padding:11px 0;font-size:13px;font-weight:700;border:none;background:transparent;cursor:pointer;border-bottom:2.5px solid var(--navy);color:var(--navy);transition:.15s;">
+        Réception
+      </button>
+      <button id="msg-tab-direction" onclick="switchMsgChannel('direction')"
+        style="flex:1;padding:11px 0;font-size:13px;font-weight:600;border:none;background:transparent;cursor:pointer;border-bottom:2.5px solid transparent;color:var(--text-3);transition:.15s;">
+        Direction
+      </button>
+    </div>
     <div class="view-body msg-view-body">
       <div id="msg-thread" class="msg-thread"></div>
       <div class="msg-compose">
@@ -952,10 +979,11 @@ var _folioViewedLogged = false;
 /* GUEST-5 — Services */
 var _svcLoaded = false;
 var _svcPendingType = null;
-/* GUEST-6 — Messages */
+/* GUEST-6 + GUEST-6B — Messages */
 var _msgLoaded = false;
 var _msgPollingTimer = null;
 var _msgUnread = 0;
+var _msgChannel = 'reception'; /* 'reception' | 'direction' */
 
 
 /* ── Dates ── */
@@ -1929,6 +1957,9 @@ function renderFolio(d){
     document.getElementById('folio-charges-inner').innerHTML=html;
     document.getElementById('folio-charges-toggle-lbl').textContent='Voir le détail ('+charges.length+')';
   }
+
+  // GUEST-FIN-1: load individual payments when folio is full
+  if(d.mode==='full'||d.mode==='pre_stay') loadPayments();
 }
 
 function toggleFolioCharges(){
@@ -2037,10 +2068,28 @@ function renderMessages(messages){
   el.scrollTop=el.scrollHeight;
 }
 
+function switchMsgChannel(ch){
+  _msgChannel=ch;
+  // Update tab styles
+  var tRec=document.getElementById('msg-tab-reception');
+  var tDir=document.getElementById('msg-tab-direction');
+  var hSub=document.getElementById('msg-hdr-sub');
+  if(tRec){ tRec.style.borderBottomColor=ch==='reception'?'var(--navy)':'transparent'; tRec.style.color=ch==='reception'?'var(--navy)':'var(--text-3)'; tRec.style.fontWeight=ch==='reception'?'700':'600'; }
+  if(tDir){ tDir.style.borderBottomColor=ch==='direction'?'var(--navy)':'transparent'; tDir.style.color=ch==='direction'?'var(--navy)':'var(--text-3)'; tDir.style.fontWeight=ch==='direction'?'700':'600'; }
+  if(hSub) hSub.textContent=ch==='reception'?'Réception · Résidence Veraluz':'Direction · Résidence Veraluz';
+  // Reload messages for selected channel
+  var el=document.getElementById('msg-thread');
+  if(el) el.innerHTML='<div class="msg-empty">Chargement…</div>';
+  loadMessages();
+}
+
 function loadMessages(){
-  callEF({action:'get_my_messages'})
+  callEF({action:'get_my_messages',channel:_msgChannel})
   .then(function(r){
-    if(r.ok) renderMessages(r.messages||[]);
+    if(r.ok){
+      var msgs=(r.messages||[]).filter(function(m){ return m.channel===_msgChannel; });
+      renderMessages(msgs);
+    }
     // clear unread badge once viewed
     _msgUnread=0; updateMsgBadge();
   })
@@ -2064,13 +2113,70 @@ function sendGuestMessage(){
   if(!txt||txt.length<1) return;
   var btn=document.getElementById('msg-send-btn');
   if(btn){ btn.disabled=true; btn.style.opacity='0.5'; }
-  callEF({action:'send_message',channel:'reception',message:txt})
+  callEF({action:'send_message',channel:_msgChannel,message:txt})
   .then(function(r){
     if(r.ok){ inp.value=''; inp.style.height=''; loadMessages(); }
     else{ alert('Erreur : '+( r.error||'inconnue')); }
   })
   .catch(function(){ alert('Erreur réseau. Vérifiez votre connexion.'); })
   .finally(function(){ if(btn){ btn.disabled=false; btn.style.opacity=''; } });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GUEST-FIN-1 — Payments & folio print
+══════════════════════════════════════════════════════════════ */
+function loadPayments(){
+  callEF({action:'get_my_payments'})
+  .then(function(r){
+    if(!r.ok) return;
+    var pmnts=r.payments||[];
+    var card=document.getElementById('folio-payments-card');
+    var list=document.getElementById('folio-payments-list');
+    if(!card||!list) return;
+    if(pmnts.length===0){ card.style.display='none'; return; }
+    card.style.display='';
+    list.innerHTML=pmnts.map(function(p){
+      var methodLabels={cash:'Espèces',card:'Carte bancaire',mobile_money:'Mobile Money',bank_transfer:'Virement bancaire',other:'Autre'};
+      var mLabel=methodLabels[p.method]||p.method||'—';
+      var dateStr=p.created_at?p.created_at.slice(0,10):'';
+      return '<div class="folio-row">'
+        +'<div class="folio-row-lbl">'+escH(mLabel)+'<div class="folio-row-sub">'+escH(dateStr)+'</div></div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<span class="folio-row-amt" style="color:#1a7a3f">'+fmt(p.amount)+'</span>'
+        +'<button onclick="printReceipt(\''+escH(p.id)+'\')" style="font-size:11px;padding:3px 8px;background:#f0f9f4;color:#1a7a3f;border:1px solid #a7f3c1;border-radius:6px;cursor:pointer;white-space:nowrap;">Reçu</button>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+  })
+  .catch(function(){});
+}
+
+function printFolio(){
+  callEF({action:'get_folio_html'})
+  .then(function(r){
+    if(!r.ok){ alert('Folio indisponible.'); return; }
+    var w=window.open('','_blank','width=700,height=900');
+    if(!w){ alert('Autorisez les pop-ups pour télécharger le folio.'); return; }
+    w.document.write(r.html);
+    w.document.close();
+    w.focus();
+    setTimeout(function(){ w.print(); }, 600);
+  })
+  .catch(function(){ alert('Erreur réseau.'); });
+}
+
+function printReceipt(paymentId){
+  callEF({action:'get_receipt_html',payment_id:paymentId})
+  .then(function(r){
+    if(!r.ok){ alert('Reçu indisponible.'); return; }
+    var w=window.open('','_blank','width=600,height=700');
+    if(!w){ alert('Autorisez les pop-ups pour télécharger le reçu.'); return; }
+    w.document.write(r.html);
+    w.document.close();
+    w.focus();
+    setTimeout(function(){ w.print(); }, 600);
+  })
+  .catch(function(){ alert('Erreur réseau.'); });
 }
 
 function autoResizeMsgInput(el){

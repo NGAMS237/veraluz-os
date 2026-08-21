@@ -4,6 +4,7 @@
  * normMsg() maps DB row → client response, renaming message→body.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { hasCapability, normalizeRole } from './_rbac.ts';
 
 const ALLOWED_ORIGINS = [
   'https://dfdmasejsoibxrvubegu.supabase.co',
@@ -270,6 +271,145 @@ Deno.serve(async (req: Request) => {
       const { data, count } = await q;
       const latest_id = (data && data.length > 0) ? (data[0] as Record<string,string>).id : null;
       return json({ ok: true, count: count || 0, latest_id }, 200, cors);
+    }
+
+    // ── LIST GUEST CONVERSATIONS ───────────────────────────────────────
+    // reception: any staff with messages.read
+    // direction: gérant only (settings.manage capability)
+    if (action === 'list_guest_conversations') {
+      const channel: string = String(body.channel ?? 'reception').trim().toLowerCase();
+      const ALLOWED_CHANNELS = new Set(['reception','direction']);
+      if (!ALLOWED_CHANNELS.has(channel))
+        return json({ ok: false, error: 'invalid_channel', allowed: ['reception','direction'] }, 400, cors);
+
+      // RBAC server-side — direction channel: gérant only
+      if (channel === 'direction') {
+        const normRole = normalizeRole(actor.role);
+        if (!hasCapability(normRole, 'settings.manage'))
+          return json({ ok: false, error: 'access_denied', hint: 'direction_gerant_only' }, 403, cors);
+      } else {
+        // reception: must have messages.read
+        if (!hasCapability(normalizeRole(actor.role), 'messages.read'))
+          return json({ ok: false, error: 'access_denied' }, 403, cors);
+      }
+
+      // Group by reservation_id — return last message per reservation + unread count
+      const { data: msgs, error: mErr } = await admin
+        .from('veraluz_guest_messages')
+        .select('id, reservation_id, sender_type, staff_name, channel, message, created_at, read_at')
+        .eq('channel', channel)
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (mErr) return json({ ok: false, error: 'db_error' }, 500, cors);
+
+      // Group conversations by reservation_id
+      const convMap: Record<string, any> = {};
+      for (const m of (msgs ?? [])) {
+        const rid = m.reservation_id;
+        if (!convMap[rid]) {
+          convMap[rid] = {
+            reservation_id: rid,
+            channel,
+            last_message:   m.message,
+            last_sender:    m.sender_type,
+            last_at:        m.created_at,
+            unread_count:   0,
+          };
+        }
+        // Count unread staff-visible messages (guest sent, not yet read by staff)
+        if (m.sender_type === 'guest' && !m.read_at) {
+          convMap[rid].unread_count += 1;
+        }
+      }
+
+      return json({ ok: true, conversations: Object.values(convMap), channel }, 200, cors);
+    }
+
+    // ── GET GUEST CONVERSATION THREAD ─────────────────────────────────
+    if (action === 'get_guest_thread') {
+      const channel: string = String(body.channel ?? 'reception').trim().toLowerCase();
+      const reservation_id: string = String(body.reservation_id ?? '').trim();
+      if (!reservation_id) return json({ ok: false, error: 'reservation_id_required' }, 400, cors);
+
+      // RBAC
+      if (channel === 'direction') {
+        if (!hasCapability(normalizeRole(actor.role), 'settings.manage'))
+          return json({ ok: false, error: 'access_denied', hint: 'direction_gerant_only' }, 403, cors);
+      } else {
+        if (!hasCapability(normalizeRole(actor.role), 'messages.read'))
+          return json({ ok: false, error: 'access_denied' }, 403, cors);
+      }
+
+      const { data: messages, error: mErr } = await admin
+        .from('veraluz_guest_messages')
+        .select('id, sender_type, staff_name, staff_id, channel, message, created_at, read_at')
+        .eq('reservation_id', reservation_id)
+        .eq('channel', channel)
+        .order('created_at', { ascending: true })
+        .limit(200);
+
+      if (mErr) return json({ ok: false, error: 'db_error' }, 500, cors);
+
+      // Mark unread guest messages as read
+      const unread = (messages ?? []).filter((m: any) => m.sender_type === 'guest' && !m.read_at).map((m: any) => m.id);
+      if (unread.length > 0) {
+        await admin.from('veraluz_guest_messages')
+          .update({ read_at: new Date().toISOString() })
+          .in('id', unread);
+      }
+
+      return json({ ok: true, messages: messages ?? [], channel, reservation_id }, 200, cors);
+    }
+
+    // ── REPLY TO GUEST ─────────────────────────────────────────────────
+    // Staff posts reply into guest's conversation thread.
+    // direction replies: gérant only (settings.manage).
+    // reception replies: any staff with messages.send.
+    if (action === 'reply_to_guest') {
+      const channel: string = String(body.channel ?? 'reception').trim().toLowerCase();
+      const reservation_id: string = String(body.reservation_id ?? '').trim();
+      const rawMessage: string = String(body.message ?? '').trim();
+
+      if (!reservation_id) return json({ ok: false, error: 'reservation_id_required' }, 400, cors);
+      if (!rawMessage || rawMessage.length > 2000) return json({ ok: false, error: 'invalid_message' }, 400, cors);
+
+      const ALLOWED_CHANNELS = new Set(['reception','direction']);
+      if (!ALLOWED_CHANNELS.has(channel))
+        return json({ ok: false, error: 'invalid_channel' }, 400, cors);
+
+      // RBAC server-side
+      if (channel === 'direction') {
+        if (!hasCapability(normalizeRole(actor.role), 'settings.manage'))
+          return json({ ok: false, error: 'access_denied', hint: 'direction_gerant_only' }, 403, cors);
+      } else {
+        if (!hasCapability(normalizeRole(actor.role), 'messages.send'))
+          return json({ ok: false, error: 'access_denied' }, 403, cors);
+      }
+
+      // Verify reservation exists
+      const { data: res } = await admin
+        .from('veraluz_reservations')
+        .select('id')
+        .eq('id', reservation_id)
+        .single();
+      if (!res) return json({ ok: false, error: 'reservation_not_found' }, 404, cors);
+
+      const { data: msg, error: msgErr } = await admin
+        .from('veraluz_guest_messages')
+        .insert({
+          reservation_id,
+          sender_type: 'staff',
+          staff_id:    actor.employee_id,
+          staff_name:  actor.actor_name,
+          channel,
+          message:     rawMessage,
+        })
+        .select('id, channel, message, created_at')
+        .single();
+
+      if (msgErr) return json({ ok: false, error: 'reply_failed' }, 500, cors);
+      return json({ ok: true, message: msg }, 201, cors);
     }
 
     return json({ ok: false, error: `unknown_action: ${action}` }, 400, cors);

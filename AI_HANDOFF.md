@@ -9,9 +9,11 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## Lots actifs
 
-PHASE-1-GUEST-SERVICES-MESSAGES | claude/settings-ssot-1a | HEAD 5a8ba28 | READY LOCAL — push bloqué CCR → bundle veraluz_phase1_guest_services_messages.bundle requis
+GUEST-6B+GUEST-FIN-1 | claude/settings-ssot-1a | HEAD d0e98f2 | READY LOCAL — push bloqué CCR → bundle veraluz_guest_financial_direction.bundle requis
 
 ## Transmissions récentes
+
+`2026-08-21 | Claude | GUEST-6B+GUEST-FIN-1 | claude/settings-ssot-1a | d0e98f2 | READY LOCAL | aucun LOCK | GUEST-6B: get_my_messages accepte channel param (réception+direction), messages-secure _rbac.ts copié, list_guest_conversations (réception=messages.read, direction=settings.manage gérant-only), get_guest_thread (mark-read), reply_to_guest (RBAC serveur); GUEST_PORTAL 2-onglets Réception/Direction (_msgChannel, switchMsgChannel), loadMessages channel-aware, sendGuestMessage canal actif; MESSAGES_EMBEDDED Conversations Clients sidebar (direction masqué non-gérant), guest-convs-panel. GUEST-FIN-1: get_my_payments (validated, own reservation), get_folio_html (HTML déterministe complet), get_receipt_html (déterministe par payment_id, scope isolation); GUEST_PORTAL folio-payments-card avec reçu par paiement + printFolio()/printReceipt() via window.print()`
 
 `2026-08-21 | Claude | GUEST-5+GUEST-6 | claude/settings-ssot-1a | 5a8ba28 | READY LOCAL | aucun LOCK | Services: create_service_request (checkedin, 5 types), get_my_service_requests (own session scope); Portal: nav activé, 5 boutons quick-request, historique statuts, 'Autre' avec note. Messages: send_message (reception channel, 1–2000 chars), get_my_messages (channel='reception' strict, strip staff_id); Portal: nav activé, thread chat, polling 15s, badge non-lu, compose auto-resize`
 

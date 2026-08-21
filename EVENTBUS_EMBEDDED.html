@@ -1060,6 +1060,38 @@ function renderDurables(data) {
         : '<div style="padding:12px;color:var(--text3);font-size:12px;margin-bottom:16px">Aucune donnée — comms-worker non encore exécuté.</div>'
       )
 
+    // ── INFRA-DOCS-1 — Section documents ─────────────────────
+    + '<div style="border-top:1px solid var(--border);margin:18px 0 14px"></div>'
+    + '<div style="font-size:12px;font-weight:700;color:var(--acc);margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px">📄 Documents PDF (document-worker)</div>'
+    + (function() {
+        var docs   = data.documents || {};
+        var djc    = docs.job_counts || {};
+        var lastDoc = docs.last_generated || null;
+        var hasFailed = docs.has_failed || false;
+        var docStatuses = ['pending','processing','completed','failed','dead'];
+        var colorMap2 = { pending:'var(--amber)', processing:'var(--blue)', completed:'var(--green)', failed:'var(--orange)', dead:'var(--red)' };
+        var docKpis = docStatuses.map(function(st) {
+          var n = djc[st] || 0;
+          return '<div class="kpi-card" style="border-top:3px solid ' + (colorMap2[st] || 'var(--text)') + '">'
+            + '<div class="kpi-val">' + n + '</div>'
+            + '<div class="kpi-lbl">' + st + '</div>'
+            + '</div>';
+        }).join('');
+        var lastDocStr = lastDoc
+          ? '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">Dernier généré : <strong>' + (lastDoc.document_type || '—') + '</strong> — ' + (lastDoc.generated_at ? fmtTs(lastDoc.generated_at) : '—') + '</div>'
+          : '<div style="font-size:11px;color:var(--text3);margin-bottom:4px">Aucun document généré pour l\'instant.</div>';
+        var failedBanner = hasFailed
+          ? '<div style="margin-top:8px;padding:8px 10px;background:rgba(220,60,40,.12);border:1px solid rgba(220,60,40,.3);border-radius:6px;font-size:11px;color:#e06050">⚠ Des PDFs n\'ont pas pu être générés — voir section failed dans infra-health.</div>'
+          : '';
+        return '<div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Jobs documents par statut</div>'
+          + (Object.keys(djc).length > 0
+              ? '<div class="kpi-grid" style="margin-bottom:12px">' + docKpis + '</div>'
+              : '<div style="padding:12px;color:var(--text3);font-size:12px;margin-bottom:12px">Aucune donnée — document-worker non encore exécuté.</div>'
+            )
+          + lastDocStr
+          + failedBanner;
+      })()
+
     + '</div>';
 }
 

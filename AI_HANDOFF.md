@@ -9,6 +9,8 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## Lots actifs
 
+INFRA-DOCS-1 | claude/settings-ssot-1a | HEAD (pending commit) | READY LOCAL — push bloqué CCR → bundle veraluz_infra_docs_1.bundle requis
+
 INFRA-SCHED-1 | claude/settings-ssot-1a | HEAD fe35b3a | READY LOCAL — push bloqué CCR → bundle veraluz_infra_sched_1.bundle requis
 
 ## Transmissions récentes

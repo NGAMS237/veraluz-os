@@ -50,6 +50,7 @@ const GUEST_DEFAULT_SCOPES = [
   'restaurant.order',
   'restaurant.orders.read',
   'folio.read',      // GUEST-4A — lecture folio séjour
+  'documents.read',  // INFRA-DOCS-1 — téléchargement PDF reçus/folios
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -1709,6 +1710,109 @@ Deno.serve(async (req: Request) => {
       status: 200,
       headers: { 'Content-Type': 'application/json', ...cors }
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INFRA-DOCS-1 — GET_MY_DOCUMENTS
+  // Liste les documents PDF disponibles pour la réservation de la session.
+  // reservation_id toujours résolu depuis la session (jamais depuis le client).
+  // Scope: documents.read
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (action === 'get_my_documents') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error: tokErr, session } = await validateGuestToken(
+      db, rawToken, ['confirmed', 'checkedin', 'checkedout'],
+    );
+    if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
+
+    if (!(session!.scopes as string[]).includes('documents.read'))
+      return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
+
+    const reservationId = session!.reservation_id;
+
+    // Scope isolation : reservation_id de la session uniquement
+    const { data: docs } = await db
+      .from('veraluz_documents')
+      .select('id, document_type, related_record_id, status, generated_at, file_size_bytes')
+      .eq('reservation_id', reservationId)
+      .order('generated_at', { ascending: false });
+
+    // Associer le statut du job pending/processing si le doc n'est pas encore généré
+    const { data: pendingJobs } = await db
+      .from('veraluz_document_jobs')
+      .select('document_type, related_record_id, status, attempt')
+      .in('status', ['pending', 'processing', 'failed'])
+      .eq('related_record_id', reservationId);
+
+    return json({
+      ok:          true,
+      reservation_id: reservationId,
+      documents:   docs ?? [],
+      pending_jobs: pendingJobs ?? [],
+    }, 200, cors);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INFRA-DOCS-1 — GET_MY_DOCUMENT_URL
+  // Génère une URL signée (15 min) pour télécharger un PDF.
+  // Isolation: document.reservation_id DOIT correspondre à la session.
+  // Le client fournit uniquement document_id — jamais reservation_id.
+  // Scope: documents.read
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (action === 'get_my_document_url') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error: tokErr, session } = await validateGuestToken(
+      db, rawToken, ['confirmed', 'checkedin', 'checkedout'],
+    );
+    if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
+
+    if (!(session!.scopes as string[]).includes('documents.read'))
+      return json({ ok: false, error: 'insufficient_scope' }, 403, cors);
+
+    const documentId = String(body.document_id ?? '').trim();
+    if (!documentId) return json({ ok: false, error: 'document_id_required' }, 400, cors);
+
+    // Charger le document et vérifier l'isolation reservation_id
+    const { data: doc, error: docErr } = await db
+      .from('veraluz_documents')
+      .select('id, document_type, reservation_id, storage_path, status')
+      .eq('id', documentId)
+      .single();
+
+    if (docErr || !doc) return json({ ok: false, error: 'document_not_found' }, 404, cors);
+
+    // ISOLEMENT STRICT : Guest A ne peut pas lire le document de Guest B
+    if ((doc.reservation_id as string) !== session!.reservation_id) {
+      return json({ ok: false, error: 'access_denied' }, 403, cors);
+    }
+
+    if ((doc.status as string) !== 'completed') {
+      return json({
+        ok:      false,
+        error:   'document_not_ready',
+        status:  doc.status,
+        message: 'Document en préparation, veuillez réessayer dans quelques instants.',
+      }, 202, cors);
+    }
+
+    // URL signée valide 15 minutes — aucune URL permanente
+    const { data: signedData, error: signErr } = await db.storage
+      .from('veraluz-documents-private')
+      .createSignedUrl(doc.storage_path as string, 900);  // 900s = 15 min
+
+    if (signErr || !signedData?.signedUrl) {
+      return json({ ok: false, error: 'signed_url_failed', detail: signErr?.message }, 500, cors);
+    }
+
+    return json({
+      ok:           true,
+      document_id:  doc.id,
+      document_type: doc.document_type,
+      signed_url:   signedData.signedUrl,
+      expires_in:   900,
+    }, 200, cors);
   }
 
   return json({ error: 'unknown_action' }, 400, cors);

@@ -699,9 +699,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
           </div>
           <div class="folio-card-body" id="folio-payments-list"></div>
           <div style="padding:10px 16px 14px">
-            <button onclick="printFolio()" style="width:100%;padding:10px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
-              Télécharger le folio complet
+            <button id="btn-dl-folio" onclick="downloadFolioPdf()" style="width:100%;padding:10px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Télécharger le folio PDF
             </button>
+            <div id="folio-dl-status" style="display:none;margin-top:8px;font-size:12px;text-align:center;color:var(--text-3)"></div>
           </div>
         </div>
 
@@ -2143,7 +2145,7 @@ function loadPayments(){
         +'<div class="folio-row-lbl">'+escH(mLabel)+'<div class="folio-row-sub">'+escH(dateStr)+'</div></div>'
         +'<div style="display:flex;align-items:center;gap:8px">'
         +'<span class="folio-row-amt" style="color:#1a7a3f">'+fmt(p.amount)+'</span>'
-        +'<button onclick="printReceipt(\''+escH(p.id)+'\')" style="font-size:11px;padding:3px 8px;background:#f0f9f4;color:#1a7a3f;border:1px solid #a7f3c1;border-radius:6px;cursor:pointer;white-space:nowrap;">Reçu</button>'
+        +'<button onclick="downloadReceiptPdf(\''+escH(p.id)+'\')" style="font-size:11px;padding:3px 8px;background:#f0f9f4;color:#1a7a3f;border:1px solid #a7f3c1;border-radius:6px;cursor:pointer;white-space:nowrap;">📄 PDF</button>'
         +'</div>'
         +'</div>';
     }).join('');
@@ -2151,30 +2153,88 @@ function loadPayments(){
   .catch(function(){});
 }
 
-function printFolio(){
-  callEF({action:'get_folio_html'})
-  .then(function(r){
-    if(!r.ok){ alert('Folio indisponible.'); return; }
-    var w=window.open('','_blank','width=700,height=900');
-    if(!w){ alert('Autorisez les pop-ups pour télécharger le folio.'); return; }
-    w.document.write(r.html);
-    w.document.close();
-    w.focus();
-    setTimeout(function(){ w.print(); }, 600);
-  })
-  .catch(function(){ alert('Erreur réseau.'); });
+// ── INFRA-DOCS-1 — Téléchargement PDF via document-worker ─────────────────
+// get_my_documents → trouver le document_id → get_my_document_url → signed URL
+// Aucun appel à get_folio_html / get_receipt_html (remplacé par PDF)
+
+function _openSignedUrl(signedUrl, filename){
+  // Ouvrir directement l'URL signée dans un nouvel onglet (PDF natif)
+  var a = document.createElement('a');
+  a.href = signedUrl;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
-function printReceipt(paymentId){
-  callEF({action:'get_receipt_html',payment_id:paymentId})
+function downloadFolioPdf(){
+  var btn = document.getElementById('btn-dl-folio');
+  var status = document.getElementById('folio-dl-status');
+  if(btn){ btn.disabled = true; btn.textContent = 'Préparation…'; }
+  if(status){ status.style.display='block'; status.textContent='Recherche du folio PDF…'; }
+
+  callEF({action:'get_my_documents'})
   .then(function(r){
-    if(!r.ok){ alert('Reçu indisponible.'); return; }
-    var w=window.open('','_blank','width=600,height=700');
-    if(!w){ alert('Autorisez les pop-ups pour télécharger le reçu.'); return; }
-    w.document.write(r.html);
-    w.document.close();
-    w.focus();
-    setTimeout(function(){ w.print(); }, 600);
+    if(!r.ok){ throw new Error(r.error||'documents_unavailable'); }
+    var docs = r.documents || [];
+    var folioDoc = docs.find(function(d){ return d.document_type === 'stay_folio'; });
+    if(!folioDoc){
+      // Peut être en cours de génération — vérifier les jobs pending
+      var pendingJobs = r.pending_jobs || [];
+      var hasPending = pendingJobs.some(function(j){ return j.document_type === 'stay_folio'; });
+      if(hasPending){
+        if(status){ status.textContent='📄 Document en préparation — revenez dans quelques instants.'; }
+      } else {
+        if(status){ status.textContent='Folio non disponible pour ce séjour.'; }
+      }
+      if(btn){ btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Télécharger le folio PDF'; }
+      return null;
+    }
+    if(folioDoc.status !== 'completed'){
+      if(status){ status.textContent='📄 Document en préparation — revenez dans quelques instants.'; }
+      if(btn){ btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Télécharger le folio PDF'; }
+      return null;
+    }
+    return callEF({action:'get_my_document_url', document_id: folioDoc.id});
+  })
+  .then(function(r2){
+    if(!r2) return;
+    if(!r2.ok){ throw new Error(r2.error||'url_failed'); }
+    _openSignedUrl(r2.signed_url, 'folio-sejour.pdf');
+    if(status){ status.style.display='none'; }
+    if(btn){ btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Télécharger le folio PDF'; }
+  })
+  .catch(function(e){
+    if(status){ status.textContent='Erreur : '+(e.message||'réseau'); }
+    if(btn){ btn.disabled=false; btn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Télécharger le folio PDF'; }
+  });
+}
+
+function downloadReceiptPdf(paymentId){
+  // Cherche le document payment_receipt lié à ce paymentId (related_record_id)
+  callEF({action:'get_my_documents'})
+  .then(function(r){
+    if(!r.ok){ alert('Documents indisponibles.'); return; }
+    var docs = r.documents || [];
+    var receiptDoc = docs.find(function(d){ return d.document_type === 'payment_receipt' && d.related_record_id === paymentId; });
+    if(!receiptDoc){
+      var pendingJobs = r.pending_jobs || [];
+      var hasPending = pendingJobs.some(function(j){ return j.document_type === 'payment_receipt' && j.related_record_id === paymentId; });
+      alert(hasPending ? '📄 Reçu en cours de génération — revenez dans quelques instants.' : 'Reçu non disponible pour ce paiement.');
+      return;
+    }
+    if(receiptDoc.status !== 'completed'){
+      alert('📄 Reçu en cours de génération — revenez dans quelques instants.');
+      return;
+    }
+    return callEF({action:'get_my_document_url', document_id: receiptDoc.id});
+  })
+  .then(function(r2){
+    if(!r2) return;
+    if(!r2.ok){ alert('Impossible de récupérer le reçu : '+(r2.error||'')); return; }
+    _openSignedUrl(r2.signed_url, 'recu-paiement.pdf');
   })
   .catch(function(){ alert('Erreur réseau.'); });
 }

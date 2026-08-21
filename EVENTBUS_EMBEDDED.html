@@ -883,7 +883,9 @@ function escH(s) {
 function renderDurables(data) {
   var jobs    = data.jobs   || {};
   var events  = data.events || {};
+  var comms   = data.comms  || {};           // INFRA-COMMS-1A
   var counts  = jobs.counts || {};
+  var commCounts = comms.counts || {};       // INFRA-COMMS-1A
   var recent  = jobs.recent || [];
   var dead    = jobs.dead   || [];
   var byType  = events.by_type || {};
@@ -936,14 +938,23 @@ function renderDurables(data) {
       + '</tr>';
   }).join('') || '<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--text3)">Aucun job</td></tr>';
 
-  // Recent events table (last 15)
+  // Recent events table (last 15) — colonnes canoniques : source + created_at
   var evRows = recEvts.slice(0, 15).map(function(e) {
     return '<tr>'
       + '<td style="padding:5px 8px;font-size:11px;font-family:monospace;color:var(--acc)">' + escH(e.event_type||'') + '</td>'
-      + '<td style="padding:5px 8px;font-size:10px;color:var(--text2)">' + escH(e.source_fn||'—') + '</td>'
-      + '<td style="padding:5px 8px;font-size:10px;color:var(--text3)">' + (e.emitted_at ? fmtTs(e.emitted_at) : '—') + '</td>'
+      + '<td style="padding:5px 8px;font-size:10px;color:var(--text2)">' + escH(e.source||'—') + '</td>'
+      + '<td style="padding:5px 8px;font-size:10px;color:var(--text3)">' + (e.created_at ? fmtTs(e.created_at) : '—') + '</td>'
       + '</tr>';
   }).join('') || '<tr><td colspan="3" style="padding:16px;text-align:center;color:var(--text3)">Aucun événement récent</td></tr>';
+
+  // INFRA-COMMS-1A — Comm jobs KPI
+  var commKpis = ['pending','processing','completed','failed','dead','email_not_configured'].map(function(st) {
+    var n = commCounts[st] || 0;
+    var colorMap = { pending:'var(--amber)', processing:'var(--blue)', completed:'var(--green)', failed:'var(--orange)', dead:'var(--red)', email_not_configured:'var(--text3)' };
+    var color = colorMap[st] || 'var(--text)';
+    return '<div class="kpi-card"><div style="font-size:11px;color:var(--text2);margin-bottom:2px">' + escH(st.replace('_',' ')) + '</div>'
+      + '<div style="font-size:22px;font-weight:700;color:' + color + '">' + n + '</div></div>';
+  }).join('');
 
   return ''
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'
@@ -979,7 +990,7 @@ function renderDurables(data) {
     + '</div>'
 
     + '<div class="card">'
-    +   '<div class="card-title">🔧 Jobs récents</div>'
+    +   '<div class="card-title">🔧 Jobs récents (event-worker)</div>'
     +   '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:500px">'
     +     '<thead><tr>'
     +       '<th style="padding:5px 8px;text-align:left;font-size:10px;color:var(--text2)">ID (fin)</th>'
@@ -990,8 +1001,23 @@ function renderDurables(data) {
     +     '</tr></thead>'
     +     '<tbody>' + jobRows + '</tbody>'
     +   '</table></div>'
-    + '</div>';
+    + '</div>'
+
+    // ── INFRA-COMMS-1A — Section communications ──────────────
+    + '<div style="border-top:1px solid var(--border);margin:18px 0 14px"></div>'
+    + '<div style="font-size:12px;font-weight:700;color:var(--acc);margin-bottom:10px;text-transform:uppercase;letter-spacing:.6px">📨 Communications (comms-worker)</div>'
+
+    + '<div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.6px">Jobs communications par statut</div>'
+    + (Object.keys(commCounts).length > 0
+        ? '<div class="kpi-grid" style="margin-bottom:16px">' + commKpis + '</div>'
+        : '<div style="padding:12px;color:var(--text3);font-size:12px;margin-bottom:16px">Aucune donnée — comms-worker non encore exécuté ou section non exposée par infra-health.</div>'
+      )
+
+    + '</div>';   // ferme dernier wrapper si besoin — inséré sans div wrapper supplémentaire
 }
+
+/* Note : la section comms est affichée même si data.comms est absent (graceful degradation).
+   Elle sera alimentée lorsque infra-health exposera data.comms (extension future). */
 </script>
 </body>
 </html>

@@ -1351,5 +1351,136 @@ Deno.serve(async (req: Request) => {
     }, 200, cors);
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GUEST-5 — Service Requests
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  if (action === 'create_service_request') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error: tokErr, session } = await validateGuestToken(
+      db, rawToken, ['checkedin'],
+    );
+    if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
+
+    const SERVICE_TYPES = new Set(['housekeeping','towels','maintenance','reception','other']);
+    const serviceType = String(body.service_type ?? '').trim().toLowerCase();
+    if (!SERVICE_TYPES.has(serviceType))
+      return json({ ok: false, error: 'invalid_service_type',
+        allowed: [...SERVICE_TYPES] }, 400, cors);
+
+    const rawNote = String(body.note ?? '').trim();
+    const note = rawNote.length > 500 ? rawNote.slice(0, 500) : (rawNote || null);
+
+    const { data: sr, error: srErr } = await db
+      .from('veraluz_guest_service_requests')
+      .insert({
+        guest_session_id: session!.id,
+        reservation_id:   session!.reservation_id,
+        unit_id:          session!.unit_id ?? null,
+        service_type:     serviceType,
+        note,
+        status:           'requested',
+      })
+      .select('id, service_type, note, status, created_at')
+      .single();
+
+    if (srErr) return json({ ok: false, error: 'create_failed' }, 500, cors);
+    return json({ ok: true, request: sr }, 201, cors);
+  }
+
+  if (action === 'get_my_service_requests') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error: tokErr, session } = await validateGuestToken(
+      db, rawToken, ['checkedin','checkedout'],
+    );
+    if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
+
+    // Scope: own session only — reservation_id from server
+    const { data: requests, error: rqErr } = await db
+      .from('veraluz_guest_service_requests')
+      .select('id, service_type, note, status, created_at, updated_at')
+      .eq('guest_session_id', session!.id)
+      .eq('reservation_id', session!.reservation_id)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (rqErr) return json({ ok: false, error: 'fetch_failed' }, 500, cors);
+    return json({ ok: true, requests: requests ?? [] }, 200, cors);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // GUEST-6 — Secure Guest Messaging
+  // channel: 'reception' (all staff with messages.read) | 'direction' (gérant/manager only)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  if (action === 'send_message') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error: tokErr, session } = await validateGuestToken(
+      db, rawToken, ['checkedin','checkedout'],
+    );
+    if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
+
+    const ALLOWED_CHANNELS = new Set(['reception', 'direction']);
+    const channel = String(body.channel ?? 'reception').trim().toLowerCase();
+    if (!ALLOWED_CHANNELS.has(channel))
+      return json({ ok: false, error: 'invalid_channel', allowed: ['reception','direction'] }, 400, cors);
+
+    const rawMessage = String(body.message ?? '').trim();
+    if (rawMessage.length < 1 || rawMessage.length > 2000)
+      return json({ ok: false, error: 'invalid_message',
+        hint: 'Message must be 1–2000 characters' }, 400, cors);
+
+    const { data: msg, error: msgErr } = await db
+      .from('veraluz_guest_messages')
+      .insert({
+        reservation_id:   session!.reservation_id,
+        guest_session_id: session!.id,
+        sender_type:      'guest',
+        channel,
+        message:          rawMessage,
+      })
+      .select('id, channel, message, created_at')
+      .single();
+
+    if (msgErr) return json({ ok: false, error: 'send_failed' }, 500, cors);
+    return json({ ok: true, message: msg }, 201, cors);
+  }
+
+  if (action === 'get_my_messages') {
+    const rawToken = (body.token as string | undefined)
+      ?? req.headers.get('x-guest-token') ?? '';
+    const { error: tokErr, session } = await validateGuestToken(
+      db, rawToken, ['checkedin','checkedout'],
+    );
+    if (tokErr) return json({ ok: false, error: tokErr, message: guestErrorMsg(tokErr) }, 401, cors);
+
+    // Scope: own reservation messages on 'reception' channel only.
+    // 'direction' channel is staff-to-staff; guests NEVER see direction messages.
+    const { data: messages, error: mErr } = await db
+      .from('veraluz_guest_messages')
+      .select('id, sender_type, staff_name, channel, message, created_at, read_at')
+      .eq('reservation_id', session!.reservation_id)
+      .eq('channel', 'reception')      // strict: guests only ever see reception channel
+      .order('created_at', { ascending: true })
+      .limit(200);
+
+    if (mErr) return json({ ok: false, error: 'fetch_failed' }, 500, cors);
+
+    // Strip internal fields: never expose staff_id or guest_session_id to guest
+    const safe = (messages ?? []).map((m: any) => ({
+      id:           m.id,
+      sender_type:  m.sender_type,
+      staff_name:   m.staff_name ?? null,
+      message:      m.message,
+      created_at:   m.created_at,
+      is_read:      !!m.read_at,
+    }));
+
+    return json({ ok: true, messages: safe }, 200, cors);
+  }
+
   return json({ error: 'unknown_action' }, 400, cors);
 });

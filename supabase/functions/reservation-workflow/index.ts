@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { normalizeRole, hasCapability } from "./_rbac.ts";
+import { emitEvent, EVENT_TYPES } from "../_shared/events.ts";
 
 const SUPA_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -104,6 +105,25 @@ Deno.serve(async (req: Request) => {
     .eq("id", reservation_id);
 
   if (updErr) return fail("db_error", 500, { detail: updErr.message });
+
+  // ── INFRA-OPS-1 : outbox event après checkout ─────────────
+  // Émet guest_checked_out → event-worker crée la tâche ménage
+  if (action === 'checkout') {
+    // Fire-and-forget : ne bloque pas la réponse si l'émission échoue
+    emitEvent(
+      db,
+      EVENT_TYPES.GUEST_CHECKED_OUT,
+      {
+        reservation_id: rez.id,
+        unit_id:        rez.unit_id   ?? null,
+        guest_name:     rez.client_name ?? null,
+        checkout_at:    now,
+      },
+      'reservation-workflow',
+    ).catch((e: unknown) => {
+      console.error('[reservation-workflow] emitEvent guest_checked_out error:', e);
+    });
+  }
 
   return ok({
     ok: true, reservation_id,

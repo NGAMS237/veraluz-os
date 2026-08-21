@@ -17,23 +17,32 @@ import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export const EVENT_TYPES = {
   // Réservations
-  RESERVATION_CREATED:      'reservation_created',
-  RESERVATION_CONFIRMED:    'reservation_confirmed',
-  RESERVATION_CANCELLED:    'reservation_cancelled',
-  GUEST_CHECKED_IN:         'guest_checked_in',
-  GUEST_CHECKED_OUT:        'guest_checked_out',
+  RESERVATION_CREATED:       'reservation_created',
+  RESERVATION_CONFIRMED:     'reservation_confirmed',
+  RESERVATION_CANCELLED:     'reservation_cancelled',
+  GUEST_CHECKED_IN:          'guest_checked_in',
+  GUEST_CHECKED_OUT:         'guest_checked_out',
 
   // Paiements
-  PAYMENT_RECORDED:         'payment_recorded',
-  PAYMENT_REFUNDED:         'payment_refunded',
+  PAYMENT_RECORDED:          'payment_recorded',
+  PAYMENT_REFUNDED:          'payment_refunded',
+
+  // Restaurant
+  RESTAURANT_ORDER_CREATED:  'restaurant_order_created',
+  RESTAURANT_ORDER_READY:    'restaurant_order_ready',
+  ROOM_SERVICE_REQUESTED:    'room_service_requested',
 
   // Services invités
-  GUEST_SERVICE_REQUESTED:  'guest_service_requested',
-  GUEST_SERVICE_COMPLETED:  'guest_service_completed',
+  GUEST_SERVICE_REQUESTED:   'guest_service_requested',
+  GUEST_SERVICE_COMPLETED:   'guest_service_completed',
+  GUEST_MESSAGE_SENT:        'guest_message_sent',
+
+  // Maintenance
+  MAINTENANCE_REQUESTED:     'maintenance_requested',
 
   // Ménage
-  HOUSEKEEPING_ASSIGNED:    'housekeeping_assigned',
-  HOUSEKEEPING_COMPLETED:   'housekeeping_completed',
+  HOUSEKEEPING_ASSIGNED:     'housekeeping_assigned',
+  HOUSEKEEPING_COMPLETED:    'housekeeping_completed',
 } as const;
 
 export type EventType = typeof EVENT_TYPES[keyof typeof EVENT_TYPES];

@@ -107,6 +107,31 @@ serve(async (req: Request) => {
     .order('created_at', { ascending: false })
     .limit(10);
 
+  // ── Comms (veraluz_communication_jobs) — sans recipient ni body ─
+  const commStatuses = ['pending', 'processing', 'completed', 'failed', 'dead'] as const;
+  const commCounts: Record<string, number> = {};
+
+  await Promise.all(commStatuses.map(async (st) => {
+    const { count } = await admin
+      .from('veraluz_communication_jobs')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', st);
+    commCounts[st] = count ?? 0;
+  }));
+
+  const { data: recentCommJobs } = await admin
+    .from('veraluz_communication_jobs')
+    .select('id, template_key, channel, status, attempt, processed_at, created_at')
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  const { data: deadCommJobs } = await admin
+    .from('veraluz_communication_jobs')
+    .select('id, template_key, channel, attempt, last_error, created_at')
+    .eq('status', 'dead')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
   // Agréger par type
   const eventsByType: Record<string, number> = {};
   for (const ev of recentEvents ?? []) {
@@ -127,6 +152,12 @@ serve(async (req: Request) => {
       last_24h_total: recentEvents?.length ?? 0,
       by_type:        eventsByType,
       recent:         recentEvents ?? [],
+    },
+    comms: {
+      counts:   commCounts,
+      recent:   recentCommJobs  ?? [],
+      dead:     deadCommJobs    ?? [],
+      has_dead: (deadCommJobs?.length ?? 0) > 0,
     },
   });
 });

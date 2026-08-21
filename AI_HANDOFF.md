@@ -9,9 +9,11 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## Lots actifs
 
-GUEST-6B+GUEST-FIN-1 | claude/settings-ssot-1a | HEAD d0e98f2 | READY LOCAL — push bloqué CCR → bundle veraluz_guest_financial_direction.bundle requis
+INFRA-OPS-1 | claude/settings-ssot-1a | HEAD a8dcae8 | READY LOCAL — push bloqué CCR → bundle veraluz_infra_ops_1.bundle requis
 
 ## Transmissions récentes
+
+`2026-08-21 | Claude | INFRA-OPS-1 | claude/settings-ssot-1a | a8dcae8 | READY LOCAL | aucun LOCK | Migration: veraluz_events (outbox), veraluz_event_jobs (UNIQUE event_id+handler), veraluz_housekeeping (IF NOT EXISTS). _shared/events.ts: EVENT_TYPES underscore + emitEvent() upsert idempotent. event-worker EF: batch 20, guard lock processing, handler create_housekeeping_task (INSERT veraluz_housekeeping, priority=high, source_event_id), handler create_staff_notification (INSERT veraluz_internal_messages dept via SERVICE_DEPT map); retry pending→failed→dead max 4 tentatives; logs structurés sans secrets. infra-health EF: read-only, RBAC settings.manage, job counts + dead alert + events 24h. guest-access: emitEvent guest_service_requested fire-and-forget après create_service_request. reservation-workflow: emitEvent guest_checked_out après action=checkout. EVENTBUS_EMBEDDED: onglet Durables DB (infra-health via broker CORE, KPIs, dead alert, refresh). CORE: infra-health ajouté BROKER_ALLOWED. 12 cas INFRA_OPS_1_TESTS.md. 3 commits: 1e831b2→e5b0e37→a8dcae8`
 
 `2026-08-21 | Claude | GUEST-6B+GUEST-FIN-1 | claude/settings-ssot-1a | d0e98f2 | READY LOCAL | aucun LOCK | GUEST-6B: get_my_messages accepte channel param (réception+direction), messages-secure _rbac.ts copié, list_guest_conversations (réception=messages.read, direction=settings.manage gérant-only), get_guest_thread (mark-read), reply_to_guest (RBAC serveur); GUEST_PORTAL 2-onglets Réception/Direction (_msgChannel, switchMsgChannel), loadMessages channel-aware, sendGuestMessage canal actif; MESSAGES_EMBEDDED Conversations Clients sidebar (direction masqué non-gérant), guest-convs-panel. GUEST-FIN-1: get_my_payments (validated, own reservation), get_folio_html (HTML déterministe complet), get_receipt_html (déterministe par payment_id, scope isolation); GUEST_PORTAL folio-payments-card avec reçu par paiement + printFolio()/printReceipt() via window.print()`
 

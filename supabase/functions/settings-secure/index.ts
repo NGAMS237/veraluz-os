@@ -242,11 +242,28 @@ Deno.serve(async (req) => {
         }
         return null;
       };
+      /* tourist_tax_value : plage dépend de tourist_tax_type envoyé dans ce payload.
+         Si tourist_tax_type absent du payload → on valide uniquement >= 0 (type inchangé côté DB).
+         Si tourist_tax_type = 'pct' → tourist_tax_value doit être 0–100.
+         Si tourist_tax_type = 'fixed' → tourist_tax_value >= 0 (XAF).              */
+      const ttType = typeof v.tourist_tax_type === 'string' ? v.tourist_tax_type : 'fixed';
+      const checkTouristTaxValue = () => {
+        if (!('tourist_tax_value' in v)) return null;
+        const n = Number(v.tourist_tax_value);
+        if (!Number.isFinite(n) || n < 0) {
+          return json({ ok: false, error: 'invalid_fiscal_value', field: 'tourist_tax_value', range: '>= 0' }, 400, cors);
+        }
+        if (ttType === 'pct' && n > 100) {
+          return json({ ok: false, error: 'invalid_fiscal_value', field: 'tourist_tax_value',
+            range: '0–100 (type=pct)', detail: 'tourist_tax_value cannot exceed 100 when tourist_tax_type is pct' }, 400, cors);
+        }
+        return null;
+      };
       const rateErr =
         checkRate('vat_rate', 0, 100) ||
         checkRate('service_charge_rate', 0, 100) ||
         checkRate('cancellation_pct', 0, 100) ||
-        checkNonNeg('tourist_tax_value') ||
+        checkTouristTaxValue() ||
         checkNonNeg('municipal_tax_value') ||
         checkNonNeg('early_checkin_fee') ||
         checkNonNeg('late_checkout_fee') ||

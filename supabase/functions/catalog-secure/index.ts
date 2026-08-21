@@ -1,5 +1,5 @@
 /**
- * CATALOG-SSOT-1 — catalog-secure Edge Function v1
+ * CATALOG-SSOT-1 — catalog-secure Edge Function v2
  *
  * Source canonique : veraluz_units
  *
@@ -13,6 +13,13 @@
  *   - RBAC canonique _rbac.ts — settings.manage
  *   - Validation stricte des champs
  *   - Jamais de service_role exposé
+ *
+ * v2 (CATALOG-SSOT-1 review fixes):
+ *   + Statuts catalogue corrigés : active | maintenance | out_of_service
+ *     (occupied supprimé — état opérationnel dérivé des réservations, jamais stocké dans le catalogue)
+ *   + amenities : JSONB array passé tel quel (jamais converti en string)
+ *   + delete_unit : FK correcte → veraluz_reservations.unit_id (était room_id — BUG)
+ *   + Guard count query échouée → 500 plutôt que delete silencieux
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { hasCapability } from './_rbac.ts';
@@ -27,8 +34,11 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8080',
 ];
 
-const UNIT_ALLOWED_TYPES   = new Set(['chambre','studio','appartement','suite','villa','bungalow']);
-const UNIT_ALLOWED_STATUSES = new Set(['available','maintenance','occupied']);
+const UNIT_ALLOWED_TYPES = new Set(['chambre','studio','appartement','suite','villa','bungalow']);
+
+/* Statuts administratifs catalogue uniquement.
+   'occupied' est un état opérationnel dérivé des réservations — jamais stocké ici. */
+const UNIT_ALLOWED_STATUSES = new Set(['active','maintenance','out_of_service']);
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -73,15 +83,17 @@ async function validateEmployeeSession(db: ReturnType<typeof createClient>, sess
 
 // ── Validation unité ──────────────────────────────────────────────────────────
 
-function validateUnit(unit: Record<string,unknown>): { ok: true } | { ok: false; error: string; field?: string } {
+function validateUnit(unit: Record<string,unknown>): { ok: true } | { ok: false; error: string; field?: string; detail?: string } {
   if (!unit.name || typeof unit.name !== 'string' || (unit.name as string).trim().length === 0) {
     return { ok: false, error: 'field_required', field: 'name' };
   }
   if (unit.type !== undefined && !UNIT_ALLOWED_TYPES.has(unit.type as string)) {
-    return { ok: false, error: 'invalid_field_value', field: 'type' };
+    return { ok: false, error: 'invalid_field_value', field: 'type',
+      detail: [...UNIT_ALLOWED_TYPES].join('|') };
   }
   if (unit.status !== undefined && !UNIT_ALLOWED_STATUSES.has(unit.status as string)) {
-    return { ok: false, error: 'invalid_field_value', field: 'status' };
+    return { ok: false, error: 'invalid_field_value', field: 'status',
+      detail: [...UNIT_ALLOWED_STATUSES].join('|') + ' (occupied interdit — état dérivé des réservations)' };
   }
   if (unit.capacity !== undefined) {
     const c = Number(unit.capacity);
@@ -103,6 +115,19 @@ function validateUnit(unit: Record<string,unknown>): { ok: true } | { ok: false;
   }
   if (unit.floor !== undefined && !Number.isFinite(Number(unit.floor))) {
     return { ok: false, error: 'invalid_field_value', field: 'floor' };
+  }
+  /* amenities : doit être un tableau JSON ou null/absent */
+  if (unit.amenities !== undefined && unit.amenities !== null) {
+    if (!Array.isArray(unit.amenities)) {
+      return { ok: false, error: 'invalid_field_value', field: 'amenities',
+        detail: 'amenities must be a JSON array of strings (e.g. ["clim","wifi","tv"])' };
+    }
+    for (const a of unit.amenities as unknown[]) {
+      if (typeof a !== 'string') {
+        return { ok: false, error: 'invalid_field_value', field: 'amenities',
+          detail: 'each amenity must be a string key' };
+      }
+    }
   }
   return { ok: true };
 }
@@ -161,16 +186,19 @@ Deno.serve(async (req) => {
       const validation = validateUnit(unit);
       if (!validation.ok) return json({ ok: false, ...validation }, 400, cors);
 
+      /* amenities : passer le tableau JSONB tel quel — jamais convertir en string */
+      const amenities = Array.isArray(unit.amenities) ? unit.amenities : [];
+
       // Préparer le payload — seuls les champs autorisés
       const payload: Record<string,unknown> = {
         name:        (unit.name as string).trim(),
         type:        unit.type        ?? 'chambre',
-        status:      unit.status      ?? 'available',
+        status:      unit.status      ?? 'active',
         capacity:    Number(unit.capacity ?? 2),
         price:       Number(unit.price    ?? 0),
         floor:       Number(unit.floor    ?? 0),
         sort_order:  Number(unit.sort_order ?? 0),
-        amenities:   typeof unit.amenities   === 'string' ? unit.amenities   : '',
+        amenities:   amenities,
         description: typeof unit.description === 'string' ? unit.description : '',
         updated_at:  new Date().toISOString(),
       };
@@ -197,13 +225,19 @@ Deno.serve(async (req) => {
         return json({ ok: false, error: 'id_required' }, 400, cors);
       }
 
-      // Vérifier s'il existe des réservations liées avant de supprimer
-      const { count } = await db
+      /* Vérifier s'il existe des réservations liées avant de supprimer.
+         FK réelle : veraluz_reservations.unit_id → veraluz_units.id       */
+      const { count, error: countErr } = await db
         .from('veraluz_reservations')
         .select('id', { count: 'exact', head: true })
-        .eq('room_id', unitId);
+        .eq('unit_id', unitId);   /* ← FK correcte (était room_id — BUG) */
 
-      if (count && count > 0) {
+      if (countErr) {
+        console.error('[catalog-secure] Reservation count check failed:', countErr.message);
+        return json({ ok: false, error: 'reservation_check_failed', detail: countErr.message }, 500, cors);
+      }
+
+      if (count !== null && count > 0) {
         return json({ ok: false, error: 'unit_has_reservations', count }, 409, cors);
       }
 

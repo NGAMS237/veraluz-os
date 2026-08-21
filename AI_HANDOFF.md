@@ -10,12 +10,15 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 ## Lots actifs
 
 SETTINGS-SSOT-1A | claude/settings-ssot-1a | HEAD 7416774 | READY LOCAL — push manuel requis (push_settings_ssot_1a.bat)
-SETTINGS-FISCAL-1 | claude/settings-ssot-1a | HEAD f883b36 | READY LOCAL — tests/SETTINGS_FISCAL_1_TESTS.md (7 cas A-G)
-CATALOG-SSOT-1 | claude/settings-ssot-1a | HEAD bb32ec3 | READY LOCAL — tests/CATALOG_SSOT_1_TESTS.md (10 cas A-J)
+SETTINGS-FISCAL-1 | claude/settings-ssot-1a | HEAD f883b36 | READY LOCAL (review fixes appliqués — commit pending)
+CATALOG-SSOT-1 | claude/settings-ssot-1a | HEAD bb32ec3 | READY LOCAL (review fixes appliqués — commit pending)
+REVIEW-FIX-FISCAL-CATALOG | claude/settings-ssot-1a | HEAD pending | PRÊT COMMIT — 7 blockers fermés (amenities JSONB, status active/maint/oos, delete unit_id FK, tourist_tax_type pct cap, LS SSOT import, DB KO branding/restaurant/localisation, fiscal fallback supprimé)
 
 Prochaine phase : notifications / system / integrations / email cleanup → Guest Portal
 
 ## Transmissions récentes
+
+`2026-08-20 | Claude | REVIEW-FIX-FISCAL-CATALOG | claude/settings-ssot-1a | pending | 11 cas CATALOG + 11 cas FISCAL (STATIC+runtime) | PRÊT COMMIT | aucun LOCK | 7 blockers fermés : catalog-secure v2 (statuts active/maintenance/out_of_service, amenities JSONB array, delete .eq('unit_id') FK correcte, countErr guard), migration catalog (amenities::jsonb, status='active'), settings-secure tourist_tax_type pct cap, SETTINGS_EMBEDDED importSettings() + loadSettings() filtrent _LS_CANONICAL, DB KO branding/restaurant/localisation, RESERVATIONS tax_pct fallback supprimé, texte UI fiscal non-trompeur`
 
 `2026-08-20 | Claude | CATALOG-SSOT-1 | claude/settings-ssot-1a | bb32ec3 | 10 cas CATALOG_SSOT_1_TESTS.md | READY LOCAL | aucun LOCK | HUMAN RETEST puis merge main si OK — catalog-secure EF (get_catalog anon, upsert_unit+delete_unit settings.manage), SETTINGS_EMBEDDED renderChambres() via veraluz_units DB, migration 20260820_catalog_ssot_1.sql seed 3 unités. S.chambres localStorage éliminé.`
 

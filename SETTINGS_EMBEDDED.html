@@ -511,8 +511,17 @@ function saveSecurityParam(field, val){
 
 /* ── Load / Save ── */
 function loadSettings(){
-  try{ var sv=localStorage.getItem(LS_KEY); S=sv?JSON.parse(sv):JSON.parse(JSON.stringify(DEFAULTS)); }
-  catch(e){ S=JSON.parse(JSON.stringify(DEFAULTS)); }
+  /* SETTINGS-FISCAL-1 / CATALOG-SSOT-1: si d'anciens JSON localStorage contiennent encore
+     des clés canonical (branding, localization, restaurant, tarifs, chambres, hotel),
+     elles sont ignorées — la vérité vient de DB via loadDbCanonical() + loadCatalogFromDB().
+     On initialise S depuis LS uniquement pour les domaines non-canonical.                  */
+  try{
+    var sv=localStorage.getItem(LS_KEY);
+    var raw=sv?JSON.parse(sv):{};
+    /* Purger les clés canonical depuis l'entrée localStorage si elles s'y sont glissées */
+    _LS_CANONICAL.forEach(function(k){ delete raw[k]; });
+    S=raw;
+  }catch(e){ S={}; }
   Object.keys(DEFAULTS).forEach(function(k){ if(!S[k]) S[k]=JSON.parse(JSON.stringify(DEFAULTS[k])); });
 }
 
@@ -557,7 +566,11 @@ function goSection(id){
    Domaines non encore migrés (chambres, tarifs, sejour, notifs, integrations, systeme, email, devises) :
      → persistés en localStorage comme avant.
    locale-updated supprimé ici : saveLocalization() est la voie canonique.           */
-var _LS_CANONICAL = ['branding','localization','restaurant','tarifs','chambres'];   /* SETTINGS-FISCAL-1: tarifs → fiscal canonical DB | CATALOG-SSOT-1: chambres → veraluz_units DB */
+/* Domaines canoniques DB — jamais persistés en localStorage ni importés comme vérités locales.
+   hotel/branding/localization/restaurant → settings-secure EF (veraluz_settings)
+   tarifs → settings-secure EF clé 'fiscal' (SETTINGS-FISCAL-1)
+   chambres → catalog-secure EF / veraluz_units (CATALOG-SSOT-1)                              */
+var _LS_CANONICAL = ['hotel','branding','localization','restaurant','tarifs','chambres'];
 function saveAll(){
   collectForm();
   try{
@@ -694,11 +707,24 @@ function renderBranding(){
     bg_color:'#0f1117', font:'Inter', show_logo:true
   }, _dbSett.branding || {});
   var hasLogo = b.logo_url && b.logo_url.length > 0;
+  var badge = _dbSettError
+    ? '<span style="font-size:9px;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">DB KO</span>'
+    : _dbSettLoaded
+      ? '<span style="font-size:9px;background:rgba(34,211,165,.12);color:var(--acc);border:1px solid rgba(34,211,165,.25);border-radius:4px;padding:1px 6px;margin-left:6px;">DB</span>'
+      : '<span style="font-size:9px;background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">chargement…</span>';
+  var degradeMsg = _dbSettError
+    ? '<div class="card" style="background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.3);">'
+      +'<p style="font-size:11px;color:var(--red);">⚠ <strong>DB indisponible — mode dégradé.</strong> Le branding ne peut pas être lu ni modifié. Rechargez la page.</p>'
+      +'</div>'
+    : '';
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>',
-    'Branding & Logo', 'Identité visuelle — source canonique DB (cross-device)')
-  +'<div class="card" style="background:rgba(34,211,165,.04);border-color:rgba(34,211,165,.2);">'
-  +'<p style="font-size:11px;color:var(--acc);">→ Branding enregistré en DB et appliqué cross-device. Logo = URL Supabase Storage uniquement (jamais base64).</p>'
-  +'</div>'
+    'Branding & Logo '+badge, 'Identité visuelle — source canonique DB (cross-device)')
+  +degradeMsg
+  +(_dbSettError ? '' :
+    '<div class="card" style="background:rgba(34,211,165,.04);border-color:rgba(34,211,165,.2);">'
+    +'<p style="font-size:11px;color:var(--acc);">→ Branding enregistré en DB et appliqué cross-device. Logo = URL Supabase Storage uniquement (jamais base64).</p>'
+    +'</div>'
+  )
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Logo</div>'
   +'<div id="logo-preview">'
@@ -720,7 +746,7 @@ function renderBranding(){
   +' oninput="previewLogoDb(this.value)" style="width:100%;">'
   +'</div>'
   +toggle('Afficher le logo dans le header','Remplace le texte "Veraluz OS" par l\'image','__branding_show_logo',b.show_logo)
-  +'<div class="btn-group"><button class="btn btn-p" onclick="saveBranding()">Enregistrer le branding (DB)</button></div>'
+  +'<div class="btn-group">'+(_dbSettError?'<button class="btn btn-o" disabled>DB indisponible</button>':'<button class="btn btn-p" onclick="saveBranding()">Enregistrer le branding (DB)</button>')+'</div>'
   +'</div>'
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>Couleurs</div>'
@@ -730,7 +756,7 @@ function renderBranding(){
   +'<input type="color" id="branding-secondary" value="'+b.secondary_color+'" oninput="markDirty()"><span class="color-val" id="branding-secondary-val">'+b.secondary_color+'</span></div>'
   +'<div class="color-row"><label>Fond général</label>'
   +'<input type="color" id="branding-bg" value="'+b.bg_color+'" oninput="markDirty()"><span class="color-val" id="branding-bg-val">'+b.bg_color+'</span></div>'
-  +'<div class="btn-group"><button class="btn btn-p" onclick="saveBranding()">Enregistrer les couleurs (DB)</button></div>'
+  +'<div class="btn-group">'+(_dbSettError?'<button class="btn btn-o" disabled>DB indisponible</button>':'<button class="btn btn-p" onclick="saveBranding()">Enregistrer les couleurs (DB)</button>')+'</div>'
   +'</div>';
 }
 
@@ -956,7 +982,7 @@ function renderTarifs(){
   +fField('Lit supplémentaire (XAF)','fsc-eb-fee',f.extra_bed_fee)
   +fField('Annulation (% retenu)','fsc-canc-pct',f.cancellation_pct,'number','0–100')
   +'</div>'
-  +'<div class="row-hint">→ Ces paramètres sont appliqués côté serveur dans le moteur de réservation et la Finance. IA n\'applique pas les taxes.</div>'
+  +'<div class="row-hint">→ Ces paramètres définissent les taux de référence. Leur application effective (calcul folio, facturation) dépend de l\'intégration métier — vérifiez qu\'un module consommateur les lit avant de les considérer actifs côté serveur.</div>'
   +'</div>'
   +'<div class="btn-group">'
   +(_dbSettError ? '<button class="btn btn-o" disabled>DB indisponible</button>'
@@ -1018,11 +1044,24 @@ function renderDevises(){
     date_format:'DD/MM/YYYY', time_format:'24h'
   }, _dbSett.localization || {});
 
+  var badge = _dbSettError
+    ? '<span style="font-size:9px;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">DB KO</span>'
+    : _dbSettLoaded
+      ? '<span style="font-size:9px;background:rgba(34,211,165,.12);color:var(--acc);border:1px solid rgba(34,211,165,.25);border-radius:4px;padding:1px 6px;margin-left:6px;">DB</span>'
+      : '<span style="font-size:9px;background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">chargement…</span>';
+  var degradeMsg = _dbSettError
+    ? '<div class="card" style="background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.3);">'
+      +'<p style="font-size:11px;color:var(--red);">⚠ <strong>DB indisponible — mode dégradé.</strong> La localisation ne peut pas être lue ni modifiée. Rechargez la page.</p>'
+      +'</div>'
+    : '';
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10A15.3 15.3 0 0112 2z"/></svg>',
-    'Localisation', 'Langue, devise et formats — source canonique DB (cross-device)')
-  +'<div class="card" style="background:rgba(34,211,165,.05);border-color:rgba(34,211,165,.2);">'
-  +'<p style="font-size:11px;color:var(--acc);">→ Valeurs lues depuis DB et propagées cross-device. Devise secondaire = affichage uniquement, aucune conversion FX.</p>'
-  +'</div>'
+    'Localisation '+badge, 'Langue, devise et formats — source canonique DB (cross-device)')
+  +degradeMsg
+  +(_dbSettError ? '' :
+    '<div class="card" style="background:rgba(34,211,165,.05);border-color:rgba(34,211,165,.2);">'
+    +'<p style="font-size:11px;color:var(--acc);">→ Valeurs lues depuis DB et propagées cross-device. Devise secondaire = affichage uniquement, aucune conversion FX.</p>'
+    +'</div>'
+  )
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></svg>Langue & Formats</div>'
   +'<div class="row"><label>Langue d\'interface</label><select id="loc-language">'
@@ -1046,7 +1085,7 @@ function renderDevises(){
   +'<div class="row"><label>Devise secondaire <span style="color:var(--text3);font-size:10px;">(affichage uniquement — aucune conversion FX)</span></label><select id="loc-secondary-currency">'
   +[['EUR','EUR — Euro'],['USD','USD — Dollar américain'],['CAD','CAD — Dollar canadien'],['XAF','XAF — Franc CFA']].map(function(o){ return '<option value="'+o[0]+'"'+(o[0]===d.secondary_currency?' selected':'')+'>'+o[1]+'</option>'; }).join('')
   +'</select></div>'
-  +'<div class="btn-group"><button class="btn btn-p" onclick="saveLocalization()">Enregistrer la localisation (DB)</button></div>'
+  +'<div class="btn-group">'+(_dbSettError?'<button class="btn btn-o" disabled>DB indisponible</button>':'<button class="btn btn-p" onclick="saveLocalization()">Enregistrer la localisation (DB)</button>')+'</div>'
   +'</div>';
 }
 
@@ -1091,11 +1130,25 @@ function renderRestaurant(){
     min_order:3000
   }, _dbSett.restaurant || {});
 
+  var badge = _dbSettError
+    ? '<span style="font-size:9px;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">DB KO</span>'
+    : _dbSettLoaded
+      ? '<span style="font-size:9px;background:rgba(34,211,165,.12);color:var(--acc);border:1px solid rgba(34,211,165,.25);border-radius:4px;padding:1px 6px;margin-left:6px;">DB</span>'
+      : '<span style="font-size:9px;background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.3);border-radius:4px;padding:1px 6px;margin-left:6px;">chargement…</span>';
+  var degradeMsg = _dbSettError
+    ? '<div class="card" style="background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.3);">'
+      +'<p style="font-size:11px;color:var(--red);">⚠ <strong>DB indisponible — mode dégradé.</strong> Les paramètres restaurant ne peuvent pas être lus ni modifiés. Rechargez la page.</p>'
+      +'</div>'
+    : '';
+
   return ph('<svg viewBox="0 0 24 24" fill="none" stroke="var(--acc)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>',
-    'Restaurant & Bar', 'Paramètres opérationnels — source canonique DB (hors taxes)')
-  +'<div class="card" style="background:rgba(34,211,165,.04);border-color:rgba(34,211,165,.2);">'
-  +'<p style="font-size:11px;color:var(--acc);">→ Tous les champs non-financiers sont désormais DB canoniques (cross-device). TVA et charges de service → SETTINGS-FISCAL-1 (prochain lot).</p>'
-  +'</div>'
+    'Restaurant & Bar '+badge, 'Paramètres opérationnels — source canonique DB (hors taxes)')
+  +degradeMsg
+  +(_dbSettError ? '' :
+    '<div class="card" style="background:rgba(34,211,165,.04);border-color:rgba(34,211,165,.2);">'
+    +'<p style="font-size:11px;color:var(--acc);">→ Tous les champs non-financiers sont désormais DB canoniques (cross-device). TVA et charges de service → onglet Fiscalité.</p>'
+    +'</div>'
+  )
   +'<div class="card">'
   +'<div class="card-title"><svg viewBox="0 0 24 24"><path d="M3 2l1.5 7.5M3 2l-1.5 7.5M3 2v20M21 2a5 5 0 01-5 5v15"/></svg>Identité & Capacité</div>'
   +'<div class="row"><label>Nom du restaurant</label><input type="text" id="db-rs-name" value="'+escH(rs.name)+'" oninput="markDirty()"></div>'
@@ -1126,7 +1179,7 @@ function renderRestaurant(){
   +'<div class="card" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.2);">'
   +'<p style="font-size:11px;color:var(--amber);">⚠ TVA restaurant et Charge de service → lot SETTINGS-FISCAL-1 (moteur fiscal dédié avec consommateurs réels).</p>'
   +'</div>'
-  +'<div class="btn-group"><button class="btn btn-p" onclick="saveRestaurantCanonical()">Enregistrer le restaurant (DB)</button></div>';
+  +'<div class="btn-group">'+(_dbSettError?'<button class="btn btn-o" disabled>DB indisponible</button>':'<button class="btn btn-p" onclick="saveRestaurantCanonical()">Enregistrer le restaurant (DB)</button>')+'</div>';
 }
 
 function saveRestaurantCanonical(){
@@ -2019,11 +2072,28 @@ function exportSettings(){
   a.download='veraluz_settings_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
 }
 function importSettings(input){
+  /* SETTINGS-FISCAL-1 / CATALOG-SSOT-1: importSettings() ne doit jamais recréer
+     les domaines canoniques DB comme vérités localStorage.
+     Un ancien JSON exporté peut contenir branding/localization/restaurant/tarifs/chambres :
+     ces clés sont acceptées en mémoire (S) pour affichage, mais filtrées avant écriture LS.
+     Les domaines canonical DB (hotel, branding, localization, restaurant, tarifs, chambres)
+     ne sont PAS écrits dans localStorage — uniquement via saveCanonical() → EF.           */
   var file=input.files[0]; if(!file) return;
   var reader=new FileReader();
   reader.onload=function(e){
-    try{ S=JSON.parse(e.target.result); localStorage.setItem(LS_KEY,JSON.stringify(S));
-      renderSection(currentSection); toast('✓ Paramètres importés'); markClean(); }
+    try{
+      var imported=JSON.parse(e.target.result);
+      /* Fusionner dans S — les domaines canoniques présents dans le fichier alimentent
+         l'objet mémoire mais ne sont pas écrits en localStorage.                         */
+      S=imported;
+      /* Filtrer les domaines canoniques avant écriture localStorage */
+      var _toLS={};
+      Object.keys(S).forEach(function(k){
+        if(_LS_CANONICAL.indexOf(k)===-1) _toLS[k]=S[k];
+      });
+      localStorage.setItem(LS_KEY,JSON.stringify(_toLS));
+      renderSection(currentSection); toast('✓ Paramètres importés (domaines DB non réécrits en local)'); markClean();
+    }
     catch(err){ toast('❌ Fichier JSON invalide',false); }
   }; reader.readAsText(file);
 }

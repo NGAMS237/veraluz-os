@@ -1,4 +1,4 @@
-# CATALOG-SSOT-1 — Tests de recette
+# CATALOG-SSOT-1 — Tests de recette (v2 — review fixes)
 
 Source canonique : `veraluz_units` via `catalog-secure` EF et lecture directe REST anon.
 
@@ -18,10 +18,11 @@ Source canonique : `veraluz_units` via `catalog-secure` EF et lecture directe RE
 ## B. Création unité — gérant peut créer, unité apparaît dans Réservations
 
 1. Cliquer "+ Ajouter", renseigner nom "Suite Deluxe", type "suite", capacité 4, prix 90000 XAF.
-2. Cliquer "💾 Enregistrer".
-3. **Attendu** : toast "✓ Unité enregistrée (DB)", tableau rechargé incluant la nouvelle unité.
-4. Ouvrir Réservations : "Suite Deluxe" disponible dans le sélecteur de chambres.
-5. Vérifier dans `veraluz_units` : ligne présente avec l'UUID généré côté serveur.
+2. Renseigner `amenities` = `["clim","tv","wifi","terrasse"]` (tableau JSON).
+3. Cliquer "💾 Enregistrer".
+4. **Attendu** : toast "✓ Unité enregistrée (DB)", tableau rechargé incluant la nouvelle unité.
+5. Ouvrir Réservations : "Suite Deluxe" disponible dans le sélecteur de chambres.
+6. Vérifier dans `veraluz_units` : ligne présente avec l'UUID généré côté serveur.
 
 ---
 
@@ -46,6 +47,7 @@ Source canonique : `veraluz_units` via `catalog-secure` EF et lecture directe RE
 **Cas avec réservations liées** :
 1. Tenter de supprimer une unité ayant des réservations dans `veraluz_reservations`.
 2. **Attendu** : `catalog-secure` répond `{ok:false, error:'unit_has_reservations'}` HTTP 409.
+   - FK vérifiée : `.eq('unit_id', unitId)` (colonne réelle — pas `room_id`).
 3. Toast d'erreur côté UI, unité conservée en DB.
 
 ---
@@ -85,6 +87,8 @@ Source canonique : `veraluz_units` via `catalog-secure` EF et lecture directe RE
 1. Inspecter `localStorage` dans DevTools.
 2. **Attendu** : `veraluz_settings_v3.chambres` n'est jamais écrit par le module Paramètres.
 3. `_LS_CANONICAL` contient `'chambres'` → `saveAll()` exclut ce namespace.
+4. **Import JSON** : importer un ancien JSON contenant `"chambres":[...]` — `importSettings()` filtre
+   ce champ via `_LS_CANONICAL` avant écriture localStorage. La clé `chambres` n'apparaît pas dans LS.
 
 ---
 
@@ -102,3 +106,49 @@ Source canonique : `veraluz_units` via `catalog-secure` EF et lecture directe RE
 1. Ouvrir le Booking Engine (BOOKING_ENGINE.html).
 2. **Attendu** : unités lues depuis `veraluz_units` (inchangé par ce lot), affichage correct.
 3. Après création d'une nouvelle unité via Paramètres, recharger Booking Engine : nouvelle unité visible.
+
+---
+
+## K. amenities — JSONB array conservé (STATIC CHECK + runtime)
+
+**Static** : inspecter `catalog-secure/index.ts` v2 :
+- `UNIT_ALLOWED_STATUSES` = `{'active','maintenance','out_of_service'}` (absent : `occupied`).
+- Payload amenities : `amenities = Array.isArray(unit.amenities) ? unit.amenities : []`
+  → jamais `typeof unit.amenities === 'string' ? unit.amenities : ''` (ancien code — bug v1).
+- Validation : si `amenities` non-array ET non-null → HTTP 400 `invalid_field_value`.
+
+**Runtime** :
+1. Créer une unité avec `amenities = ["clim","tv","wifi"]`.
+2. Récupérer via `get_catalog` — `amenities` doit être un tableau `["clim","tv","wifi"]`, pas une chaîne.
+3. **Non attendu** : `"clim,tv,wifi"` ou `""`.
+
+---
+
+## L. Statuts catalogue : active / maintenance / out_of_service seulement
+
+**Static** : `UNIT_ALLOWED_STATUSES` = `new Set(['active','maintenance','out_of_service'])`.
+
+**Runtime** :
+1. Tenter de créer une unité avec `status='occupied'` → HTTP 400 `invalid_field_value` attendu.
+2. Tenter `status='available'` → HTTP 400 `invalid_field_value` attendu.
+3. `status='active'` → HTTP 200 attendu.
+4. `status='maintenance'` → HTTP 200 attendu.
+5. `status='out_of_service'` → HTTP 200 attendu.
+
+**Note** : "Disponible/Occupée" sont des états opérationnels dérivés des réservations — jamais stockés dans le catalogue.
+
+---
+
+## M. delete utilise unit_id — FK correcte (STATIC CHECK)
+
+**Static** : inspecter `catalog-secure/index.ts` v2 ligne `delete_unit` :
+```
+.eq('unit_id', unitId)   ← FK correcte
+```
+**Non attendu** : `.eq('room_id', unitId)` (bug v1 — corrigé v2).
+
+**Runtime** :
+1. Créer une réservation sur une unité existante dans `veraluz_reservations.unit_id`.
+2. Tenter de supprimer l'unité via catalog-secure.
+3. **Attendu** : HTTP 409 `unit_has_reservations`.
+4. Si count query échoue (DB inaccessible) → HTTP 500 `reservation_check_failed`, delete bloqué.

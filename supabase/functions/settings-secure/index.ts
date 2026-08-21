@@ -32,8 +32,10 @@ const ALLOWED_ORIGINS = [
 ];
 
 /* SETTINGS-FISCAL-1: fiscal ajouté comme clé canonique DB */
+/* SETTINGS-CLEANUP-2: notifications, integrations, email, system ajoutés */
 const WRITABLE_KEYS = new Set([
   'property','contact','booking','wifi','restaurant','branding','security','localization','fiscal',
+  'notifications','integrations','email','system',
 ]);
 
 // Champs autorisés pour la clé 'fiscal' (whitelist stricte)
@@ -57,6 +59,33 @@ const LOCALIZATION_ALLOWED_FIELDS = new Set([
 const SECURITY_ALLOWED_FIELDS = new Set([
   'session_lifetime_hours','resume_token_days','temp_pin_expiry_hours',
   'track_ip','track_user_agent',
+]);
+
+// SETTINGS-CLEANUP-2 — whitelists strictes pour nouveaux domaines canoniques
+
+// notifications : préférences email/alertes — AUCUN secret, AUCUNE clé SMS
+const NOTIFICATIONS_ALLOWED_FIELDS = new Set([
+  'alert_email',
+  'email_reservations','email_payments','email_checkin','email_checkout',
+  'daily_report','weekly_report','low_stock_alert','payment_alert',
+]);
+
+// integrations : flags enable/disable + numéro public WhatsApp
+// *_key secrets sont INTERDITS (B — env serveur uniquement)
+const INTEGRATIONS_ALLOWED_FIELDS = new Set([
+  'booking_com','airbnb','cinetpay','whatsapp','whatsapp_number',
+]);
+
+// email : config non secrète uniquement (template_id EmailJS, adresse test, toggles)
+// Credentials Resend/SMTP restent env serveur (B)
+const EMAIL_ALLOWED_FIELDS = new Set([
+  'template_id','test_address','auto_booking','auto_alert','auto_report',
+]);
+
+// system : uniquement maintenance_mode
+// session_timeout/backup/log_retention supprimés (D — dead config)
+const SYSTEM_ALLOWED_FIELDS = new Set([
+  'maintenance_mode',
 ]);
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -282,6 +311,79 @@ Deno.serve(async (req) => {
         checkNonNeg('late_checkout_fee') ||
         checkNonNeg('extra_bed_fee');
       if (rateErr) return rateErr;
+    } else if (key === 'notifications') {
+      /* SETTINGS-CLEANUP-2: whitelist stricte notifications — aucun secret, aucune clé SMS */
+      const v = value as Record<string, unknown>;
+      for (const k of Object.keys(v)) {
+        if (!NOTIFICATIONS_ALLOWED_FIELDS.has(k)) {
+          return json({ ok: false, error: 'notifications_field_rejected', field: k }, 400, cors);
+        }
+      }
+      const boolNotifFields = ['email_reservations','email_payments','email_checkin','email_checkout',
+        'daily_report','weekly_report','low_stock_alert','payment_alert'];
+      for (const bf of boolNotifFields) {
+        if (bf in v && typeof v[bf] !== 'boolean') {
+          return json({ ok: false, error: 'invalid_notifications_value', field: bf, expected: 'boolean' }, 400, cors);
+        }
+      }
+      if ('alert_email' in v) {
+        const ae = String(v.alert_email ?? '');
+        if (ae && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ae)) {
+          return json({ ok: false, error: 'invalid_notifications_value', field: 'alert_email', expected: 'valid email' }, 400, cors);
+        }
+      }
+    } else if (key === 'integrations') {
+      /* SETTINGS-CLEANUP-2: whitelist stricte intégrations — INTERDIT *_key secrets */
+      const v = value as Record<string, unknown>;
+      for (const k of Object.keys(v)) {
+        if (!INTEGRATIONS_ALLOWED_FIELDS.has(k)) {
+          /* Refus explicite des clés API qui ne doivent jamais transiter par DB */
+          if (/key|secret|token|credential/i.test(k)) {
+            return json({ ok: false, error: 'secret_field_rejected',
+              hint: 'API keys must be stored as server-side environment secrets, never in DB.', field: k }, 400, cors);
+          }
+          return json({ ok: false, error: 'integrations_field_rejected', field: k }, 400, cors);
+        }
+      }
+      const boolIntegFields = ['booking_com','airbnb','cinetpay','whatsapp'];
+      for (const bf of boolIntegFields) {
+        if (bf in v && typeof v[bf] !== 'boolean') {
+          return json({ ok: false, error: 'invalid_integrations_value', field: bf, expected: 'boolean' }, 400, cors);
+        }
+      }
+    } else if (key === 'email') {
+      /* SETTINGS-CLEANUP-2: config email non secrète — credentials Resend/SMTP interdits */
+      const v = value as Record<string, unknown>;
+      for (const k of Object.keys(v)) {
+        if (!EMAIL_ALLOWED_FIELDS.has(k)) {
+          return json({ ok: false, error: 'email_field_rejected', field: k }, 400, cors);
+        }
+      }
+      const boolEmailFields = ['auto_booking','auto_alert','auto_report'];
+      for (const bf of boolEmailFields) {
+        if (bf in v && typeof v[bf] !== 'boolean') {
+          return json({ ok: false, error: 'invalid_email_value', field: bf, expected: 'boolean' }, 400, cors);
+        }
+      }
+      if ('test_address' in v) {
+        const ta = String(v.test_address ?? '');
+        if (ta && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ta)) {
+          return json({ ok: false, error: 'invalid_email_value', field: 'test_address', expected: 'valid email' }, 400, cors);
+        }
+      }
+    } else if (key === 'system') {
+      /* SETTINGS-CLEANUP-2: uniquement maintenance_mode
+         session_timeout/backup/log_retention = dead config supprimés */
+      const v = value as Record<string, unknown>;
+      for (const k of Object.keys(v)) {
+        if (!SYSTEM_ALLOWED_FIELDS.has(k)) {
+          return json({ ok: false, error: 'system_field_rejected',
+            hint: 'session_timeout managed by security.session_lifetime_hours; backup/log are not configurable.', field: k }, 400, cors);
+        }
+      }
+      if ('maintenance_mode' in v && typeof v.maintenance_mode !== 'boolean') {
+        return json({ ok: false, error: 'invalid_system_value', field: 'maintenance_mode', expected: 'boolean' }, 400, cors);
+      }
     } else {
       // Pour toutes les autres clés : refuser les champs ressemblant à des secrets
       const SECRET_PATTERNS = [/key/i, /secret/i, /token/i, /password.*api/i, /private/i];

@@ -168,13 +168,207 @@ Deno.serve(async (req: Request) => {
   const admin      = createClient(SB_URL, SB_SERVICE);
 
   try {
-    const body = await req.json().catch(() => ({}));
+    const body   = await req.json().catch(() => ({}));
+    const action: string = body.action || '';
+
+    // ─────────────────────────────────────────────────
+    // ACTION: dispatch_worker_email  (service_role seulement)
+    // Appelé par comms-worker pour envoyer les emails via Resend.
+    // Résout le destinataire depuis le payload de l'événement — rien ne vient du frontend.
+    // INTERDIT : recipient_email arbitraire / API key en DB / secrets dans les logs
+    // ─────────────────────────────────────────────────
+    if (action === 'dispatch_worker_email') {
+      const authHeader = req.headers.get('Authorization') ?? '';
+      if (!SB_SERVICE || !authHeader.endsWith(SB_SERVICE)) {
+        return json({ ok: false, error: 'service_role_required' }, 403, cors);
+      }
+
+      const { event_id, template_key } = body as { event_id?: string; template_key?: string };
+      if (!event_id || !template_key) {
+        return json({ ok: false, error: 'event_id_and_template_key_required' }, 400, cors);
+      }
+
+      // Charger le payload de l'événement
+      const { data: evRow } = await admin.from('veraluz_events')
+        .select('payload, reservation_id')
+        .eq('id', event_id)
+        .maybeSingle();
+      if (!evRow) return json({ ok: false, error: 'event_not_found', event_id }, 404, cors);
+
+      const evPayload = (evRow as Record<string, unknown>).payload as Record<string, unknown> ?? {};
+      const evResId   = (evRow as Record<string, unknown>).reservation_id as string | null
+                        ?? evPayload['reservation_id'] as string | null;
+
+      // Résoudre les données de réservation (source de vérité — jamais depuis le payload seul)
+      if (!evResId) return json({ ok: false, error: 'no_reservation_id_in_event' }, 422, cors);
+
+      const { data: rez } = await admin.from('veraluz_reservations')
+        .select('id, unit_id, client_name, client_email, check_in, check_out, status')
+        .eq('id', evResId)
+        .maybeSingle();
+      if (!rez) return json({ ok: false, error: 'reservation_not_found', reservation_id: evResId }, 422, cors);
+      const r = rez as Record<string, unknown>;
+      if (!r.client_email) return json({ ok: true, status: 'skipped_no_email', reservation_id: evResId }, 200, cors);
+
+      const guestEmail = r.client_email as string;
+      const guestName  = (r.client_name as string) || 'Client';
+      const firstName  = guestName.split(' ')[0];
+
+      // Charger template
+      const { data: tplRaw } = await admin.from('veraluz_comm_templates')
+        .select('id, subject_template, body_template, variables_schema, event_type')
+        .eq('tenant_id', TENANT)
+        .eq('template_key', template_key)
+        .eq('channel', 'email')
+        .eq('locale', 'fr')
+        .eq('active', true)
+        .maybeSingle();
+      if (!tplRaw) return json({ ok: false, error: 'template_not_found', template_key }, 404, cors);
+      const t = tplRaw as Record<string, unknown>;
+      const schema: string[] = Array.isArray(t.variables_schema) ? t.variables_schema as string[] : [];
+
+      // Settings
+      const { data: allSettings } = await admin.from('veraluz_settings')
+        .select('key, value')
+        .in('key', ['property', 'contact', 'wifi', 'restaurant', 'email']);
+      const S: Record<string, Record<string, string>> = {};
+      for (const s of (allSettings || [])) S[(s as Record<string, string>).key] = (s as Record<string, unknown>).value as Record<string, string>;
+      const propName   = S.property?.name || 'Résidences Veraluz';
+      const recepPhone = S.contact?.phone || '';
+      const wifiSsid   = S.wifi?.ssid    || 'Voir réception';
+      const wifiPass   = S.wifi?.password || 'Voir réception';
+      const restOpen   = S.restaurant?.opening_time || 'Sur demande';
+      const restClose  = S.restaurant?.closing_time || 'Sur demande';
+      const emailFrom  = (S.email as Record<string, string>)?.from || 'Résidences Veraluz <onboarding@resend.dev>';
+
+      const { data: unit } = await admin.from('veraluz_units')
+        .select('name').eq('id', String(r.unit_id || '')).maybeSingle();
+      const unitName = unit ? (unit as Record<string, string>).name : String(r.unit_id || '');
+
+      const variables: Record<string, string> = {
+        'guest.first_name':      firstName,
+        'property.name':         propName,
+        'reservation.id':        evResId,
+        'reservation.check_in':  String(r.check_in  || ''),
+        'reservation.check_out': String(r.check_out || ''),
+        'unit.name':             unitName,
+        'reception.phone':       recepPhone,
+        'wifi.ssid':             wifiSsid,
+        'wifi.password':         wifiPass,
+        'restaurant.opening_time': restOpen,
+        'restaurant.closing_time': restClose,
+      };
+
+      // Idempotence
+      const { data: existing } = await admin.from('veraluz_comm_log')
+        .select('id, status')
+        .eq('tenant_id', TENANT)
+        .eq('event_type', t.event_type as string)
+        .eq('context_id', evResId)
+        .eq('template_key', template_key)
+        .eq('recipient_id', guestEmail)
+        .in('status', ['sent', 'delivered'])
+        .maybeSingle();
+      if (existing) {
+        return json({ ok: true, status: 'skipped_duplicate', log_id: (existing as Record<string, unknown>).id }, 200, cors);
+      }
+
+      // Rendu
+      const renderResult = renderTemplate(
+        t.subject_template as string,
+        t.body_template    as string,
+        variables,
+        schema
+      );
+      if (!renderResult.ok) {
+        return json({ ok: false, error: 'render_failed', missing_variables: renderResult.missing_variables }, 400, cors);
+      }
+
+      // Transport Resend
+      const resendKey: string = Deno.env.get('RESEND_API_KEY') || '';
+      const now = new Date().toISOString();
+      let emailStatus: 'sent' | 'failed' | 'pending_channel' = 'pending_channel';
+      let errorCode: string | null = null;
+      let errorMessage: string | null = null;
+      let providerMsgId: string | null = null;
+
+      if (!resendKey) {
+        emailStatus = 'pending_channel';
+        errorCode   = 'resend_not_configured';
+        console.warn('[dispatch_worker_email] RESEND_API_KEY not set');
+      } else {
+        try {
+          const resendResp = await fetch('https://api.resend.com/emails', {
+            method:  'POST',
+            headers: {
+              'Authorization': `Bearer ${resendKey}`,
+              'Content-Type':  'application/json',
+            },
+            body: JSON.stringify({
+              from:    emailFrom,
+              to:      [guestEmail],
+              subject: renderResult.subject,
+              html:    renderResult.body,
+            }),
+          });
+          if (resendResp.ok) {
+            emailStatus   = 'sent';
+            const rd      = await resendResp.json().catch(() => ({}));
+            providerMsgId = (rd as Record<string, string>).id || null;
+          } else {
+            emailStatus  = 'failed';
+            const errTxt = await resendResp.text().catch(() => '');
+            errorMessage = errTxt.slice(0, 400);
+            errorCode    = resendResp.status === 403 ? 'sender_domain_not_verified' : `resend_${resendResp.status}`;
+            console.error('[dispatch_worker_email] Resend:', resendResp.status, errTxt.slice(0, 200));
+          }
+        } catch (e) {
+          emailStatus  = 'failed';
+          errorCode    = 'resend_network_error';
+          errorMessage = String(e).slice(0, 400);
+        }
+      }
+
+      // Comm log
+      const { data: logRow } = await admin.from('veraluz_comm_log').insert({
+        tenant_id:                TENANT,
+        event_type:               t.event_type as string,
+        template_id:              String(t.id),
+        template_key,
+        channel:                  'email',
+        recipient_type:           'guest',
+        recipient_id:             guestEmail,
+        recipient_address_masked: maskAddress(guestEmail),
+        reservation_id:           evResId,
+        context_type:             t.event_type as string,
+        context_id:               evResId,
+        status:                   emailStatus,
+        subject_snapshot:         renderResult.subject || '',
+        body_snapshot_redacted:   renderResult.body_redacted || '',
+        created_by:               'comms-worker',
+        prepared_at:              now,
+        sent_at:                  emailStatus === 'sent' ? now : null,
+        error_code:               errorCode,
+        error_message:            errorMessage,
+        provider:                 resendKey ? 'resend' : null,
+        provider_message_id:      providerMsgId,
+      }).select('id').single();
+
+      return json({
+        ok:     true,
+        status: emailStatus,
+        log_id: (logRow as Record<string, unknown>)?.id,
+        ...(errorCode ? { error_code: errorCode } : {}),
+      }, 200, cors);
+    }
+
+    // ─────────────────────────────────────────────────
+    // Toutes les autres actions nécessitent une session employé valide
+    // ─────────────────────────────────────────────────
     const sessionToken = req.headers.get('x-veraluz-session') || body.session_token || null;
     if (!sessionToken) return json({ ok: false, error: 'session_token_required' }, 401, cors);
     const actor = await validateSession(admin, sessionToken);
     if (!actor)        return json({ ok: false, error: 'invalid_or_expired_session' }, 401, cors);
-
-    const action: string = body.action || '';
 
     // ─────────────────────────────────────────────────
     // ACTION: dispatch_client_email

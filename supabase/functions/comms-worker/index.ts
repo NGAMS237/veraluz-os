@@ -1,12 +1,15 @@
 // ═══════════════════════════════════════════════════════════════
-// comms-worker — INFRA-COMMS-1A
+// comms-worker — INFRA-COMMS-1B (CORRIGÉ)
 // Traitement des veraluz_communication_jobs.
-// Canaux : internal (veraluz_internal_messages) | guest_portal (portail client)
-//          | email → pending/not_configured (EmailJS legacy, pas de secrets)
+// Canaux : internal (veraluz_internal_messages)
+//          | guest_portal (veraluz_guest_messages)
+//          | email → dispatch via communications-secure (Resend)
 // Verrou atomique : claim_communication_jobs (FOR UPDATE SKIP LOCKED).
+// Template SSOT : veraluz_comm_templates (pas veraluz_communication_templates)
 // ═══════════════════════════════════════════════════════════════
-// INTERDIT : tenant_id / stocker API key / secret / password / credentials
+// INTERDIT : tenant_id / stocker API key / email dans les logs
 // INTERDIT : merge main sans autorisation explicite
+// INTERDIT : email_not_configured — l'email passe par communications-secure
 // ═══════════════════════════════════════════════════════════════
 
 import { serve }        from 'https://deno.land/std@0.168.0/http/server.ts';
@@ -14,8 +17,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { renderSubject, renderBody, TemplateContext } from '../_shared/templates.ts';
 
 const BATCH_SIZE    = 20;
+const TENANT        = 'veraluz-001';
 const SYSTEM_NAME   = 'Système Veraluz';
-const SYSTEM_SENDER = '00000000-0000-0000-0000-000000000001';
+const SYSTEM_SENDER = 'system';   // TEXT — staff_id dans veraluz_guest_messages
 
 const cors = {
   'Access-Control-Allow-Origin':  '*',
@@ -29,13 +33,14 @@ const json = (body: unknown, status = 200) =>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Résolution du contexte de rendu depuis veraluz_events.payload + settings DB
+// CORRIGÉ : settings key 'property' (pas 'branding'), 'contact' (pas 'localisation')
+//           unité via .eq('id', unit_id) (pas .eq('unit_id', unit_id))
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function resolveContext(
   admin:   ReturnType<typeof createClient>,
   eventId: string,
 ): Promise<TemplateContext> {
-  // Charger le payload de l'événement
   const { data: ev } = await admin
     .from('veraluz_events')
     .select('payload')
@@ -44,35 +49,34 @@ async function resolveContext(
 
   const payload = (ev?.payload as Record<string, unknown>) ?? {};
 
-  // Charger property_name et reception_phone depuis les settings DB
-  const { data: branding } = await admin
+  // Settings canoniques : clés 'property' et 'contact'
+  const { data: property } = await admin
     .from('veraluz_settings')
     .select('value')
-    .eq('key', 'branding')
+    .eq('key', 'property')
     .single();
 
-  const { data: localisation } = await admin
+  const { data: contact } = await admin
     .from('veraluz_settings')
     .select('value')
-    .eq('key', 'localisation')
+    .eq('key', 'contact')
     .single();
 
-  const bv  = (branding?.value    as Record<string, unknown>) ?? {};
-  const lv  = (localisation?.value as Record<string, unknown>) ?? {};
+  const pv = (property?.value as Record<string, unknown>) ?? {};
+  const cv = (contact?.value  as Record<string, unknown>) ?? {};
 
-  // Résoudre unit_name depuis veraluz_units si unit_id présent
+  // Résoudre unit_name via .eq('id', unit_id) — PK réel de veraluz_units
   let unit_name = '';
   const unit_id = payload['unit_id'] as string | undefined;
   if (unit_id) {
     const { data: unit } = await admin
       .from('veraluz_units')
       .select('name')
-      .eq('unit_id', unit_id)
+      .eq('id', unit_id)
       .single();
     unit_name = (unit?.name as string) ?? unit_id;
   }
 
-  // Formater les dates ISO → lisibles (YYYY-MM-DD → JJ/MM/AAAA)
   const fmtDate = (d: unknown): string => {
     if (!d || typeof d !== 'string') return '';
     const parts = d.slice(0, 10).split('-');
@@ -84,8 +88,8 @@ async function resolveContext(
     check_in:        fmtDate(payload['check_in']),
     check_out:       fmtDate(payload['check_out']),
     unit_name,
-    property_name:   (bv['hotel_name']          as string) || (bv['property_name'] as string) || 'Résidence Veraluz',
-    reception_phone: (lv['phone']               as string) || '',
+    property_name:   (pv['name']               as string) || 'Résidences Veraluz',
+    reception_phone: (cv['phone']              as string) || '',
     reservation_id:  (payload['reservation_id'] as string) || '',
   };
 }
@@ -95,28 +99,26 @@ async function resolveContext(
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function processInternal(
-  admin:        ReturnType<typeof createClient>,
-  job:          Record<string, unknown>,
-  tmpl:         { subject: string; body: string },
-  ctx:          TemplateContext,
+  admin: ReturnType<typeof createClient>,
+  job:   Record<string, unknown>,
+  tmpl:  { subject_template: string; body_template: string },
+  ctx:   TemplateContext,
 ): Promise<void> {
-  const subject = renderSubject(tmpl.subject, ctx);
-  const message = renderBody(tmpl.body, ctx);
+  const subject = renderSubject(tmpl.subject_template, ctx);
+  const message = renderBody(tmpl.body_template, ctx);
 
-  // recipient_ref format : 'department:<dept>' ou employee_id
-  const ref       = (job['recipient_ref'] as string) || '';
-  const isDept    = ref.startsWith('department:');
-  const dept      = isDept ? ref.replace('department:', '') : null;
-  const empId     = !isDept ? ref : null;
+  const ref    = (job['recipient_ref'] as string) || '';
+  const isDept = ref.startsWith('department:');
+  const dept   = isDept ? ref.replace('department:', '') : null;
+  const empId  = !isDept ? ref : null;
 
-  // Clé d'idempotence
   const source_event_job = `comms:${job['id']}`;
 
   const { error } = await admin
     .from('veraluz_internal_messages')
     .upsert(
       {
-        sender_id:       SYSTEM_SENDER,
+        sender_id:       '00000000-0000-0000-0000-000000000001',
         sender_name:     SYSTEM_NAME,
         recipient_id:    empId,
         recipient_type:  isDept ? 'department' : 'employee',
@@ -137,59 +139,80 @@ async function processInternal(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Canal : guest_portal — insère dans veraluz_messages (ou veraluz_guest_messages)
+// Canal : guest_portal — insère dans veraluz_guest_messages (table réelle)
+// CORRIGÉ : reservation_id TEXT, guest_session_id UUID, staff_id TEXT
+//           source_event_job UNIQUE pour idempotence
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function processGuestPortal(
-  admin:        ReturnType<typeof createClient>,
-  job:          Record<string, unknown>,
-  tmpl:         { subject: string; body: string },
-  ctx:          TemplateContext,
+  admin: ReturnType<typeof createClient>,
+  job:   Record<string, unknown>,
+  tmpl:  { subject_template: string; body_template: string },
+  ctx:   TemplateContext,
 ): Promise<void> {
-  const subject = renderSubject(tmpl.subject, ctx);
-  const message = renderBody(tmpl.body, ctx);
+  const subject = renderSubject(tmpl.subject_template, ctx);
+  const message = renderBody(tmpl.body_template, ctx);
 
-  // recipient_ref = guest_session_id
   const guestSessionId = (job['recipient_ref'] as string) || '';
+  const source_event_job = `comms:${job['id']}`;
 
-  // Insérer comme message système dans le canal réception du portail
-  // (même table que send_message de guest-access : veraluz_messages)
   const { error } = await admin
-    .from('veraluz_messages')
-    .insert({
-      guest_session_id: guestSessionId,
-      sender_type:      'staff',
-      staff_id:         SYSTEM_SENDER,
-      content:          `**${subject}**\n\n${message}`,
-      channel:          'reception',
-      is_read:          false,
-      created_at:       new Date().toISOString(),
-    });
+    .from('veraluz_guest_messages')
+    .upsert(
+      {
+        reservation_id:   ctx['reservation_id'] || null,
+        guest_session_id: guestSessionId,
+        sender_type:      'staff',
+        staff_id:         SYSTEM_SENDER,
+        staff_name:       SYSTEM_NAME,
+        content:          `**${subject}**\n\n${message}`,
+        channel:          'reception',
+        is_read:          false,
+        source_event_job,
+        created_at:       new Date().toISOString(),
+      },
+      { onConflict: 'source_event_job', ignoreDuplicates: true },
+    );
 
-  if (error) throw new Error(`veraluz_messages insert: ${error.message}`);
+  if (error) throw new Error(`veraluz_guest_messages upsert: ${error.message}`);
   console.log(`[comms-worker] guest_portal ok job=${job['id']} session=${guestSessionId}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Canal : email — non configuré (EmailJS legacy)
-// Marque le job comme email_not_configured sans erreur fatale
+// Canal : email — dispatch via communications-secure (Resend)
+// OPTION B : appel interne service_role → dispatch_worker_email
+// INTERDIT : stocker RESEND_API_KEY ici / loguer l'email du destinataire
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function processEmail(
-  admin: ReturnType<typeof createClient>,
-  job:   Record<string, unknown>,
-): Promise<'email_not_configured'> {
-  console.log(`[comms-worker] email channel not_configured job=${job['id']} — marking email_not_configured`);
-  await admin
-    .from('veraluz_communication_jobs')
-    .update({
-      status:       'email_not_configured',
-      last_error:   'EmailJS non configuré — intégration email à connecter',
-      processed_at: new Date().toISOString(),
-      updated_at:   new Date().toISOString(),
-    })
-    .eq('id', job['id'] as string);
-  return 'email_not_configured';
+  admin:      ReturnType<typeof createClient>,
+  job:        Record<string, unknown>,
+  serviceKey: string,
+  sbUrl:      string,
+): Promise<void> {
+  const eventId    = job['event_id']     as string;
+  const templateKey = job['template_key'] as string;
+
+  const resp = await fetch(`${sbUrl}/functions/v1/communications-secure`, {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': `Bearer ${serviceKey}`,
+    },
+    body: JSON.stringify({
+      action:       'dispatch_worker_email',
+      event_id:     eventId,
+      template_key: templateKey,
+    }),
+  });
+
+  const data = await resp.json().catch(() => ({})) as Record<string, unknown>;
+  if (!resp.ok && !data.ok) {
+    throw new Error(`dispatch_worker_email failed: ${data.error ?? resp.status}`);
+  }
+
+  // Statuts acceptables : sent, pending_channel (Resend non configuré — non bloquant)
+  console.log(`[comms-worker] email dispatched job=${job['id']} status=${data.status} log=${data.log_id}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -206,19 +229,19 @@ serve(async (req: Request) => {
     return json({ ok: false, error: 'service_role_required' }, 403);
   }
 
-  const url   = Deno.env.get('SUPABASE_URL')!;
-  const admin = createClient(url, serviceKey, {
+  const sbUrl = Deno.env.get('SUPABASE_URL')!;
+  const admin = createClient(sbUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
   const started_at = Date.now();
   const results: Array<{
-    job_id:        string;
-    template_code: string;
-    channel:       string;
-    status:        string;
-    attempt:       number;
-    error?:        string;
+    job_id:       string;
+    template_key: string;
+    channel:      string;
+    status:       string;
+    attempt:      number;
+    error?:       string;
   }> = [];
 
   // ── Verrou atomique ────────────────────────────────────────
@@ -236,27 +259,46 @@ serve(async (req: Request) => {
 
   // ── Traitement ─────────────────────────────────────────────
   for (const job of jobs) {
-    const attempt = job.attempt as number;
+    const attempt    = job.attempt as number;
+    const templateKey = job.template_key as string;
 
-    // Canal email → traitement spécial sans charger le template
+    // Canal email → dispatch via communications-secure (pas de template local)
     if (job.channel === 'email') {
-      const s = await processEmail(admin, job as Record<string, unknown>);
-      results.push({
-        job_id:        job.id,
-        template_code: job.template_code,
-        channel:       'email',
-        status:        s,
-        attempt,
-      });
+      try {
+        await processEmail(admin, job as Record<string, unknown>, serviceKey, sbUrl);
+
+        await admin.from('veraluz_communication_jobs').update({
+          status:       'completed',
+          processed_at: new Date().toISOString(),
+          updated_at:   new Date().toISOString(),
+        }).eq('id', job.id);
+
+        results.push({ job_id: job.id, template_key: templateKey, channel: 'email', status: 'completed', attempt });
+      } catch (err: unknown) {
+        const lastError = err instanceof Error ? err.message : String(err);
+        const isDead    = attempt >= (job.max_attempts as number);
+
+        await admin.from('veraluz_communication_jobs').update({
+          status:       isDead ? 'dead' : 'pending',
+          last_error:   lastError,
+          processed_at: isDead ? new Date().toISOString() : null,
+          updated_at:   new Date().toISOString(),
+        }).eq('id', job.id);
+
+        results.push({ job_id: job.id, template_key: templateKey, channel: 'email', status: isDead ? 'dead' : 'failed', attempt, error: lastError });
+        console.error(`[comms-worker] email job=${job.id} attempt=${attempt} status=${isDead ? 'dead' : 'failed'} error=${lastError}`);
+      }
       continue;
     }
 
-    // Charger le template
+    // Charger le template depuis la SSOT veraluz_comm_templates
     const { data: tmpl, error: tmplErr } = await admin
-      .from('veraluz_communication_templates')
-      .select('subject, body, active')
-      .eq('code', job.template_code)
+      .from('veraluz_comm_templates')
+      .select('subject_template, body_template, active')
+      .eq('template_key', templateKey)
       .eq('channel', job.channel)
+      .eq('tenant_id', TENANT)
+      .eq('locale', 'fr')
       .single();
 
     if (tmplErr || !tmpl || !tmpl.active) {
@@ -268,7 +310,7 @@ serve(async (req: Request) => {
         processed_at: isDead ? new Date().toISOString() : null,
         updated_at:   new Date().toISOString(),
       }).eq('id', job.id);
-      results.push({ job_id: job.id, template_code: job.template_code, channel: job.channel, status: isDead ? 'dead' : 'failed', attempt, error: errMsg });
+      results.push({ job_id: job.id, template_key: templateKey, channel: job.channel, status: isDead ? 'dead' : 'failed', attempt, error: errMsg });
       continue;
     }
 
@@ -277,15 +319,14 @@ serve(async (req: Request) => {
     try {
       ctx = await resolveContext(admin, job.event_id as string);
     } catch (e) {
-      // Contexte partiel acceptable
       console.warn(`[comms-worker] resolveContext partial error job=${job.id}:`, e);
     }
 
     try {
       if (job.channel === 'internal') {
-        await processInternal(admin, job as Record<string, unknown>, tmpl, ctx);
+        await processInternal(admin, job as Record<string, unknown>, tmpl as { subject_template: string; body_template: string }, ctx);
       } else if (job.channel === 'guest_portal') {
-        await processGuestPortal(admin, job as Record<string, unknown>, tmpl, ctx);
+        await processGuestPortal(admin, job as Record<string, unknown>, tmpl as { subject_template: string; body_template: string }, ctx);
       } else {
         throw new Error(`unsupported_channel: ${job.channel}`);
       }
@@ -296,12 +337,12 @@ serve(async (req: Request) => {
         updated_at:   new Date().toISOString(),
       }).eq('id', job.id);
 
-      results.push({ job_id: job.id, template_code: job.template_code, channel: job.channel, status: 'completed', attempt });
-      console.log(`[comms-worker] job=${job.id} template=${job.template_code} channel=${job.channel} attempt=${attempt} status=completed`);
+      results.push({ job_id: job.id, template_key: templateKey, channel: job.channel, status: 'completed', attempt });
+      console.log(`[comms-worker] job=${job.id} template=${templateKey} channel=${job.channel} attempt=${attempt} status=completed`);
 
     } catch (err: unknown) {
-      const lastError  = err instanceof Error ? err.message : String(err);
-      const isDead     = attempt >= (job.max_attempts as number);
+      const lastError = err instanceof Error ? err.message : String(err);
+      const isDead    = attempt >= (job.max_attempts as number);
 
       await admin.from('veraluz_communication_jobs').update({
         status:       isDead ? 'dead' : 'pending',
@@ -310,19 +351,18 @@ serve(async (req: Request) => {
         updated_at:   new Date().toISOString(),
       }).eq('id', job.id);
 
-      results.push({ job_id: job.id, template_code: job.template_code, channel: job.channel, status: isDead ? 'dead' : 'failed', attempt, error: lastError });
-      console.error(`[comms-worker] job=${job.id} attempt=${attempt} status=${isDead?'dead':'failed'} error=${lastError}`);
+      results.push({ job_id: job.id, template_key: templateKey, channel: job.channel, status: isDead ? 'dead' : 'failed', attempt, error: lastError });
+      console.error(`[comms-worker] job=${job.id} attempt=${attempt} status=${isDead ? 'dead' : 'failed'} error=${lastError}`);
     }
   }
 
   const duration_ms = Date.now() - started_at;
   const summary = {
-    ok:          true,
-    processed:   results.length,
-    completed:   results.filter(r => r.status === 'completed').length,
-    failed:      results.filter(r => r.status === 'failed').length,
-    dead:        results.filter(r => r.status === 'dead').length,
-    not_configured: results.filter(r => r.status === 'email_not_configured').length,
+    ok:        true,
+    processed: results.length,
+    completed: results.filter(r => r.status === 'completed').length,
+    failed:    results.filter(r => r.status === 'failed').length,
+    dead:      results.filter(r => r.status === 'dead').length,
     duration_ms,
     results,
   };

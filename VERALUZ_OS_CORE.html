@@ -3860,9 +3860,8 @@ var VERALUZ_BROKER_ALLOWED_ENDPOINTS = [
   /* AUTH-R6 — Administration sessions + audit + politiques */
   'auth-admin-secure',
   /* INFRA-OPS-1 — Observabilité events/jobs (gérant only) */
-  'infra-health',
-  /* INFRA-COMMS-1A — Worker communications (service_role only, pas d'accès direct UI) */
-  'comms-worker'
+  'infra-health'
+  /* comms-worker retiré : service_role uniquement, jamais accès direct UI */
 ];
 var VERALUZ_BROKER_EDGE_BASE = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/';
 

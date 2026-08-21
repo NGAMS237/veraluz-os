@@ -1,66 +1,77 @@
 -- =============================================================================
--- INFRA-COMMS-1A : File de communication centralisée
--- Migration : 20260821_infra_comms_1a.sql
+-- INFRA-COMMS-1B : File de communication — SSOT veraluz_comm_templates
+-- Migration : 20260821_infra_comms_1a.sql  (CORRIGÉ IN PLACE — INFRA-CORE-1B)
 -- Branche   : claude/settings-ssot-1a
 -- =============================================================================
--- Ordre d'opérations :
---   1. veraluz_communication_templates (code UNIQUE, channels whitelist)
---   2. veraluz_communication_jobs (UNIQUE event_id+template_code+channel+recipient_ref)
---   3. RPC claim_communication_jobs (FOR UPDATE SKIP LOCKED)
---   4. Seed templates canoniques
---   5. OR REPLACE vz_emit_reservation_event — ajouter comm_jobs pour confirmed+checked_in
+-- INTERDIT : CREATE TABLE veraluz_communication_templates (doublon avec SSOT)
+-- INTERDIT : tenant_id / veraluz_guests JOIN / NEW.guest_id / checked_out_at
+-- INTERDIT : template_code (renommé template_key — cohérence veraluz_comm_templates)
+-- SOURCE CANONIQUE TEMPLATES : veraluz_comm_templates (déjà en prod)
 -- =============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 1. veraluz_communication_templates
+-- 1. Étendre veraluz_comm_templates — canal guest_portal
+--    La table SSOT existe en prod. On étend le CHECK channel uniquement.
 -- ─────────────────────────────────────────────────────────────────────────────
 
-CREATE TABLE IF NOT EXISTS veraluz_communication_templates (
-  id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  code        text        NOT NULL UNIQUE,
-  channel     text        NOT NULL CHECK (channel IN ('email', 'internal', 'guest_portal')),
-  name        text        NOT NULL,
-  subject     text        NOT NULL DEFAULT '',
-  body        text        NOT NULL DEFAULT '',
-  active      boolean     NOT NULL DEFAULT true,
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  updated_at  timestamptz NOT NULL DEFAULT now()
-);
-
-ALTER TABLE veraluz_communication_templates ENABLE ROW LEVEL SECURITY;
-
 DO $$
+DECLARE v_con text;
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public'
-      AND tablename  = 'veraluz_communication_templates'
-      AND policyname = 'no_direct_access_comm_templates'
-  ) THEN
-    CREATE POLICY no_direct_access_comm_templates ON veraluz_communication_templates
-      AS RESTRICTIVE FOR ALL TO public USING (false);
+  -- Supprimer l'ancienne contrainte channel si elle existe (quel que soit son nom)
+  SELECT conname INTO v_con
+  FROM   pg_constraint
+  WHERE  conrelid = 'veraluz_comm_templates'::regclass
+    AND  contype  = 'c'
+    AND  pg_get_constraintdef(oid) ILIKE '%channel%'
+  LIMIT 1;
+  IF v_con IS NOT NULL THEN
+    EXECUTE format('ALTER TABLE veraluz_comm_templates DROP CONSTRAINT %I', v_con);
   END IF;
 END $$;
 
+ALTER TABLE veraluz_comm_templates
+  ADD CONSTRAINT vct_channel_check
+  CHECK (channel IN ('email', 'internal', 'guest_portal', 'future_whatsapp', 'future_sms'));
+
 -- ─────────────────────────────────────────────────────────────────────────────
--- 2. veraluz_communication_jobs
+-- 2. veraluz_guest_messages — colonne idempotence comms
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE veraluz_guest_messages
+  ADD COLUMN IF NOT EXISTS source_event_job text;
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_guest_messages_source_event_job
+  ON veraluz_guest_messages (source_event_job)
+  WHERE source_event_job IS NOT NULL;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 3. RLS sur tables invités (jamais d'accès direct non authentifié)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE veraluz_guest_service_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE veraluz_guest_messages         ENABLE ROW LEVEL SECURITY;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 4. veraluz_communication_jobs
+--    template_key (pas template_code) — cohérence SSOT veraluz_comm_templates
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS veraluz_communication_jobs (
-  id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id       uuid        NOT NULL REFERENCES veraluz_events(id),
-  template_code  text        NOT NULL,
-  channel        text        NOT NULL CHECK (channel IN ('email', 'internal', 'guest_portal')),
-  recipient_ref  text        NOT NULL,   -- email, guest_session_id, ou employee_id
-  status         text        NOT NULL DEFAULT 'pending'
-                             CHECK (status IN ('pending','processing','completed','failed','dead','email_not_configured')),
-  attempt        int         NOT NULL DEFAULT 0,
-  max_attempts   int         NOT NULL DEFAULT 4,
-  last_error     text,
-  processed_at   timestamptz,
-  created_at     timestamptz NOT NULL DEFAULT now(),
-  updated_at     timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (event_id, template_code, channel, recipient_ref)
+  id            uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id      uuid        NOT NULL REFERENCES veraluz_events(id),
+  template_key  text        NOT NULL,        -- clé SSOT dans veraluz_comm_templates
+  channel       text        NOT NULL
+    CHECK (channel IN ('email', 'internal', 'guest_portal')),
+  recipient_ref text        NOT NULL,        -- email, guest_session_id::text, ou 'department:xxx'
+  status        text        NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'processing', 'completed', 'failed', 'dead')),
+  attempt       int         NOT NULL DEFAULT 0,
+  max_attempts  int         NOT NULL DEFAULT 4,
+  last_error    text,
+  processed_at  timestamptz,
+  created_at    timestamptz NOT NULL DEFAULT now(),
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (event_id, template_key, channel, recipient_ref)
 );
 
 CREATE INDEX IF NOT EXISTS idx_comm_jobs_status_created
@@ -83,7 +94,7 @@ BEGIN
 END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 3. RPC claim_communication_jobs
+-- 5. RPC claim_communication_jobs — verrou atomique + incrément attempt
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION claim_communication_jobs(p_batch int DEFAULT 20)
@@ -109,35 +120,72 @@ AS $$
 $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 4. Seed templates canoniques (INSERT … ON CONFLICT DO NOTHING = idempotent)
+-- 6. Seeds templates canoniques → veraluz_comm_templates (SSOT prod)
+--    Canaux internal + guest_portal (les templates email existent déjà en prod)
 -- ─────────────────────────────────────────────────────────────────────────────
 
--- booking_confirmation — canal internal (notification staff à la création)
-INSERT INTO veraluz_communication_templates
-  (code, channel, name, subject, body)
+-- booking_confirmation — internal : notification staff à la confirmation
+INSERT INTO veraluz_comm_templates
+  (tenant_id, template_key, name, audience, event_type, channel, locale,
+   subject_template, body_template, variables_schema, active)
 VALUES
   (
+    'veraluz-001',
     'booking_confirmation',
+    'Confirmation réservation — Staff',
+    'staff',
+    'reservation_confirmed',
     'internal',
-    'Confirmation de réservation — Notification staff',
+    'fr',
     'Nouvelle réservation confirmée — {{guest_name}}',
     'Une nouvelle réservation a été confirmée.' || E'\n\n' ||
     'Client : {{guest_name}}' || E'\n' ||
     'Logement : {{unit_name}}' || E'\n' ||
     'Arrivée : {{check_in}}' || E'\n' ||
     'Départ : {{check_out}}' || E'\n' ||
-    'N° réservation : {{reservation_id}}'
+    'N° réservation : {{reservation_id}}',
+    ARRAY['guest_name'],
+    true
   )
-ON CONFLICT (code) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
--- booking_confirmation — canal guest_portal (message au client)
-INSERT INTO veraluz_communication_templates
-  (code, channel, name, subject, body)
+-- checkin_welcome — guest_portal : message de bienvenue sur le portail client
+INSERT INTO veraluz_comm_templates
+  (tenant_id, template_key, name, audience, event_type, channel, locale,
+   subject_template, body_template, variables_schema, active)
 VALUES
   (
-    'booking_confirmation_guest',
+    'veraluz-001',
+    'checkin_welcome',
+    'Bienvenue — Portail client',
+    'guest',
+    'guest_checked_in',
     'guest_portal',
-    'Confirmation de réservation — Client',
+    'fr',
+    'Bienvenue à {{property_name}}, {{guest_name}} !',
+    'Bonjour {{guest_name}},' || E'\n\n' ||
+    'Nous sommes ravis de vous accueillir à {{property_name}}.' || E'\n\n' ||
+    'Votre logement : {{unit_name}}' || E'\n' ||
+    'Départ prévu : {{check_out}}' || E'\n\n' ||
+    'N''hésitez pas à nous contacter à la réception : {{reception_phone}}',
+    ARRAY['guest_name', 'property_name'],
+    true
+  )
+ON CONFLICT DO NOTHING;
+
+-- booking_confirmation_guest — guest_portal : confirmation au client
+INSERT INTO veraluz_comm_templates
+  (tenant_id, template_key, name, audience, event_type, channel, locale,
+   subject_template, body_template, variables_schema, active)
+VALUES
+  (
+    'veraluz-001',
+    'booking_confirmation_guest',
+    'Confirmation réservation — Client portail',
+    'guest',
+    'reservation_confirmed',
+    'guest_portal',
+    'fr',
     'Votre réservation à {{property_name}} est confirmée',
     'Bonjour {{guest_name}},' || E'\n\n' ||
     'Votre réservation est confirmée à {{property_name}}.' || E'\n\n' ||
@@ -145,62 +193,18 @@ VALUES
     'Arrivée : {{check_in}}' || E'\n' ||
     'Départ : {{check_out}}' || E'\n' ||
     'N° réservation : {{reservation_id}}' || E'\n\n' ||
-    'Pour toute question, contactez-nous : {{reception_phone}}'
+    'Pour toute question, contactez la réception : {{reception_phone}}',
+    ARRAY['guest_name', 'property_name'],
+    true
   )
-ON CONFLICT (code) DO NOTHING;
-
--- checkin_welcome — canal guest_portal
-INSERT INTO veraluz_communication_templates
-  (code, channel, name, subject, body)
-VALUES
-  (
-    'checkin_welcome',
-    'guest_portal',
-    'Message de bienvenue — Arrivée client',
-    'Bienvenue à {{property_name}}, {{guest_name}} !',
-    'Bonjour {{guest_name}},' || E'\n\n' ||
-    'Nous sommes ravis de vous accueillir à {{property_name}}.' || E'\n\n' ||
-    'Votre logement : {{unit_name}}' || E'\n' ||
-    'Départ prévu : {{check_out}}' || E'\n\n' ||
-    'N''hésitez pas à nous contacter à la réception : {{reception_phone}}'
-  )
-ON CONFLICT (code) DO NOTHING;
-
--- payment_confirmation — canal guest_portal
-INSERT INTO veraluz_communication_templates
-  (code, channel, name, subject, body)
-VALUES
-  (
-    'payment_confirmation',
-    'guest_portal',
-    'Confirmation de paiement',
-    'Paiement reçu — {{property_name}}',
-    'Bonjour {{guest_name}},' || E'\n\n' ||
-    'Nous avons bien reçu votre paiement pour votre séjour à {{property_name}}.' || E'\n\n' ||
-    'N° réservation : {{reservation_id}}' || E'\n' ||
-    'Pour toute question : {{reception_phone}}'
-  )
-ON CONFLICT (code) DO NOTHING;
-
--- checkout_thank_you — canal guest_portal
-INSERT INTO veraluz_communication_templates
-  (code, channel, name, subject, body)
-VALUES
-  (
-    'checkout_thank_you',
-    'guest_portal',
-    'Message de remerciement — Départ client',
-    'Merci de votre séjour à {{property_name}}',
-    'Bonjour {{guest_name}},' || E'\n\n' ||
-    'Merci d''avoir séjourné à {{property_name}} ! Nous espérons vous revoir bientôt.' || E'\n\n' ||
-    'N° réservation : {{reservation_id}}'
-  )
-ON CONFLICT (code) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 5. Étendre vz_emit_reservation_event pour insérer des comm_jobs
---    Proof #1 : reservation_confirmed → booking_confirmation (internal)
---    Proof #2 : guest_checked_in → checkin_welcome (guest_portal)
+-- 7. OR REPLACE vz_emit_reservation_event
+--    Ajoute les comm_jobs pour reservation_confirmed + guest_checked_in
+--    CORRIGÉ : client_name/client_email/client_id (pas veraluz_guests JOIN)
+--              status='active' AND revoked_at IS NULL AND expires_at>now()
+--              template_key (pas template_code)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION vz_emit_reservation_event()
@@ -210,22 +214,18 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_event_id    uuid := gen_random_uuid();
   v_guest_name  text;
-  v_guest_email text;
-  v_gs_id       text;   -- guest_session id (recipient pour guest_portal)
+  v_gs_id       text;    -- guest_session id pour canal guest_portal
+  v_eid_out     uuid;    -- event_id checkout
+  v_eid_in      uuid;    -- event_id checkin
+  v_eid_conf    uuid;    -- event_id confirmed
 BEGIN
+  -- Résolution locale — pas de JOIN externe
+  v_guest_name := COALESCE(NEW.client_name, 'Client');
 
-  -- ── Résoudre le profil invité ──────────────────────────────
-  SELECT
-    COALESCE(g.full_name, g.first_name || ' ' || g.last_name, 'Inconnu'),
-    g.email
-  INTO v_guest_name, v_guest_email
-  FROM veraluz_guests g
-  WHERE g.id = NEW.guest_id;
-
-  -- ── Checkout ──────────────────────────────────────────────
+  -- ── Checkout ──────────────────────────────────────────────────────────────
   IF (OLD.status = 'checkedin' AND NEW.status = 'checkedout') THEN
+    v_eid_out := gen_random_uuid();
 
     INSERT INTO veraluz_events (
       id, event_type, source,
@@ -234,35 +234,39 @@ BEGIN
       actor_type, actor_id,
       payload, created_at
     ) VALUES (
-      v_event_id, 'guest_checked_out', 'reservation-workflow',
+      v_eid_out, 'guest_checked_out', 'reservation-workflow',
       'reservation', NEW.id::text,
       NEW.id::text, NEW.unit_id::text,
       'system', 'trigger',
       jsonb_build_object(
         'reservation_id', NEW.id,
         'unit_id',        NEW.unit_id,
-        'guest_id',       NEW.guest_id,
+        'guest_id',       NEW.client_id,
         'guest_name',     v_guest_name,
         'checkout_time',  now()
       ),
       now()
     ) ON CONFLICT DO NOTHING;
 
-    INSERT INTO veraluz_event_jobs (event_id, handler, status, attempt, max_attempts, created_at)
-    VALUES (v_event_id, 'create_housekeeping_task', 'pending', 0, 4, now())
+    INSERT INTO veraluz_event_jobs (event_id, handler, status, attempt, max_attempts, updated_at, created_at)
+    VALUES (v_eid_out, 'create_housekeeping_task', 'pending', 0, 4, now(), now())
     ON CONFLICT (event_id, handler) DO NOTHING;
 
   END IF;
 
-  -- ── Check-in ──────────────────────────────────────────────
+  -- ── Check-in ──────────────────────────────────────────────────────────────
   IF (OLD.status IS DISTINCT FROM 'checkedin' AND NEW.status = 'checkedin') THEN
+    v_eid_in := gen_random_uuid();
 
-    -- Chercher une session invité active
+    -- Session invité active (schéma réel : status, revoked_at, expires_at)
     SELECT id::text INTO v_gs_id
     FROM   veraluz_guest_sessions
     WHERE  reservation_id = NEW.id
-      AND  checked_out_at IS NULL
-    LIMIT 1;
+      AND  status     = 'active'
+      AND  revoked_at IS NULL
+      AND  expires_at > now()
+    ORDER  BY created_at DESC
+    LIMIT  1;
 
     INSERT INTO veraluz_events (
       id, event_type, source,
@@ -271,35 +275,46 @@ BEGIN
       actor_type, actor_id,
       payload, created_at
     ) VALUES (
-      v_event_id, 'guest_checked_in', 'reservation-workflow',
+      v_eid_in, 'guest_checked_in', 'reservation-workflow',
       'reservation', NEW.id::text,
       NEW.id::text, NEW.unit_id::text,
       'system', 'trigger',
       jsonb_build_object(
-        'reservation_id', NEW.id,
-        'unit_id',        NEW.unit_id,
-        'guest_id',       NEW.guest_id,
-        'guest_name',     v_guest_name,
-        'check_in',       NEW.check_in,
-        'check_out',      NEW.check_out,
+        'reservation_id',  NEW.id,
+        'unit_id',         NEW.unit_id,
+        'guest_id',        NEW.client_id,
+        'guest_name',      v_guest_name,
+        'client_email',    NEW.client_email,
+        'check_in',        NEW.check_in,
+        'check_out',       NEW.check_out,
         'guest_session_id', v_gs_id
       ),
       now()
     ) ON CONFLICT DO NOTHING;
 
-    -- Comm job : message de bienvenue sur le portail client
+    -- Comm job portail client (si session active)
     IF v_gs_id IS NOT NULL THEN
       INSERT INTO veraluz_communication_jobs
-        (event_id, template_code, channel, recipient_ref, status, attempt, max_attempts, created_at)
+        (event_id, template_key, channel, recipient_ref, status, attempt, max_attempts, updated_at, created_at)
       VALUES
-        (v_event_id, 'checkin_welcome', 'guest_portal', v_gs_id, 'pending', 0, 4, now())
-      ON CONFLICT (event_id, template_code, channel, recipient_ref) DO NOTHING;
+        (v_eid_in, 'checkin_welcome', 'guest_portal', v_gs_id, 'pending', 0, 4, now(), now())
+      ON CONFLICT (event_id, template_key, channel, recipient_ref) DO NOTHING;
+    END IF;
+
+    -- Comm job email (si adresse email connue)
+    IF NEW.client_email IS NOT NULL AND NEW.client_email <> '' THEN
+      INSERT INTO veraluz_communication_jobs
+        (event_id, template_key, channel, recipient_ref, status, attempt, max_attempts, updated_at, created_at)
+      VALUES
+        (v_eid_in, 'checkin_welcome', 'email', NEW.client_email, 'pending', 0, 4, now(), now())
+      ON CONFLICT (event_id, template_key, channel, recipient_ref) DO NOTHING;
     END IF;
 
   END IF;
 
-  -- ── Confirmed ─────────────────────────────────────────────
+  -- ── Reservation confirmed ─────────────────────────────────────────────────
   IF (OLD.status IS DISTINCT FROM 'confirmed' AND NEW.status = 'confirmed') THEN
+    v_eid_conf := gen_random_uuid();
 
     INSERT INTO veraluz_events (
       id, event_type, source,
@@ -308,27 +323,37 @@ BEGIN
       actor_type, actor_id,
       payload, created_at
     ) VALUES (
-      v_event_id, 'reservation_confirmed', 'reservation-workflow',
+      v_eid_conf, 'reservation_confirmed', 'reservation-workflow',
       'reservation', NEW.id::text,
       NEW.id::text, NEW.unit_id::text,
       'system', 'trigger',
       jsonb_build_object(
         'reservation_id', NEW.id,
         'unit_id',        NEW.unit_id,
-        'guest_id',       NEW.guest_id,
+        'guest_id',       NEW.client_id,
         'guest_name',     v_guest_name,
+        'client_email',   NEW.client_email,
         'check_in',       NEW.check_in,
         'check_out',      NEW.check_out
       ),
       now()
     ) ON CONFLICT DO NOTHING;
 
-    -- Comm job : notification staff interne
+    -- Comm job staff interne
     INSERT INTO veraluz_communication_jobs
-      (event_id, template_code, channel, recipient_ref, status, attempt, max_attempts, created_at)
+      (event_id, template_key, channel, recipient_ref, status, attempt, max_attempts, updated_at, created_at)
     VALUES
-      (v_event_id, 'booking_confirmation', 'internal', 'department:reception', 'pending', 0, 4, now())
-    ON CONFLICT (event_id, template_code, channel, recipient_ref) DO NOTHING;
+      (v_eid_conf, 'booking_confirmation', 'internal', 'department:reception', 'pending', 0, 4, now(), now())
+    ON CONFLICT (event_id, template_key, channel, recipient_ref) DO NOTHING;
+
+    -- Comm job email client (si adresse email connue)
+    IF NEW.client_email IS NOT NULL AND NEW.client_email <> '' THEN
+      INSERT INTO veraluz_communication_jobs
+        (event_id, template_key, channel, recipient_ref, status, attempt, max_attempts, updated_at, created_at)
+      VALUES
+        (v_eid_conf, 'reservation_confirmed', 'email', NEW.client_email, 'pending', 0, 4, now(), now())
+      ON CONFLICT (event_id, template_key, channel, recipient_ref) DO NOTHING;
+    END IF;
 
   END IF;
 
@@ -336,9 +361,14 @@ BEGIN
 END;
 $$;
 
--- Le trigger existe déjà (créé dans INFRA-OPS-1R) — OR REPLACE de la fonction suffit.
--- Pas besoin de DROP/CREATE trigger.
+-- Trigger déjà créé dans INFRA-OPS-1R — la OR REPLACE ci-dessus suffit.
+-- DROP/CREATE trigger si besoin de recréer la liaison :
+DROP TRIGGER IF EXISTS trg_emit_reservation_event ON veraluz_reservations;
+CREATE TRIGGER trg_emit_reservation_event
+  AFTER UPDATE OF status ON veraluz_reservations
+  FOR EACH ROW
+  EXECUTE FUNCTION vz_emit_reservation_event();
 
 -- =============================================================================
--- FIN 20260821_infra_comms_1a.sql
+-- FIN 20260821_infra_comms_1a.sql (INFRA-COMMS-1B)
 -- =============================================================================

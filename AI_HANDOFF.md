@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-Aucun LOCK actif.
+LOCK | Codex | codex/recovery-lot-a-auth-rh | RECOVERY LOT A — CORE/AUTH/RH session security | VERALUZ_OS_CORE.html, RH_EMBEDDED.html, supabase/functions/employees-secure/**, migration RH/session ciblée, tests Recovery Lot A, RECOVERY_LOT_A_SESSION_MAP.md, RECOVERY_LOT_A_TESTS.md, RECOVERY_LOT_A_DEPLOY_PLAN.md
 
 ## Lots actifs
 
-Aucun lot actif.
+RECOVERY LOT A | codex/recovery-lot-a-auth-rh | base 725a0cc | EN COURS — aucun déploiement ni merge main
 
 ## Transmissions récentes
 

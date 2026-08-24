@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/recovery-audit-1 | RECOVERY-AUDIT-1 — réconciliation Git/DB/EF/frontend | VERALUZ_RECOVERY_MATRIX.md, VERALUZ_RECOVERY_PLAN.md, VERALUZ_ROADMAP.md (uniquement si présent)`
+Aucun LOCK actif.
 
 ## Lots actifs
 
-RECOVERY-AUDIT-1 | codex/recovery-audit-1 | En cours — audit et plan uniquement; aucun déploiement/merge/refactor
+Aucun lot actif.
 
 ## Transmissions récentes
+
+`2026-08-24 | Codex | RECOVERY-AUDIT-1 | codex/recovery-audit-1 | 725a0cc | Git/bundle vérifiés; DB/EF/Pages lus sans écriture; 13 suites statiques: 8 PASS, 5 FAIL documentées | AUDIT COMPLET — progressive recovery NON prête | LOCK retiré | review matrice/plan puis autoriser Lot A`
 
 `2026-08-19 | Claude | AUTH-R3A CLOSED | main | 76e618d | merge ff-only claude/auth-r3a-pin-reset→main; Pages built; smoke PASS: CORE 200, AUTH_EMBEDDED 200, bouton Reset PIN ×14, EF v9 ACTIVE, OPTIONS CORS x-veraluz-session PASS | MERGED / PUBLISHED / HUMAN VALIDATED | aucun LOCK | prochain lot`
 

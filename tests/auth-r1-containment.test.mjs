@@ -82,7 +82,9 @@ test('la migration contient des assertions post-application',
     && /has_function_privilege\('anon', credential_function, 'EXECUTE'\)/i.test(migration));
 
 const minimalSelect = 'veraluz_employees_public?select=id,full_name,role,status&order=full_name.asc';
-test('le selecteur CORE utilise uniquement la vue publique minimale', core.includes(minimalSelect));
+test('le selecteur CORE utilise l annuaire serveur minimal',
+  /functions\/v1\/list-login-employees/.test(core)
+    && /return \{ id: String\(emp\.id\), display_name: displayName \}/.test(core));
 test('la liste Auth utilise uniquement la vue publique minimale', auth.includes(minimalSelect));
 
 const loginLoader = core.match(
@@ -90,12 +92,10 @@ const loginLoader = core.match(
 )?.[0] ?? '';
 test('le chargeur de login ne lit jamais directement veraluz_employees',
   loginLoader.length > 0 && !/veraluz_employees(?!_public)/.test(loginLoader));
-const loginProjection = loginLoader.match(
-  /veraluz_employees_public\?select=([^&'"\s]+)/,
-)?.[1] ?? '';
 test('le chargeur de login ne demande aucun credential',
-  loginProjection === 'id,full_name,role,status'
-    && !/(pin_code|pin_hash|secret|token)/i.test(loginProjection));
+  /EDGE_LOGIN_EMPLOYEES_URL/.test(loginLoader)
+    && /body\.employees/.test(loginLoader)
+    && !/(pin_code|pin_hash|password|salary|salaire|phone|email|team_id)/i.test(loginLoader));
 
 const frontendFiles = fs.readdirSync(root)
   .filter((name) => /\.(?:html|js)$/i.test(name) && !/(backup|legacy)/i.test(name));

@@ -1343,8 +1343,8 @@ function syncWithReservations() {
         u.hk_status='available';
       }
     }
-    // Currently occupied → mark room as occupied (only if clean/available, not dirty/cleaning/maintenance)
-    if((r.status==='checkedin'||r.status==='checked_in') && r.check_in<=todayStr && r.check_out>todayStr) {
+    // Physical occupancy follows lifecycle status, never the planned checkout date.
+    if(r.status==='checkedin'||r.status==='checked_in') {
       var u=_units.find(function(x){return x.id===r.unit_id;});
       if(u && (u.hk_status==='available'||u.hk_status==='inspected'||!u.hk_status)) {
         updateUnitHkStatus(r.unit_id,'occupied');

@@ -1140,7 +1140,7 @@ h4{font-size:1.05rem;font-weight:600;font-family:'Inter',sans-serif}
 var SB = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 var _selRoom = null;
-var _blockedRanges = []; // {ci, co} — blocked periods for selected unit   // currently selected room object
+var _blockedRanges = []; // {ci, co, status} — blocked periods for selected unit
 var _bkData  = {};     // accumulates booking data across steps
 
 /* ── ELEGANT NAMES MAP ── */
@@ -1831,7 +1831,7 @@ function loadBlockedDates(unitId){
   var msg=document.getElementById('bk-avail-msg');
   if(msg){msg.className='bk-avail-msg';msg.textContent='Chargement des disponibilités…';msg.style.display='block';}
   fetch(SB+'/rest/v1/veraluz_reservations?unit_id=eq.'+encodeURIComponent(unitId)
-      +'&status=in.(confirmed,checkedin,pending)'
+      +'&status=in.(confirmed,checkedin,checked_in,pending)'
       +'&select=check_in,check_out,status,hold_expires_at'
       +'&order=check_in.asc',
     {headers:{'apikey':SK,'Authorization':'Bearer '+SK}})
@@ -1839,13 +1839,13 @@ function loadBlockedDates(unitId){
   .then(function(rows){
     var now=new Date();
     _blockedRanges=(rows||[]).filter(function(r){
-      if(r.status==='confirmed'||r.status==='checkedin') return true;
+      if(r.status==='confirmed'||r.status==='checkedin'||r.status==='checked_in') return true;
       if(r.status==='pending'){
         if(!r.hold_expires_at) return true; // legacy: pas d'expiration = actif
         return new Date(r.hold_expires_at)>now;
       }
       return false;
-    }).map(function(r){return{ci:r.check_in,co:r.check_out};});
+    }).map(function(r){return{ci:r.check_in,co:r.check_out,status:r.status};});
     calcTotal(); // re-valider les dates déjà saisies
   })
   .catch(function(){if(msg){msg.textContent='';msg.style.display='none';}});
@@ -1853,7 +1853,10 @@ function loadBlockedDates(unitId){
 
 function hasRangeOverlap(ci,co){
   // [check_in,check_out) : a.ci < b.co && b.ci < a.co
-  return _blockedRanges.some(function(b){return ci<b.co&&b.ci<co;});
+  return _blockedRanges.some(function(b){
+    if(b.status==='checkedin'||b.status==='checked_in') return true;
+    return ci<b.co&&b.ci<co;
+  });
 }
 
 /* ── DATE / TOTAL CALC ── */

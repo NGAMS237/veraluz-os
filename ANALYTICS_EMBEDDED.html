@@ -469,7 +469,7 @@ function computeRooms() {
   var today = dStr(new Date());
   rooms = _units.filter(function(u){ return u.status === 'active'; }).map(function(u) {
     var cur = _reservations.find(function(r) {
-      return r.unit_id === u.id && r.check_in <= today && r.check_out > today && ['checkedin','confirmed'].includes(r.status);
+      return r.unit_id === u.id && ['checkedin','checked_in'].includes(r.status);
     });
     var nxt = _reservations.find(function(r) {
       return r.unit_id === u.id && r.check_in > today && ['confirmed','pending'].includes(r.status);

@@ -73,6 +73,11 @@ input,select,textarea{font-family:inherit;font-size:14px}
 .gantt-room{background:var(--bg2);color:var(--text);font-weight:600;min-width:120px;text-align:left;padding-left:10px}
 .gantt-cell{position:relative;min-width:32px;height:34px;vertical-align:middle}
 .gantt-bar{position:absolute;inset:3px 1px;border-radius:4px;display:flex;align-items:center;padding:0 4px;font-size:10px;font-weight:700;color:#fff;cursor:pointer;overflow:hidden;white-space:nowrap}
+.gantt-bar.overstay{box-shadow:inset 0 0 0 1px rgba(255,255,255,.65);background:var(--warning)!important}
+.overstay-strip{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border:1px solid rgba(245,158,11,.35);border-radius:8px;background:rgba(245,158,11,.08);font-size:11px;color:var(--text2)}
+.overstay-strip strong{color:var(--warning);text-transform:uppercase;letter-spacing:.04em}
+.overstay-item{color:var(--text);border-left:1px solid var(--border);padding-left:10px}
+.overstay-badge{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:10px;background:rgba(245,158,11,.16);color:var(--warning);font-size:10px;font-weight:800;vertical-align:middle}
 .bar-pending{background:var(--sp)}
 .bar-confirmed{background:var(--sc)}
 .bar-checked_in,.bar-checkedin{background:var(--si)}
@@ -601,17 +606,78 @@ function toSb(r){
 
 /* ── État ── */
 var _rooms = [], _rez = [], _filter = 'all', _planOffset = 0, _nf = {step:1};
+var _lifecycleCheckoutTime = null;
+var _reservationTransitionPending = {};
+var _propertyTimeZone = 'Africa/Douala';
+
+function normalizeReservationStatus(r){ return String((r&&r.status)||'').toLowerCase(); }
+function isCheckedInReservation(r){
+  var s=normalizeReservationStatus(r);
+  return s==='checkedin'||s==='checked_in';
+}
+function loadLifecycleSettings(){
+  return fetch(SB+'/rest/v1/rpc/get_public_booking_settings',{
+    method:'POST',
+    headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},
+    body:'{}'
+  }).then(function(res){return res.ok?res.json():null;}).then(function(cfg){
+    var value=cfg&&String(cfg.checkout_time||'');
+    _lifecycleCheckoutTime=/^([01]\d|2[0-3]):[0-5]\d$/.test(value)?value:null;
+    return cfg;
+  }).catch(function(){ _lifecycleCheckoutTime=null; return null; });
+}
+function propertyClock(now){
+  var current=now||new Date();
+  try{
+    var parts=new Intl.DateTimeFormat('en-CA',{
+      timeZone:_propertyTimeZone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'
+    }).formatToParts(current), values={};
+    parts.forEach(function(p){if(p.type!=='literal') values[p.type]=p.value;});
+    return {date:values.year+'-'+values.month+'-'+values.day,minutes:Number(values.hour)*60+Number(values.minute)};
+  }catch(e){
+    return {date:current.toISOString().slice(0,10),minutes:current.getHours()*60+current.getMinutes()};
+  }
+}
+function isReservationOverstay(r, now){
+  if(!isCheckedInReservation(r)||!r.check_out) return false;
+  var clock=propertyClock(now);
+  if(r.check_out<clock.date) return true;
+  if(r.check_out>clock.date||!_lifecycleCheckoutTime) return false;
+  var timeParts=_lifecycleCheckoutTime.split(':');
+  return clock.minutes>(Number(timeParts[0])*60+Number(timeParts[1]));
+}
+function overstayDurationLabel(r, now){
+  if(!isReservationOverstay(r,now)) return '';
+  var clock=propertyClock(now), elapsedDays=Math.max(0,diffDays(r.check_out,clock.date));
+  if(!_lifecycleCheckoutTime) return '+'+Math.max(1,elapsedDays)+' j';
+  var timeParts=_lifecycleCheckoutTime.split(':');
+  var minutes=Math.max(0,elapsedDays*1440+clock.minutes-(Number(timeParts[0])*60+Number(timeParts[1])));
+  var days=Math.floor(minutes/1440), hours=Math.floor((minutes%1440)/60), mins=minutes%60;
+  if(days>0) return '+'+days+' j'+(hours?' '+hours+' h':'');
+  if(hours>0) return '+'+hours+' h'+(mins?' '+mins+' min':'');
+  return '+'+Math.max(1,mins)+' min';
+}
+function reservationOccupiesPlanningDay(r, day){
+  if(!r||!r.check_in||r.check_in>day) return false;
+  if(isCheckedInReservation(r)) return true;
+  return !!r.check_out && r.check_out>day;
+}
+function planningReservationForDay(list, unitId, day){
+  return list.find(function(r){return r.unit_id===unitId&&isCheckedInReservation(r)&&reservationOccupiesPlanningDay(r,day);})
+    || list.find(function(r){return r.unit_id===unitId&&reservationOccupiesPlanningDay(r,day);});
+}
 
 /* ── Chargement ── */
 function loadAll(cb){
-  /* 011C-2D — Promise.all: 3 fetches parallèles, rendu après résolution complète */
+  /* 011C-2D — fetches parallèles, rendu après résolution complète */
   var FIELDS='id,name,type,floor,capacity,price,description,amenities,status,sort_order,hk_status,updated_at';
   var _localEntries=(_rez||[]).filter(function(r){return r._fromSync||r._local;});
 
   Promise.all([
     sbGet('veraluz_units?select='+FIELDS+'&order=sort_order.asc,name.asc'),
     sbGet('veraluz_photos?active=eq.true&select=unit_id,url,is_cover,sort_order&order=unit_id.asc,sort_order.asc'),
-    sbGet('veraluz_reservations?select=*&order=created_at.desc&limit=200')
+    sbGet('veraluz_reservations?select=*&order=created_at.desc&limit=200'),
+    loadLifecycleSettings()
   ]).then(function(results){
     var unitData=results[0], photoData=results[1], rezData=results[2];
 
@@ -853,15 +919,23 @@ function renderPlanning(){
     return;
   }
   var activeRez=_rez.filter(function(r){return !['cancelled','no_show'].includes(r.status);});
-  var h='<table class="gantt-table"><thead><tr><th class="gantt-room">Logement</th>';
+  var overstays=activeRez.filter(function(r){return isReservationOverstay(r);});
+  var h=overstays.length?'<div class="overstay-strip"><strong>Séjours dépassés</strong>'+overstays.map(function(r){
+    return '<span class="overstay-item">'+esc(r.guest_name||r.client_name||'Client')+' · '+esc(unitName(r.unit_id)||'Non assigné')+' · départ prévu '+fmtDate(r.check_out)+' · '+overstayDurationLabel(r)+'</span>';
+  }).join('')+'</div>':'';
+  h+='<table class="gantt-table"><thead><tr><th class="gantt-room">Logement</th>';
   days.forEach(function(d){ h+='<th class="gantt-cell'+(d===today?' today-col':'')+'">'+fmtDay(d)+'</th>'; });
   h+='</tr></thead><tbody>';
   _rooms.forEach(function(room){
     h+='<tr><td class="gantt-room">'+esc(room.name||'?')+'</td>';
     days.forEach(function(d){
-      var rz=activeRez.find(function(r){return r.unit_id===room.id&&r.check_in<=d&&r.check_out>d;});
+      var rz=planningReservationForDay(activeRez,room.id,d);
       h+='<td class="gantt-cell'+(d===today?' today-col':'')+'">';
-      if(rz){ var s=statusInfo(rz.status); h+='<div class="gantt-bar" style="background:'+s.color+'" onclick="openRezModal(\''+rz.id+'\')" title="'+esc(rz.guest_name)+'">'+esc((rz.guest_name||'').split(' ')[0])+'</div>'; }
+      if(rz){
+        var s=statusInfo(rz.status), late=isReservationOverstay(rz), firstVisible=d===days[0]||!reservationOccupiesPlanningDay(rz,addDays(d,-1));
+        var barLabel=firstVisible?esc((rz.guest_name||'').split(' ')[0])+(late?' · retard':''):'';
+        h+='<div class="gantt-bar'+(late?' overstay':'')+'" style="background:'+s.color+'" onclick="openRezModal(\''+rz.id+'\')" title="'+esc(rz.guest_name)+(late?' — séjour dépassé '+overstayDurationLabel(rz):'')+'">'+barLabel+'</div>';
+      }
       h+='</td>';
     });
     h+='</tr>';
@@ -873,9 +947,14 @@ function renderPlanning(){
   if(unassigned.length){
     h+='<tr><td class="gantt-room" style="color:var(--text3);font-style:italic">⚠ Non assigné</td>';
     days.forEach(function(d){
-      var rz=unassigned.find(function(r){return r.check_in<=d&&r.check_out>d;});
+      var rz=unassigned.find(function(r){return isCheckedInReservation(r)&&reservationOccupiesPlanningDay(r,d);})
+        || unassigned.find(function(r){return reservationOccupiesPlanningDay(r,d);});
       h+='<td class="gantt-cell'+(d===today?' today-col':'')+'">';
-      if(rz){ var s=statusInfo(rz.status); h+='<div class="gantt-bar" style="background:'+s.color+';opacity:.7" onclick="openRezModal(\''+rz.id+'\')" title="'+esc(rz.guest_name)+'">'+esc((rz.guest_name||'').split(' ')[0])+'</div>'; }
+      if(rz){
+        var s=statusInfo(rz.status), late=isReservationOverstay(rz), firstVisible=d===days[0]||!reservationOccupiesPlanningDay(rz,addDays(d,-1));
+        var barLabel=firstVisible?esc((rz.guest_name||'').split(' ')[0])+(late?' · retard':''):'';
+        h+='<div class="gantt-bar'+(late?' overstay':'')+'" style="background:'+s.color+';opacity:.8" onclick="openRezModal(\''+rz.id+'\')" title="'+esc(rz.guest_name)+(late?' — séjour dépassé '+overstayDurationLabel(rz):'')+'">'+barLabel+'</div>';
+      }
       h+='</td>';
     });
     h+='</tr>';
@@ -981,13 +1060,14 @@ function renderRezList(){
   if(!list.length){el.innerHTML=banner+'<div class="empty-state"><p>Aucune réservation</p></div>';return;}
   el.innerHTML=banner+list.map(function(r){
     var s=statusInfo(r.status);
+    var overstay=isReservationOverstay(r);
     var actions='';
     if(r.status==='pending') actions+='<button class="act-btn btn-confirm" onclick="event.stopPropagation();doConfirm(\''+r.id+'\')">Confirmer</button>';
     if(r.status==='confirmed') actions+='<button class="act-btn btn-checkin" onclick="event.stopPropagation();doCheckIn(\''+r.id+'\')">Check-in</button>';
     if(r.status==='confirmed') actions+='<button class="act-btn btn-noshow" onclick="event.stopPropagation();doNoShow(\''+r.id+'\')" title="Client absent">No-show</button>';
     if(r.status==='checkedin'||r.status==='checked_in') actions+='<button class="act-btn btn-checkout" onclick="event.stopPropagation();doCheckOut(\''+r.id+'\')">Check-out</button>';
     return '<div class="rez-card" onclick="openRezModal(\''+r.id+'\')">'+
-      '<span class="rez-sbadge '+s.badge+'">'+s.label+'</span>'+
+      '<span class="rez-sbadge '+s.badge+'">'+s.label+'</span>'+(overstay?'<span class="overstay-badge">Séjour dépassé · '+overstayDurationLabel(r)+'</span>':'')+
       '<div class="rez-info"><div class="rez-guest">'+esc(r.guest_name||'—')+'</div>'+
       '<div class="rez-sub">'+esc(elegantName(r)||'—')+' · '+fmtDate(r.check_in)+' → '+fmtDate(r.check_out)+(r.nights?' ('+r.nights+'n)':'')+'</div></div>'+
       '<div class="rez-price">'+fmtMoney(r.total)+'</div>'+
@@ -1110,6 +1190,7 @@ function doConfirm(id){
 function doCheckIn(id){
   /* RES-LIFECYCLE-1/B5+B6+B11: via broker EF, early warning, no fake offline */
   var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
+  if(_reservationTransitionPending[id]) return;
   if(!confirm('Check-in pour '+r.guest_name+' ?')) return;
   if(!window.parent || typeof window.parent.veraluzSecureRequest!=='function'){
     toast('Session requise pour le check-in','err'); return;
@@ -1121,13 +1202,16 @@ function doCheckIn(id){
     if(!ok) return;
     payload.confirm_early=true;
   }
+  _reservationTransitionPending[id]=true;
   window.parent.veraluzSecureRequest('reservation-workflow',payload)
   .then(function(res){
+    delete _reservationTransitionPending[id];
     var d=res&&res.body?res.body:res;
     if(!d||!d.ok){ toast('Erreur: '+(d&&d.error||'check-in échoué'),'err'); return; }
+    if(d.transitioned===false){ r.status='checkedin'; refresh(); toast('Check-in déjà enregistré','success'); return; }
     _doCheckinSuccess(id,r);
   })
-  .catch(function(){ toast('Erreur réseau — check-in non effectué','err'); });
+  .catch(function(){ delete _reservationTransitionPending[id]; toast('Erreur réseau — check-in non effectué','err'); });
 }
 function _doCheckinSuccess(id,r){
   r.status='checkedin';
@@ -1138,15 +1222,19 @@ function _doCheckinSuccess(id,r){
 function doCheckOut(id){
   /* RES-LIFECYCLE-1/B10+B11: via broker EF, no fake offline */
   var r=_rez.find(function(x){return x.id===id;}); if(!r) return;
+  if(_reservationTransitionPending[id]) return;
   if(!confirm('Check-out pour '+r.guest_name+' ?')) return;
   if(!window.parent || typeof window.parent.veraluzSecureRequest!=='function'){
     toast('Session requise pour le check-out','err'); return;
   }
+  _reservationTransitionPending[id]=true;
   window.parent.veraluzSecureRequest('reservation-workflow',{action:'checkout',reservation_id:id})
   .then(function(res){
+    delete _reservationTransitionPending[id];
     var d=res&&res.body?res.body:res;
     if(!d||!d.ok){ toast('Erreur: '+(d&&d.error||'check-out échoué'),'err'); return; }
     r.status='checkedout';
+    if(d.transitioned===false){ refresh(); toast('Check-out déjà enregistré','success'); return; }
     try{localStorage.setItem('vlz_rez_updated',String(Date.now()));localStorage.setItem('vlz_hk_checkout',JSON.stringify({unit_id:r.unit_id,date:new Date().toISOString().slice(0,10),client:r.client_name||'',rez_id:id}));}catch(e){}
     var room=_rooms.find(function(x){return x.id===r.unit_id;});
     if(room) room._dynStatus='cleaning';
@@ -1154,7 +1242,7 @@ function doCheckOut(id){
     try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-reservations',type:'checkout-completed',data:{rez_id:id,unit_id:r.unit_id,guest_name:r.guest_name||r.client_name||'',client:r.client_name||''}},'*');}catch(e){}
     refresh(); toast('Check-out — ménage requis','success');
   })
-  .catch(function(){ toast('Erreur réseau — check-out non effectué','err'); });
+  .catch(function(){ delete _reservationTransitionPending[id]; toast('Erreur réseau — check-out non effectué','err'); });
 }
 function doCancel(id){
   /* RES-LIFECYCLE-1/B11: via broker EF, no fake offline */
@@ -1299,6 +1387,7 @@ function openRezModal(rezId,_tab){
   var html =
     '<div class="modal-title">'+esc(r.guest_name||'—')+'</div>'+
     '<div class="modal-sub"><span class="rez-sbadge '+s.badge+'" style="display:inline-block">'+s.label+'</span>'+
+    (isReservationOverstay(r)?'<span class="overstay-badge">Séjour dépassé · '+overstayDurationLabel(r)+'</span>':'')+
     (r.guest_phone ? ' &nbsp;📞 '+esc(r.guest_phone) : '')+
     (r.guest_email ? ' &nbsp;✉ '+esc(r.guest_email) : '')+'</div>'+
     '<div class="modal-tabs">'+
@@ -1658,10 +1747,9 @@ function isUnitAvailable(unitId, checkIn, checkOut){
   // Two date ranges overlap when: A.start < B.end AND A.end > B.start
   var blocked=['pending','confirmed','checkedin','checked_in'];
   return !_rez.some(function(r){
-    return r.unit_id===unitId
-      && blocked.indexOf(r.status)>=0
-      && r.check_in < checkOut
-      && r.check_out > checkIn;
+    if(r.unit_id!==unitId||blocked.indexOf(r.status)<0) return false;
+    if(isCheckedInReservation(r)) return true;
+    return r.check_in < checkOut && r.check_out > checkIn;
   });
 }
 function buildStep2(){

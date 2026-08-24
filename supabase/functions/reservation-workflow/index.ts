@@ -29,6 +29,13 @@ const STATUS_MAP: Record<string, string> = {
   no_show:  "no_show",
   cancel:   "cancelled",
 };
+const ACTION_CAPABILITY: Record<string, string> = {
+  confirm:  "reservations.write",
+  checkin:  "reservations.checkin",
+  checkout: "reservations.checkout",
+  no_show:  "reservations.write",
+  cancel:   "reservations.write",
+};
 
 // AUTH-R5: ALLOWED_ROLES remplacé par capability check via _rbac.ts
 
@@ -74,6 +81,9 @@ Deno.serve(async (req: Request) => {
 
   if (!action || !reservation_id) return fail("missing_params");
   if (!TRANSITION_MAP[action]) return fail("invalid_action");
+  if (!hasCapability(actorRole, ACTION_CAPABILITY[action])) {
+    return fail("forbidden", 403, { role: employee.role, action });
+  }
 
   const { data: rez, error: rezErr } = await db
     .from("veraluz_reservations")
@@ -82,6 +92,19 @@ Deno.serve(async (req: Request) => {
     .single();
 
   if (rezErr || !rez) return fail("reservation_not_found", 404);
+
+  const targetStatus = STATUS_MAP[action];
+  if (rez.status === targetStatus) {
+    return ok({
+      ok: true,
+      reservation_id,
+      previous_status: rez.status,
+      new_status: rez.status,
+      action,
+      transitioned: false,
+      idempotent: true,
+    });
+  }
 
   if (!TRANSITION_MAP[action].includes(rez.status)) {
     return fail("invalid_transition", 422, {
@@ -97,17 +120,45 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const now = new Date().toISOString();
-  const { error: updErr } = await db
-    .from("veraluz_reservations")
-    .update({ status: STATUS_MAP[action], updated_at: now })
-    .eq("id", reservation_id);
+  if (action === "checkin" && rez.unit_id) {
+    const { data: occupant, error: occupantErr } = await db
+      .from("veraluz_reservations")
+      .select("id")
+      .eq("unit_id", rez.unit_id)
+      .in("status", ["checkedin", "checked_in"])
+      .neq("id", reservation_id)
+      .limit(1)
+      .maybeSingle();
+    if (occupantErr) return fail("db_error", 500, { detail: occupantErr.message });
+    if (occupant) return fail("unit_occupied", 409);
+  }
 
-  if (updErr) return fail("db_error", 500, { detail: updErr.message });
+  const now = new Date().toISOString();
+  const { data: updated, error: updErr } = await db
+    .from("veraluz_reservations")
+    .update({ status: targetStatus, updated_at: now })
+    .eq("id", reservation_id)
+    .eq("status", rez.status)
+    .select("id, status")
+    .maybeSingle();
+
+  if (updErr) {
+    if (action === "checkin" && updErr.code === "23505") {
+      return fail("unit_occupied", 409);
+    }
+    return fail("db_error", 500, { detail: updErr.message });
+  }
+  if (!updated) {
+    return fail("transition_conflict", 409, {
+      reservation_id,
+      action,
+    });
+  }
 
   return ok({
     ok: true, reservation_id,
-    previous_status: rez.status, new_status: STATUS_MAP[action],
+    previous_status: rez.status, new_status: targetStatus,
+    transitioned: true,
     action, performed_by: employee.id,
     performed_by_name: employee.full_name, performed_at: now,
     ...(action === "checkin" && confirm_early ? { early_checkin: true } : {}),

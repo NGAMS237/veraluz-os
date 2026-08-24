@@ -78,7 +78,7 @@ test('B12 aucune housekeeping tâche créée par date seule', hkSync.includes("(
 test('B13 aucun guest_checked_out event par date seule', !/check_out\s*[<>=]+[\s\S]{0,160}guest_checked_out/.test([reservations, workflow, guestAccess].join('\n')));
 test('B14 checkout staff → checkedout', workflow.includes('checkout: "checkedout"') && workflow.includes('checkout: ["checkedin"]'));
 test('B15 checkout staff libère unité', checkout.includes("r.status='checkedout'") && reservations.includes("room._dynStatus='cleaning'"));
-test('B16 checkout crée événement une seule fois', workflow.includes('.eq("status", rez.status)') && checkout.includes("if(d.transitioned===false){ refresh();"));
+test('B16 checkout garantit le ménage canonique avant succès', workflow.includes('ensureCheckoutEffects') && workflow.includes('housekeeping_task_id') && workflow.includes('.eq("status", rez.status)'));
 test('B17 double checkout idempotent/refusé proprement', workflow.includes('idempotent: true') && workflow.includes('transitioned: false') && workflow.includes('transition_conflict'));
 test('B18 refresh Planning conserve overstay', reservations.includes('loadAll(function(){ enrichStatuses(); refresh(); checkBkSync(); })') && planning.includes('planningReservationForDay'));
 test('B19 lendemain suivant conserve overstay', occupiesDay.includes('if(isCheckedInReservation(r)) return true') && !occupiesDay.includes('todayStr'));

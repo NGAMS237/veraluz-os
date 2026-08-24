@@ -5,7 +5,8 @@
 - `status = checkedin` est la source de vérité de l'occupation physique.
 - `check_out` reste une date de départ prévue; elle ne déclenche aucune transition.
 - `overstay` est calculé pour l'UI avec `booking.checkout_time`, sans modifier `status`.
-- Un vrai checkout staff est le seul passage vers `checkedout` et le seul déclencheur frontend du ménage/événement de départ.
+- Un vrai checkout staff est le seul passage vers `checkedout`; `reservation-workflow` garantit ensuite la tâche ménage canonique par ID déterministe.
+- `checkout-completed` reste une notification UI legacy, non canonique et non durable. Aucune infrastructure `veraluz_events` / `veraluz_event_jobs` n'est créée par ce lot.
 
 ## Diagnostic production en lecture seule — 2026-08-24
 
@@ -34,7 +35,7 @@
 | B13 | pas d'événement checkout par date seule | aucune dérivation temporelle |
 | B14 | checkout staff vers checkedout | transition serveur stricte |
 | B15 | checkout libère l'occupation | rafraîchissement statut/ménage après transition |
-| B16 | événement checkout une seule fois | compare-and-set + `transitioned` |
+| B16 | ménage canonique garanti avant réponse succès | compare-and-set + `ensureCheckoutEffects` |
 | B17 | retry/double checkout idempotent | réponse `idempotent` ou conflit 409 |
 | B18 | F5 conserve overstay | données DB rechargées puis état redérivé |
 | B19 | lendemain conserve overstay | aucune borne `check_out` pour checkedin |
@@ -50,6 +51,28 @@ Commande :
 `node tests/recovery-lot-b-reservation-overstay.test.mjs`
 
 Résultat local : **34 PASS / 0 FAIL**.
+
+## Matrice B1-01–B1-11 — durabilité checkout
+
+| ID | Vérification | Preuve automatisée |
+|---|---|---|
+| B1-01 | transition checkout crée le ménage | insertion serveur avant réponse succès |
+| B1-02 | double checkout sans doublon | PK `checkout-<reservation_id>` + contrôle `23505` |
+| B1-03 | retry réparateur | `ensureCheckoutEffects` même si déjà checkedout ou CAS concurrent |
+| B1-04 | overstay seul sans ménage | aucun appel par date/état dérivé |
+| B1-05 | tâches distinctes par réservation | ID dérivé de la réservation |
+| B1-06 | échec effet sans rollback lifecycle | réponse 503 retryable; retry répare |
+| B1-07 | frontend non canonique | suppression de `vlz_hk_checkout` |
+| B1-08 | aucune table Events | absence DDL/appel events |
+| B1-09 | date check-in Douala | `Intl.DateTimeFormat` avec `Africa/Douala` |
+| B1-10 | Lot B inchangé fonctionnellement | suite 34/34 |
+| B1-11 | Lot A/A.1/A.2 non touché | contrôle du diff depuis le HEAD B |
+
+Commande :
+
+`node tests/recovery-lot-b1-checkout-durability.test.mjs`
+
+Résultat local : **11 PASS / 0 FAIL**.
 
 Baselines Recovery exécutées sur le code de cette branche :
 

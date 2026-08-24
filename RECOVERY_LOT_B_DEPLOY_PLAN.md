@@ -17,6 +17,7 @@ Les deux documents Recovery et le test accompagnent la revue mais ne sont pas de
 2. Vérifier en lecture seule qu'aucune unité ne possède plusieurs lignes `checkedin`/`checked_in`.
 3. Comparer la signature et la définition live de `create_booking_hold` à celle auditée le 2026-08-24.
 4. Confirmer que `booking.checkout_time` est présent; ne modifier aucune réservation client réelle.
+5. Confirmer le schéma `veraluz_housekeeping` : `id TEXT` clé primaire et colonnes `unit_id`, `type`, `status`, `priority`, `scheduled_for`, `task_label`, `notes`, `reported_by`.
 
 ## Ordre recommandé
 
@@ -37,9 +38,11 @@ Avec une réservation de simulation explicitement autorisée :
 4. Vérifier Booking Engine : même unité refusée tant que le séjour reste checkedin.
 5. F5 puis lendemain simulé/contrôlé : séjour toujours visible et checkedin.
 6. Vérifier Guest : Wi-Fi/services restent gouvernés par checkedin, Folio inchangé.
-7. Effectuer un checkout staff contrôlé : transition unique, unité libérée, ménage/événement créés une seule fois.
-8. Réessayer le checkout : réponse idempotente, aucun second effet.
+7. Effectuer un checkout staff contrôlé : transition unique, unité libérée et tâche `checkout-<reservation_id>` créée dans `veraluz_housekeeping`.
+8. Réessayer le checkout : réponse idempotente, même ID ménage et aucune seconde tâche.
 9. Vérifier une réservation checkedout et une cancelled ordinaires.
+
+`checkout-completed` est seulement une notification frontend legacy. Il ne prouve pas un événement durable et ne crée pas la tâche ménage canonique. Ce lot ne crée ni `veraluz_events` ni `veraluz_event_jobs`.
 
 ## Rollback
 
@@ -47,5 +50,6 @@ Avec une réservation de simulation explicitement autorisée :
 2. Redéployer la version précédente de `reservation-workflow`.
 3. Restaurer la définition auditée précédente de `create_booking_hold` seulement si le RPC produit une régression.
 4. Conserver par défaut l'index d'unicité `checkedin`; ne le retirer qu'après preuve d'incompatibilité et validation explicite, car il protège l'invariant physique.
+5. Conserver les tâches ménage déjà créées : leurs IDs déterministes évitent toute duplication lors d'un retry ou d'un redéploiement.
 
 Le rollback ne modifie aucune donnée de réservation et ne transforme jamais un `checkedin` en `checkedout`.

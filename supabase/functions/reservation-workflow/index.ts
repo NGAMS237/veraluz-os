@@ -60,6 +60,71 @@ async function validateSession(db: ReturnType<typeof createClient>, token: strin
   return emp ?? null;
 }
 
+function doualaDate(now = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Douala",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(now);
+  const values: Record<string, string> = {};
+  for (const part of parts) {
+    if (part.type !== "literal") values[part.type] = part.value;
+  }
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+type CheckoutReservation = {
+  id: string;
+  unit_id: string | null;
+};
+
+async function ensureCheckoutEffects(
+  db: ReturnType<typeof createClient>,
+  reservation: CheckoutReservation,
+) {
+  if (!reservation.unit_id) {
+    return { ok: false as const, error: "checkout_unit_missing" };
+  }
+
+  // The production housekeeping primary key is TEXT. A reservation-derived ID
+  // makes this effect exactly-once without a second table or schema migration.
+  const taskId = `checkout-${reservation.id}`;
+  const { error: insertErr } = await db.from("veraluz_housekeeping").insert({
+    id: taskId,
+    unit_id: reservation.unit_id,
+    type: "cleaning",
+    status: "pending",
+    priority: "normal",
+    scheduled_for: doualaDate(),
+    task_label: "Nettoyage après départ",
+    notes: `Checkout réservation ${reservation.id}`,
+    reported_by: "Checkout staff",
+  });
+
+  if (!insertErr) return { ok: true as const, task_id: taskId, created: true };
+  if (insertErr.code !== "23505") {
+    console.error("checkout housekeeping insert failed", {
+      reservation_id: reservation.id,
+      code: insertErr.code,
+    });
+    return { ok: false as const, error: "checkout_effect_failed" };
+  }
+
+  // A duplicate primary key is idempotent only when it is the expected task.
+  const { data: existing, error: lookupErr } = await db
+    .from("veraluz_housekeeping")
+    .select("id, unit_id, type")
+    .eq("id", taskId)
+    .maybeSingle();
+  if (lookupErr || !existing || existing.unit_id !== reservation.unit_id || existing.type !== "cleaning") {
+    console.error("checkout housekeeping id collision", { reservation_id: reservation.id });
+    return { ok: false as const, error: "checkout_effect_conflict" };
+  }
+
+  return { ok: true as const, task_id: taskId, created: false };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
 
@@ -95,6 +160,12 @@ Deno.serve(async (req: Request) => {
 
   const targetStatus = STATUS_MAP[action];
   if (rez.status === targetStatus) {
+    const checkoutEffect = action === "checkout"
+      ? await ensureCheckoutEffects(db, rez)
+      : null;
+    if (checkoutEffect && !checkoutEffect.ok) {
+      return fail(checkoutEffect.error, 503, { retryable: true });
+    }
     return ok({
       ok: true,
       reservation_id,
@@ -103,6 +174,7 @@ Deno.serve(async (req: Request) => {
       action,
       transitioned: false,
       idempotent: true,
+      ...(checkoutEffect ? { housekeeping_task_id: checkoutEffect.task_id } : {}),
     });
   }
 
@@ -113,7 +185,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = doualaDate();
   if (action === "checkin" && rez.check_in > today && !confirm_early) {
     return fail("early_checkin", 422, {
       check_in: rez.check_in, today, requires_confirm: true,
@@ -149,10 +221,40 @@ Deno.serve(async (req: Request) => {
     return fail("db_error", 500, { detail: updErr.message });
   }
   if (!updated) {
+    if (action === "checkout") {
+      const { data: current } = await db
+        .from("veraluz_reservations")
+        .select("id, status, unit_id")
+        .eq("id", reservation_id)
+        .maybeSingle();
+      if (current?.status === "checkedout") {
+        const checkoutEffect = await ensureCheckoutEffects(db, current);
+        if (!checkoutEffect.ok) {
+          return fail(checkoutEffect.error, 503, { retryable: true });
+        }
+        return ok({
+          ok: true,
+          reservation_id,
+          previous_status: current.status,
+          new_status: current.status,
+          action,
+          transitioned: false,
+          idempotent: true,
+          housekeeping_task_id: checkoutEffect.task_id,
+        });
+      }
+    }
     return fail("transition_conflict", 409, {
       reservation_id,
       action,
     });
+  }
+
+  const checkoutEffect = action === "checkout"
+    ? await ensureCheckoutEffects(db, { id: reservation_id, unit_id: rez.unit_id })
+    : null;
+  if (checkoutEffect && !checkoutEffect.ok) {
+    return fail(checkoutEffect.error, 503, { retryable: true });
   }
 
   return ok({
@@ -161,6 +263,7 @@ Deno.serve(async (req: Request) => {
     transitioned: true,
     action, performed_by: employee.id,
     performed_by_name: employee.full_name, performed_at: now,
+    ...(checkoutEffect ? { housekeeping_task_id: checkoutEffect.task_id } : {}),
     ...(action === "checkin" && confirm_early ? { early_checkin: true } : {}),
   });
 });

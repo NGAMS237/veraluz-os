@@ -3,14 +3,14 @@
  * PROMPT 011 — Version 1.0
  *
  * Stratégie :
- *   - Cache-first  : assets statiques (icônes, manifests, veraluz-core.js)
- *   - Network-first: HTML (CORE, LIVREUR) pour toujours servir la version récente
+ *   - Cache-first  : images, icônes, manifests, styles et polices
+ *   - Network-first: HTML et JavaScript pour toujours servir la version récente
  *   - No-cache     : tout appel Supabase REST, Edge Functions, données auth
  *
  * À chaque changement important des fichiers statiques, incrémenter CACHE_NAME.
  */
 
-var CACHE_NAME = 'veraluz-pwa-v033-emergency'; /* EMERGENCY_001 */
+var CACHE_NAME = 'veraluz-pwa-v034-recovery-a2';
 
 // Contrôle d'activation (mettre false pour désactiver en dev si besoin)
 var VERALUZ_PWA_ENABLED = true;
@@ -64,7 +64,6 @@ function isStaticAsset(url) {
     url.endsWith('.jpg') ||
     url.endsWith('.ico') ||
     url.endsWith('.webmanifest') ||
-    url.endsWith('.js') ||
     url.endsWith('.css') ||
     url.endsWith('.woff2') ||
     url.endsWith('.woff')
@@ -114,6 +113,10 @@ self.addEventListener('activate', function(event) {
   );
 });
 
+self.addEventListener('message', function(event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
 // ── FETCH ──────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', function(event) {
   if (!VERALUZ_PWA_ENABLED) return;
@@ -158,7 +161,7 @@ self.addEventListener('fetch', function(event) {
   // ── HTML (CORE, LIVREUR) : Network-First ────────────────────────────────
   if (url.endsWith('.html') || url.includes('VERALUZ_OS_CORE') || url.includes('LIVREUR')) {
     event.respondWith(
-      fetch(request).then(function(response) {
+      fetch(request, {cache:'no-store'}).then(function(response) {
         if (response && response.ok) {
           // Mettre à jour le cache avec la version réseau la plus récente
           caches.open(CACHE_NAME).then(function(cache) {
@@ -180,9 +183,9 @@ self.addEventListener('fetch', function(event) {
     return;
   }
 
-  // ── Toute autre requête GET : Network-First avec fallback cache ──────────
+  // ── Toute autre requête GET (dont JavaScript) : Network-First ────────────
   event.respondWith(
-    fetch(request).then(function(response) {
+    fetch(request, {cache:'no-store'}).then(function(response) {
       return response;
     }).catch(function() {
       return caches.open(CACHE_NAME).then(function(cache) {

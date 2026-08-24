@@ -978,14 +978,7 @@ html.vl-dark ::-webkit-scrollbar-thumb{background:#2d3654!important;}
   </div>
   <!-- PROMPT 029 : Bouton actualiser PWA -->
 <div id='pwa-refresh-wrap' style='display:none;padding:8px 16px 4px;'>
-  <button onclick="(function(){
-    if('serviceWorker' in navigator){
-      navigator.serviceWorker.getRegistrations().then(function(regs){
-        regs.forEach(function(r){r.update();});
-        setTimeout(function(){location.reload(true);},800);
-      });
-    } else { location.reload(true); }
-  })()" style='width:100%;padding:9px;border-radius:8px;border:none;
+  <button onclick="vlzApplyPwaUpdate()" style='width:100%;padding:9px;border-radius:8px;border:none;
     background:var(--bg3);color:var(--text2);cursor:pointer;font-size:12px;'>
     &#8635; Actualiser l'application
   </button>
@@ -1796,6 +1789,7 @@ setTimeout(function(){
 /* ── Supabase config ───────────────────────────────────────────────── */
 var SUPA_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
+var EDGE_LOGIN_EMPLOYEES_URL = SUPA_URL + '/functions/v1/list-login-employees';
 
 /* ── Role mapping: Supabase role → Core role ──────────────────────── */
 /* PROMPT 008A Mission 4 — ROLE_MAP étendu */
@@ -1875,6 +1869,20 @@ var DEFAULT_USERS = []; /* vide — ne jamais remettre d'identifiants en clair i
 /* ── Employee cache ─────────────────────────────────────────────────── */
 var _empCache = [];
 
+function normalizeLoginEmployee(emp) {
+  if (!emp || !emp.id) return null;
+  var displayName = String(emp.display_name || emp.full_name || '').trim();
+  if (!displayName) displayName = 'Employe #' + String(emp.id).slice(-6);
+  return { id: String(emp.id), display_name: displayName };
+}
+
+function isMinimalLoginDirectory(employees) {
+  return Array.isArray(employees) && employees.length > 0 && employees.every(function(emp) {
+    return emp && emp.id && emp.display_name &&
+      Object.keys(emp).every(function(key) { return key === 'id' || key === 'display_name'; });
+  });
+}
+
 /* PROMPT 008A — chargement employés avec gestion d'erreur distincte */
 function getEmployeesFromSupabase(cb, onErr) {
   var cached = localStorage.getItem('vlz_emp_login_cache');
@@ -1882,23 +1890,30 @@ function getEmployeesFromSupabase(cb, onErr) {
     try {
       var data = JSON.parse(cached);
       if (data.ts && (Date.now()-data.ts) < 5*60*1000 &&
-          Array.isArray(data.employees) && data.employees.length > 0) {
+          isMinimalLoginDirectory(data.employees)) {
         _empCache = data.employees; if (cb) cb(_empCache); return;
       }
-    } catch(e) {}
+      localStorage.removeItem('vlz_emp_login_cache');
+    } catch(e) { localStorage.removeItem('vlz_emp_login_cache'); }
   }
-  /* PROMPT 009 — vue publique veraluz_employees_public : exclut pin_code, salaire, contrat */
-  fetch(SUPA_URL+'/rest/v1/veraluz_employees_public?select=id,full_name,role,status&order=full_name.asc', {
-    headers: { apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY }
+  /* RECOVERY LOT A.2 — annuaire pre-login canonique et minimal. */
+  fetch(EDGE_LOGIN_EMPLOYEES_URL, {
+    method: 'POST', mode: 'cors', credentials: 'omit',
+    headers: { 'Content-Type':'application/json', apikey:SUPA_KEY, Authorization:'Bearer '+SUPA_KEY },
+    body: JSON.stringify({})
   })
-  .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  .then(function(r){
+    return r.json().catch(function(){return {};}).then(function(body){
+      if(!r.ok || !body.ok) throw new Error(body.error || ('HTTP '+r.status));
+      return body.employees;
+    });
+  })
   .then(function(data){
     if (!Array.isArray(data)) {
       var msg = data && data.message ? data.message : 'Réponse Supabase invalide';
       if (onErr) onErr('Erreur Supabase : '+msg); else if (cb) cb([]); return;
     }
-    /* PROMPT 008B — sanitizer avant cache : pin_code jamais stocké */
-    _empCache = data.map(sanitizeEmployeeForClient);
+    _empCache = data.map(normalizeLoginEmployee).filter(Boolean);
     if (_empCache.length > 0)
       localStorage.setItem('vlz_emp_login_cache', JSON.stringify({ts:Date.now(),employees:_empCache}));
     if (cb) cb(_empCache);
@@ -2128,6 +2143,30 @@ function enterCoreEmployeeSession(serverData, sessionToken) {
   return session;
 }
 
+function clearCoreRenderedContext() {
+  currentModule = null;
+  stopRsPolling();
+  if (loadTimer) { clearTimeout(loadTimer); loadTimer = null; }
+  var iframe = document.getElementById('module-frame');
+  if (iframe) {
+    iframe.onload = null;
+    iframe.onerror = null;
+    iframe.src = 'about:blank';
+  }
+  var moduleView = document.getElementById('view-module');
+  if (moduleView) moduleView.classList.remove('active');
+  var loader = document.getElementById('loader');
+  if (loader) loader.classList.remove('show');
+  var moduleError = document.getElementById('mod-error');
+  if (moduleError) moduleError.classList.remove('show');
+  var pointage = document.getElementById('pointage-panel');
+  if (pointage) pointage.classList.add('hidden');
+  ['emp-profile-card','emp-pointage-card','emp-tasks-card','emp-paie-card'].forEach(function(id) {
+    var card = document.getElementById(id);
+    if (card) card.innerHTML = '';
+  });
+}
+
 function clearCoreLocalSession(removeResume) {
   clearSessionToken();
   localStorage.removeItem('veraluz_auth_v1');
@@ -2137,6 +2176,7 @@ function clearCoreLocalSession(removeResume) {
   sessionStorage.removeItem('veraluz_session');
   sessionStorage.removeItem(CORE_RESUME_KEY);
   currentUser = null;
+  clearCoreRenderedContext();
 }
 
 function isCoreKioskContext() {
@@ -2335,16 +2375,8 @@ function showAuthOverlay() {
     emps.forEach(function(e) {
       var opt = document.createElement('option');
       opt.value = e.id;
-      /* PROMPT 008B — data-pin supprimé : PIN jamais dans le DOM */
-      opt.setAttribute('data-role', e.role      || 'staff');
-      /* Normaliser le nom : full_name → name → prenom+nom → ID court */
-      var nm = e.full_name || e.name ||
-               ((e.prenom||e.first_name||'')+' '+(e.nom||e.last_name||'')).trim() ||
-               'Employe #'+String(e.id).slice(-6);
+      var nm = e.display_name || 'Employe #'+String(e.id).slice(-6);
       opt.setAttribute('data-name',  nm);
-      opt.setAttribute('data-email',      e.email      || '');
-      opt.setAttribute('data-team',       e.team_id   || '');
-      opt.setAttribute('data-department', e.department || e.team_id || e.role || '');
       opt.textContent = nm;
       s.appendChild(opt);
     });
@@ -2407,8 +2439,6 @@ function doLoginPin() {
   var empId   = sel.value;
   var selOpt  = sel.options[sel.selectedIndex];
   var empName = selOpt.getAttribute('data-name') || selOpt.textContent;
-  var empDept = selOpt.getAttribute('data-department') || '';
-  /* PROMPT 008B — empRole lu uniquement pour affichage avant validation serveur */
   /* data-pin supprimé — comparaison PIN JAMAIS côté client */
 
   /* PROMPT 020C — guards 4/5/6 chiffres */
@@ -2893,7 +2923,7 @@ function openDevResetPinModal() {
   // TODO SECURITY: supprimer cette fonction avant production
   var empOpts = (_empCache && _empCache.length > 0)
     ? _empCache.map(function(e){
-        return '<option value="'+esc(e.id)+'">'+esc(e.full_name||e.name)+'</option>';
+        return '<option value="'+esc(e.id)+'">'+esc(e.display_name)+'</option>';
       }).join('')
     : '<option value="">Chargement…</option>';
   var html = '<div style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'
@@ -2968,13 +2998,11 @@ function purgeLegacyPinCache() {
     if (!raw) return;
     var data = JSON.parse(raw);
     if (!Array.isArray(data.employees)) { localStorage.removeItem('vlz_emp_login_cache'); return; }
-    /* Vérifier si un employé contient un champ PIN */
-    var hasPinData = data.employees.some(function(e) {
-      return e && (e.pin || e.pin_code || e.pin_hash);
-    });
-    if (hasPinData) {
+    /* Tout ancien cache enrichi (role, statut, equipe, contact, PIN...) est
+       invalide : la liste de login ne conserve que id + display_name. */
+    if (!isMinimalLoginDirectory(data.employees)) {
       localStorage.removeItem('vlz_emp_login_cache');
-      console.info('[Auth] Cache employés purgé : contenait des données PIN legacy');
+      console.info('[Auth] Cache annuaire login enrichi purgé');
     }
   } catch(e) { localStorage.removeItem('vlz_emp_login_cache'); }
 }
@@ -4559,10 +4587,18 @@ var _vlzIsStandalone = (window.navigator.standalone === true) ||
 // ── Service Worker ───────────────────────────────────────────
 function registerVeraluzServiceWorker(){
   if(!('serviceWorker' in navigator)) return;
+  var hadController = !!navigator.serviceWorker.controller;
+  var reloadingForUpdate = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    if(!hadController || reloadingForUpdate) return;
+    reloadingForUpdate = true;
+    window.location.reload();
+  });
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('./sw.js')
+    navigator.serviceWorker.register('./sw.js', {updateViaCache:'none'})
       .then(function(reg){
         console.log('[VERALUZ PWA] Service worker enregistré', reg.scope);
+        reg.update().catch(function(){});
         // Détecter une mise à jour disponible
         reg.addEventListener('updatefound', function(){
           var newWorker = reg.installing;
@@ -4582,6 +4618,25 @@ function registerVeraluzServiceWorker(){
         console.warn('[VERALUZ PWA] Service worker non enregistré', err);
       });
   });
+}
+
+function vlzApplyPwaUpdate(){
+  var cacheCleanup = ('caches' in window) ? caches.keys().then(function(keys){
+    return Promise.all(keys.filter(function(key){return key.indexOf('veraluz-pwa-')===0;})
+      .map(function(key){return caches.delete(key);}));
+  }) : Promise.resolve();
+  var workerUpdate = ('serviceWorker' in navigator)
+    ? navigator.serviceWorker.getRegistration().then(function(reg){
+        if(!reg) return;
+        return reg.update().then(function(){
+          if(reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
+        });
+      })
+    : Promise.resolve();
+  Promise.all([cacheCleanup, workerUpdate]).then(function(){
+    if(typeof showCoreToast === 'function') showCoreToast('Mise à jour appliquée — rechargement...', 'ok');
+    setTimeout(function(){window.location.reload();},500);
+  }).catch(function(){ window.location.reload(); });
 }
 
 // ── Vider le cache PWA (dev mode uniquement) ──────────────────

@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-LOCK | Codex | main (intégration ciblée autorisée) | RECOVERY LOT A — publication ciblée | VERALUZ_OS_CORE.html, RH_EMBEDDED.html, ANALYTICS_EMBEDDED.html, LIVREUR.html, supabase/functions/employees-secure/index.ts, supabase/migrations/20260824_recovery_lot_a_rh_privacy.sql
+Aucun.
 
 ## Lots actifs
 
-RECOVERY LOT A — publication ciblée | source codex/recovery-lot-a1-rh-consumers | base main 0e6158b | EN COURS — migration Supabase non appliquée
+Aucun.
 
 ## Transmissions récentes
+
+`2026-08-24 | Codex | RECOVERY LOT A — publication ciblée | main (source codex/recovery-lot-a1-rh-consumers) | f7ff2ce2da108a38bd63ba89c50f303d44d3da8c | 6 fichiers exacts; JS 4/4 et TS/import PASS; parent main 0e6158b vérifié | MAIN POUSSÉ — migration Supabase NON appliquée | aucun: LOCK retiré | ChatGPT applique ensuite la migration et réalise les smokes autorisés`
 
 `2026-08-24 | Codex | RECOVERY LOT A.1 — RH RLS consumer compatibility | codex/recovery-lot-a1-rh-consumers | 3b99e5224db533c91de209f032749c791be6433e | Lot A 106/106 + A.1 16/16 = 122/122 PASS; JS/TS/diff PASS; DB lue sans écriture | READY FOR HUMAN REVIEW / TARGETED DEPLOYMENT après autorisation | aucun: LOCK retiré | review puis déploiement ordonné EF → frontends → migration RLS → smokes`
 
@@ -33,7 +35,5 @@ RECOVERY LOT A — publication ciblée | source codex/recovery-lot-a1-rh-consume
 `date | agent | lot | branche | commit | tests | statut | fichiers réservés | prochaine action`
 
 LOCK : `LOCK | agent | branche | tâche | fichiers/zones`
-
-`2026-08-19 | Claude | RBAC-C1 CONTAINMENT | claude/rbac-c1-containment | a1ac14d | loadDashboardData dispatché par rôle: restaurant→_loadDashRestaurant (commandes/stock), housekeeping→_loadDashHousekeeping (tâches), global→_loadDashGlobal (finance gated); revenus/paiements masqués non-finance; noms clients protection; 15/15 tests statiques PASS | READY FOR HUMAN TEST | aucun LOCK | push GitHub (credentials manquants sandbox)`
 
 `2026-08-20 | Claude | ROOM-SERVICE-OPS-1A | claude/room-service-ops-1a | 26e6bc1 | veraluz_attendance source canonique; todayDouala(); list_on_duty_employees session-gated; assign re-vérifie check_in/check_out/status/rôle serveur; 11/11 tests live PASS | READY FOR HUMAN TEST | aucun LOCK | push GitHub (credentials manquants sandbox)`

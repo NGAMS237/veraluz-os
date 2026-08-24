@@ -61,8 +61,10 @@ const punchIn = fnSource(core, 'doPunchIn');
 const punchOut = fnSource(core, 'doPunchOut');
 const rhLogin = fnSource(rh, 'showLoginScreen');
 const rhLogout = fnSource(rh, 'logoutEmp');
-const workspace = actionBlock('get_my_rh_workspace', 'punch_self');
-const punchSelf = actionBlock('punch_self', 'complete_my_task');
+const workspaceStart = edge.indexOf("if (action === 'get_my_rh_workspace')");
+const punchSharedStart = edge.indexOf("if (action === 'punch_self' || action === 'punch_my_delivery_shift')");
+const workspace = edge.slice(workspaceStart, punchSharedStart);
+const punchSelf = edge.slice(punchSharedStart, edge.indexOf("if (action === 'complete_my_task')", punchSharedStart));
 const rhRead = actionBlock('rh_read', 'rh_write');
 const rhWrite = actionBlock('rh_write', 'rh_update_settings');
 
@@ -118,7 +120,8 @@ test('A19 localStorage seul ne donne pas accès au broker RH',
   /var tok = getSessionToken\(\)/.test(fnSource(core, 'veraluzSecureRequest'))
     || /if \(!tok\)[\s\S]*not_logged_in/.test(core.slice(core.indexOf('window.veraluzSecureRequest'))));
 test('A20 pointage cross-employee refusé côté serveur',
-  /validateFields\(body, PUNCH_SELF_FIELDS\)/.test(punchSelf)
+  /action === 'punch_self' \? PUNCH_SELF_FIELDS/.test(punchSelf)
+    && /validateFields\(body, allowedFields\)/.test(punchSelf)
     && !/body\.employee_id/.test(punchSelf)
     && /\.eq\('employee_id', actor\.id\)/.test(punchSelf));
 

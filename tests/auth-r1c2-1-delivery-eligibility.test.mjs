@@ -28,6 +28,9 @@ const viewProjection = migration.match(
 const deliveryActionStart = edge.indexOf("if (action === 'get_my_delivery_profile')");
 const deliveryActionEnd = edge.indexOf("if (action === 'update_my_photo')", deliveryActionStart);
 const deliveryAction = edge.slice(deliveryActionStart, deliveryActionEnd);
+const deliveryHelperStart = edge.indexOf('async function getDeliveryEmployee');
+const deliveryHelperEnd = edge.indexOf('async function authorizeTargetMutation', deliveryHelperStart);
+const deliveryHelper = edge.slice(deliveryHelperStart, deliveryHelperEnd);
 
 test('VIEW-01 projection publique limitée à id, full_name et status',
   /e\.id\s*,\s*e\.full_name\s*,\s*e\.status\s*$/s.test(viewProjection.trim())
@@ -59,17 +62,17 @@ test('FRONTEND-04 aucun accès direct à veraluz_employees',
 test('SERVER-01 action limitée à actor.id et à un payload sans employee_id',
   deliveryActionStart >= 0
     && /validateFields\(body, GET_MY_DELIVERY_PROFILE_FIELDS\)/.test(deliveryAction)
-    && /\.eq\('id', actor\.id\)/.test(deliveryAction)
-    && !/body\.employee_id/.test(deliveryAction));
+    && /\.eq\('id', actor\.id\)/.test(deliveryHelper)
+    && !/body\.employee_id/.test(deliveryAction + deliveryHelper));
 test('SERVER-02 équipe relue côté serveur depuis employee.team_id',
-  /\.from\('veraluz_teams'\)[\s\S]*?\.eq\('id', employee\.team_id\)/.test(deliveryAction)
-    && /isDeliveryTeamName\(team\.name\)/.test(deliveryAction));
+  /\.from\('veraluz_teams'\)[\s\S]*?\.eq\('id', employee\.team_id\)/.test(deliveryHelper)
+    && /isDeliveryTeamName\(team\.name\)/.test(deliveryHelper));
 test('SERVER-03 réponse expose explicitement delivery_access true/false',
   /delivery_access: false/.test(deliveryAction)
     && /delivery_access: true/.test(deliveryAction));
 test('SERVER-04 aucune projection Livreur ne retourne un credential',
   !/(pin_code|pin_hash|secret|token_hash|session_token|base_salary|bank_account|momo_number)/i.test(
-    [...deliveryAction.matchAll(/\.select\('([^']+)'\)/g)].map((match) => match[1]).join(','),
+    [...(deliveryAction + deliveryHelper).matchAll(/\.select\('([^']+)'\)/g)].map((match) => match[1]).join(','),
   ));
 
 const syntaxErrors = [];

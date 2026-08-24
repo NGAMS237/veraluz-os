@@ -42,6 +42,14 @@ Résultats exécutés :
 
 Total des assertions automatisées ciblées exécutées : **106/106 PASS**.
 
+## Compatibilité RLS consommateurs — Lot A.1
+
+Commande : `node tests/recovery-lot-a1-rh-consumers.test.mjs`.
+
+- nouveaux contrats A1-01 à A1-12, scénarios serveur isolés et syntaxe Analytics/Livreur : **16/16 PASS**;
+- suites originales du Lot A rejouées après adaptation structurelle de deux assertions devenues obsolètes : **106/106 PASS**;
+- total Lot A + A.1 : **122/122 PASS**.
+
 ## Validation live requise après autorisation de déploiement
 
 Les A01–A20 doivent être rejoués avec des sessions/fixtures temporaires nettoyées et sans PIN réel. Vérifier sur desktop et mobile : absence de flash CORE/PIN, rotation du resume, session désactivée/révoquée, SELF Marie versus Paul, gérant/RH, kiosque avec deux employés successifs, réseau/console sans token/PIN.

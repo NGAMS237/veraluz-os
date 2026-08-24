@@ -79,3 +79,17 @@ Le rôle/employee_id reçu par `postMessage` sert à l'affichage seulement; il n
 | UNKNOWN | effet fonctionnel complet des fermetures sur les anciens écrans non testés en navigateur production |
 
 La migration locale ferme ces objets, mais ne doit pas être appliquée avant les compatibilités Analytics/Livreur recensées dans le plan de déploiement.
+
+## Compatibilité consommateurs — Lot A.1
+
+- Analytics ne lit plus `veraluz_payroll` depuis le navigateur. `list_analytics`
+  exige `finance.read` et retourne uniquement les employés nécessaires à l'écran et
+  `employee_id, period_month, period_year, net_salary` pour préserver les agrégats.
+- `veraluz_attendance` est la présence canonique : elle porte une journée avec
+  `check_in/check_out` et alimente désormais le shift SELF du Livreur.
+- `veraluz_pointages` est legacy : deux lignes existent en production, son schéma
+  `employe_id/type/timestamp_pt` diffère du frontend historique et aucun nouveau flux
+  ne l'utilise. Aucune donnée n'est migrée ou supprimée dans ce lot.
+- `veraluz_employee_checkins` reste un journal distinct de preuves de prise de
+  service (selfie/appareil/revue), pas la source de durée de présence. Son écriture
+  passe par `record_my_delivery_checkin`, qui impose `actor.id` et l'équipe Livreurs.

@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-Aucun.
+LOCK | Codex | codex/recovery-lot-a2-live-cleanup | RECOVERY LOT A.2 — live frontend cleanup | VERALUZ_OS_CORE.html, RH_EMBEDDED.html, sw.js, veraluz-core.js, tests Recovery Lot A/A.1/A.2
 
 ## Lots actifs
 
-Aucun.
+RECOVERY LOT A.2 | codex/recovery-lot-a2-live-cleanup | base main f7ff2ce | EN COURS — aucun déploiement ni merge main
 
 ## Transmissions récentes
 

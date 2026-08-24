@@ -2016,6 +2016,8 @@ function hideReconnecting() {
 }
 
 var CORE_RESUME_KEY = 'vz_resume';
+var CORE_CONTEXT_KEY = 'vz_core_context';
+var _coreAuthContext = localStorage.getItem(CORE_CONTEXT_KEY) === 'kiosk' ? 'kiosk' : 'core';
 var _resumePromise = null;
 
 function authEdgePost(url, body, timeoutMs) {
@@ -2131,7 +2133,71 @@ function clearCoreLocalSession(removeResume) {
   localStorage.removeItem('veraluz_auth_v1');
   localStorage.removeItem('veraluz_session');
   if (removeResume) localStorage.removeItem(CORE_RESUME_KEY);
+  sessionStorage.removeItem('veraluz_auth_v1');
+  sessionStorage.removeItem('veraluz_session');
+  sessionStorage.removeItem(CORE_RESUME_KEY);
   currentUser = null;
+}
+
+function isCoreKioskContext() {
+  return _coreAuthContext === 'kiosk';
+}
+
+function showCoreKioskLocked(message) {
+  showAuthOverlay();
+  var errEl = document.getElementById('auth-error');
+  if (errEl) {
+    errEl.textContent = message || 'Kiosque pointage verrouillé — identifiez-vous pour enregistrer une arrivée ou un départ.';
+    errEl.classList.add('show');
+  }
+}
+
+function enterCoreKioskMode() {
+  var token = getSessionToken();
+  var resume = localStorage.getItem(CORE_RESUME_KEY);
+  logoutCoreSessionBestEffort(token, resume);
+  clearCoreLocalSession(true);
+  _coreAuthContext = 'kiosk';
+  localStorage.setItem(CORE_CONTEXT_KEY, 'kiosk');
+  closePointagePanel();
+  updateTopbarUser();
+  showCoreKioskLocked();
+}
+
+function leaveCoreKioskMode() {
+  var token = getSessionToken();
+  logoutCoreSessionBestEffort(token, null);
+  clearCoreLocalSession(true);
+  _coreAuthContext = 'core';
+  localStorage.removeItem(CORE_CONTEXT_KEY);
+  closePointagePanel();
+  updateTopbarUser();
+  showAuthOverlay();
+}
+
+function enterCoreKioskEmployeeSession(serverData, sessionToken) {
+  var session = coreSessionFromServer(serverData);
+  if (!session.employee_id || !sessionToken) throw new Error('invalid_kiosk_identity');
+  setSessionToken(sessionToken, serverData.session_expiry || serverData.expires_at);
+  currentUser = {
+    username: session.employee_id,
+    name: session.name,
+    role: session.role,
+    employee_id: session.employee_id,
+    allowed_modules: []
+  };
+  hideAuthOverlay();
+  updateTopbarUser();
+  openPointagePanel();
+}
+
+function finishCoreKioskPunch(message) {
+  var token = getSessionToken();
+  logoutCoreSessionBestEffort(token, null);
+  clearCoreLocalSession(true);
+  closePointagePanel();
+  updateTopbarUser();
+  showCoreKioskLocked(message || 'Pointage enregistré. Kiosque verrouillé pour l’utilisateur suivant.');
 }
 
 function showCoreResumeFailure(message) {
@@ -2301,80 +2367,27 @@ function showAuthOverlay() {
 
 function checkAuth() {
   try {
-    /* AUTH-R2C — le resume opaque est l'unique autorité persistée.
-       Les métadonnées locales ne peuvent jamais autoriser l'entrée dans CORE. */
-    if (!getSessionToken()) {
-      var resumeToken = sessionStorage.getItem('vz_resume');
-      var sessionStr0 = sessionStorage.getItem('veraluz_auth_v1');
-      if (resumeToken && sessionStr0) {
-        try { var s0=JSON.parse(sessionStr0); if(!s0||s0.expires<Date.now())throw'x'; } catch(e){ sessionStorage.removeItem('vz_resume'); showAuthOverlay(); return; }
-        if (_isResuming) return; /* MICRO CORE BOOT — empêcher appels concurrents */
-        _isResuming = true;
-        showReconnecting(); /* MICRO CORE BOOT — masquer CORE vide pendant reprise */
-        var _resumeTimer = setTimeout(function() { /* MICRO CORE BOOT — timeout 9s */
-          if (!_isResuming) return;
-          _isResuming = false;
-          sessionStorage.removeItem('vz_resume');
-          hideReconnecting();
-          showAuthOverlay();
-        }, 9000);
-        fetch(EDGE_RESUME_SESSION_URL, {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY },
-          body: JSON.stringify({ resume_token: resumeToken })
-        }).then(function(r){ return r.json(); })
-          .then(function(d){
-            clearTimeout(_resumeTimer);
-            _isResuming = false;
-            hideReconnecting();
-            if (d && d.session_token) {
-              setSessionToken(d.session_token, d.expires_at);
-              if (d.resume_token) sessionStorage.setItem('vz_resume', d.resume_token);
-              /* Reprendre avec les métadonnées locales (rôle, nom, etc.) */
-              checkAuth();
-            } else {
-              sessionStorage.removeItem('vz_resume');
-              showAuthOverlay();
-            }
-          }).catch(function(){
-            clearTimeout(_resumeTimer);
-            _isResuming = false;
-            hideReconnecting();
-            showAuthOverlay();
-          });
-        return; /* attendre la réponse async */
-      }
+    /* RECOVERY LOT A — seule une session en mémoire ou une reprise serveur
+       autorise CORE. Les métadonnées locales ne sont jamais relues comme
+       identité/rôle et leur date d'expiration ne bloque jamais le serveur. */
+    if (isCoreKioskContext()) {
+      clearCoreLocalSession(true);
+      showCoreKioskLocked();
+      return;
     }
-    var sessionStr = sessionStorage.getItem('veraluz_auth_v1');
-    if (!sessionStr) { showAuthOverlay(); return; }
-    var session = JSON.parse(sessionStr);
-    if (session.expires && session.expires < Date.now()) {
-      sessionStorage.removeItem('veraluz_auth_v1');
-      showAuthOverlay(); return;
+    if (getSessionToken() && currentUser && currentUser.employee_id) {
+      hideAuthOverlay();
+      return;
     }
-    var rc = ROLES[session.role] || {};
-    currentUser = {
-      username:        session.username,
-      name:            session.name,
-      role:            session.role,
-      employee_id:     session.employee_id || null,
-      allowed_modules: session.allowed_modules || rc.modules || []
-    };
-    if (!currentUser.name || !currentUser.role) { showAuthOverlay(); return; }
-    hideAuthOverlay();
-    updateTopbarUser();
-    buildNav();
-    initGreeting();
-    loadDashboardData();
-    /* PROMPT 010C — Restaurer le bandeau DEV si session dev_mode */
-    if (session.dev_mode) { showDevBanner(); }
-    /* PROMPT 008A — Espace Employé d'abord pour les employés */
-    if (currentUser.employee_id) {
-      setTimeout(function() { goTo('employee_home'); }, 400);
-    } else if (session.primaryModule && session.primaryModule !== 'employee_home') {
-      setTimeout(function() { navigateTo(session.primaryModule); }, 500);
+    var resumeToken = localStorage.getItem(CORE_RESUME_KEY);
+    if (resumeToken) {
+      resumeCoreSession(resumeToken);
+      return;
     }
+    clearCoreLocalSession(false);
+    showAuthOverlay();
   } catch(e) {
+    clearCoreLocalSession(false);
     showAuthOverlay();
   }
 }
@@ -2452,79 +2465,32 @@ function doLoginPin() {
        L'ancien code appelait setSessionToken() avant même de vérifier ce cas
        — corrigé : on teste auth_state EN PREMIER. */
     if (result.auth_state === 'must_change_pin' || result.must_change_pin) {
+      if (isCoreKioskContext()) {
+        errEl.textContent = 'Vous devez modifier votre PIN depuis la connexion VERALUZ normale avant d’utiliser le kiosque.';
+        errEl.classList.add('show');
+        _pinBuffer = '';
+        updatePinDisplay();
+        return;
+      }
       var empForChange     = result.employee || {};
       var empNameForChange = empForChange.full_name || empForChange.public_display_name || empName || 'Employé';
       showChangePinView(result.change_token, empNameForChange);
       return;
     }
 
-    /* Succès normal — construire session depuis réponse serveur (sans données sensibles) */
-    /* EMERGENCY_001 : le jeton opaque reste en mémoire, jamais persisté. */
-    setSessionToken(result.session_token, result.session_expiry);
-    var emp           = result.employee;
-    var empName2      = emp.full_name || emp.employee_name || empName || 'Employé';
-    var coreRole      = emp.role || 'staff';
-    var allowedMods   = emp.allowed_modules || getAllowedModules(ROLE_MAP[coreRole] || coreRole);
-    var expires       = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
-    /* PROMPT 009 — correction : empDeptFinal est désormais déclaré AVANT toute
-       utilisation (l'ancien code le référençait plus haut avant sa propre
-       déclaration var, un bug de hoisting qui produisait undefined). */
-    var empDeptFinal  = emp.department || emp.team_id || empDept || coreRole;
-
-    /* PIN JAMAIS stocké — session 12h issue du serveur */
-    var session = {
-      username:        empId,
-      name:            empName2,
-      role:            coreRole,
-      employee_id:     empId,
-      user_id:         empId,
-      department:      empDeptFinal,
-      tenant_id:       TENANT_ID,
-      allowed_modules: allowedMods,
-      primaryModule:   'employee_home',
-      loginAt:         Date.now(),
-      expires:         expires
-    };
-    sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
-    /* PROMPT 038 — alias veraluz_session pour les modules (Messages, etc.) */
-    sessionStorage.setItem('veraluz_session', JSON.stringify({
-      user_id:    empId,
-      id:         empId,
-      name:       empName2,
-      role:       coreRole,
-      department: empDeptFinal,
-      tenant_id:  TENANT_ID
-    }));
-    logAuthEvent('pin-login', empName2, coreRole);
-
-    currentUser = { username:empId, name:empName2, role:coreRole,
-                    employee_id:empId, allowed_modules:allowedMods };
-    hideAuthOverlay();
-    updateTopbarUser();
-    buildNav();
-    initGreeting();
-    loadDashboardData();
-    /* Espace Employé en premier */
-    setTimeout(function() { goTo('employee_home'); }, 300);
-
-    /* PROMPT 010I — Émettre un resume_token (opaque) pour la reprise après refresh.
-       Le session_token reste en mémoire uniquement ; seul ce jeton résiduel
-       est persisté dans localStorage. Il ne donne aucun droit métier direct. */
-    (function() {
-      var tok = getSessionToken();
-      if (!tok) return;
-      // Contrat canonique: session_token via header (jamais dans body)
-      fetch(EDGE_ISSUE_RESUME_URL, {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'X-Veraluz-Session':tok },
-        body: JSON.stringify({})
-      }).then(function(r){ return r.ok ? r.json() : null; })
-        .then(function(d){
-          if (d && d.resume_token) {
-            sessionStorage.setItem('vz_resume', d.resume_token);
-          }
-        }).catch(function(){});
-    })();
+    /* RECOVERY LOT A — la réponse serveur est l'unique identité. En mode
+       normal, attendre le resume opaque avant d'ouvrir CORE. En kiosque,
+       conserver une session courte en mémoire sans aucun resume persistant. */
+    if (isCoreKioskContext()) {
+      try {
+        enterCoreKioskEmployeeSession(result, result.session_token);
+      } catch(e) {
+        clearCoreLocalSession(true);
+        showCoreKioskLocked('Session kiosque invalide. Veuillez réessayer.');
+      }
+      return;
+    }
+    stabilizeCoreEmployeeLogin(result, result.session_token, btnLogin, errEl);
   });
 }
 
@@ -2575,6 +2541,8 @@ function doLogin() {
     if (btnLogin) { btnLogin.disabled = false; btnLogin.textContent = 'Se connecter'; }
   }
   function applyAdminSession(adminObj, rememberMe) {
+    _coreAuthContext = 'core';
+    localStorage.removeItem(CORE_CONTEXT_KEY);
     var roleConf = ROLES[adminObj.role] || ROLES['superadmin'];
     var expires  = rememberMe ? Date.now()+7*24*60*60*1000 : Date.now()+8*60*60*1000;
     var mods     = adminObj.allowed_modules && adminObj.allowed_modules.length > 0
@@ -2593,16 +2561,9 @@ function doLogin() {
       loginAt:         Date.now(),
       expires:         expires
     };
-    sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
-    /* PROMPT 038 — alias veraluz_session pour les modules */
-    sessionStorage.setItem('veraluz_session', JSON.stringify({
-      user_id:    adminObj.id || adminObj.username,
-      id:         adminObj.id || adminObj.username,
-      name:       adminObj.name,
-      role:       adminObj.role,
-      department: adminDept,
-      tenant_id:  TENANT_ID
-    }));
+    /* RECOVERY LOT A — l'auth admin legacy ne fournit pas de session employé
+       canonique. Elle reste donc en mémoire uniquement et n'est jamais
+       restaurée depuis un cache après F5. */
     logAuthEvent('admin-login', adminObj.username, adminObj.role);
     currentUser = { username:adminObj.username, name:adminObj.name, role:adminObj.role,
                     allowed_modules: mods };
@@ -3161,8 +3122,7 @@ function doChangePin() {
       showErr(msg); return;
     }
 
-    /* Nouveau PIN enregistré — vraie session CORE créée côté serveur, EMERGENCY_001 :
-       le jeton opaque reste en mémoire, jamais persisté. */
+    /* Nouveau PIN enregistré — vraie session CORE créée côté serveur. */
     _pendingPinSession = null;
     setSessionToken(result.session_token, result.session_expiry);
     var emp           = result.employee || {};
@@ -3173,38 +3133,10 @@ function doChangePin() {
     var empDeptFinal  = emp.department || emp.team_id || coreRole;
     var expires       = emp.session_expiry_ts || (Date.now() + 12*60*60*1000);
 
-    var session = {
-      username:        empId2,
-      name:            empName2,
-      role:            coreRole,
-      employee_id:     empId2,
-      user_id:         empId2,
-      department:      empDeptFinal,
-      tenant_id:       TENANT_ID,
-      allowed_modules: allowedMods,
-      primaryModule:   'employee_home',
-      loginAt:         Date.now(),
-      expires:         expires
-    };
-    sessionStorage.setItem('veraluz_auth_v1', JSON.stringify(session));
-    /* PROMPT 038 — alias veraluz_session pour les modules */
-    sessionStorage.setItem('veraluz_session', JSON.stringify({
-      user_id:    empId2,
-      id:         empId2,
-      name:       empName2,
-      role:       coreRole,
-      department: empDeptFinal,
-      tenant_id:  TENANT_ID
-    }));
-    logAuthEvent('pin-changed-and-login', empName2, coreRole);
-    currentUser = { username:empId2, name:empName2, role:coreRole,
-                    employee_id:empId2, allowed_modules:allowedMods };
-    hideAuthOverlay();
-    updateTopbarUser();
-    buildNav();
-    initGreeting();
-    loadDashboardData();
-    setTimeout(function() { goTo('employee_home'); }, 300);
+    stabilizeCoreEmployeeLogin(result, result.session_token, btn, null).then(function(ok) {
+      if (ok) logAuthEvent('pin-changed-and-login', empName2, coreRole);
+      else showErr('Le PIN a été modifié, mais la session persistante n’a pas pu être créée. Reconnectez-vous.');
+    });
   })
   .catch(function(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Enregistrer le nouveau code PIN'; }
@@ -3553,10 +3485,7 @@ function submitEmpPinChange() {
     /* change-employee-pin révoque TOUTES les sessions (y compris celle-ci) —
        déconnexion locale immédiate, sans confirm() ni appel logout redondant. */
     alert('Code PIN modifié avec succès. Vous allez être déconnecté — reconnectez-vous avec votre nouveau code PIN.');
-    clearSessionToken();
-    sessionStorage.removeItem('veraluz_auth_v1');
-    sessionStorage.removeItem('veraluz_session');
-    currentUser = null;
+    clearCoreLocalSession(true);
     showAuthOverlay();
   })
   .catch(function(e) {
@@ -3570,132 +3499,46 @@ function submitEmpPinChange() {
 /* SECURITE : Ne jamais charger les donnees de tous les employes      */
 /* NOTE : securite complete necessitera RLS par employee_id Supabase  */
 function loadEmployeePersonalData(employeeId) {
-  if (!employeeId) return;
-  var today = new Date().toISOString().slice(0,10);
-
-  /* 1. Profil complet — identité exclusivement dérivée de la session serveur */
-  window.veraluzSecureRequest('employees-secure', { action:'get_my_profile' })
+  if (!employeeId || !currentUser || currentUser.employee_id !== employeeId) return;
+  var extra = document.getElementById('emp-profile-extra');
+  var attCard = document.getElementById('emp-pointage-card');
+  var tasksCard=document.getElementById('emp-tasks-card');
+  var paieCard=document.getElementById('emp-paie-card');
+  if(extra) extra.innerHTML='<div class="emp-empty">Chargement...</div>';
+  if(attCard) attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage du jour</div><div class="emp-empty">Chargement...</div>';
+  if(tasksCard) tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches</div><div class="emp-empty">Chargement...</div>';
+  if(paieCard) paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie</div><div class="emp-empty">Chargement...</div>';
+  window.veraluzSecureRequest('employees-secure', { action:'get_my_rh_workspace' })
   .then(function(res){
     var body=res&&res.body||{};
-    return body.ok?body.profile:null;
-  })
-  .then(function(emp){
-    var extra = document.getElementById('emp-profile-extra');
-    if (!extra) return;
-    if (!emp) { extra.innerHTML='<div class="emp-empty">Profil non trouve.</div>'; return; }
+    if(!body.ok) throw new Error(body.error||'workspace_unavailable');
+    var w=body.workspace||{};
+    var emp=w.profile||{};
     var items=[];
-    if(emp.phone)     items.push('\u{1F4DE} '+esc(emp.phone));
-    if(emp.email)     items.push('\u{2709}\uFE0F '+esc(emp.email));
+    if(emp.phone) items.push('\u{1F4DE} '+esc(emp.phone));
+    if(emp.email) items.push('\u{2709}\uFE0F '+esc(emp.email));
     if(emp.hire_date) items.push('\u{1F4C5} Embauche le '+esc(emp.hire_date));
-    if(emp.team_id)   items.push('\u{1F3F7}\uFE0F Equipe '+esc(emp.team_id));
-    extra.innerHTML = items.length
-      ? '<div class="emp-meta">'+items.map(function(i){return '<span class="emp-meta-item">'+i+'</span>';}).join('')+'</div>'
-      : '<div class="emp-empty">Informations complementaires non disponibles.</div>';
+    if(emp.team_id) items.push('\u{1F3F7}\uFE0F Equipe '+esc(emp.team_id));
+    if(extra) extra.innerHTML=items.length?'<div class="emp-meta">'+items.map(function(i){return'<span class="emp-meta-item">'+i+'</span>';}).join('')+'</div>':'<div class="emp-empty">Informations complementaires non disponibles.</div>';
+
+    var rows=Array.isArray(w.attendance)?w.attendance:[];
+    var today=new Date().toISOString().slice(0,10);
+    var ar=rows.find(function(x){return String(x.date||'').slice(0,10)===today;});
+    if(attCard) attCard.innerHTML=!ar?'<div class="emp-card-title">\u23F1 Pointage du jour</div><div class="emp-empty">Aucun pointage enregistre aujourd\'hui.</div>':'<div class="emp-card-title">\u23F1 Pointage du jour</div><div class="att-today"><div class="att-chip"><div class="att-chip-lbl">Arrivee</div><div class="att-chip-val">'+esc(String(ar.check_in||'—').slice(0,5))+'</div></div><div class="att-chip"><div class="att-chip-lbl">Depart</div><div class="att-chip-val">'+esc(String(ar.check_out||'—').slice(0,5))+'</div></div></div>';
+
+    var tasks=Array.isArray(w.tasks)?w.tasks:[];
+    if(tasksCard) tasksCard.innerHTML=!tasks.length?'<div class="emp-card-title">\u{1F4CB} Mes taches</div><div class="emp-empty">Aucune tache assignee.</div>':'<div class="emp-card-title">\u{1F4CB} Mes taches ('+tasks.length+')</div>'+tasks.slice(0,8).map(function(t){var st=String(t.status||'').toLowerCase();var dc=st==='done'||st==='completed'||st==='termine'?'done':t.priority==='high'?'urgent':'pending';return'<div class="task-item"><div class="task-dot '+dc+'"></div><div class="task-text">'+esc(t.title||t.description||'Tache')+'</div><div class="task-time">'+esc(String(t.due_date||'').slice(0,10))+'</div></div>';}).join('');
+
+    var payroll=Array.isArray(w.payroll)?w.payroll:[];
+    if(paieCard) paieCard.innerHTML=!payroll.length?'<div class="emp-card-title">\u{1F4B0} Ma paie</div><div class="emp-empty">Aucun bulletin disponible pour le moment.</div>':'<div class="emp-card-title">\u{1F4B0} Ma paie (3 derniers)</div>'+payroll.slice(0,3).map(function(p){var period=p.period||(p.period_year&&p.period_month?p.period_year+'-'+String(p.period_month).padStart(2,'0'):'—');var net=p.net_salary!==null&&p.net_salary!==undefined?Number(p.net_salary).toLocaleString('fr-FR')+' XAF':'—';return'<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>'+esc(String(period))+'</span><span style="font-weight:700;color:var(--accent);">'+esc(net)+'</span></div>';}).join('');
   })
   .catch(function(){
-    var extra=document.getElementById('emp-profile-extra');
     if(extra) extra.innerHTML='<div class="emp-empty">Donnees indisponibles.</div>';
+    if(attCard) attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage</div><div class="emp-empty">Donnees indisponibles.</div>';
+    if(tasksCard) tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches</div><div class="emp-empty">Donnees indisponibles.</div>';
+    if(paieCard) paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie</div><div class="emp-empty">Donnees indisponibles.</div>';
   });
-
-  /* 2. Pointage du jour */
-  var attCard = document.getElementById('emp-pointage-card');
-  if(attCard) attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage du jour</div><div class="emp-empty">Chargement...</div>';
-  fetch(SUPA_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(employeeId)
-    +'&date=eq.'+today+'&select=*&limit=5',{
-    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
-  })
-  .then(function(r){ return r.ok?r.json():null; })
-  .then(function(rows){
-    /* Fallback veraluz_pointages si vide */
-    if(!Array.isArray(rows)||rows.length===0){
-      return fetch(SUPA_URL+'/rest/v1/veraluz_pointages?employee_id=eq.'+encodeURIComponent(employeeId)
-        +'&date=eq.'+today+'&select=*&limit=5',{
-        headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
-      }).then(function(r2){ return r2.ok?r2.json():[]; });
-    }
-    return rows;
-  })
-  .then(function(rows){
-    if(!attCard) return;
-    if(!Array.isArray(rows)||rows.length===0){
-      attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage du jour</div>'
-        +'<div class="emp-empty">Aucun pointage enregistre aujourd\'hui.</div>'; return;
-    }
-    var r=rows[0];
-    var ent=esc(String(r.check_in||r.heure_entree||r.time_in||r.entry_time||'—').slice(0,5));
-    var sor=esc(String(r.check_out||r.heure_sortie||r.time_out||r.exit_time||'—').slice(0,5));
-    attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage du jour</div>'
-      +'<div class="att-today">'
-      +'<div class="att-chip"><div class="att-chip-lbl">Arrivee</div><div class="att-chip-val">'+ent+'</div></div>'
-      +'<div class="att-chip"><div class="att-chip-lbl">Depart</div><div class="att-chip-val">'+sor+'</div></div>'
-      +'</div>';
-  })
-  .catch(function(){
-    if(attCard) attCard.innerHTML='<div class="emp-card-title">\u23F1 Pointage</div>'
-      +'<div class="emp-empty">Donnees indisponibles.</div>';
-  });
-
-  /* 3. Taches assignees — filtre strict employee_id uniquement */
-  var tasksCard=document.getElementById('emp-tasks-card');
-  if(tasksCard) tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches</div><div class="emp-empty">Chargement...</div>';
-  fetch(SUPA_URL+'/rest/v1/veraluz_hr_tasks?assigned_to=eq.'+encodeURIComponent(employeeId)
-    +'&select=id,title,description,status,due_date,priority&limit=10&order=due_date.asc',{
-    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
-  })
-  .then(function(r){ return r.ok?r.json():[]; })
-  .then(function(rows){
-    if(!tasksCard) return;
-    if(!Array.isArray(rows)||rows.length===0){
-      tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches</div>'
-        +'<div class="emp-empty">Aucune tache assignee.</div>'; return;
-    }
-    var html=rows.slice(0,8).map(function(t){
-      var st=(t.status||'').toLowerCase();
-      var dc=st==='done'||st==='completed'?'done':st==='urgent'||t.priority==='high'?'urgent':'pending';
-      return '<div class="task-item"><div class="task-dot '+dc+'"></div>'
-        +'<div class="task-text">'+esc(t.title||t.description||'Tache')+'</div>'
-        +'<div class="task-time">'+esc(String(t.due_date||'').slice(0,10))+'</div></div>';
-    }).join('');
-    tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches ('+rows.length+')</div>'+html;
-  })
-  .catch(function(){
-    if(tasksCard) tasksCard.innerHTML='<div class="emp-card-title">\u{1F4CB} Mes taches</div>'
-      +'<div class="emp-empty">Donnees indisponibles.</div>';
-  });
-
-  /* 4.5 Room Service — tâches assignées */
   loadRoomServiceTasks(employeeId);
-
-  /* 4. Paie personnelle — filtre employee_id uniquement */
-  /* SECURITE : ne jamais charger toute la paie — filtrer par employee_id */
-  var paieCard=document.getElementById('emp-paie-card');
-  if(paieCard) paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie</div><div class="emp-empty">Chargement...</div>';
-  fetch(SUPA_URL+'/rest/v1/veraluz_payroll?employee_id=eq.'+encodeURIComponent(employeeId)
-    +'&select=id,period,net_salary,status,payment_date&order=period.desc&limit=3',{
-    headers:{apikey:SUPA_KEY,Authorization:'Bearer '+SUPA_KEY}
-  })
-  .then(function(r){ return r.ok?r.json():[]; })
-  .then(function(rows){
-    if(!paieCard) return;
-    if(!Array.isArray(rows)||rows.length===0){
-      paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie</div>'
-        +'<div class="emp-empty">Aucun bulletin disponible pour le moment.</div>'; return;
-    }
-    var html=rows.map(function(p){
-      var net=p.net_salary?Number(p.net_salary).toLocaleString('fr-FR')+' XAF':'—';
-      return '<div style="display:flex;justify-content:space-between;padding:7px 0;'
-        +'border-bottom:1px solid var(--border);font-size:13px;">'
-        +'<span>'+esc(String(p.period||'—'))+'</span>'
-        +'<span style="font-weight:700;color:var(--accent);">'+esc(net)+'</span></div>';
-    }).join('');
-    paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie (3 derniers)</div>'+html
-      +'<div style="font-size:10px;color:var(--text3);margin-top:6px;">'
-      +'\u26A0 Securite complete : RLS Supabase par employee_id recommandee.</div>';
-  })
-  .catch(function(){
-    if(paieCard) paieCard.innerHTML='<div class="emp-card-title">\u{1F4B0} Ma paie</div>'
-      +'<div class="emp-empty">Donnees indisponibles.</div>';
-  });
 }
 
 
@@ -3719,10 +3562,9 @@ function logout() {
   logoutCoreSessionBestEffort(_tok, _resume);
   logAuthEvent('logout', currentUser ? currentUser.name||currentUser.username : '?',
                          currentUser ? currentUser.role : '?');
-  sessionStorage.removeItem('veraluz_auth_v1');
-  sessionStorage.removeItem('veraluz_session'); /* PROMPT 038 */
-  sessionStorage.removeItem('vz_resume');       /* PROMPT 010I — révocation resume token */
-  currentUser = null;
+  clearCoreLocalSession(true);
+  _coreAuthContext = 'core';
+  localStorage.removeItem(CORE_CONTEXT_KEY);
   _pinBuffer = '';
   updateTopbarUser();
   var ids = ['sb-modules','sb-coming','bn-modules','dash-grid'];
@@ -4518,6 +4360,15 @@ window.addEventListener('message', function(ev) {
   /* Ignore messages originating from the Core itself */
   if (ev.data.source === 'veraluz-core') return;
 
+  /* RECOVERY LOT A — l'iframe RH ne crée plus de session parallèle.
+     Elle peut uniquement demander à CORE de révoquer le contexte courant et
+     d'ouvrir un kiosque verrouillé, dont la session employé reste éphémère. */
+  if (ev.data.source === 'veraluz-rh' && ev.data.type === 'enter-kiosk-mode') {
+    var rhFrame = document.getElementById('module-frame');
+    if (rhFrame && ev.source === rhFrame.contentWindow && /RH_EMBEDDED\.html(?:[?#]|$)/.test(rhFrame.src || '')) enterCoreKioskMode();
+    return;
+  }
+
   /* 010E — Handshake SSO Rapports : répondre à auth-ready avec auth-context */
   if (ev.data.source === 'veraluz-rapports' && ev.data.type === 'auth-ready') {
     var frame = document.getElementById('module-frame');
@@ -4603,9 +4454,14 @@ function openPointagePanel(){
   pp.classList.remove('hidden');
   var dn=document.getElementById('punch-date');
   if(dn) dn.textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  var title=pp.querySelector('.pp-hdr h3');
+  if(title) title.textContent=isCoreKioskContext()?'Kiosque Pointage':'Mon Pointage';
+  var closeBtn=pp.querySelector('.pp-close');
+  if(closeBtn) closeBtn.style.display=isCoreKioskContext()?'none':'';
   loadAttHistory();
 }
 function closePointagePanel(){
+  if(isCoreKioskContext()&&getSessionToken()) return;
   var pp=document.getElementById('pointage-panel');
   if(pp) pp.classList.add('hidden');
 }
@@ -4625,24 +4481,13 @@ function loadAttHistory(){
   }
   hist.innerHTML='<div style="color:var(--text3);font-size:12px;text-align:center;padding:12px">Chargement...</div>';
   var empId=currentUser.employee_id;
-  var since=new Date(Date.now()-14*24*60*60*1000).toISOString().slice(0,10);
   var today=new Date().toISOString().slice(0,10);
-
-  fetch(SB_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(empId)
-    +'&date=gte.'+since+'&select=*&order=date.desc&limit=20',{
-    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}
-  })
-  .then(function(r){ return r.ok?r.json():null; })
-  .then(function(rows){
-    if(!Array.isArray(rows)||rows.length===0){
-      return fetch(SB_URL+'/rest/v1/veraluz_pointages?employee_id=eq.'+encodeURIComponent(empId)
-        +'&date=gte.'+since+'&select=*&order=date.desc&limit=20',{
-        headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}
-      }).then(function(r2){ return r2.ok?r2.json():[]; });
-    }
-    return rows;
-  })
-  .then(function(rows){
+  window.veraluzSecureRequest('employees-secure',{action:'get_my_rh_workspace'})
+  .then(function(res){
+    var body=res&&res.body||{};
+    if(!body.ok) throw new Error(body.error||'attendance_unavailable');
+    return body.workspace&&Array.isArray(body.workspace.attendance)?body.workspace.attendance:[];
+  }).then(function(rows){
     var todayRow=Array.isArray(rows)?rows.find(function(r){return(r.date||'').slice(0,10)===today;}):null;
     if(stat){
       if(!todayRow) stat.textContent="Pas de pointage aujourd'hui.";
@@ -4672,39 +4517,30 @@ function loadAttHistory(){
 
 function doPunchIn(){
   if(!currentUser||!currentUser.employee_id) return;
-  var now=new Date();
-  var today=now.toISOString().slice(0,10);
-  var timeStr=now.toISOString().slice(11,19);
-  fetch(SB_URL+'/rest/v1/veraluz_attendance',{
-    method:'POST',
-    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,
-             'Content-Type':'application/json',Prefer:'return=representation'},
-    body:JSON.stringify({employee_id:currentUser.employee_id,date:today,check_in:timeStr})
+  window.veraluzSecureRequest('employees-secure',{action:'punch_self',event:'in'})
+  .then(function(res){
+    var ok=res&&res.body&&res.body.ok;
+    if(ok){
+      showCoreToast('Arrivée enregistrée','ok');
+      if(isCoreKioskContext()) finishCoreKioskPunch('Arrivée enregistrée. Kiosque verrouillé.');
+      else loadAttHistory();
+    } else showCoreToast('Erreur enregistrement pointage','err');
   })
-  .then(function(r){ return r.ok||r.status===201; })
-  .then(function(ok){
-    if(ok){ showCoreToast('✅ Arrivée enregistrée','ok'); loadAttHistory(); }
-    else   showCoreToast('⚠ Erreur enregistrement pointage','err');
-  })
-  .catch(function(){ showCoreToast('⚠ Erreur réseau pointage','err'); });
+  .catch(function(){ showCoreToast('Erreur réseau pointage','err'); });
 }
 
 function doPunchOut(){
   if(!currentUser||!currentUser.employee_id) return;
-  var now=new Date();
-  var today=now.toISOString().slice(0,10);
-  var timeStr=now.toISOString().slice(11,19);
-  fetch(SB_URL+'/rest/v1/veraluz_attendance?employee_id=eq.'+encodeURIComponent(currentUser.employee_id)+'&date=eq.'+today,{
-    method:'PATCH',
-    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},
-    body:JSON.stringify({check_out:timeStr})
+  window.veraluzSecureRequest('employees-secure',{action:'punch_self',event:'out'})
+  .then(function(res){
+    var ok=res&&res.body&&res.body.ok;
+    if(ok){
+      showCoreToast('Départ enregistré','ok');
+      if(isCoreKioskContext()) finishCoreKioskPunch('Départ enregistré. Kiosque verrouillé.');
+      else loadAttHistory();
+    } else showCoreToast('Erreur enregistrement départ','err');
   })
-  .then(function(r){ return r.ok; })
-  .then(function(ok){
-    if(ok){ showCoreToast('⏹ Départ enregistré','ok'); loadAttHistory(); }
-    else   showCoreToast('⚠ Erreur enregistrement départ','err');
-  })
-  .catch(function(){ showCoreToast('⚠ Erreur réseau pointage','err'); });
+  .catch(function(){ showCoreToast('Erreur réseau pointage','err'); });
 }
 
 /* ══════════════════════════════════════════════════════════════

@@ -85,7 +85,7 @@ test('B1-04 overstay seul ne crée jamais housekeeping',
 test('B1-05 chaque réservation a sa propre tâche déterministe',
   ensureSource.includes('checkout-${reservation.id}') && !ensureSource.includes('unit_id}`') &&
   secondReservationEnsure.ok && fakeDb.rows.size === 2 && fakeDb.rows.has('checkout-BK-B1-B'));
-test('B1-06 failure/retry n’altère pas le lifecycle',
+test('B1-06 échec Edge après commit reste réparable sans seconde transition',
   workflow.includes('fail(checkoutEffect.error, 503, { retryable: true })') &&
   !postUpdateSource.includes('status: rez.status'));
 test('B1-07 frontend ne dépend plus du localStorage pour le ménage canonique',
@@ -115,6 +115,27 @@ try {
 } catch {}
 test('B1-11 aucun fichier Lot A/A1/A2 modifié',
   changed.length > 0 && changed.every((name) => !/(?:CORE|RH_EMBEDDED|LIVREUR|employees-secure|recovery-lot-a)/i.test(name)));
+
+test('B1-12 checkout DB et ménage partagent la même transaction',
+  migration.includes('create or replace function public.veraluz_ensure_checkout_housekeeping()') &&
+  migration.includes('create trigger trg_veraluz_checkout_housekeeping') &&
+  migration.includes('after update of status on public.veraluz_reservations') &&
+  migration.includes("new.status = 'checkedout'") &&
+  migration.includes('execute function public.veraluz_ensure_checkout_housekeeping()'));
+
+test('B1-13 trigger ménage déterministe et collision vérifiée',
+  migration.includes("v_task_id := 'checkout-' || new.id") &&
+  migration.includes('on conflict (id) do nothing') &&
+  migration.includes("raise exception 'checkout_effect_conflict'") &&
+  migration.includes("time zone 'Africa/Douala'"));
+
+let workflowSyntaxValid = false;
+try {
+  const withoutImports = workflow.replace(/^import .*;$/gm, '');
+  new Function(stripTypeScriptTypes(withoutImports));
+  workflowSyntaxValid = true;
+} catch {}
+test('B1-14 reservation-workflow complet reste syntaxiquement valide', workflowSyntaxValid);
 
 console.log(`\nRecovery Lot B.1: ${passed} PASS / ${failed} FAIL`);
 if (failed) process.exitCode = 1;

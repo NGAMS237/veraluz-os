@@ -6,6 +6,7 @@
 - `check_out` reste une date de départ prévue; elle ne déclenche aucune transition.
 - `overstay` est calculé pour l'UI avec `booking.checkout_time`, sans modifier `status`.
 - Un vrai checkout staff est le seul passage vers `checkedout`; `reservation-workflow` garantit ensuite la tâche ménage canonique par ID déterministe.
+- Le trigger `trg_veraluz_checkout_housekeeping` inscrit cette tâche dans la même transaction PostgreSQL que le passage à `checkedout`; l'Edge garde un retry réparateur en seconde protection.
 - `checkout-completed` reste une notification UI legacy, non canonique et non durable. Aucune infrastructure `veraluz_events` / `veraluz_event_jobs` n'est créée par ce lot.
 
 ## Diagnostic production en lecture seule — 2026-08-24
@@ -52,7 +53,7 @@ Commande :
 
 Résultat local : **34 PASS / 0 FAIL**.
 
-## Matrice B1-01–B1-11 — durabilité checkout
+## Matrice B1-01–B1-14 — durabilité checkout
 
 | ID | Vérification | Preuve automatisée |
 |---|---|---|
@@ -61,18 +62,21 @@ Résultat local : **34 PASS / 0 FAIL**.
 | B1-03 | retry réparateur | `ensureCheckoutEffects` même si déjà checkedout ou CAS concurrent |
 | B1-04 | overstay seul sans ménage | aucun appel par date/état dérivé |
 | B1-05 | tâches distinctes par réservation | ID dérivé de la réservation |
-| B1-06 | échec effet sans rollback lifecycle | réponse 503 retryable; retry répare |
+| B1-06 | échec Edge après commit réparable | réponse 503 retryable; retry sans seconde transition |
 | B1-07 | frontend non canonique | suppression de `vlz_hk_checkout` |
 | B1-08 | aucune table Events | absence DDL/appel events |
 | B1-09 | date check-in Douala | `Intl.DateTimeFormat` avec `Africa/Douala` |
 | B1-10 | Lot B inchangé fonctionnellement | suite 34/34 |
 | B1-11 | Lot A/A.1/A.2 non touché | contrôle du diff depuis le HEAD B |
+| B1-12 | checkout et ménage atomiques | trigger PostgreSQL sur la transition réelle |
+| B1-13 | trigger idempotent et collision sûre | ID déterministe + `ON CONFLICT` + validation |
+| B1-14 | fonction Edge syntaxiquement valide | analyse du fichier TypeScript complet |
 
 Commande :
 
 `node tests/recovery-lot-b1-checkout-durability.test.mjs`
 
-Résultat local : **11 PASS / 0 FAIL**.
+Résultat local : **14 PASS / 0 FAIL**.
 
 Baselines Recovery exécutées sur le code de cette branche :
 

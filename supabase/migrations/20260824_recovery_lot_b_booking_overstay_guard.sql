@@ -156,3 +156,85 @@ $function$;
 comment on function public.create_booking_hold(
   text, date, date, text, text, text, integer, integer, integer, text, text
 ) is 'Creates a serialized public booking hold and blocks units with a checked-in occupant until staff checkout.';
+
+-- A checkout and its canonical housekeeping task must commit together. The
+-- Edge Function keeps an idempotent repair path, but this trigger closes the
+-- crash window between the reservation UPDATE and a separate task INSERT.
+create or replace function public.veraluz_ensure_checkout_housekeeping()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_task_id text;
+begin
+  if new.status <> 'checkedout'
+     or old.status is not distinct from new.status then
+    return new;
+  end if;
+
+  if new.unit_id is null then
+    raise exception 'checkout_unit_missing'
+      using errcode = '23502';
+  end if;
+
+  v_task_id := 'checkout-' || new.id;
+
+  insert into public.veraluz_housekeeping (
+    id,
+    unit_id,
+    type,
+    status,
+    priority,
+    scheduled_for,
+    task_label,
+    notes,
+    reported_by
+  ) values (
+    v_task_id,
+    new.unit_id,
+    'cleaning',
+    'pending',
+    'normal',
+    (pg_catalog.clock_timestamp() at time zone 'Africa/Douala')::date,
+    'Nettoyage après départ',
+    'Checkout réservation ' || new.id,
+    'Checkout staff'
+  )
+  on conflict (id) do nothing;
+
+  -- A duplicate ID is idempotent only when it already represents the exact
+  -- canonical task for this reservation and unit.
+  if not exists (
+    select 1
+      from public.veraluz_housekeeping
+     where id = v_task_id
+       and unit_id = new.unit_id
+       and type = 'cleaning'
+  ) then
+    raise exception 'checkout_effect_conflict'
+      using errcode = '23505';
+  end if;
+
+  return new;
+end;
+$function$;
+
+revoke execute on function public.veraluz_ensure_checkout_housekeeping()
+  from public, anon, authenticated;
+
+drop trigger if exists trg_veraluz_checkout_housekeeping
+  on public.veraluz_reservations;
+
+create trigger trg_veraluz_checkout_housekeeping
+after update of status on public.veraluz_reservations
+for each row
+when (
+  new.status = 'checkedout'
+  and old.status is distinct from new.status
+)
+execute function public.veraluz_ensure_checkout_housekeeping();
+
+comment on function public.veraluz_ensure_checkout_housekeeping()
+is 'Atomically creates the deterministic housekeeping task when a reservation really transitions to checkedout.';

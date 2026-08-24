@@ -4,7 +4,7 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-LOCK | Codex | codex/recovery-lot-b-reservation-overstay | RECOVERY LOT B — reservation lifecycle / planning / overstay | RESERVATIONS_EMBEDDED.html, BOOKING_ENGINE.html, VERALUZ_OS_CORE.html, GUEST_PORTAL.html, supabase/functions/reservation*, migrations reservation ciblées, tests/docs Recovery Lot B
+LOCK | Codex | codex/recovery-lot-b-reservation-overstay | RECOVERY LOT B — reservation lifecycle / planning / overstay | RESERVATIONS_EMBEDDED.html, BOOKING_ENGINE.html, ANALYTICS_EMBEDDED.html, HOUSEKEEPING_EMBEDDED.html, VERALUZ_OS_CORE.html, GUEST_PORTAL.html, supabase/functions/reservation*, migrations reservation ciblées, tests/docs Recovery Lot B
 
 ## Lots actifs
 

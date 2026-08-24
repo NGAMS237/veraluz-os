@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-LOCK | Codex | codex/recovery-lot-a1-rh-consumers | RECOVERY LOT A.1 — RH RLS consumer compatibility | ANALYTICS_EMBEDDED.html, LIVREUR.html, supabase/functions/employees-secure/**, 20260824_recovery_lot_a_rh_privacy.sql, tests Recovery Lot A/A.1, RECOVERY_LOT_A_DEPLOY_PLAN.md
+Aucun.
 
 ## Lots actifs
 
-RECOVERY LOT A.1 | codex/recovery-lot-a1-rh-consumers | base 1c2efd1 | EN COURS — aucun déploiement ni merge main
+Aucun.
 
 ## Transmissions récentes
+
+`2026-08-24 | Codex | RECOVERY LOT A.1 — RH RLS consumer compatibility | codex/recovery-lot-a1-rh-consumers | 3b99e5224db533c91de209f032749c791be6433e | Lot A 106/106 + A.1 16/16 = 122/122 PASS; JS/TS/diff PASS; DB lue sans écriture | READY FOR HUMAN REVIEW / TARGETED DEPLOYMENT après autorisation | aucun: LOCK retiré | review puis déploiement ordonné EF → frontends → migration RLS → smokes`
 
 `2026-08-24 | Codex | RECOVERY LOT A — CORE/AUTH/RH session security | codex/recovery-lot-a-auth-rh | 1c2efd1acafd05a7af1ec7cea7a43eaef2b0f161 | 106/106 assertions ciblées PASS; JS/TS et diff PASS; aucun test production | READY FOR HUMAN REVIEW — migration RLS locale bloquée par consommateurs Analytics/Livreur | aucun: LOCK retiré | review humaine puis compatibilité des consommateurs avant déploiement ciblé`
 
@@ -25,9 +27,6 @@ RECOVERY LOT A.1 | codex/recovery-lot-a1-rh-consumers | base 1c2efd1 | EN COURS 
 `2026-08-19 | Claude | AUTH-R2 PUBLISHED | main | e2f4629 | merge ff-only; 126/126 PASS; live 6/6 PASS; backend ACTIVE | PUBLIÉ | aucun LOCK | validation humaine F5`
 
 `2026-08-19 | Claude | AUTH-R2D INTÉGRATION | claude/auth-r2-integration | e2f4629 | 126/126 tests; contrat vérifié | poussé READY FOR MERGE REVIEW | LOCK retiré | autorisation Blaise`
-
-`2026-08-19 | Claude | AUTH-R2B1 BACKEND | claude/auth-r2b1 | 1b162fb | 4 EF ACTIVE; tests live 13/13 PASS | LIVE VALIDATED | LOCK retiré | intégration AUTH-R2D`
-
 
 ## Format
 

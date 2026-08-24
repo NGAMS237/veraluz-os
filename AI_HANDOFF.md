@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-LOCK | Codex | codex/recovery-lot-b-reservation-overstay | RECOVERY LOT B — reservation lifecycle / planning / overstay | RESERVATIONS_EMBEDDED.html, BOOKING_ENGINE.html, ANALYTICS_EMBEDDED.html, HOUSEKEEPING_EMBEDDED.html, VERALUZ_OS_CORE.html, GUEST_PORTAL.html, supabase/functions/reservation*, migrations reservation ciblées, tests/docs Recovery Lot B
+Aucun LOCK actif.
 
 ## Lots actifs
 
-RECOVERY LOT B | codex/recovery-lot-b-reservation-overstay | base main f772ebd | EN COURS — audit ciblé, aucun déploiement ni merge main
+Aucun lot actif transmis.
 
 ## Transmissions récentes
+
+`2026-08-24 | Codex | RECOVERY LOT B — reservation lifecycle / planning / overstay | codex/recovery-lot-b-reservation-overstay | 9e0ae136c6861b6598d9718a77146f90b5912347 | Lot B 34/34; A.1 16/16; A.2 15/15; navigateur desktop/mobile PASS; aucune erreur console; DB lue sans écriture | READY FOR HUMAN REVIEW / TARGETED MERGE — aucun déploiement | aucun: LOCK retiré | review des 9 fichiers puis déploiement migration → reservation-workflow → frontends → smoke live contrôlé`
 
 `2026-08-24 | Codex | RECOVERY LOT A.2 — live frontend cleanup | main | f772ebd618500712f26478df367bd75b2f4351b5 | 137/137 PASS; validation humaine Pointage/Logout/F5 PASS; Pages built depuis main | CLOS / LIVE VALIDÉ | aucun: LOCK A.2 retiré | RECOVERY LOT B` 
 

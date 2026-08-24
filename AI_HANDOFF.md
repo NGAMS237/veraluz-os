@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-`LOCK | Codex | codex/recovery-lot-b-reservation-overstay | RECOVERY LOT B.1 — checkout side-effect durability | supabase/functions/reservation-workflow/index.ts, RESERVATIONS_EMBEDDED.html, RECOVERY_LOT_B_TESTS.md, RECOVERY_LOT_B_DEPLOY_PLAN.md, tests/recovery-lot-b*.test.mjs`
+Aucun LOCK actif.
 
 ## Lots actifs
 
-`RECOVERY LOT B.1 | Codex | checkout durable + housekeeping idempotent + retry réparateur + date Africa/Douala | en cours`
+Aucun lot actif transmis.
 
 ## Transmissions récentes
+
+`2026-08-24 | Codex | RECOVERY LOT B.1 — checkout side-effect durability | codex/recovery-lot-b-reservation-overstay | bec0a42 | B.1 11/11; Lot B 34/34; Lot A 30/30; A.1 16/16; A.2 15/15; TS/diff PASS; schéma housekeeping prod lu sans écriture | READY FOR TARGETED MERGE — aucun déploiement | aucun: LOCK retiré | review des 6 fichiers puis déploiement ciblé migration Lot B → reservation-workflow → frontends → smoke checkout/retry`
 
 `2026-08-24 | Codex | RECOVERY LOT B — reservation lifecycle / planning / overstay | codex/recovery-lot-b-reservation-overstay | 9e0ae136c6861b6598d9718a77146f90b5912347 | Lot B 34/34; A.1 16/16; A.2 15/15; navigateur desktop/mobile PASS; aucune erreur console; DB lue sans écriture | READY FOR HUMAN REVIEW / TARGETED MERGE — aucun déploiement | aucun: LOCK retiré | review des 9 fichiers puis déploiement migration → reservation-workflow → frontends → smoke live contrôlé`
 

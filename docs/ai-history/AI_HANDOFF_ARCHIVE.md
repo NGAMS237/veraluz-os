@@ -17,3 +17,11 @@ Transmissions closes déplacées depuis `AI_HANDOFF.md` afin de garder le handof
 `2026-08-17 | Codex | COORD-002 | codex/setup-ai-coordination | 0779e75 | contrôle Markdown + git diff | remplacé par COORD-003 | aucun | aucune`
 
 `2026-08-17 | Codex | COORD-001 | codex/setup-ai-coordination | a5c4d9b | contrôle Markdown | remplacé par COORD-002 | aucun | aucune`
+
+`2026-08-19 | Codex | AUTH-R2C | codex/auth-r2c-frontend | d7e64b7 | AUTH-R2C 18/18; éligibilité 13/13 | poussé READY FOR REVIEW | LOCK retiré | intégration AUTH-R2D`
+
+`2026-08-19 | Codex | AUTH-R1D PHASE C / AUTH-R1 | main | 6c76f8f66770cec5a49ddc672263fc4570e4990c | containment LIVE VALIDÉ; Pages 7/7 | COMPLET | LOCK retiré | aucune`
+
+`2026-08-19 | Codex | AUTH-R1D-H1 | main (source codex/auth-r1-containment) | 6c76f8f66770cec5a49ddc672263fc4570e4990c | H1 10/10; AUTH PASS; Pages blob exact | READY FOR HUMAN RETEST | LOCK Phase B conservé | Blaise reteste Restaurant`
+
+`2026-08-19 | Codex | AUTH-R1D PHASE B | main | e7206fcde199548dc699a18eb3b1132d264525dc | suites PASS; live 200/403/204 | READY FOR HUMAN VALIDATION | LOCK Phase B conservé | validation humaine`

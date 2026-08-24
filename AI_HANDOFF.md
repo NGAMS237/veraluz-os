@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-LOCK | Codex | codex/recovery-lot-a-auth-rh | RECOVERY LOT A — CORE/AUTH/RH session security | VERALUZ_OS_CORE.html, RH_EMBEDDED.html, supabase/functions/employees-secure/**, migration RH/session ciblée, tests Recovery Lot A, RECOVERY_LOT_A_SESSION_MAP.md, RECOVERY_LOT_A_TESTS.md, RECOVERY_LOT_A_DEPLOY_PLAN.md
+Aucun.
 
 ## Lots actifs
 
-RECOVERY LOT A | codex/recovery-lot-a-auth-rh | base 725a0cc | EN COURS — aucun déploiement ni merge main
+Aucun.
 
 ## Transmissions récentes
+
+`2026-08-24 | Codex | RECOVERY LOT A — CORE/AUTH/RH session security | codex/recovery-lot-a-auth-rh | 1c2efd1acafd05a7af1ec7cea7a43eaef2b0f161 | 106/106 assertions ciblées PASS; JS/TS et diff PASS; aucun test production | READY FOR HUMAN REVIEW — migration RLS locale bloquée par consommateurs Analytics/Livreur | aucun: LOCK retiré | review humaine puis compatibilité des consommateurs avant déploiement ciblé`
 
 `2026-08-24 | Codex | RECOVERY-AUDIT-1 | codex/recovery-audit-1 | 725a0cc | Git/bundle vérifiés; DB/EF/Pages lus sans écriture; 13 suites statiques: 8 PASS, 5 FAIL documentées | AUDIT COMPLET — progressive recovery NON prête | LOCK retiré | review matrice/plan puis autoriser Lot A`
 
@@ -26,13 +28,6 @@ RECOVERY LOT A | codex/recovery-lot-a-auth-rh | base 725a0cc | EN COURS — aucu
 
 `2026-08-19 | Claude | AUTH-R2B1 BACKEND | claude/auth-r2b1 | 1b162fb | 4 EF ACTIVE; tests live 13/13 PASS | LIVE VALIDATED | LOCK retiré | intégration AUTH-R2D`
 
-`2026-08-19 | Codex | AUTH-R2C | codex/auth-r2c-frontend | d7e64b7 | AUTH-R2C 18/18; éligibilité 13/13 | poussé READY FOR REVIEW | LOCK retiré | intégration AUTH-R2D`
-
-`2026-08-19 | Codex | AUTH-R1D PHASE C / AUTH-R1 | main | 6c76f8f66770cec5a49ddc672263fc4570e4990c | containment LIVE VALIDÉ; Pages 7/7 | COMPLET | LOCK retiré | aucune`
-
-`2026-08-19 | Codex | AUTH-R1D-H1 | main (source codex/auth-r1-containment) | 6c76f8f66770cec5a49ddc672263fc4570e4990c | H1 10/10; AUTH PASS; Pages blob exact | READY FOR HUMAN RETEST | LOCK Phase B conservé | Blaise reteste Restaurant`
-
-`2026-08-19 | Codex | AUTH-R1D PHASE B | main | e7206fcde199548dc699a18eb3b1132d264525dc | suites PASS; live 200/403/204 | READY FOR HUMAN VALIDATION | LOCK Phase B conservé | validation humaine`
 
 ## Format
 

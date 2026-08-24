@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-Aucun.
+LOCK | Codex | main (intégration ciblée autorisée) | RECOVERY LOT A — publication ciblée | VERALUZ_OS_CORE.html, RH_EMBEDDED.html, ANALYTICS_EMBEDDED.html, LIVREUR.html, supabase/functions/employees-secure/index.ts, supabase/migrations/20260824_recovery_lot_a_rh_privacy.sql
 
 ## Lots actifs
 
-Aucun.
+RECOVERY LOT A — publication ciblée | source codex/recovery-lot-a1-rh-consumers | base main 0e6158b | EN COURS — migration Supabase non appliquée
 
 ## Transmissions récentes
 

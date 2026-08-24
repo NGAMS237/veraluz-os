@@ -55,7 +55,7 @@ test('CORE-02 login attend issue-resume-token avant ouverture',
 test('CORE-03 F5 reprend avec le resume même si le cache expires est périmé',
   /getItem\(CORE_RESUME_KEY\)/.test(coreCheck)
     && /resumeCoreSession\(resumeToken\)/.test(coreCheck)
-    && coreCheck.indexOf('resumeCoreSession') < coreCheck.indexOf("getItem('veraluz_auth_v1')"));
+    && !/veraluz_auth_v1|sessionStorage/.test(coreCheck));
 test('CORE-04 reprise 9s, rotation et anti-concurrence',
   /if \(_resumePromise\) return _resumePromise/.test(coreResume)
     && /authEdgePost\(EDGE_RESUME_SESSION_URL, \{ resume_token: resumeToken \}, 9000\)/.test(coreResume)

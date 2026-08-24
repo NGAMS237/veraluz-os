@@ -20,8 +20,9 @@ t('CORE-02 allowlist du broker contient exactement les 3 endpoints AUTH/RH requi
          /'revoke-employee-sessions'/.test(list) &&
          /'get-employee-access-status'/.test(list);
 });
-t('CORE-03 le broker ajoute lui-meme le session_token (jamais fourni par l\'appelant)', () =>
-  /reqBody\.session_token\s*=\s*tok/.test(core));
+t('CORE-03 le broker envoie la session uniquement via X-Veraluz-Session', () =>
+  /'X-Veraluz-Session':\s*tok/.test(core)
+    && !/reqBody\.session_token\s*=/.test(core));
 
 t('AUTH-01 AUTH_EMBEDDED.html ne declare plus _authRealSessionToken', () =>
   !/_authRealSessionToken/.test(auth));

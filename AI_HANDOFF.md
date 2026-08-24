@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-Aucun LOCK actif.
+`LOCK | Codex | codex/recovery-lot-b-reservation-overstay | RECOVERY LOT B.1 — checkout side-effect durability | supabase/functions/reservation-workflow/index.ts, RESERVATIONS_EMBEDDED.html, RECOVERY_LOT_B_TESTS.md, RECOVERY_LOT_B_DEPLOY_PLAN.md, tests/recovery-lot-b*.test.mjs`
 
 ## Lots actifs
 
-Aucun lot actif transmis.
+`RECOVERY LOT B.1 | Codex | checkout durable + housekeeping idempotent + retry réparateur + date Africa/Douala | en cours`
 
 ## Transmissions récentes
 

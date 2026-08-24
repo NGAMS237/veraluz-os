@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-*(aucun LOCK actif)*
+`LOCK | Codex | codex/recovery-audit-1 | RECOVERY-AUDIT-1 — réconciliation Git/DB/EF/frontend | VERALUZ_RECOVERY_MATRIX.md, VERALUZ_RECOVERY_PLAN.md, VERALUZ_ROADMAP.md (uniquement si présent)`
 
 ## Lots actifs
 
-*(aucun lot actif — prêt pour prochain lot)*
+RECOVERY-AUDIT-1 | codex/recovery-audit-1 | En cours — audit et plan uniquement; aucun déploiement/merge/refactor
 
 ## Transmissions récentes
 

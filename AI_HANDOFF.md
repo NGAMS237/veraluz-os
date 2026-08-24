@@ -8,9 +8,11 @@ LOCK | Codex | codex/recovery-lot-a2-live-cleanup | RECOVERY LOT A.2 — live fr
 
 ## Lots actifs
 
-RECOVERY LOT A.2 | codex/recovery-lot-a2-live-cleanup | base main f7ff2ce | EN COURS — aucun déploiement ni merge main
+RECOVERY LOT A.2 | codex/recovery-lot-a2-live-cleanup | f772ebd | READY FOR TARGETED MERGE — LOCK conservé, aucun déploiement ni merge main
 
 ## Transmissions récentes
+
+`2026-08-24 | Codex | RECOVERY LOT A.2 — live frontend cleanup | codex/recovery-lot-a2-live-cleanup | f772ebd618500712f26478df367bd75b2f4351b5 | Lot A/A.1 122/122 + A.2 15/15 = 137/137 PASS; JS/SW/diff PASS; list-login-employees live 200 projection id+display_name | READY FOR TARGETED MERGE — Pages sert encore un ancien CORE daté 2026-08-20 | VERALUZ_OS_CORE.html, sw.js, tests Auth/A.2 | review puis merge ciblé; republier Pages avant retest live` 
 
 `2026-08-24 | Codex | RECOVERY LOT A — publication ciblée | main (source codex/recovery-lot-a1-rh-consumers) | f7ff2ce2da108a38bd63ba89c50f303d44d3da8c | 6 fichiers exacts; JS 4/4 et TS/import PASS; parent main 0e6158b vérifié | MAIN POUSSÉ — migration Supabase NON appliquée | aucun: LOCK retiré | ChatGPT applique ensuite la migration et réalise les smokes autorisés`
 

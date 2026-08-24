@@ -4,11 +4,11 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-Aucun.
+LOCK | Codex | codex/recovery-lot-a1-rh-consumers | RECOVERY LOT A.1 — RH RLS consumer compatibility | ANALYTICS_EMBEDDED.html, LIVREUR.html, supabase/functions/employees-secure/**, 20260824_recovery_lot_a_rh_privacy.sql, tests Recovery Lot A/A.1, RECOVERY_LOT_A_DEPLOY_PLAN.md
 
 ## Lots actifs
 
-Aucun.
+RECOVERY LOT A.1 | codex/recovery-lot-a1-rh-consumers | base 1c2efd1 | EN COURS — aucun déploiement ni merge main
 
 ## Transmissions récentes
 

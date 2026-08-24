@@ -4,13 +4,15 @@ Règles : `AI_COLLABORATION.md`. La version partagée de référence vit sur `ai
 
 ## LOCK actifs
 
-LOCK | Codex | codex/recovery-lot-a2-live-cleanup | RECOVERY LOT A.2 — live frontend cleanup | VERALUZ_OS_CORE.html, RH_EMBEDDED.html, sw.js, veraluz-core.js, tests Recovery Lot A/A.1/A.2
+LOCK | Codex | codex/recovery-lot-b-reservation-overstay | RECOVERY LOT B — reservation lifecycle / planning / overstay | RESERVATIONS_EMBEDDED.html, BOOKING_ENGINE.html, VERALUZ_OS_CORE.html, GUEST_PORTAL.html, supabase/functions/reservation*, migrations reservation ciblées, tests/docs Recovery Lot B
 
 ## Lots actifs
 
-RECOVERY LOT A.2 | codex/recovery-lot-a2-live-cleanup | f772ebd | READY FOR TARGETED MERGE — LOCK conservé, aucun déploiement ni merge main
+RECOVERY LOT B | codex/recovery-lot-b-reservation-overstay | base main f772ebd | EN COURS — audit ciblé, aucun déploiement ni merge main
 
 ## Transmissions récentes
+
+`2026-08-24 | Codex | RECOVERY LOT A.2 — live frontend cleanup | main | f772ebd618500712f26478df367bd75b2f4351b5 | 137/137 PASS; validation humaine Pointage/Logout/F5 PASS; Pages built depuis main | CLOS / LIVE VALIDÉ | aucun: LOCK A.2 retiré | RECOVERY LOT B` 
 
 `2026-08-24 | Codex | RECOVERY LOT A.2 — live frontend cleanup | codex/recovery-lot-a2-live-cleanup | f772ebd618500712f26478df367bd75b2f4351b5 | Lot A/A.1 122/122 + A.2 15/15 = 137/137 PASS; JS/SW/diff PASS; list-login-employees live 200 projection id+display_name | READY FOR TARGETED MERGE — Pages sert encore un ancien CORE daté 2026-08-20 | VERALUZ_OS_CORE.html, sw.js, tests Auth/A.2 | review puis merge ciblé; republier Pages avant retest live` 
 

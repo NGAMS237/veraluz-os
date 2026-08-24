@@ -48,6 +48,9 @@ const RH_UPDATE_FIELDS = new Set([
   'momo_number', 'notes',
 ]);
 const GET_MY_DELIVERY_PROFILE_FIELDS = new Set(['action']);
+const GET_MY_DELIVERY_SHIFT_FIELDS = new Set(['action']);
+const PUNCH_MY_DELIVERY_SHIFT_FIELDS = new Set(['action', 'event']);
+const RECORD_MY_DELIVERY_CHECKIN_FIELDS = new Set(['action', 'checkin_type', 'selfie_url', 'device_info']);
 const UPDATE_MY_PHOTO_FIELDS = new Set(['action', 'photo_url']);
 const UPDATE_MY_PROFILE_FIELDS = new Set(['action', 'civility', 'first_name', 'last_name', 'phone', 'email', 'photo_url']);
 const SELF_WORKSPACE_FIELDS = new Set(['action']);
@@ -56,6 +59,7 @@ const COMPLETE_MY_TASK_FIELDS = new Set(['action', 'task_id']);
 const RH_READ_FIELDS = new Set(['action', 'resource']);
 const RH_WRITE_FIELDS = new Set(['action', 'resource', 'operation', 'record_id', 'values']);
 const RH_SETTINGS_FIELDS = new Set(['action', 'settings']);
+const TENANT_ID = 'veraluz-001';
 
 /* Bridge de compatibilité Recovery Lot A. Les noms de table et colonnes sont
    fermés côté serveur; le rôle JS du navigateur n'intervient jamais. */
@@ -163,6 +167,34 @@ function isDeliveryTeamName(value: unknown) {
   return String(value || '').trim().toLowerCase() === 'livreurs';
 }
 
+async function getDeliveryEmployee(db: DbClient, actor: Actor) {
+  const { data: employee, error: employeeError } = await db
+    .from('veraluz_employees')
+    .select('id,full_name,role,status,team_id,phone,photo_url,public_display_name,identity_verified')
+    .eq('id', actor.id)
+    .maybeSingle();
+  if (employeeError) {
+    console.error('[employees-secure] delivery_employee_lookup_failed code=', employeeError.code);
+    return { employee: null, status: 500, error: 'server_error' };
+  }
+  if (!employee || !ACTIVE_STATUSES.has(String(employee.status || '').toLowerCase()) || !employee.team_id) {
+    return { employee: null, status: 403, error: 'delivery_access_forbidden' };
+  }
+  const { data: team, error: teamError } = await db
+    .from('veraluz_teams')
+    .select('id,name')
+    .eq('id', employee.team_id)
+    .maybeSingle();
+  if (teamError) {
+    console.error('[employees-secure] delivery_team_lookup_failed code=', teamError.code);
+    return { employee: null, status: 500, error: 'server_error' };
+  }
+  if (!team || !isDeliveryTeamName(team.name)) {
+    return { employee: null, status: 403, error: 'delivery_access_forbidden' };
+  }
+  return { employee, status: 200, error: null };
+}
+
 // AUTH-R5: isPrivilegedRole/Actor — delegated to _rbac.ts hasCapability('auth.users.manage')
 
 function canAssignRole(actor: Actor, targetRole: string) {
@@ -245,6 +277,23 @@ function validEmployeePhotoUrl(value: unknown) {
     return url.toString();
   } catch {
     return null;
+  }
+}
+
+function validEmployeeSelfieUrl(value: unknown) {
+  if (value === undefined || value === null || value === '') return null;
+  const raw = String(value).trim();
+  if (!raw || raw.length > 2048) return undefined;
+  try {
+    const url = new URL(raw);
+    const projectOrigin = new URL(SUPABASE_URL).origin;
+    const selfiePrefix = '/storage/v1/object/public/employee-selfies/';
+    if (url.protocol !== 'https:' || url.origin !== projectOrigin) return undefined;
+    if (!url.pathname.startsWith(selfiePrefix) || url.pathname.length <= selfiePrefix.length) return undefined;
+    if (url.username || url.password || url.search || url.hash) return undefined;
+    return url.toString();
+  } catch {
+    return undefined;
   }
 }
 
@@ -410,31 +459,11 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'invalid_delivery_profile_fields' }, 400, origin);
     }
 
-    const { data: employee, error: employeeError } = await db
-      .from('veraluz_employees')
-      .select('id,full_name,role,status,team_id,phone,photo_url,public_display_name,identity_verified')
-      .eq('id', actor.id)
-      .maybeSingle();
-    if (employeeError) {
-      console.error('[employees-secure] delivery_employee_lookup_failed code=', employeeError.code);
-      return json({ ok: false, error: 'server_error' }, 500, origin);
+    const delivery = await getDeliveryEmployee(db, actor);
+    if (!delivery.employee) {
+      return json({ ok: false, error: delivery.error, delivery_access: false }, delivery.status, origin);
     }
-    if (!employee || !ACTIVE_STATUSES.has(String(employee.status || '').toLowerCase()) || !employee.team_id) {
-      return json({ ok: false, error: 'delivery_access_forbidden', delivery_access: false }, 403, origin);
-    }
-
-    const { data: team, error: teamError } = await db
-      .from('veraluz_teams')
-      .select('id,name')
-      .eq('id', employee.team_id)
-      .maybeSingle();
-    if (teamError) {
-      console.error('[employees-secure] delivery_team_lookup_failed code=', teamError.code);
-      return json({ ok: false, error: 'server_error' }, 500, origin);
-    }
-    if (!team || !isDeliveryTeamName(team.name)) {
-      return json({ ok: false, error: 'delivery_access_forbidden', delivery_access: false }, 403, origin);
-    }
+    const employee = delivery.employee;
 
     const profile = {
       id: employee.id,
@@ -446,6 +475,54 @@ Deno.serve(async (req) => {
       identity_verified: employee.identity_verified,
     };
     return json({ ok: true, delivery_access: true, profile }, 200, origin);
+  }
+
+  if (action === 'get_my_delivery_shift_status') {
+    if (!validateFields(body, GET_MY_DELIVERY_SHIFT_FIELDS)) {
+      return json({ ok: false, error: 'invalid_delivery_shift_fields' }, 400, origin);
+    }
+    const delivery = await getDeliveryEmployee(db, actor);
+    if (!delivery.employee) return json({ ok: false, error: delivery.error }, delivery.status, origin);
+    const clock = doualaClock();
+    const { data: attendance, error } = await db.from('veraluz_attendance')
+      .select('id,date,check_in,check_out,status')
+      .eq('employee_id', actor.id)
+      .eq('date', clock.date)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.error('[employees-secure] delivery_shift_lookup_failed code=', error.code);
+      return json({ ok: false, error: 'server_error' }, 500, origin);
+    }
+    return json({ ok: true, shift: attendance || null }, 200, origin);
+  }
+
+  if (action === 'record_my_delivery_checkin') {
+    if (!validateFields(body, RECORD_MY_DELIVERY_CHECKIN_FIELDS) || body.checkin_type !== 'shift_start') {
+      return json({ ok: false, error: 'invalid_delivery_checkin' }, 400, origin);
+    }
+    const delivery = await getDeliveryEmployee(db, actor);
+    if (!delivery.employee) return json({ ok: false, error: delivery.error }, delivery.status, origin);
+    const selfieUrl = validEmployeeSelfieUrl(body.selfie_url);
+    if (selfieUrl === undefined) return json({ ok: false, error: 'invalid_selfie_url' }, 400, origin);
+    const deviceInfo = optionalText(body.device_info, 160);
+    const { data: checkin, error } = await db.from('veraluz_employee_checkins').insert({
+      id: `checkin-${crypto.randomUUID()}`,
+      tenant_id: TENANT_ID,
+      employee_id: actor.id,
+      employee_name: delivery.employee.full_name,
+      role: delivery.employee.role,
+      checkin_type: 'shift_start',
+      selfie_url: selfieUrl,
+      device_info: deviceInfo,
+      status: 'pending',
+    }).select('id,checkin_type,status,created_at').single();
+    if (error) {
+      console.error('[employees-secure] delivery_checkin_write_failed code=', error.code);
+      return json({ ok: false, error: 'delivery_checkin_write_failed' }, 500, origin);
+    }
+    return json({ ok: true, checkin }, 200, origin);
   }
 
   if (action === 'update_my_photo') {
@@ -502,9 +579,14 @@ Deno.serve(async (req) => {
     } }, 200, origin);
   }
 
-  if (action === 'punch_self') {
-    if (!validateFields(body, PUNCH_SELF_FIELDS) || !['in', 'out'].includes(String(body.event || ''))) {
+  if (action === 'punch_self' || action === 'punch_my_delivery_shift') {
+    const allowedFields = action === 'punch_self' ? PUNCH_SELF_FIELDS : PUNCH_MY_DELIVERY_SHIFT_FIELDS;
+    if (!validateFields(body, allowedFields) || !['in', 'out'].includes(String(body.event || ''))) {
       return json({ ok: false, error: 'invalid_punch' }, 400, origin);
+    }
+    if (action === 'punch_my_delivery_shift') {
+      const delivery = await getDeliveryEmployee(db, actor);
+      if (!delivery.employee) return json({ ok: false, error: delivery.error }, delivery.status, origin);
     }
     const clock = doualaClock();
     const { data: current, error: currentError } = await db
@@ -669,15 +751,25 @@ Deno.serve(async (req) => {
     if (!hasCapability(actor.role, 'finance.read')) {
       return json({ ok: false, error: 'forbidden' }, 403, origin);
     }
-    const { data: employees, error } = await db
-      .from('veraluz_employees')
-      .select('id,full_name,role,status,base_salary,contract_type')
-      .order('full_name', { ascending: true });
-    if (error) {
-      console.error('[employees-secure] list_analytics_failed code=', error.code);
+    const [employeeResult, payrollResult] = await Promise.all([
+      db.from('veraluz_employees')
+        .select('id,full_name,role,status,base_salary,contract_type')
+        .order('full_name', { ascending: true }),
+      db.from('veraluz_payroll')
+        .select('employee_id,period_month,period_year,net_salary')
+        .order('period_year', { ascending: false })
+        .order('period_month', { ascending: false }),
+    ]);
+    if (employeeResult.error || payrollResult.error) {
+      console.error('[employees-secure] list_analytics_failed employee_code=', employeeResult.error?.code,
+        ' payroll_code=', payrollResult.error?.code);
       return json({ ok: false, error: 'server_error' }, 500, origin);
     }
-    return json({ ok: true, employees: employees || [] }, 200, origin);
+    return json({
+      ok: true,
+      employees: employeeResult.data || [],
+      payroll: payrollResult.data || [],
+    }, 200, origin);
   }
 
   if (action === 'rh_list') {

@@ -370,10 +370,13 @@ async function fetchEmployeesAnalyticsSecure() {
     var res = await window.parent.veraluzSecureRequest('employees-secure', { action:'list_analytics' });
     var body = res && res.body || {};
     if (!body.ok) throw new Error(body.error || 'employees_secure_failed');
-    return Array.isArray(body.employees) ? body.employees : [];
+    return {
+      employees: Array.isArray(body.employees) ? body.employees : [],
+      payroll: Array.isArray(body.payroll) ? body.payroll : []
+    };
   } catch (err) {
-    console.warn('[VERALUZ ANALYTICS] Employés indisponibles:', err && err.message);
-    return [];
+    console.warn('[VERALUZ ANALYTICS] Données RH sécurisées indisponibles:', err && err.message);
+    return { employees: [], payroll: [] };
   }
 }
 
@@ -693,7 +696,6 @@ async function loadAnalyticsData() {
     fetchEmployeesAnalyticsSecure(),
     safeFetchTable('veraluz_units',            'select=*&order=sort_order.asc'),
     safeFetchTable('veraluz_expenses',         'select=*&order=date.desc'),
-    safeFetchTable('veraluz_payroll',          'select=*&order=created_at.desc'),
     safeFetchTable('veraluz_housekeeping',     'select=*&order=created_at.desc')
   ]);
 
@@ -701,11 +703,11 @@ async function loadAnalyticsData() {
   _payments         = results[1];
   _foodOrders       = results[2];
   _restaurantOrders = results[3];
-  _employees        = results[4];
+  _employees        = results[4].employees;
   _units            = results[5];
   _expenses         = results[6];
-  _payroll          = results[7];
-  _housekeeping     = results[8];
+  _payroll          = results[4].payroll;
+  _housekeeping     = results[7];
   _loadedAt         = new Date();
 
   computeDashboard();

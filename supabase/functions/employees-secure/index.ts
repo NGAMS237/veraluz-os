@@ -6,7 +6,7 @@
  * X-Veraluz-Session. Le service_role reste strictement cote serveur.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { normalizeRole, hasCapability, isPrivilegedRole } from './_rbac.ts';
+import { normalizeRole, hasCapability, isPrivilegedRole } from '../_shared/_rbac.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -48,8 +48,41 @@ const RH_UPDATE_FIELDS = new Set([
   'momo_number', 'notes',
 ]);
 const GET_MY_DELIVERY_PROFILE_FIELDS = new Set(['action']);
+const GET_MY_DELIVERY_SHIFT_FIELDS = new Set(['action']);
+const PUNCH_MY_DELIVERY_SHIFT_FIELDS = new Set(['action', 'event']);
+const RECORD_MY_DELIVERY_CHECKIN_FIELDS = new Set(['action', 'checkin_type', 'selfie_url', 'device_info']);
 const UPDATE_MY_PHOTO_FIELDS = new Set(['action', 'photo_url']);
 const UPDATE_MY_PROFILE_FIELDS = new Set(['action', 'civility', 'first_name', 'last_name', 'phone', 'email', 'photo_url']);
+const SELF_WORKSPACE_FIELDS = new Set(['action']);
+const PUNCH_SELF_FIELDS = new Set(['action', 'event']);
+const COMPLETE_MY_TASK_FIELDS = new Set(['action', 'task_id']);
+const RH_READ_FIELDS = new Set(['action', 'resource']);
+const RH_WRITE_FIELDS = new Set(['action', 'resource', 'operation', 'record_id', 'values']);
+const RH_SETTINGS_FIELDS = new Set(['action', 'settings']);
+const TENANT_ID = 'veraluz-001';
+
+/* Bridge de compatibilité Recovery Lot A. Les noms de table et colonnes sont
+   fermés côté serveur; le rôle JS du navigateur n'intervient jamais. */
+const RH_RESOURCE_FIELDS: Record<string, Set<string>> = {
+  veraluz_teams: new Set(['id','name','description','color','icon','created_at']),
+  veraluz_contracts: new Set(['id','employee_id','type','start_date','end_date','salary','status','file_url','notes','signed_at','signed_by_name','signature_data','contract_body','created_at']),
+  veraluz_schedules: new Set(['id','employee_id','week_start','day_of_week','start_time','end_time','is_off','created_at']),
+  veraluz_attendance: new Set(['id','employee_id','date','check_in','check_out','status','notes','created_at']),
+  veraluz_payroll: new Set(['id','employee_id','period_month','period_year','base_salary','bonus','deductions','net_salary','paid_at','status','notes','cnps_employee','cnps_employer','irpp','allocations_fam','transport_allow','gross_salary','taxable_income','apply_cnps','apply_irpp','created_at']),
+  veraluz_advances: new Set(['id','employee_id','amount','reason','requested_at','approved_at','status','repaid','created_at']),
+  veraluz_hr_documents: new Set(['id','employee_id','type','name','file_url','expires_at','created_at']),
+  veraluz_hr_tasks: new Set(['id','employee_id','title','description','due_date','priority','status','created_at']),
+  veraluz_employee_bonuses: new Set(['id','employee_id','month','type','label','amount','created_at']),
+  veraluz_hr_settings: new Set(['id','key','value','updated_at']),
+  veraluz_pay_periods: new Set(['id','period_label','start_date','end_date','status','total_gross','total_net','total_cnps_employee','total_cnps_employer','total_irpp','employee_count','created_by','calculated_by','calculated_at','validated_by_manager','validated_by_manager_at','validated_by_owner','validated_by_owner_at','paid_by','paid_at','notes','created_at','updated_at']),
+  veraluz_payroll_items: new Set(['id','pay_period_id','employee_id','employee_name_snapshot','role_snapshot','team_snapshot','base_salary','days_worked','hours_worked','overtime_amount','bonus_amount','advance_amount','deduction_amount','transport_allowance','other_allowance','gross_amount','cnps_employee','cnps_employer','irpp','taxable_income','net_amount','status','anomaly_flags','notes','created_at','updated_at']),
+  veraluz_employee_checkins: new Set(['id','tenant_id','employee_id','employee_name','role','checkin_type','selfie_url','location_lat','location_lng','device_info','status','reviewed_by','reviewed_at','notes','created_at']),
+};
+
+const RH_WRITABLE_SETTINGS = new Set([
+  'payday','notify_email','advance_limit_pct','hotel_name','hotel_address',
+  'bank_name','bank_account','momo_operator',
+]);
 
 type Actor = { id: string; role: string; rawRole: string };
 type DbClient = ReturnType<typeof createClient>;
@@ -132,6 +165,34 @@ async function validateEmployeeSession(
 
 function isDeliveryTeamName(value: unknown) {
   return String(value || '').trim().toLowerCase() === 'livreurs';
+}
+
+async function getDeliveryEmployee(db: DbClient, actor: Actor) {
+  const { data: employee, error: employeeError } = await db
+    .from('veraluz_employees')
+    .select('id,full_name,role,status,team_id,phone,photo_url,public_display_name,identity_verified')
+    .eq('id', actor.id)
+    .maybeSingle();
+  if (employeeError) {
+    console.error('[employees-secure] delivery_employee_lookup_failed code=', employeeError.code);
+    return { employee: null, status: 500, error: 'server_error' };
+  }
+  if (!employee || !ACTIVE_STATUSES.has(String(employee.status || '').toLowerCase()) || !employee.team_id) {
+    return { employee: null, status: 403, error: 'delivery_access_forbidden' };
+  }
+  const { data: team, error: teamError } = await db
+    .from('veraluz_teams')
+    .select('id,name')
+    .eq('id', employee.team_id)
+    .maybeSingle();
+  if (teamError) {
+    console.error('[employees-secure] delivery_team_lookup_failed code=', teamError.code);
+    return { employee: null, status: 500, error: 'server_error' };
+  }
+  if (!team || !isDeliveryTeamName(team.name)) {
+    return { employee: null, status: 403, error: 'delivery_access_forbidden' };
+  }
+  return { employee, status: 200, error: null };
 }
 
 // AUTH-R5: isPrivilegedRole/Actor — delegated to _rbac.ts hasCapability('auth.users.manage')
@@ -219,9 +280,56 @@ function validEmployeePhotoUrl(value: unknown) {
   }
 }
 
+function validEmployeeSelfieUrl(value: unknown) {
+  if (value === undefined || value === null || value === '') return null;
+  const raw = String(value).trim();
+  if (!raw || raw.length > 2048) return undefined;
+  try {
+    const url = new URL(raw);
+    const projectOrigin = new URL(SUPABASE_URL).origin;
+    const selfiePrefix = '/storage/v1/object/public/employee-selfies/';
+    if (url.protocol !== 'https:' || url.origin !== projectOrigin) return undefined;
+    if (!url.pathname.startsWith(selfiePrefix) || url.pathname.length <= selfiePrefix.length) return undefined;
+    if (url.username || url.password || url.search || url.hash) return undefined;
+    return url.toString();
+  } catch {
+    return undefined;
+  }
+}
+
 function targetEmployeeId(value: unknown) {
   const normalized = String(value || '').trim();
   return normalized && normalized.length <= 128 ? normalized : null;
+}
+
+function rhResourceName(value: unknown) {
+  const name = String(value || '').split('?')[0].trim();
+  return Object.prototype.hasOwnProperty.call(RH_RESOURCE_FIELDS, name) ? name : null;
+}
+
+function sanitizeRhValues(resource: string, value: unknown, actor: Actor) {
+  if (!isPlainObject(value)) return null;
+  const allowed = RH_RESOURCE_FIELDS[resource];
+  if (!allowed || !Object.keys(value).every((key) => allowed.has(key))) return null;
+  const clean: Record<string, unknown> = {};
+  for (const [key, fieldValue] of Object.entries(value)) {
+    clean[key] = /(^|_)(created_by|calculated_by|validated_by_manager|validated_by_owner|paid_by|reviewed_by)$/.test(key)
+      ? actor.id
+      : fieldValue;
+  }
+  return clean;
+}
+
+function doualaClock() {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Douala', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  }).formatToParts(new Date());
+  const read = (type: string) => parts.find((part) => part.type === type)?.value || '';
+  return {
+    date: `${read('year')}-${read('month')}-${read('day')}`,
+    time: `${read('hour')}:${read('minute')}:${read('second')}`,
+  };
 }
 
 async function selectRhEmployees(db: DbClient) {
@@ -351,31 +459,11 @@ Deno.serve(async (req) => {
       return json({ ok: false, error: 'invalid_delivery_profile_fields' }, 400, origin);
     }
 
-    const { data: employee, error: employeeError } = await db
-      .from('veraluz_employees')
-      .select('id,full_name,role,status,team_id,phone,photo_url,public_display_name,identity_verified')
-      .eq('id', actor.id)
-      .maybeSingle();
-    if (employeeError) {
-      console.error('[employees-secure] delivery_employee_lookup_failed code=', employeeError.code);
-      return json({ ok: false, error: 'server_error' }, 500, origin);
+    const delivery = await getDeliveryEmployee(db, actor);
+    if (!delivery.employee) {
+      return json({ ok: false, error: delivery.error, delivery_access: false }, delivery.status, origin);
     }
-    if (!employee || !ACTIVE_STATUSES.has(String(employee.status || '').toLowerCase()) || !employee.team_id) {
-      return json({ ok: false, error: 'delivery_access_forbidden', delivery_access: false }, 403, origin);
-    }
-
-    const { data: team, error: teamError } = await db
-      .from('veraluz_teams')
-      .select('id,name')
-      .eq('id', employee.team_id)
-      .maybeSingle();
-    if (teamError) {
-      console.error('[employees-secure] delivery_team_lookup_failed code=', teamError.code);
-      return json({ ok: false, error: 'server_error' }, 500, origin);
-    }
-    if (!team || !isDeliveryTeamName(team.name)) {
-      return json({ ok: false, error: 'delivery_access_forbidden', delivery_access: false }, 403, origin);
-    }
+    const employee = delivery.employee;
 
     const profile = {
       id: employee.id,
@@ -387,6 +475,54 @@ Deno.serve(async (req) => {
       identity_verified: employee.identity_verified,
     };
     return json({ ok: true, delivery_access: true, profile }, 200, origin);
+  }
+
+  if (action === 'get_my_delivery_shift_status') {
+    if (!validateFields(body, GET_MY_DELIVERY_SHIFT_FIELDS)) {
+      return json({ ok: false, error: 'invalid_delivery_shift_fields' }, 400, origin);
+    }
+    const delivery = await getDeliveryEmployee(db, actor);
+    if (!delivery.employee) return json({ ok: false, error: delivery.error }, delivery.status, origin);
+    const clock = doualaClock();
+    const { data: attendance, error } = await db.from('veraluz_attendance')
+      .select('id,date,check_in,check_out,status')
+      .eq('employee_id', actor.id)
+      .eq('date', clock.date)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.error('[employees-secure] delivery_shift_lookup_failed code=', error.code);
+      return json({ ok: false, error: 'server_error' }, 500, origin);
+    }
+    return json({ ok: true, shift: attendance || null }, 200, origin);
+  }
+
+  if (action === 'record_my_delivery_checkin') {
+    if (!validateFields(body, RECORD_MY_DELIVERY_CHECKIN_FIELDS) || body.checkin_type !== 'shift_start') {
+      return json({ ok: false, error: 'invalid_delivery_checkin' }, 400, origin);
+    }
+    const delivery = await getDeliveryEmployee(db, actor);
+    if (!delivery.employee) return json({ ok: false, error: delivery.error }, delivery.status, origin);
+    const selfieUrl = validEmployeeSelfieUrl(body.selfie_url);
+    if (selfieUrl === undefined) return json({ ok: false, error: 'invalid_selfie_url' }, 400, origin);
+    const deviceInfo = optionalText(body.device_info, 160);
+    const { data: checkin, error } = await db.from('veraluz_employee_checkins').insert({
+      id: `checkin-${crypto.randomUUID()}`,
+      tenant_id: TENANT_ID,
+      employee_id: actor.id,
+      employee_name: delivery.employee.full_name,
+      role: delivery.employee.role,
+      checkin_type: 'shift_start',
+      selfie_url: selfieUrl,
+      device_info: deviceInfo,
+      status: 'pending',
+    }).select('id,checkin_type,status,created_at').single();
+    if (error) {
+      console.error('[employees-secure] delivery_checkin_write_failed code=', error.code);
+      return json({ ok: false, error: 'delivery_checkin_write_failed' }, 500, origin);
+    }
+    return json({ ok: true, checkin }, 200, origin);
   }
 
   if (action === 'update_my_photo') {
@@ -408,6 +544,176 @@ Deno.serve(async (req) => {
     }
     if (!profile) return json({ ok: false, error: 'employee_not_found' }, 404, origin);
     return json({ ok: true, profile }, 200, origin);
+  }
+
+  if (action === 'get_my_rh_workspace') {
+    if (!validateFields(body, SELF_WORKSPACE_FIELDS)) {
+      return json({ ok: false, error: 'invalid_workspace_fields' }, 400, origin);
+    }
+    const requests = await Promise.all([
+      db.from('veraluz_employees').select('id,full_name,civility,first_name,last_name,role,phone,email,hire_date,team_id,department,status,photo_url,public_display_name').eq('id', actor.id).maybeSingle(),
+      db.from('veraluz_attendance').select('id,date,check_in,check_out,status').eq('employee_id', actor.id).order('date', { ascending: false }).limit(20),
+      db.from('veraluz_hr_tasks').select('id,title,description,due_date,priority,status').eq('employee_id', actor.id).order('due_date', { ascending: true }).limit(20),
+      db.from('veraluz_payroll').select('id,period_month,period_year,net_salary,status,paid_at').eq('employee_id', actor.id).order('created_at', { ascending: false }).limit(3),
+      db.from('veraluz_schedules').select('id,week_start,day_of_week,start_time,end_time,is_off').eq('employee_id', actor.id).order('week_start', { ascending: false }).limit(21),
+      db.from('veraluz_advances').select('id,amount,reason,requested_at,approved_at,status,repaid').eq('employee_id', actor.id).order('requested_at', { ascending: false }).limit(20),
+      db.from('veraluz_hr_documents').select('id,type,name,file_url,expires_at,created_at').eq('employee_id', actor.id).order('created_at', { ascending: false }).limit(20),
+      db.from('veraluz_contracts').select('id,type,start_date,end_date,status,file_url,signed_at').eq('employee_id', actor.id).order('created_at', { ascending: false }).limit(20),
+      db.from('veraluz_employee_bonuses').select('id,month,type,label,amount').eq('employee_id', actor.id).order('month', { ascending: false }).limit(24),
+    ]);
+    const failed = requests.find((result) => result.error);
+    if (failed?.error) {
+      console.error('[employees-secure] self_workspace_failed code=', failed.error.code);
+      return json({ ok: false, error: 'server_error' }, 500, origin);
+    }
+    return json({ ok: true, workspace: {
+      profile: requests[0].data,
+      attendance: requests[1].data || [],
+      tasks: requests[2].data || [],
+      payroll: requests[3].data || [],
+      schedules: requests[4].data || [],
+      advances: requests[5].data || [],
+      documents: requests[6].data || [],
+      contracts: requests[7].data || [],
+      bonuses: requests[8].data || [],
+    } }, 200, origin);
+  }
+
+  if (action === 'punch_self' || action === 'punch_my_delivery_shift') {
+    const allowedFields = action === 'punch_self' ? PUNCH_SELF_FIELDS : PUNCH_MY_DELIVERY_SHIFT_FIELDS;
+    if (!validateFields(body, allowedFields) || !['in', 'out'].includes(String(body.event || ''))) {
+      return json({ ok: false, error: 'invalid_punch' }, 400, origin);
+    }
+    if (action === 'punch_my_delivery_shift') {
+      const delivery = await getDeliveryEmployee(db, actor);
+      if (!delivery.employee) return json({ ok: false, error: delivery.error }, delivery.status, origin);
+    }
+    const clock = doualaClock();
+    const { data: current, error: currentError } = await db
+      .from('veraluz_attendance')
+      .select('id,employee_id,date,check_in,check_out,status')
+      .eq('employee_id', actor.id)
+      .eq('date', clock.date)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (currentError) {
+      console.error('[employees-secure] punch_lookup_failed code=', currentError.code);
+      return json({ ok: false, error: 'server_error' }, 500, origin);
+    }
+    if (body.event === 'in') {
+      if (current?.check_in) return json({ ok: false, error: 'already_checked_in' }, 409, origin);
+      const write = current
+        ? db.from('veraluz_attendance').update({ check_in: clock.time, status: 'present' }).eq('id', current.id).eq('employee_id', actor.id).select('id,date,check_in,check_out,status').maybeSingle()
+        : db.from('veraluz_attendance').insert({ id: `att-${crypto.randomUUID()}`, employee_id: actor.id, date: clock.date, check_in: clock.time, status: 'present' }).select('id,date,check_in,check_out,status').single();
+      const { data, error } = await write;
+      if (error) {
+        console.error('[employees-secure] punch_in_failed code=', error.code);
+        return json({ ok: false, error: 'attendance_write_failed' }, 500, origin);
+      }
+      return json({ ok: true, attendance: data }, 200, origin);
+    }
+    if (!current?.check_in) return json({ ok: false, error: 'check_in_required' }, 409, origin);
+    if (current.check_out) return json({ ok: false, error: 'already_checked_out' }, 409, origin);
+    const { data, error } = await db.from('veraluz_attendance')
+      .update({ check_out: clock.time })
+      .eq('id', current.id).eq('employee_id', actor.id)
+      .select('id,date,check_in,check_out,status').maybeSingle();
+    if (error) {
+      console.error('[employees-secure] punch_out_failed code=', error.code);
+      return json({ ok: false, error: 'attendance_write_failed' }, 500, origin);
+    }
+    return json({ ok: true, attendance: data }, 200, origin);
+  }
+
+  if (action === 'complete_my_task') {
+    if (!validateFields(body, COMPLETE_MY_TASK_FIELDS)) {
+      return json({ ok: false, error: 'invalid_task_fields' }, 400, origin);
+    }
+    const taskId = targetEmployeeId(body.task_id);
+    if (!taskId) return json({ ok: false, error: 'invalid_task_id' }, 400, origin);
+    const { data: task, error } = await db.from('veraluz_hr_tasks')
+      .update({ status: 'termine' }).eq('id', taskId).eq('employee_id', actor.id)
+      .select('id,status').maybeSingle();
+    if (error) {
+      console.error('[employees-secure] complete_my_task_failed code=', error.code);
+      return json({ ok: false, error: 'task_update_failed' }, 500, origin);
+    }
+    if (!task) return json({ ok: false, error: 'task_not_found' }, 404, origin);
+    return json({ ok: true, task }, 200, origin);
+  }
+
+  if (action === 'rh_read') {
+    if (!hasCapability(actor.role, 'employees.manage')) {
+      return json({ ok: false, error: 'forbidden' }, 403, origin);
+    }
+    if (!validateFields(body, RH_READ_FIELDS)) {
+      return json({ ok: false, error: 'invalid_rh_read_fields' }, 400, origin);
+    }
+    const resource = rhResourceName(body.resource);
+    if (!resource) return json({ ok: false, error: 'invalid_rh_resource' }, 400, origin);
+    const { data: rows, error } = await db.from(resource).select('*').limit(500);
+    if (error) {
+      console.error('[employees-secure] rh_read_failed resource=', resource, ' code=', error.code);
+      return json({ ok: false, error: 'rh_read_failed' }, 500, origin);
+    }
+    return json({ ok: true, rows: rows || [] }, 200, origin);
+  }
+
+  if (action === 'rh_write') {
+    if (!hasCapability(actor.role, 'employees.manage')) {
+      return json({ ok: false, error: 'forbidden' }, 403, origin);
+    }
+    if (!validateFields(body, RH_WRITE_FIELDS)) {
+      return json({ ok: false, error: 'invalid_rh_write_fields' }, 400, origin);
+    }
+    const resource = rhResourceName(body.resource);
+    const operation = String(body.operation || '');
+    if (!resource || !['insert','update','delete'].includes(operation)) {
+      return json({ ok: false, error: 'invalid_rh_write' }, 400, origin);
+    }
+    const values = operation === 'delete' ? {} : sanitizeRhValues(resource, body.values, actor);
+    if (operation !== 'delete' && (!values || !Object.keys(values).length)) {
+      return json({ ok: false, error: 'invalid_rh_values' }, 400, origin);
+    }
+    let query;
+    if (operation === 'insert') {
+      query = db.from(resource).insert(values!).select('*');
+    } else {
+      const recordId = targetEmployeeId(body.record_id);
+      if (!recordId) return json({ ok: false, error: 'record_id_required' }, 400, origin);
+      query = operation === 'update'
+        ? db.from(resource).update(values!).eq('id', recordId).select('*')
+        : db.from(resource).delete().eq('id', recordId).select('id');
+    }
+    const { data: rows, error } = await query;
+    if (error) {
+      console.error('[employees-secure] rh_write_failed resource=', resource, ' operation=', operation, ' code=', error.code);
+      return json({ ok: false, error: 'rh_write_failed' }, 500, origin);
+    }
+    return json({ ok: true, rows: rows || [] }, 200, origin);
+  }
+
+  if (action === 'rh_update_settings') {
+    if (!hasCapability(actor.role, 'employees.manage')) {
+      return json({ ok: false, error: 'forbidden' }, 403, origin);
+    }
+    if (!validateFields(body, RH_SETTINGS_FIELDS) || !isPlainObject(body.settings)) {
+      return json({ ok: false, error: 'invalid_settings_fields' }, 400, origin);
+    }
+    const entries = Object.entries(body.settings);
+    if (!entries.length || !entries.every(([key]) => RH_WRITABLE_SETTINGS.has(key))) {
+      return json({ ok: false, error: 'invalid_settings_key' }, 400, origin);
+    }
+    const updatedAt = new Date().toISOString();
+    const results = await Promise.all(entries.map(([key, value]) => db.from('veraluz_hr_settings')
+      .update({ value: optionalText(value, 500), updated_at: updatedAt }).eq('key', key).select('key')));
+    const failed = results.find((result) => result.error);
+    if (failed?.error) {
+      console.error('[employees-secure] rh_settings_update_failed code=', failed.error.code);
+      return json({ ok: false, error: 'settings_update_failed' }, 500, origin);
+    }
+    return json({ ok: true, updated: entries.map(([key]) => key) }, 200, origin);
   }
 
   if (action === 'list_directory') {
@@ -445,15 +751,25 @@ Deno.serve(async (req) => {
     if (!hasCapability(actor.role, 'finance.read')) {
       return json({ ok: false, error: 'forbidden' }, 403, origin);
     }
-    const { data: employees, error } = await db
-      .from('veraluz_employees')
-      .select('id,full_name,role,status,base_salary,contract_type')
-      .order('full_name', { ascending: true });
-    if (error) {
-      console.error('[employees-secure] list_analytics_failed code=', error.code);
+    const [employeeResult, payrollResult] = await Promise.all([
+      db.from('veraluz_employees')
+        .select('id,full_name,role,status,base_salary,contract_type')
+        .order('full_name', { ascending: true }),
+      db.from('veraluz_payroll')
+        .select('employee_id,period_month,period_year,net_salary')
+        .order('period_year', { ascending: false })
+        .order('period_month', { ascending: false }),
+    ]);
+    if (employeeResult.error || payrollResult.error) {
+      console.error('[employees-secure] list_analytics_failed employee_code=', employeeResult.error?.code,
+        ' payroll_code=', payrollResult.error?.code);
       return json({ ok: false, error: 'server_error' }, 500, origin);
     }
-    return json({ ok: true, employees: employees || [] }, 200, origin);
+    return json({
+      ok: true,
+      employees: employeeResult.data || [],
+      payroll: payrollResult.data || [],
+    }, 200, origin);
   }
 
   if (action === 'rh_list') {

@@ -209,7 +209,7 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
     <button class="tab"    data-p="tasks"    onclick="goTab('tasks')">&#9989; T&#226;ches</button>
     <button class="tab"    data-p="hist"     onclick="goTab('hist')">&#128218; Historique</button>
     <button class="tab"    data-p="params"   onclick="goTab('params')">&#9881; Param&#232;tres</button>
-    <button class="tab"    data-p="empmode"  onclick="showLoginScreen()" style="color:var(--acc2);border-left:1px solid var(--border);">&#128100; Mon espace</button>
+    <button class="tab"    data-p="empmode"  onclick="showLoginScreen()" style="color:var(--acc2);border-left:1px solid var(--border);">&#9201; Kiosque pointage</button>
   </div>
   <div id="content">
 <div id="load-banner" style="display:none;position:absolute;top:0;left:0;right:0;z-index:50;background:var(--bg3);border-bottom:1px solid var(--border);padding:8px 14px;font-size:12px;color:var(--text3);text-align:center;">Chargement...</div>
@@ -852,10 +852,11 @@ var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 
 function _hdr(x){return Object.assign({'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},x||{});}
 function _chk(r){if(!r.ok){return r.json().then(function(e){throw new Error((e&&(e.message||e.hint||JSON.stringify(e)))||'HTTP '+r.status);});}return r.json();}
-function GET(t){return fetch(SUPA_URL+'/rest/v1/'+t,{headers:_hdr()}).then(_chk);}
-function POST(t,d){return fetch(SUPA_URL+'/rest/v1/'+t,{method:'POST',headers:_hdr({'Content-Type':'application/json','Prefer':'return=representation'}),body:JSON.stringify(d)}).then(_chk);}
-function PATCH(t,id,d){return fetch(SUPA_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'PATCH',headers:_hdr({'Content-Type':'application/json','Prefer':'return=representation'}),body:JSON.stringify(d)}).then(_chk);}
-function DELETE(t,id){return fetch(SUPA_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}});}
+/* RECOVERY LOT A — aucun accès RH métier direct depuis le navigateur. */
+function GET(t){return employeesSecure('rh_read',{resource:t}).then(function(b){return b.rows||[];});}
+function POST(t,d){return employeesSecure('rh_write',{resource:t,operation:'insert',values:d}).then(function(b){return b.rows||[];});}
+function PATCH(t,id,d){return employeesSecure('rh_write',{resource:t,operation:'update',record_id:id,values:d}).then(function(b){return b.rows||[];});}
+function DELETE(t,id){return employeesSecure('rh_write',{resource:t,operation:'delete',record_id:id}).then(function(b){return b.rows||[];});}
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 /* PROMPT 007 — délégation VC.esc() + safeUrl() */
 var VC = window.VeraluzCore || {};
@@ -1243,6 +1244,7 @@ function renderDosCheckins(){
   el.innerHTML='<div style="padding:10px 0;text-align:center;color:var(--text3);font-size:12px;">Chargement...</div>';
   safeGet('veraluz_employee_checkins?employee_id=eq.'+encodeURIComponent(_dosEmpId)+'&order=created_at.desc&limit=40')
     .then(function(rows){
+      rows=(rows||[]).filter(function(row){return row.employee_id===_dosEmpId;}).slice(0,40);
       if(!rows||!rows.length){
         el.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3)"><div style="font-size:1.5rem;margin-bottom:6px">&#128247;</div>Aucun pointage enregistr&#233;</div>';
         return;
@@ -2170,7 +2172,8 @@ function loadHist(){
 function loadParams(){
   document.getElementById('param-payday').value=SETTINGS.payday||'25';
   document.getElementById('param-email').value=SETTINGS.notify_email||'';
-  document.getElementById('param-pin').value=SETTINGS.default_pin||'1234';
+  var pinSetting=document.getElementById('param-pin');
+  if(pinSetting){pinSetting.value='';pinSetting.disabled=true;pinSetting.placeholder='Géré par Auth';}
   document.getElementById('param-adv-limit').value=SETTINGS.advance_limit_pct||'50';
   document.getElementById('param-hotel-name').value=SETTINGS.hotel_name||'';
   document.getElementById('param-hotel-addr').value=SETTINGS.hotel_address||'';
@@ -2179,21 +2182,25 @@ function loadParams(){
   document.getElementById('param-momo').value=SETTINGS.momo_operator||'MTN MoMo';
 }
 function saveParams(){
-  var updates={payday:document.getElementById('param-payday').value,notify_email:document.getElementById('param-email').value,default_pin:document.getElementById('param-pin').value,advance_limit_pct:document.getElementById('param-adv-limit').value,hotel_name:document.getElementById('param-hotel-name').value,hotel_address:document.getElementById('param-hotel-addr').value,bank_name:document.getElementById('param-bank').value,bank_account:document.getElementById('param-bank-acc').value,momo_operator:document.getElementById('param-momo').value};
-  var promises=Object.keys(updates).map(function(key){
-    SETTINGS[key]=updates[key];
-    return fetch(SUPA_URL+'/rest/v1/veraluz_hr_settings?key=eq.'+key,{method:'PATCH',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'},body:JSON.stringify({value:updates[key],updated_at:new Date().toISOString()})});
-  });
-  Promise.all(promises).then(function(){toast('Param&#232;tres enregistr&#233;s &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
+  var updates={payday:document.getElementById('param-payday').value,notify_email:document.getElementById('param-email').value,advance_limit_pct:document.getElementById('param-adv-limit').value,hotel_name:document.getElementById('param-hotel-name').value,hotel_address:document.getElementById('param-hotel-addr').value,bank_name:document.getElementById('param-bank').value,bank_account:document.getElementById('param-bank-acc').value,momo_operator:document.getElementById('param-momo').value};
+  employeesSecure('rh_update_settings',{settings:updates}).then(function(){Object.keys(updates).forEach(function(k){SETTINGS[k]=updates[k];});toast('Param&#232;tres enregistr&#233;s &#9989;','ok');}).catch(function(e){toast('Erreur: '+e,'err');});
 }
 
 
 /* ═══════════════ LOGIN & CLOCK ═══════════════ */
 var _pinBuffer='';
 function showLoginScreen(){
-  _pinBuffer='';updatePinDots();
-  document.getElementById('login-err').textContent='';
-  buildPinPad();
+  /* RECOVERY LOT A — Mon espace/pointage ne crée plus une session parallèle
+     dans l'iframe. CORE révoque d'abord la session active puis ouvre son
+     kiosque verrouillé avec une session employé canonique et éphémère. */
+  LOGGED_EMP=null;
+  document.getElementById('clock-screen').classList.remove('on');
+  document.getElementById('emp-personal').classList.remove('on');
+  if(window.parent&&window.parent!==window){
+    window.parent.postMessage({source:'veraluz-rh',type:'enter-kiosk-mode'},'*');
+    return;
+  }
+  document.getElementById('login-err').textContent='Ouvrez le module RH depuis VERALUZ CORE pour utiliser le pointage sécurisé.';
   document.getElementById('login-screen').classList.add('on');
 }
 function closeLoginScreen(){document.getElementById('login-screen').classList.remove('on');}
@@ -2218,33 +2225,16 @@ function updatePinDots(){
   for(var i=0;i<6;i++){var d=document.getElementById('pd'+i);if(d)d.className='pin-dot'+(i<_pinBuffer.length?' filled':'');}
 }
 function doLogin(){
-  var eid=document.getElementById('login-emp-sel').value;
-  if(!eid){document.getElementById('login-err').textContent='Choisissez votre nom';_pinBuffer='';updatePinDots();return;}
-  var emp=EMPS.find(function(e){return e.id===eid;});
-  if(!emp){document.getElementById('login-err').textContent=(EMPS.length===0?'Module non chargé — cliquez Actualiser':'Employé introuvable');_pinBuffer='';updatePinDots();return;}
-  if(_pinBuffer.length===5){document.getElementById('login-err').textContent='PIN incomplet — saisissez le 6ᵉ chiffre ou ⌫';return;}
-  if(_pinBuffer.length<4){document.getElementById('login-err').textContent='PIN trop court';return;}
-  /* PROMPT 020D — M10 : vérification via Edge Function verify-employee-pin */
-  var errEl=document.getElementById('login-err');
-  errEl.textContent='Vérification…';
-  fetch(SUPA_URL+'/functions/v1/verify-employee-pin',{
-    method:'POST',mode:'cors',credentials:'omit',
-    headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
-    body:JSON.stringify({employee_id:eid,pin:_pinBuffer})
-  }).then(function(r){return r.json();}).then(function(res){
-    if(!res.ok){errEl.textContent='PIN incorrect ✗';_pinBuffer='';updatePinDots();return;}
-    LOGGED_EMP=emp;errEl.textContent='';
-    document.getElementById('login-screen').classList.remove('on');
-    showClockScreen();
-    if(res.must_change_pin){setTimeout(function(){toast('⚠️ PIN temporaire — changez votre PIN dans Mon PIN');},600);}
-  }).catch(function(){
-    errEl.textContent='Service de connexion indisponible';_pinBuffer='';updatePinDots();
-  });
+  document.getElementById('login-err').textContent='Connexion interne désactivée. Utilisez VERALUZ CORE.';
+  _pinBuffer='';updatePinDots();
 }
 function logoutEmp(){
   LOGGED_EMP=null;
   document.getElementById('clock-screen').classList.remove('on');
   document.getElementById('emp-personal').classList.remove('on');
+  if(window.parent&&window.parent!==window){
+    window.parent.postMessage({source:'veraluz-rh',type:'enter-kiosk-mode'},'*');
+  }
 }
 function showClockScreen(){
   if(!LOGGED_EMP)return;
@@ -2274,27 +2264,10 @@ function checkTodayPunch(){
   else if((att.check_in||att.time_in)&&(att.check_out||att.time_out)){btnIn.disabled=true;btnOut.disabled=true;status.textContent='Journ&#233;e compl&#232;te &#9989; '+(att.check_in||att.time_in)+' &#8594; '+(att.check_out||att.time_out);}
 }
 function punchIn(){
-  if(!LOGGED_EMP)return;
-  var today=new Date().toISOString().slice(0,10);
-  var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  var d={id:gid(),employee_id:LOGGED_EMP.id,date:today,status:'present',check_in:now};
-  POST('veraluz_attendance',d).then(function(r){
-    ATTS.unshift(r[0]||d);
-    checkTodayPunch();
-    toast('Arriv&#233;e enregistr&#233;e &#224; '+now+' &#9989;','ok');
-  }).catch(function(e){toast('Erreur: '+e,'err');});
+  toast('Utilisez le kiosque sécurisé de VERALUZ CORE.','err');
 }
 function punchOut(){
-  if(!LOGGED_EMP)return;
-  var today=new Date().toISOString().slice(0,10);
-  var now=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  var att=ATTS.find(function(a){return a.employee_id===LOGGED_EMP.id&&a.date===today;});
-  if(!att){toast('Pas d\'arrivée enregistrée','err');return;}
-  PATCH('veraluz_attendance',att.id,{check_out:now}).then(function(){
-    att.check_out=now;att.time_out=now;
-    checkTodayPunch();
-    toast('D&#233;part enregistr&#233; &#224; '+now+' &#9989;','ok');
-  }).catch(function(e){toast('Erreur: '+e,'err');});
+  toast('Utilisez le kiosque sécurisé de VERALUZ CORE.','err');
 }
 
 /* ═══════════════ ESPACE PERSONNEL ═══════════════ */
@@ -2413,34 +2386,7 @@ function renderEpPointages(){
 }
 /* PROMPT 020C — M5 : changePin appelle Edge Function change-employee-pin (6 chiffres) */
 function changePin(){
-  if(!LOGGED_EMP){toast('Session expirée — veuillez vous reconnecter','err');return;}
-  var curPin=document.getElementById('cur-pin')&&document.getElementById('cur-pin').value||'';
-  var p1=(document.getElementById('new-pin1').value||'').trim();
-  var p2=(document.getElementById('new-pin2').value||'').trim();
-  if(!/^\d{4}$/.test(curPin)&&!/^\d{6}$/.test(curPin)){toast('PIN actuel : 4 ou 6 chiffres requis','err');return;}
-  if(!/^\d{6}$/.test(p1)){toast('Le nouveau PIN doit avoir exactement 6 chiffres','err');return;}
-  if(p1!==p2){toast('Les deux nouveaux PIN ne correspondent pas','err');return;}
-  var EDGE_CHANGE='https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/change-employee-pin';
-  var SUPA_KEY_RH='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
-  fetch(EDGE_CHANGE,{
-    method:'POST',mode:'cors',credentials:'omit',
-    headers:{'Content-Type':'application/json','apikey':SUPA_KEY_RH,'Authorization':'Bearer '+SUPA_KEY_RH},
-    body:JSON.stringify({employee_id:LOGGED_EMP.id,current_pin:curPin,new_pin:p1})
-  }).then(function(r){return r.json();}).then(function(result){
-    if(!result.ok){
-      var msg=(result.error==='invalid_credentials')?'PIN actuel incorrect.'
-        :(result.error==='new_pin_must_be_6_digits')?'Le nouveau PIN doit avoir exactement 6 chiffres.'
-        :(result.error==='weak_pin')?'PIN trop simple. Choisissez une combinaison moins évidente.'
-        :(result.error==='new_pin_same_as_current')?'Le nouveau PIN doit être différent de l\'actuel.'
-        :(result.error==='temporary_pin_expired')?'PIN temporaire expiré. Contactez votre responsable.'
-        :(result.error||'Erreur lors du changement de PIN.');
-      toast(msg,'err');return;
-    }
-    toast('PIN modifié ✅','ok');
-    if(document.getElementById('cur-pin'))document.getElementById('cur-pin').value='';
-    document.getElementById('new-pin1').value='';
-    document.getElementById('new-pin2').value='';
-  }).catch(function(){toast('Service indisponible. Vérifiez la connexion.','err');});
+  toast('Le changement de PIN se fait depuis Mon espace dans VERALUZ CORE.','err');
 }
 
 /* ═══════════════ INIT ═══════════════ */
@@ -2687,8 +2633,7 @@ function createPeriode(){
   if(start>=end){toast('La date de fin doit être après la date de début','err');return;}
   var dup=PAY_PERIODS.find(function(p){return p.period_label===label;});
   if(dup){toast('Une période "'+label+'" existe déjà','err');return;}
-  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
-  var who=sess.username||sess.email||'DEV';
+  var who=_rhCallerId||'server';
   var d={period_label:label,start_date:start,end_date:end,status:'draft',created_by:who,notes:notes||null};
   POST('veraluz_pay_periods',d).then(function(r){
     var rec=(Array.isArray(r)?r[0]:r)||d;
@@ -2730,8 +2675,7 @@ function calcPeriode(pid){
     if(!confirm('Attention : cette période est déjà validée par le manager.\nRecalculer effacera la validation et remettra la période à l\'état Calculée.\n\nContinuer ?'))return;
   }
   var month=period.start_date?period.start_date.slice(0,7):'';
-  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
-  var who=sess.username||sess.email||'DEV';
+  var who=_rhCallerId||'server';
   var items=[];
   EMPS.filter(function(e){return e.status==='actif';}).forEach(function(emp){
     var bList=BONUSES.filter(function(b){return b.employee_id===emp.id&&b.month===month;});
@@ -2882,8 +2826,7 @@ function validateMgrPeriode(pid){
   }
   var msg='Validation manager\n\n"'+period.period_label+'"\n\nCette validation confirme que le manager a vérifié les lignes de paie. Aucun paiement n\'est effectué.\n\nConfirmer ?';
   if(!confirm(msg))return;
-  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
-  var who=sess.username||sess.email||'Manager DEV';
+  var who=_rhCallerId||'server';
   var now=new Date().toISOString();
   var updates={status:'validated_manager',validated_by_manager:who,validated_by_manager_at:now};
   var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
@@ -2922,22 +2865,9 @@ window.addEventListener('message', function(ev) {
   var d = ev.data.data || {};
   _rhCallerRole   = d.role || null;
   _rhCallerId     = d.employee_id || null;
-  var empId = d.employee_id || null;
-  if (!empId) return;
-  function tryAutoLogin(attempts) {
-    var emp = EMPS.find(function(e) { return e.id === empId; });
-    if (emp) {
-      LOGGED_EMP = emp;
-      var ls = document.getElementById('login-screen');
-      if (ls) ls.classList.remove('on');
-      showClockScreen();
-    } else if ((attempts || 0) < 10) {
-      setTimeout(function() { tryAutoLogin((attempts || 0) + 1); }, 500);
-    } else {
-      console.warn('RH auto-login: employé introuvable dans EMPS pour id=' + empId);
-    }
-  }
-  tryAutoLogin(0);
+  /* RECOVERY LOT A — auth-context informe uniquement l'affichage admin.
+     Il ne crée jamais LOGGED_EMP et ne restaure jamais un Mon espace caché. */
+  LOGGED_EMP = null;
 });
 </script>
 
@@ -2991,8 +2921,7 @@ function validateManagerPeriode(pid){
   }
   var msg='Validation manager\n\n"+period.period_label+"\n\nCette action confirme la vérification manager. Aucun paiement n\'est effectué.\n\nConfirmer ?';
   if(!confirm(msg))return;
-  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}')
-  var who=sess.username||sess.email||'DEV';
+  var who=_rhCallerId||'server';
   var now=new Date().toISOString();
   var updates={status:'validated_manager',validated_by_manager:who,validated_by_manager_at:now};
   var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
@@ -3016,8 +2945,7 @@ function validateOwnerPeriode(pid){
   }
   var msg='Validation propriétaire\n\n"'+period.period_label+'"\n\nCette validation autorise la préparation future des bulletins et du fichier banque. Aucun paiement n\'est effectué.\n\nConfirmer ?';
   if(!confirm(msg))return;
-  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
-  var who=sess.username||sess.email||'Propriétaire DEV';
+  var who=_rhCallerId||'server';
   var now=new Date().toISOString();
   var updates={status:'validated_owner',validated_by_owner:who,validated_by_owner_at:now};
   var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});
@@ -3040,8 +2968,7 @@ function markPeriodePaid(pid){
   }
   var msg='Marquer comme payée\n\n"'+period.period_label+'"\n\nConfirmez uniquement si le paiement externe a réellement été effectué par la banque ou le moyen choisi.\n\nLE SYSTÈME NE PAIE JAMAIS AUTOMATIQUEMENT.\n\nConfirmer ?';
   if(!confirm(msg))return;
-  var sess=JSON.parse(sessionStorage.getItem('veraluz_session')||'{}');
-  var who=sess.username||sess.email||'DEV';
+  var who=_rhCallerId||'server';
   var now=new Date().toISOString();
   var updates={status:'paid',paid_by:who,paid_at:now};
   var its=PAY_ITEMS.filter(function(i){return i.pay_period_id===pid;});

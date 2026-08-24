@@ -1490,7 +1490,11 @@ function syncPendingActions(){
           }
         });
     } else if (a.type === 'punch'){
-      return sbPost('veraluz_pointages', a.payload)
+      /* Les anciennes files locales peuvent contenir employee_id/type/date.
+         Seul l'événement est conservé; l'identité vient toujours de la session. */
+      var queuedEvent=a.payload&&a.payload.event;
+      if(!queuedEvent&&a.payload&&a.payload.type)queuedEvent=a.payload.type==='arrivee'?'in':'out';
+      return employeesSecure('punch_my_delivery_shift', {event:queuedEvent})
         .then(function(){ done++; })
         .catch(function(){
           a.retry_count++;
@@ -1894,14 +1898,7 @@ function startClock(){
 
 function doPunch(type){
   if(!LIVREUR_ACTIF)return;
-  var now=new Date();
-  var payload={
-    employee_id:LIVREUR_ACTIF.id,
-    type:type,
-    punched_at:now.toISOString(),
-    date:now.toISOString().slice(0,10),
-    note:''
-  };
+  var payload={event:type==='arrivee'?'in':'out'};
   var statusEl=document.getElementById('punch-status-lbl');
   if(statusEl){
     if(type==='arrivee'){statusEl.textContent='En service';statusEl.className='punch-status in';}
@@ -1920,22 +1917,34 @@ function doPunch(type){
 
 /* PROMPT 005/006: savePunch avec file d'attente offline */
 function savePunch(payload){
-  sbPost('veraluz_pointages',payload)
+  employeesSecure('punch_my_delivery_shift',payload)
     .then(function(){
       toast('✅ Pointage enregistré','ok');
       loadPointageToday();
     })
-    .catch(function(){
-      queueAction('punch',null,payload);
-      toast('📝 Pointage en attente (sync au retour connexion)','err');
+    .catch(function(error){
+      if(!error||!error.status){
+        queueAction('punch',null,payload);
+        toast('📝 Pointage en attente (sync au retour connexion)','err');
+        return;
+      }
+      toast('Pointage refusé — actualisez votre session.','err');
+      loadPointageToday();
     });
+}
+
+function deliveryShiftToPointages(shift){
+  if(!shift||!shift.date)return [];
+  var rows=[];
+  if(shift.check_in)rows.push({type:'arrivee',punched_at:shift.date+'T'+shift.check_in});
+  if(shift.check_out)rows.push({type:'depart',punched_at:shift.date+'T'+shift.check_out});
+  return rows;
 }
 
 function loadPointageToday(){
   if(!LIVREUR_ACTIF)return;
-  var today=new Date().toISOString().slice(0,10);
-  sbFetch('veraluz_pointages?employee_id=eq.'+LIVREUR_ACTIF.id+'&date=eq.'+today+'&order=punched_at.asc')
-    .then(function(rows){_pointages=rows||[];renderPointageToday();})
+  employeesSecure('get_my_delivery_shift_status',{})
+    .then(function(data){_pointages=deliveryShiftToPointages(data&&data.shift);renderPointageToday();})
     .catch(function(){_pointages=[];renderPointageToday();});
 }
 
@@ -2069,20 +2078,15 @@ function uploadToStorage(file, path){
   });
 }
 
-/* Enregistrer un checkin dans veraluz_employee_checkins — PROMPT 026 */
+/* Preuve de prise de service via employees-secure; actor.id reste l'autorité. */
 function postCheckin(type, selfieUrl){
   if(!LIVREUR_ACTIF) return;
   var payload={
-    tenant_id:'veraluz-001',
-    employee_id:String(LIVREUR_ACTIF.id||''),
-    employee_name:(LIVREUR_ACTIF.prenom||'')+' '+(LIVREUR_ACTIF.nom||''),
-    role:LIVREUR_ACTIF.role||'livreur',
     checkin_type:type,
     selfie_url:selfieUrl||null,
-    device_info:navigator.userAgent?navigator.userAgent.slice(0,120):null,
-    status:'pending'
+    device_info:navigator.userAgent?navigator.userAgent.slice(0,120):null
   };
-  sbPost('veraluz_employee_checkins',payload)
+  employeesSecure('record_my_delivery_checkin',payload)
     .catch(function(){/* Non bloquant — checkin sans selfie en cas d'erreur */});
 }
 

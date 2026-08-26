@@ -669,15 +669,19 @@ Deno.serve(async (req: Request) => {
 
     return json({
       ok:           true,
+      id:            newOrder!.id,
       order_id:     newOrder!.id,
       order_number: newOrder!.order_number,
       status:       newOrder!.status,
+      delivery_type: 'room',
+      room_service_status: 'unassigned',
       status_label: orderStatusLabel(newOrder!.status),
       status_step:  orderStatusStep(newOrder!.status),
       total:        newOrder!.total,
       items:        resolvedItems,
       created_at:   newOrder!.created_at,
-      folio_ready:  true,
+      folio_ready:  false,
+      room_charge_status: 'pending_delivery',
     }, 200, cors);
   }
 
@@ -722,6 +726,13 @@ Deno.serve(async (req: Request) => {
         notes:        o.notes,
         created_at:   o.created_at,
         delivered_at: o.delivered_at,
+        delivery_type: o.delivery_type,
+        room_service_employee_id:  o.room_service_employee_id,
+        room_service_status:       o.room_service_status,
+        room_service_assigned_at:  o.room_service_assigned_at,
+        room_service_departed_at:  o.room_service_departed_at,
+        room_service_delivered_at: o.room_service_delivered_at,
+        guest_confirmed_at:        o.guest_confirmed_at,
       };
     });
 

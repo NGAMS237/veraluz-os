@@ -2256,6 +2256,29 @@ function kdsUpd(oid,st){
 /* PROMPT 028 : kdsFoodUpd — statuts + horodatages complets + erreurs détaillées */
 function kdsFoodUpd(oid,st){
   var now=new Date().toISOString();
+  var currentOrder=FOOD_ORDERS.find(function(x){return x.id===oid;});
+
+  /* Recovery Lot C — les commandes Guest Portal chambre ne sont plus
+     modifiées directement avec la clé anon. L'Edge Function valide l'acteur,
+     la transition et l'order_id canonique. */
+  if(currentOrder&&currentOrder.source==='guest_portal'&&currentOrder.delivery_type==='room'){
+    if(!window.parent||!window.parent.veraluzSecureRequest){toast('Session serveur indisponible','er');return;}
+    window.parent.veraluzSecureRequest('room-service',{
+      action:'advance_room_order',order_id:oid,target_status:st
+    }).then(function(res){
+      var body=res&&res.body||{};
+      if(!res||res.status!==200||!body.ok)throw new Error(body.error||'transition_refusee');
+      var changed=body.order||{};
+      currentOrder.status=changed.status||st;
+      currentOrder.delivery_status=changed.delivery_status||currentOrder.delivery_status;
+      renderKDS();
+      toast('&#10003; '+({confirmed:'Commande confirm&#233;e',preparing:'Pr&#233;paration d&#233;marr&#233;e',ready:'Commande pr&#234;te'}[st]||st),'ok');
+      if(st==='ready'){
+        try{window.parent.postMessage({veraluzEvent:true,source:'veraluz-restaurant',type:'restaurant-ready',data:{order_id:oid,status:'ready',livreur_id:changed.livreur_id||null}},'*');}catch(e){}
+      }
+    }).catch(function(e){toast('Erreur: '+(e&&e.message||'transition serveur'),'er');});
+    return;
+  }
   var patchData={status:st};
   var lblMap={
     confirmed:'Commande confirm&#233;e',
@@ -2376,7 +2399,14 @@ function pickRsEmployee(empId,empName){
     if(res.body&&res.body.ok){
       /* Mise à jour locale optimiste */
       var o=FOOD_ORDERS.find(function(x){return x.id===oid;});
-      if(o){o.room_service_employee_id=empId;o.rs_employee_name=empName;o.room_service_status='assigned';}
+      if(o){
+        o.room_service_employee_id=empId;
+        o.rs_employee_name=empName;
+        o.room_service_status='assigned';
+        o.livreur_id=empId;
+        o.assigned_to=empName;
+        o.delivery_status='assigned';
+      }
       renderKds();
     }else{
       var errs={already_assigned:'Déjà assigné.',employee_not_on_duty:'Employé non en service.',order_not_ready:'Commande pas encore prête.',session_required:'Session expirée.'};

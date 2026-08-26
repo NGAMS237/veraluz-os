@@ -5,13 +5,17 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## LOCK actifs
 
-*(aucun LOCK actif)*
+Aucun LOCK actif — reprise confiée à Claude.
 
 ## Lots actifs
 
-SETTINGS-SSOT-1 | main | PROCHAINE PHASE — AUTH CLOSED (merge 2026-08-20)
+RECOVERY LOT C | codex/recovery-lot-c-room-service-folio | PATCH WIP À REVOIR — audit terminé, tests dédiés 22/22, non-régressions et dry-run SQL encore requis
 
 ## Transmissions récentes
+
+`2026-08-26 | Codex → Claude | RECOVERY LOT C WIP | codex/recovery-lot-c-room-service-folio | base be3b6ff | tests dédiés 22/22; diff --check PASS | HANDOFF — aucun merge/deploy | aucun LOCK | appliquer le patch WIP, relire le diff, exécuter non-régressions + contrôle TypeScript + dry-run SQL rollback, corriger si nécessaire, pousser la branche seulement puis arrêter au gate`
+
+`2026-08-26 | Codex | RECOVERY LOT C START | codex/recovery-lot-c-room-service-folio | base be3b6ff | smoke Lot B nettoyé; audit Guest Portal → Restaurant → Livreur → Room Charge → Folio ouvert | EN COURS — aucun merge/deploy | LOCK Lot C actif | établir SSOT order_id/statuts/charge exactement une fois puis petit lot testé`
 
 `2026-08-24 | Codex | RECOVERY LOT B.1 ATOMIC | codex/recovery-lot-b-reservation-overstay | 32a5f00 | Lot B 34/34; B.1 14/14; AUTH-R1 15/15; A.2 15/15; dry-run PROD transactionnel + rollback 4/4 | READY FOR REVIEW — aucun merge/deploy | aucun LOCK | revue finale puis autorisation explicite pour déploiement ciblé`
 

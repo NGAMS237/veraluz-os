@@ -1,27 +1,23 @@
 /**
- * room-service — GUEST-3.2
- * Actions employé : list_on_duty_employees, assign_room_service,
- *                   accept_room_service, depart_room_service,
- *                   deliver_room_service, get_my_room_service_tasks
- *
- * Sécurité :
- *   - employee_id TOUJOURS issu de validateEmployeeSession() — jamais du body
- *   - Service role key côté serveur uniquement
- *   - assign : seul un employé authentifié peut assigner ; target validé on-duty
- *   - accept/depart/deliver : seul l'employé assigné peut progresser son ordre
+ * room-service — Recovery Lot C
+ * Canonical workflow for Guest Portal room-service orders.
+ * Actor identity always comes from the validated Veraluz employee session.
+ * All state changes are compare-and-set. The Lot C database trigger creates
+ * the matching room charge in the same transaction as delivery.
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { normalizeRole, hasCapability } from './_rbac.ts';
 
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
-const SVC_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
+const SVC_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const CORS = {
-  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-veraluz-session',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+type Actor = { employeeId: string; role: string; displayName: string };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -31,253 +27,300 @@ function json(body: unknown, status = 200) {
 }
 
 async function sha256hex(text: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  const buffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buffer)).map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
-async function validateEmployeeSession(db: any, token: string): Promise<{ employeeId: string; role: string } | null> {
+async function validateEmployeeSession(db: any, token: string): Promise<Actor | null> {
   if (!token || token.length < 16) return null;
-  const hash = await sha256hex(token);
-  const { data: sess } = await db
-    .from('veraluz_employee_sessions')
+  const { data: session } = await db.from('veraluz_employee_sessions')
     .select('employee_id, expires_at, revoked_at')
-    .eq('token_hash', hash)
-    .maybeSingle();
-  if (!sess || sess.revoked_at || new Date(sess.expires_at) < new Date()) return null;
-  const { data: emp } = await db
-    .from('veraluz_employees')
-    .select('id, role, status')
-    .eq('id', sess.employee_id)
-    .maybeSingle();
-  if (!emp || !['actif','active'].includes(String(emp.status||'').toLowerCase())) return null;
-  return { employeeId: String(sess.employee_id), role: normalizeRole(emp.role) };
+    .eq('token_hash', await sha256hex(token)).maybeSingle();
+  if (!session || session.revoked_at || new Date(session.expires_at) <= new Date()) return null;
+
+  const { data: employee } = await db.from('veraluz_employees')
+    .select('id, role, status, full_name, public_display_name')
+    .eq('id', session.employee_id).maybeSingle();
+  if (!employee || !['actif', 'active'].includes(String(employee.status || '').toLowerCase())) return null;
+  return {
+    employeeId: String(employee.id),
+    role: normalizeRole(employee.role),
+    displayName: employee.public_display_name || employee.full_name || 'Employé',
+  };
 }
 
 function todayStartUTC(): string {
-  // Africa/Douala = UTC+1, pas de DST
-  const nowUtc = Date.now();
-  const localMs = nowUtc + 3600000;
-  const utcMidnight = localMs - (localMs % 86400000) - 3600000;
-  return new Date(utcMidnight).toISOString();
+  // Africa/Douala = UTC+1 year-round.
+  const localMs = Date.now() + 3_600_000;
+  return new Date(localMs - (localMs % 86_400_000) - 3_600_000).toISOString();
+}
+
+async function currentOnDutyEmployees(db: any) {
+  const { data: rows, error } = await db.from('veraluz_employee_checkins')
+    .select('employee_id, employee_name, role, checkin_type, created_at')
+    .gte('created_at', todayStartUTC()).order('created_at', { ascending: false });
+  if (error) throw error;
+  const latest = new Map<string, any>();
+  for (const row of rows || []) {
+    const id = String(row.employee_id || '');
+    if (id && !latest.has(id)) latest.set(id, row);
+  }
+  return [...latest.values()].filter((row) => row.checkin_type === 'shift_start');
+}
+
+async function isOnDuty(db: any, employeeId: string) {
+  return (await currentOnDutyEmployees(db))
+    .some((row) => String(row.employee_id) === String(employeeId));
+}
+
+const ORDER_SELECT = 'id,order_number,source,delivery_type,payment_method,payment_status,status,reservation_id,unit_id,total,room_number,room_service_employee_id,room_service_status,room_service_assigned_at,livreur_id,assigned_to,assigned_at,delivery_status,accepted_at,picked_up_at,out_for_delivery_at,arrived_at,delivered_at';
+
+async function loadRoomOrder(db: any, orderId: string) {
+  const { data, error } = await db.from('veraluz_food_orders')
+    .select(ORDER_SELECT).eq('id', orderId).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+function invalidRoomOrder(order: any): string | null {
+  if (!order) return 'order_not_found';
+  if (order.source !== 'guest_portal' || order.delivery_type !== 'room') return 'not_guest_room_service';
+  if (order.payment_method !== 'room_charge') return 'not_room_charge';
+  return null;
+}
+
+async function ensureRoomCharge(db: any, orderId: string, postedBy: string) {
+  const { data, error } = await db.rpc('veraluz_create_food_order_room_charge', {
+    p_order_id: orderId,
+    p_posted_by: postedBy,
+  });
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+async function cas(db: any, orderId: string, filters: Record<string, any>, patch: Record<string, any>) {
+  let query = db.from('veraluz_food_orders').update(patch).eq('id', orderId);
+  for (const [key, value] of Object.entries(filters)) {
+    query = value === null ? query.is(key, null) : query.eq(key, value);
+  }
+  const { data, error } = await query.select(ORDER_SELECT).maybeSingle();
+  if (error) throw error;
+  return data;
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405);
 
   const db = createClient(SUPA_URL, SVC_KEY, { auth: { persistSession: false } });
+  let body: Record<string, unknown>;
+  try { body = await req.json(); }
+  catch { return json({ ok: false, error: 'invalid_json' }, 400); }
 
-  let body: Record<string, unknown> = {};
-  try { body = await req.json(); } catch { return json({ ok: false, error: 'invalid_json' }, 400); }
-
-  const action = body.action as string | undefined;
-  if (!action) return json({ ok: false, error: 'action_required' }, 400);
-
-  const sessionToken = req.headers.get('x-veraluz-session')
+  const action = String(body.action || '');
+  const token = req.headers.get('x-veraluz-session')
     ?? (body.session_token as string | undefined) ?? '';
 
   try {
+    const actor = await validateEmployeeSession(db, token);
+    if (!actor) return json({ ok: false, error: 'session_required' }, 401);
 
-    // ============================================================
-    // list_on_duty_employees
-    // ============================================================
     if (action === 'list_on_duty_employees') {
-      // AUTH-R5 : session requise même pour lecture des employés de service
-      const _lstSession = await validateEmployeeSession(db, sessionToken);
-      if (!_lstSession) return json({ ok: false, error: 'session_required' }, 401);
-      if (!hasCapability(_lstSession.role, 'restaurant.room_service') &&
-          !hasCapability(_lstSession.role, 'reservations.read') &&
-          !hasCapability(_lstSession.role, 'employees.directory')) {
+      if (!hasCapability(actor.role, 'restaurant.room_service')
+          && !hasCapability(actor.role, 'reservations.read')
+          && !hasCapability(actor.role, 'employees.directory')) {
         return json({ ok: false, error: 'forbidden' }, 403);
       }
-      const { data: settings } = await db
-        .from('veraluz_settings').select('value').eq('key', 'restaurant').maybeSingle();
-      const allowedRoles: string[] = (settings?.value)?.room_service_allowed_roles
-        ?? ['barman', 'femme_chambre', 'gerant', 'receptionniste', 'staff'];
-
-      const { data: checkins } = await db
-        .from('veraluz_employee_checkins')
-        .select('employee_id, employee_name, role')
-        .eq('checkin_type', 'shift_start')
-        .in('role', allowedRoles)
-        .gte('created_at', todayStartUTC())
-        .order('created_at', { ascending: false });
-
-      if (!checkins?.length) return json({ ok: true, employees: [] });
-
-      const seen = new Set<string>();
-      const unique = (checkins as any[]).filter(c => {
-        if (seen.has(c.employee_id)) return false;
-        seen.add(c.employee_id); return true;
-      });
-
-      const empIds = unique.map((c: any) => c.employee_id);
-      const { data: employees } = await db
-        .from('veraluz_employees')
-        .select('id, public_display_name, public_role_label, status')
-        .in('id', empIds).eq('status', 'active');
-
-      const empMap: Record<string, any> = {};
-      (employees ?? []).forEach((e: any) => { empMap[e.id] = e; });
-
-      return json({
-        ok: true,
-        employees: unique.map((c: any) => {
-          const emp = empMap[c.employee_id] ?? {};
-          return {
-            employee_id:  c.employee_id,
-            display_name: emp.public_display_name || c.employee_name || 'Employe',
-            role_label:   emp.public_role_label   || c.role          || '',
-          };
-        }),
-      });
+      const { data: settings } = await db.from('veraluz_settings')
+        .select('value').eq('key', 'restaurant').maybeSingle();
+      const allowedRoles: string[] = settings?.value?.room_service_allowed_roles
+        ?? ['barman', 'femme_chambre', 'livreur', 'gerant', 'receptionniste', 'staff'];
+      const onDuty = (await currentOnDutyEmployees(db))
+        .filter((row) => allowedRoles.includes(normalizeRole(row.role)));
+      if (!onDuty.length) return json({ ok: true, employees: [] });
+      const { data: employees, error } = await db.from('veraluz_employees')
+        .select('id,public_display_name,public_role_label,full_name,status')
+        .in('id', onDuty.map((row) => row.employee_id)).in('status', ['active', 'actif']);
+      if (error) throw error;
+      const byId = new Map((employees || []).map((employee: any) => [String(employee.id), employee]));
+      return json({ ok: true, employees: onDuty.map((row) => {
+        const employee: any = byId.get(String(row.employee_id)) || {};
+        return {
+          employee_id: String(row.employee_id),
+          display_name: employee.public_display_name || employee.full_name || row.employee_name || 'Employé',
+          role_label: employee.public_role_label || row.role || '',
+        };
+      }) });
     }
 
-    // Toutes les autres actions : session requise
-    const actorSession = await validateEmployeeSession(db, sessionToken);
-    if (!actorSession) return json({ ok: false, error: 'session_required' }, 401);
-    const employeeId = actorSession.employeeId;
-    const actorRole  = actorSession.role;
-
-    // ============================================================
-    // get_my_room_service_tasks
-    // ============================================================
     if (action === 'get_my_room_service_tasks') {
-      const { data: tasks } = await db
-        .from('veraluz_food_orders')
-        .select('id,order_number,status,room_service_status,room_service_assigned_at,room_service_accepted_at,room_service_departed_at,room_number,customer_name,items,notes,total')
-        .eq('room_service_employee_id', employeeId)
+      const { data, error } = await db.from('veraluz_food_orders')
+        .select('id,order_number,status,delivery_status,room_service_status,room_service_assigned_at,room_service_accepted_at,room_service_departed_at,room_number,customer_name,items,notes,total')
+        .eq('source', 'guest_portal').eq('delivery_type', 'room')
+        .eq('room_service_employee_id', actor.employeeId)
         .in('room_service_status', ['assigned', 'accepted', 'on_the_way'])
         .order('room_service_assigned_at', { ascending: true });
-
-      return json({ ok: true, tasks: tasks ?? [] });
+      if (error) throw error;
+      return json({ ok: true, tasks: data || [] });
     }
 
-    // ============================================================
-    // assign_room_service
-    // ============================================================
-    if (action === 'assign_room_service') {
-      // AUTH-R5: seuls les rôles avec restaurant.assign peuvent dispatcher
-      if (!hasCapability(actorRole, 'restaurant.assign')) {
-        return json({ ok: false, error: 'forbidden', required_capability: 'restaurant.assign' }, 403);
+    const orderId = String(body.order_id || '');
+    if (!orderId) return json({ ok: false, error: 'order_id_required' }, 400);
+    let order = await loadRoomOrder(db, orderId);
+    const invalid = invalidRoomOrder(order);
+    if (invalid) return json({ ok: false, error: invalid }, invalid === 'order_not_found' ? 404 : 400);
+
+    if (action === 'advance_room_order') {
+      if (!hasCapability(actor.role, 'restaurant.order') && !hasCapability(actor.role, 'restaurant.stock')) {
+        return json({ ok: false, error: 'forbidden' }, 403);
       }
-      const orderId          = body.order_id           as string | undefined;
-      const targetEmployeeId = body.target_employee_id as string | undefined;
-      if (!orderId || !targetEmployeeId)
-        return json({ ok: false, error: 'order_id_and_target_employee_id_required' }, 400);
+      const target = String(body.target_status || '');
+      const allowed = target === 'confirmed' ? order.status === 'pending'
+        : target === 'preparing' ? ['pending', 'confirmed'].includes(order.status)
+        : target === 'ready' ? order.status === 'preparing' : false;
+      if (!allowed) return json({ ok: false, error: 'invalid_status_transition' }, 409);
+      const changed = await cas(db, orderId, { status: order.status }, {
+        status: target,
+        ...(target === 'ready' ? { delivery_status: 'waiting_assignment' } : {}),
+      });
+      return changed ? json({ ok: true, order: changed })
+        : json({ ok: false, error: 'concurrent_transition' }, 409);
+    }
 
-      const { data: order } = await db
-        .from('veraluz_food_orders')
-        .select('id, delivery_type, status, room_service_employee_id')
-        .eq('id', orderId).maybeSingle();
-
-      if (!order)                         return json({ ok: false, error: 'order_not_found'  }, 404);
-      if (order.delivery_type !== 'room') return json({ ok: false, error: 'not_room_service' }, 400);
-      if (order.status !== 'ready')       return json({ ok: false, error: 'order_not_ready'  }, 400);
+    if (action === 'assign_room_service') {
+      if (!hasCapability(actor.role, 'restaurant.assign')) return json({ ok: false, error: 'forbidden' }, 403);
+      const targetId = String(body.target_employee_id || '');
+      if (!targetId) return json({ ok: false, error: 'target_employee_id_required' }, 400);
+      if (order.status !== 'ready') return json({ ok: false, error: 'order_not_ready' }, 409);
       if (order.room_service_employee_id) return json({ ok: false, error: 'already_assigned' }, 409);
-
-      const { data: checkin } = await db
-        .from('veraluz_employee_checkins')
-        .select('employee_id')
-        .eq('employee_id', targetEmployeeId)
-        .eq('checkin_type', 'shift_start')
-        .gte('created_at', todayStartUTC())
-        .maybeSingle();
-
-      if (!checkin) return json({ ok: false, error: 'employee_not_on_duty' }, 400);
-
-      const { error } = await db
-        .from('veraluz_food_orders')
-        .update({
-          room_service_employee_id: targetEmployeeId,
-          room_service_status:      'assigned',
-          room_service_assigned_at: new Date().toISOString(),
-        })
-        .eq('id', orderId)
-        .is('room_service_employee_id', null);
-
-      if (error) return json({ ok: false, error: 'assign_failed' }, 500);
-      return json({ ok: true });
+      if (!(await isOnDuty(db, targetId))) return json({ ok: false, error: 'employee_not_on_duty' }, 400);
+      const { data: employee } = await db.from('veraluz_employees')
+        .select('id,full_name,public_display_name,status').eq('id', targetId)
+        .in('status', ['active', 'actif']).maybeSingle();
+      if (!employee) return json({ ok: false, error: 'employee_not_active' }, 400);
+      const now = new Date().toISOString();
+      const displayName = employee.public_display_name || employee.full_name || 'Employé';
+      const changed = await cas(db, orderId, { status: 'ready', room_service_employee_id: null }, {
+        room_service_employee_id: targetId,
+        room_service_status: 'assigned',
+        room_service_assigned_at: now,
+        livreur_id: targetId,
+        assigned_to: displayName,
+        assigned_at: now,
+        delivery_status: 'assigned',
+      });
+      return changed ? json({ ok: true, order: changed })
+        : json({ ok: false, error: 'concurrent_assignment' }, 409);
     }
 
-    // ============================================================
-    // accept_room_service
-    // ============================================================
+    if (action === 'claim_room_service') {
+      if (!hasCapability(actor.role, 'restaurant.room_service')) return json({ ok: false, error: 'forbidden' }, 403);
+      if (!(await isOnDuty(db, actor.employeeId))) return json({ ok: false, error: 'employee_not_on_duty' }, 400);
+      if (order.status !== 'ready') return json({ ok: false, error: 'order_not_ready' }, 409);
+      if (order.room_service_employee_id === actor.employeeId
+          && ['accepted', 'on_the_way', 'delivered'].includes(order.room_service_status)) {
+        return json({ ok: true, idempotent: true, order });
+      }
+      if (order.room_service_employee_id && order.room_service_employee_id !== actor.employeeId) {
+        return json({ ok: false, error: 'already_assigned' }, 409);
+      }
+      const now = new Date().toISOString();
+      const changed = await cas(db, orderId, {
+        status: 'ready',
+        room_service_employee_id: order.room_service_employee_id || null,
+      }, {
+        room_service_employee_id: actor.employeeId,
+        room_service_status: 'accepted',
+        room_service_assigned_at: order.room_service_assigned_at || now,
+        room_service_accepted_at: now,
+        livreur_id: actor.employeeId,
+        assigned_to: actor.displayName,
+        assigned_at: order.assigned_at || now,
+        accepted_at: now,
+        delivery_status: 'accepted_by_driver',
+      });
+      return changed ? json({ ok: true, order: changed })
+        : json({ ok: false, error: 'concurrent_assignment' }, 409);
+    }
+
+    if (order.room_service_employee_id !== actor.employeeId || order.livreur_id !== actor.employeeId) {
+      return json({ ok: false, error: 'not_your_task' }, 403);
+    }
+
     if (action === 'accept_room_service') {
-      const orderId = body.order_id as string | undefined;
-      if (!orderId) return json({ ok: false, error: 'order_id_required' }, 400);
-
-      const { data: order } = await db
-        .from('veraluz_food_orders')
-        .select('id, room_service_employee_id, room_service_status')
-        .eq('id', orderId).maybeSingle();
-
-      if (!order)                                        return json({ ok: false, error: 'order_not_found' }, 404);
-      if (order.room_service_employee_id !== employeeId) return json({ ok: false, error: 'not_your_task'  }, 403);
-      if (order.room_service_status !== 'assigned')      return json({ ok: false, error: 'invalid_status' }, 400);
-
-      await db.from('veraluz_food_orders').update({
-        room_service_status:      'accepted',
-        room_service_accepted_at: new Date().toISOString(),
-      }).eq('id', orderId);
-
-      return json({ ok: true });
+      if (order.room_service_status === 'accepted') return json({ ok: true, idempotent: true, order });
+      if (order.room_service_status !== 'assigned') return json({ ok: false, error: 'invalid_status' }, 409);
+      const now = new Date().toISOString();
+      const changed = await cas(db, orderId, {
+        room_service_employee_id: actor.employeeId, room_service_status: 'assigned',
+      }, {
+        room_service_status: 'accepted', room_service_accepted_at: now,
+        accepted_at: now, delivery_status: 'accepted_by_driver',
+      });
+      return changed ? json({ ok: true, order: changed }) : json({ ok: false, error: 'concurrent_transition' }, 409);
     }
 
-    // ============================================================
-    // depart_room_service
-    // ============================================================
+    if (action === 'pickup_room_service') {
+      if (order.room_service_status !== 'accepted') return json({ ok: false, error: 'invalid_status' }, 409);
+      if (order.picked_up_at) return json({ ok: true, idempotent: true, order });
+      const now = new Date().toISOString();
+      const changed = await cas(db, orderId, {
+        room_service_employee_id: actor.employeeId, room_service_status: 'accepted', picked_up_at: null,
+      }, { picked_up_at: now, delivery_status: 'picked_up' });
+      return changed ? json({ ok: true, order: changed }) : json({ ok: false, error: 'concurrent_transition' }, 409);
+    }
+
     if (action === 'depart_room_service') {
-      const orderId = body.order_id as string | undefined;
-      if (!orderId) return json({ ok: false, error: 'order_id_required' }, 400);
-
-      const { data: order } = await db
-        .from('veraluz_food_orders')
-        .select('id, room_service_employee_id, room_service_status')
-        .eq('id', orderId).maybeSingle();
-
-      if (!order)                                        return json({ ok: false, error: 'order_not_found' }, 404);
-      if (order.room_service_employee_id !== employeeId) return json({ ok: false, error: 'not_your_task'  }, 403);
-      if (!['assigned', 'accepted'].includes(order.room_service_status as string))
-        return json({ ok: false, error: 'invalid_status' }, 400);
-
-      await db.from('veraluz_food_orders').update({
-        room_service_status:      'on_the_way',
-        room_service_departed_at: new Date().toISOString(),
-      }).eq('id', orderId);
-
-      return json({ ok: true });
+      if (order.room_service_status === 'on_the_way') return json({ ok: true, idempotent: true, order });
+      if (order.room_service_status !== 'accepted') return json({ ok: false, error: 'invalid_status' }, 409);
+      const now = new Date().toISOString();
+      const changed = await cas(db, orderId, {
+        room_service_employee_id: actor.employeeId, room_service_status: 'accepted',
+      }, {
+        room_service_status: 'on_the_way', room_service_departed_at: now,
+        out_for_delivery_at: now, delivery_status: 'out_for_delivery', status: 'out_for_delivery',
+      });
+      return changed ? json({ ok: true, order: changed }) : json({ ok: false, error: 'concurrent_transition' }, 409);
     }
 
-    // ============================================================
-    // deliver_room_service
-    // ============================================================
+    if (action === 'arrive_room_service') {
+      if (order.room_service_status !== 'on_the_way') return json({ ok: false, error: 'invalid_status' }, 409);
+      if (order.arrived_at) return json({ ok: true, idempotent: true, order });
+      const now = new Date().toISOString();
+      const changed = await cas(db, orderId, {
+        room_service_employee_id: actor.employeeId, room_service_status: 'on_the_way', arrived_at: null,
+      }, { arrived_at: now, delivery_status: 'arrived' });
+      return changed ? json({ ok: true, order: changed }) : json({ ok: false, error: 'concurrent_transition' }, 409);
+    }
+
     if (action === 'deliver_room_service') {
-      const orderId = body.order_id as string | undefined;
-      if (!orderId) return json({ ok: false, error: 'order_id_required' }, 400);
-
-      const { data: order } = await db
-        .from('veraluz_food_orders')
-        .select('id, room_service_employee_id, room_service_status')
-        .eq('id', orderId).maybeSingle();
-
-      if (!order)                                        return json({ ok: false, error: 'order_not_found' }, 404);
-      if (order.room_service_employee_id !== employeeId) return json({ ok: false, error: 'not_your_task'  }, 403);
-      if (order.room_service_status !== 'on_the_way')   return json({ ok: false, error: 'invalid_status' }, 400);
-
-      await db.from('veraluz_food_orders').update({
-        room_service_status:       'delivered',
-        room_service_delivered_at: new Date().toISOString(),
-        status:                    'delivered',
-        delivered_at:              new Date().toISOString(),
-      }).eq('id', orderId);
-
-      return json({ ok: true });
+      if (order.room_service_status === 'delivered' && order.status === 'delivered') {
+        return json({ ok: true, idempotent: true, order,
+          charge: await ensureRoomCharge(db, orderId, actor.employeeId) });
+      }
+      if (order.room_service_status !== 'on_the_way') return json({ ok: false, error: 'invalid_status' }, 409);
+      const now = new Date().toISOString();
+      const photoUrl = typeof body.photo_url === 'string' ? body.photo_url : null;
+      try {
+        order = await cas(db, orderId, {
+          room_service_employee_id: actor.employeeId, room_service_status: 'on_the_way',
+        }, {
+          room_service_status: 'delivered', room_service_delivered_at: now,
+          status: 'delivered', delivery_status: 'delivered', delivered_at: now,
+          payment_status: 'charged', ...(photoUrl ? { proof_photo_url: photoUrl } : {}),
+        });
+      } catch (error) {
+        console.error('[room-service] delivery transaction failed:', error instanceof Error ? error.message : error);
+        return json({ ok: false, error: 'deliver_failed' }, 409);
+      }
+      if (!order) return json({ ok: false, error: 'concurrent_transition' }, 409);
+      return json({ ok: true, order,
+        charge: await ensureRoomCharge(db, orderId, actor.employeeId) });
     }
 
     return json({ ok: false, error: 'unknown_action' }, 400);
-
-  } catch (err) {
-    console.error('[room-service] unhandled:', err);
+  } catch (error) {
+    console.error('[room-service] unhandled:', error instanceof Error ? error.message : error);
     return json({ ok: false, error: 'server_error' }, 500);
   }
 });

@@ -633,6 +633,7 @@ var EDGE_EMPLOYEES_SECURE_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functi
 var EDGE_LOGOUT_SESSION_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/logout-employee-session';
 var EDGE_ISSUE_RESUME_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/issue-resume-token';
 var EDGE_RESUME_SESSION_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/resume-employee-session';
+var EDGE_ROOM_SERVICE_URL = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/room-service';
 /* ── Veraluz Core — référence globale + fallback ── */
 var VC = window.VeraluzCore || {};
 
@@ -865,6 +866,25 @@ function employeesSecure(action,payload){
       'X-Veraluz-Session':LIVREUR_SESSION_TOKEN
     },
     body:JSON.stringify(body)
+  }).then(function(r){
+    return r.json().catch(function(){return{ok:false,error:'invalid_response'};})
+      .then(function(data){
+        if(!r.ok||!data.ok){var err=new Error(data.error||('HTTP_'+r.status));err.status=r.status;throw err;}
+        return data;
+      });
+  });
+}
+
+/* Recovery Lot C — mutations Room Service via session employé validée. */
+function roomServiceSecure(action,payload){
+  if(!LIVREUR_SESSION_TOKEN)return Promise.reject(new Error('session_required'));
+  return fetch(EDGE_ROOM_SERVICE_URL,{
+    method:'POST',mode:'cors',credentials:'omit',
+    headers:{
+      'Content-Type':'application/json','apikey':KEY,'Authorization':'Bearer '+KEY,
+      'X-Veraluz-Session':LIVREUR_SESSION_TOKEN
+    },
+    body:JSON.stringify(Object.assign({action:action},payload||{}))
   }).then(function(r){
     return r.json().catch(function(){return{ok:false,error:'invalid_response'};})
       .then(function(data){
@@ -1244,7 +1264,7 @@ function updateSyncStrip(){
 ══════════════════════════════════════════ */
 function loadOrders(){
   var today=new Date().toISOString().slice(0,10);
-  sbFetch('veraluz_food_orders?delivery_type=eq.delivery&created_at=gte.'+today+'T00:00:00&order=created_at.desc')
+  sbFetch('veraluz_food_orders?delivery_type=in.(delivery,room)&created_at=gte.'+today+'T00:00:00&order=created_at.desc')
     .then(function(rows){
       /* P0 FIX: normalise les statuts pour compatibilité anciens enregistrements */
       _orders = rows.map(function(o){
@@ -1257,8 +1277,10 @@ function loadOrders(){
         var lid = String(LIVREUR_ACTIF.id||'');
         /* PROMPT 028 : le livreur voit ses commandes assignées + les commandes non assignées 'ready' */
         var oid = String(o.livreur_id||'');
-        var isAssignedToMe = oid === lid;
-        var isUnassignedReady = !o.livreur_id && o.status === 'ready' && o.delivery_type === 'delivery';
+        var rsid=String(o.room_service_employee_id||'');
+        var isAssignedToMe = oid === lid || rsid === lid;
+        var isUnassignedReady = !o.livreur_id && !o.room_service_employee_id && o.status === 'ready'
+          && (o.delivery_type === 'delivery' || o.delivery_type === 'room');
         return isAssignedToMe || isUnassignedReady;
       });
       /* PROMPT 005: sauvegarder dans localStorage */
@@ -1611,7 +1633,8 @@ function buildOrderCard(o){
   /* Items */
   var itemsStr='';
   try{
-    var arr=typeof o.items_json==='string'?JSON.parse(o.items_json):(o.items_json||[]);
+    var rawItems=o.items_json||o.items||[];
+    var arr=typeof rawItems==='string'?JSON.parse(rawItems):rawItems;
     if(Array.isArray(arr))itemsStr=arr.map(function(it){return escH(String(it.nom||it.name||''))+(it.qty?(' ×'+it.qty):'');}).filter(Boolean).join(', ');
   }catch(e){itemsStr=escH(String(o.items||''));}
 
@@ -1624,7 +1647,7 @@ function buildOrderCard(o){
   }
 
   /* PROMPT 005: message rapide */
-  var msgHtml='<button class="act-btn act-orange" onclick="openMsgMod('+o.id+')">💬 Message</button>';
+  var msgHtml='<button class="act-btn act-orange" data-oid="'+escH(String(o.id))+'" onclick="openMsgMod(this.dataset.oid)">💬 Message</button>';
 
   /* PROMPT 027 : étapes intermédiaires livraison */
   var stepsHtml='';
@@ -1663,7 +1686,7 @@ function buildOrderCard(o){
       actHtml='<button class="act-btn" data-oid="'+o.id+'" style="background:rgba(249,115,22,.12);color:#c2410c;border-color:#c2410c" onclick="doDeliveryStep(this.dataset.oid,\'arrive\',this)">📍 Arrivé</button>';
     }
     /* PROMPT 005: confirmation inline avant livraison */
-    actHtml+='<button class="act-btn act-ok" id="act-deliver-'+o.id+'" onclick="confirmDeliveryPrompt('+o.id+',this)">✅ Livré</button>';
+    actHtml+='<button class="act-btn act-ok" id="act-deliver-'+escH(String(o.id))+'" data-oid="'+escH(String(o.id))+'" onclick="confirmDeliveryPrompt(this.dataset.oid,this)">✅ Livré</button>';
   }
 
   /* Photo si livrée */
@@ -1679,10 +1702,11 @@ function buildOrderCard(o){
     +'<span class="oc-status status-'+escH(o.status||'')+'">'+escH(statusLabel)+'</span>'
     +'</div>'
     +'<div class="oc-client">👤 '+escH(String(o.client_name||o.customer_name||'Client'))+'</div>'
-    +(o.delivery_address?'<div class="oc-addr">📍 '+escH(String(o.delivery_address))+'</div>':'')
+    +(o.delivery_type==='room'?'<div class="oc-addr">🏨 Chambre '+escH(String(o.room_number||'?'))+'</div>'
+      :(o.delivery_address?'<div class="oc-addr">📍 '+escH(String(o.delivery_address))+'</div>':''))
     +(itemsStr?'<div class="oc-items">🍽 '+escH(itemsStr)+'</div>':'')
     +(o.note?'<div class="oc-note">📝 '+escH(String(o.note))+'</div>':'')
-    +(o.total_price?'<div class="oc-note" style="color:var(--accent)">💰 '+fmtXAF(o.total_price)+'</div>':'')
+    +((o.total_price||o.total)?'<div class="oc-note" style="color:var(--accent)">💰 '+fmtXAF(o.total_price||o.total)+'</div>':'')
     +photoHtml
     +'<div class="oc-actions">'+mapsHtml+msgHtml+actHtml+'</div>'
     +'</div>';
@@ -1699,7 +1723,7 @@ function confirmDeliveryPrompt(oid,btnEl){
   box.className='delivery-confirm-box';
   box.innerHTML='<span>Confirmer la livraison ?</span>'
     +'<button onclick="confirmDeliveryNoPhoto()">✅ Oui</button>'
-    +'<button onclick="openPhotoMod('+oid+')">📸 Avec photo</button>'
+    +'<button data-oid="'+escH(String(oid))+'" onclick="openPhotoMod(this.dataset.oid)">📸 Avec photo</button>'
     +'<button onclick="this.closest(\'.delivery-confirm-box\').remove()">✗ Annuler</button>';
   if(btnEl&&btnEl.parentNode)btnEl.parentNode.insertBefore(box,btnEl.nextSibling);
   else card.appendChild(box);
@@ -1811,12 +1835,36 @@ function cancelPhoto(){
   closeMod();
 }
 
+function completeRoomServiceDelivery(oid,photoUrl){
+  return roomServiceSecure('deliver_room_service',{
+    order_id:String(oid),photo_url:photoUrl||null
+  }).then(function(){
+    toast(photoUrl?'✅ Service + photo confirmés':'✅ Service en chambre confirmé','ok');
+    loadOrders();
+  }).catch(function(e){
+    toast('Service non confirmé: '+(e&&e.message||'erreur serveur'),'err');
+    loadOrders();
+    throw e;
+  });
+}
+
 /* PROMPT 005: livraison AVEC photo — optimiste + queue */
 function confirmDeliveryWithPhoto(){
   var oid=_currentOrderId;
   var file=_photoFile||null;   /* PROMPT 026 : utiliser File, pas base64 */
   closeMod();
   var o=_orders.find(function(x){return x.id===oid;});
+  if(o&&o.delivery_type==='room'){
+    var roomNow=new Date().toISOString();
+    var delivery=file
+      ?uploadToStorage(file,'delivery-proofs/'+roomNow.slice(0,10)+'_'+oid+'.jpg')
+        .then(function(url){return completeRoomServiceDelivery(oid,url);},
+          function(){return completeRoomServiceDelivery(oid,null);})
+      :completeRoomServiceDelivery(oid,null);
+    delivery.catch(function(){});
+    _photoB64=null;_photoFile=null;
+    return;
+  }
   if(o){o.status='delivered';renderOrders();updateStats();}
   var now=new Date().toISOString();
   if(file){
@@ -1866,6 +1914,10 @@ function confirmDeliveryNoPhoto(){
   if(box)box.remove();
   var now=new Date().toISOString();
   var o=_orders.find(function(x){return x.id===oid;});
+  if(o&&o.delivery_type==='room'){
+    completeRoomServiceDelivery(oid,null).catch(function(){});
+    return;
+  }
   if(o){o.status='delivered';o.delivery_status='delivered';o.delivered_at=now;renderOrders();updateStats();}
   var payload={status:'delivered',delivery_status:'delivered',delivered_at:now};
   sbPatch('veraluz_food_orders',oid,payload)
@@ -2098,7 +2150,7 @@ function detectNewAssignments(orders){
   if(!LIVREUR_ACTIF)return;
   var myId=String(LIVREUR_ACTIF.id||'');
   var myOrders=orders.filter(function(o){
-    return o.livreur_id&&String(o.livreur_id)===myId&&!o.accepted_at;
+    return (String(o.livreur_id||'')===myId||String(o.room_service_employee_id||'')===myId)&&!o.accepted_at;
   });
   var myIds=myOrders.map(function(o){return String(o.id);});
   if(_knownAssignedIds===null){_knownAssignedIds=new Set(myIds);return;}
@@ -2146,6 +2198,24 @@ function doDeliveryStep(oid,step,btn){
   if(btn)btn.disabled=true;
   var now=new Date().toISOString();
   var o=_orders.find(function(x){return String(x.id)===String(oid);});
+  if(o&&o.delivery_type==='room'){
+    var roomActions={
+      accept:'claim_room_service',pickup:'pickup_room_service',
+      depart:'depart_room_service',arrive:'arrive_room_service'
+    };
+    var roomAction=roomActions[step];
+    if(!roomAction){if(btn)btn.disabled=false;toast('Action Room Service invalide','err');return;}
+    roomServiceSecure(roomAction,{order_id:String(oid)}).then(function(){
+      var lbl={accept:'Commande prise en charge',pickup:'Commande récupérée',depart:'En route !',arrive:'Vous êtes arrivé'};
+      toast(lbl[step]||'Étape mise à jour','ok');
+      loadOrders();
+    }).catch(function(e){
+      if(btn)btn.disabled=false;
+      toast('Action refusée: '+(e&&e.message||'erreur serveur'),'err');
+      loadOrders();
+    });
+    return;
+  }
   var patch={};
   if(step==='accept'){
     patch={accepted_at:now,delivery_status:'accepted_by_driver'};
@@ -2197,7 +2267,7 @@ function renderHistorique(){
   body.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Chargement...</div>';
   var today=new Date().toISOString().slice(0,10);
   var weekAgo=new Date(Date.now()-7*86400000).toISOString().slice(0,10);
-  sbFetch('veraluz_food_orders?delivery_type=eq.delivery&status=eq.delivered&livreur_id=eq.'+encodeURIComponent(LIVREUR_ACTIF.id)+'&created_at=gte.'+weekAgo+'T00:00:00&order=created_at.desc')
+  sbFetch('veraluz_food_orders?delivery_type=in.(delivery,room)&status=eq.delivered&livreur_id=eq.'+encodeURIComponent(LIVREUR_ACTIF.id)+'&created_at=gte.'+weekAgo+'T00:00:00&order=created_at.desc')
     .then(function(rows){
       if(!rows||!rows.length){
         body.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">Aucune livraison cette semaine.</div>';

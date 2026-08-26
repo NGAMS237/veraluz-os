@@ -19,7 +19,11 @@ const ALLOWED_ORIGINS = [
   'http://localhost:8080'
 ];
 
-const ALLOWED_ROLES = new Set(['restaurant', 'gerant', 'direction', 'admin', 'directrice']);
+const ALLOWED_ROLES = new Set([
+  'restaurant', 'barman', 'gerant', 'manager', 'direction', 'admin',
+  'directrice', 'reception', 'receptionniste',
+]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function corsHeaders(origin: string) {
   const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -66,7 +70,7 @@ async function validateSession(
     .eq('id', sess.employee_id)
     .single();
 
-  if (!emp || emp.status !== 'actif') return null;
+  if (!emp || !['actif', 'active'].includes(String(emp.status || '').toLowerCase())) return null;
 
   return { employee_id: sess.employee_id, role: emp.role || 'staff' };
 }
@@ -112,6 +116,51 @@ Deno.serve(async (req: Request) => {
     const order_id: string | undefined = body.order_id;
     if (!order_id || typeof order_id !== 'string') {
       return json({ ok: false, error: 'order_id_requis' }, 400, cors);
+    }
+
+    // Recovery Lot C: Guest Portal room orders use veraluz_food_orders as
+    // their one operational SSOT. The database RPC is the same idempotent
+    // authority used by the delivery trigger and by room-service retries.
+    if (UUID_RE.test(order_id)) {
+      const { data: foodOrder, error: foodErr } = await admin
+        .from('veraluz_food_orders')
+        .select('id, source, delivery_type, payment_method, status')
+        .eq('id', order_id)
+        .maybeSingle();
+
+      if (foodErr) {
+        return json({ ok: false, error: 'commande_food_indisponible' }, 500, cors);
+      }
+
+      if (foodOrder) {
+        if (foodOrder.source !== 'guest_portal'
+            || foodOrder.delivery_type !== 'room'
+            || foodOrder.payment_method !== 'room_charge') {
+          return json({ ok: false, error: 'commande_non_room_service' }, 400, cors);
+        }
+        if (foodOrder.status !== 'delivered') {
+          return json({ ok: false, error: `commande_non_finalisee: ${foodOrder.status}` }, 400, cors);
+        }
+
+        const { data: chargeRows, error: chargeErr } = await admin.rpc(
+          'veraluz_create_food_order_room_charge',
+          { p_order_id: order_id, p_posted_by: session.employee_id },
+        );
+        if (chargeErr) {
+          console.error('[post-restaurant-folio] food charge error:', chargeErr.message);
+          return json({ ok: false, error: 'erreur_insertion_charge' }, 500, cors);
+        }
+        const charge = Array.isArray(chargeRows) ? chargeRows[0] : chargeRows;
+        return json({
+          ok: true,
+          charge_id: charge?.charge_id,
+          amount: charge?.amount,
+          reservation_id: charge?.reservation_id,
+          idempotent: charge?.idempotent ?? false,
+          order_source: 'veraluz_food_orders',
+          posted_by: session.employee_id,
+        }, 200, cors);
+      }
     }
 
     // ── 5. Load order via service_role (no RLS bypass needed — service_role) ─

@@ -94,7 +94,8 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'room_charge_unit_mismatch';
   END IF;
 
-  SELECT COALESCE(number, name, v_order.room_number, v_order.unit_id)
+  -- Note: veraluz_units has no 'number' column in PROD; use name directly.
+  SELECT COALESCE(name, v_order.room_number, v_order.unit_id)
     INTO v_room_name
     FROM public.veraluz_units
    WHERE id = v_order.unit_id

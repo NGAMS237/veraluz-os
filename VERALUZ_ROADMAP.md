@@ -78,7 +78,12 @@ Invariants :
 
 ### RECOVERY LOT D — Documents alignés sur le SSOT existant
 
-Aligner la migration Documents avec la table canonique existante. Aucun système Documents parallèle.
+**Branche** : `claude/recovery-lot-d-documents-ssot` — BASE : `0afdb5c`
+**Statut** : PRÊT POUR DÉPLOIEMENT CIBLÉ — en attente autorisation Blaise
+
+Table canonique : `veraluz_documents` (11 lignes réelles). Migration `20260827_recovery_lot_d_documents_ssot.sql` écrite, dry-run PASS.
+Correctif : capture schéma PROD dans Git + remplacement policies `dev_anon_*` par `prod_staff_*` avec `with_check` strict sur bucket et enum.
+Aucun système Documents parallèle. Aucune donnée modifiée.
 OCR, scan, factures, bons de livraison, QR, PDF/branding et reçus thermiques 80 mm viennent après cet alignement.
 
 ### RECOVERY LOT E — Settings + Guest + Events + Comms + Scheduler

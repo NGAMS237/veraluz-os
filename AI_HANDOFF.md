@@ -9,11 +9,11 @@ Aucun LOCK actif.
 
 ## Lots actifs
 
-UI-0 | `claude/ui-0-veraluz-signature-audit` | Audit documentaire VERALUZ Signature — aucun écran, code métier ou déploiement
-
-RECOVERY LOT D | à démarrer après clôture documentaire UI-0 | Documents/SSOT — prochain lot métier
+RECOVERY LOT D | `claude/recovery-lot-d-documents-ssot` | Documents/SSOT — migration prête, dry-run PASS, en attente déploiement PROD autorisé par Blaise
 
 ## Transmissions récentes
+
+`2026-08-27 | Claude | UI-0 MERGED MAIN + LOT D PRÊT | main | 0afdb5c | UI-0 fast-forward main validé; branche Lot D créée; migration 20260827_recovery_lot_d_documents_ssot.sql écrite; dry-run 11/11 lignes intactes; 3 policies prod_staff_* remplacent dev_anon_*; RECOVERY_LOT_D_TESTS.md + RECOVERY_LOT_D_DEPLOY_PLAN.md rédigés; AI_HANDOFF.md + VERALUZ_ROADMAP.md mis à jour | GATE LOT D — en attente autorisation déploiement PROD | aucun LOCK | prochaine action : Blaise autorise apply_migration Lot D`
 
 `2026-08-27 | Claude | UI-0 VERALUZ SIGNATURE AUDIT | claude/ui-0-veraluz-signature-audit | EN COURS | docs/design/veraluz-signature/ installé; VERALUZ_UI_AUDIT.md + VERALUZ_UI_PILOT_PLAN.md écrits; 5 systèmes CSS identifiés; 100+ variables concurrentes; RESTAURANT 170 couleurs hardcodées; Guest Portal le plus proche Signature; Livreur --gold exact; aucun --vlz-* encore présent | AUDIT COMPLET — aucun écran modifié | aucun LOCK | pousser branche, attendre autorisation UI-1`
 

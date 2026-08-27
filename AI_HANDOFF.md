@@ -9,11 +9,13 @@ Aucun LOCK actif.
 
 ## Lots actifs
 
-RECOVERY LOT D | `claude/recovery-lot-d-documents-ssot` | Documents/SSOT — migration prête, dry-run PASS, en attente déploiement PROD autorisé par Blaise
+Aucun lot actif.
 
 ## Transmissions récentes
 
-`2026-08-27 | Claude | LOT D CORRIGÉ — PRÊT POUR DÉPLOIEMENT | claude/recovery-lot-d-documents-ssot | d26e95e→e25ccb2→bc8c9eb | Revue sécurité appliquée : anon REST fermé (REVOKE + zéro policy RLS); Edge Function documents-secure créée (validateSession + hasCapability + field whitelists); migration v2 (no BEGIN/COMMIT, pre-flight DO, contraintes IF NOT EXISTS, SECURITY INVOKER trigger); DOCUMENTS_EMBEDDED.html migré vers broker CORE; tokens VERALUZ Signature injectés; dry-run PASS 11 lignes; anon_can_select=false confirmé | GATE LOT D — en attente autorisation déploiement PROD | aucun LOCK | autoriser apply_migration + deploy_edge_function documents-secure`
+`2026-08-27 | Claude | RECOVERY LOT D DEPLOYED, VALIDATED & MERGED | main | 24c3ee7 | documents-secure v1 ACTIVE (verify_jwt=false, X-Veraluz-Session, gerant uniquement); migration recovery_lot_d_documents_ssot appliquée PROD (3 constraints CHECK, 4 index, trigger updated_at, REVOKE anon, 0 policy RLS); fast-forward main 0afdb5c→24c3ee7; smoke test create/update/archive PASS; 11 documents originaux intacts; 0 données synthétiques restantes | LOT D CLOS — aucun LOCK | tests visuels desktop/mobile/thème à effectuer par Blaise | prochain lot métier : RECOVERY LOT E (Settings + Guest + Events + Comms + Scheduler)`
+
+`2026-08-27 | Claude | LOT D CORRIGÉ v3 — PRÊT POUR DÉPLOIEMENT | claude/recovery-lot-d-documents-ssot | fb39d29→24c3ee7 | reviewed_by retiré UPDATE_ALLOWED; pre-flight après CREATE TABLE; erreurs sans detail PostgreSQL; isValidUUID + parseDate 400; tests honnêtes [STATIQUE/DRY-RUN/POST-DEPLOY/MANUEL] | GATE LOT D CLOS | aucun LOCK`
 
 `2026-08-27 | Claude | UI-0 VERALUZ SIGNATURE AUDIT | claude/ui-0-veraluz-signature-audit | EN COURS | docs/design/veraluz-signature/ installé; VERALUZ_UI_AUDIT.md + VERALUZ_UI_PILOT_PLAN.md écrits; 5 systèmes CSS identifiés; 100+ variables concurrentes; RESTAURANT 170 couleurs hardcodées; Guest Portal le plus proche Signature; Livreur --gold exact; aucun --vlz-* encore présent | AUDIT COMPLET — aucun écran modifié | aucun LOCK | pousser branche, attendre autorisation UI-1`
 

@@ -76,14 +76,14 @@ Invariants :
 - room charge créée exactement une fois ;
 - Guest Portal et Finance affichent les mêmes montants.
 
-### RECOVERY LOT D — Documents alignés sur le SSOT existant
+### RECOVERY LOT D — Documents alignés sur le SSOT existant ✅ CLOS
 
-**Branche** : `claude/recovery-lot-d-documents-ssot` — BASE : `0afdb5c`
-**Statut** : PRÊT POUR DÉPLOIEMENT CIBLÉ — en attente autorisation Blaise
+**Branche** : `claude/recovery-lot-d-documents-ssot` — mergée dans `main` @ `24c3ee7` — 2026-08-27
+**Statut** : DÉPLOYÉ ET VALIDÉ EN PROD
 
-Table canonique : `veraluz_documents` (11 lignes réelles). Migration v2 écrite, dry-run PASS (ROLLBACK propre, anon_can_select=false confirmé).
-Correctif : capture schéma PROD dans Git; accès anon fermé (REVOKE + zéro policy RLS); Edge Function `documents-secure` (validateSession + gerant uniquement); `DOCUMENTS_EMBEDDED.html` migré vers broker CORE; tokens VERALUZ Signature injectés.
-Aucun système Documents parallèle. Aucune donnée modifiée.
+Table canonique : `veraluz_documents` (11 lignes réelles, intactes). Migration `recovery_lot_d_documents_ssot` appliquée PROD.
+Correctif v3 : capture schéma PROD dans Git; accès anon fermé (REVOKE + zéro policy RLS, 0 policy publique); Edge Function `documents-secure` v1 ACTIVE (X-Veraluz-Session, gerant uniquement, isValidUUID, parseDate 400, erreurs sans détail PostgreSQL, reviewed_by jamais accepté du client); `DOCUMENTS_EMBEDDED.html` migré vers broker CORE; tokens VERALUZ Signature injectés.
+Aucun système Documents parallèle. Smoke test create/update/archive PASS. 11 documents originaux intacts.
 OCR, scan, factures, bons de livraison, QR, PDF/branding et reçus thermiques 80 mm viennent après cet alignement.
 
 ### RECOVERY LOT E — Settings + Guest + Events + Comms + Scheduler

@@ -7,15 +7,25 @@
 <script>if(localStorage.getItem('vl_theme')==='dark')document.documentElement.classList.add('vl-dark');</script>
 <style>
 :root{
+  /* UI-1 PILOT — Documents — VERALUZ Signature tokens (commit visuel séparé) */
+  --vlz-ink:#082b33;--vlz-ink-strong:#041b21;
+  --vlz-ocean:#008c95;--vlz-ocean-strong:#006a73;
+  --vlz-gold:#c9a84c;--vlz-gold-strong:#7a5c10;
+  --vlz-canvas:#f5f2ea;--vlz-surface:#fffcf5;
+  --vlz-radius-sm:14px;--vlz-radius-md:18px;--vlz-radius-lg:24px;
+  --vlz-shadow-small:0 6px 20px rgba(8,43,51,.07);
+  --vlz-shadow-soft:0 14px 38px rgba(8,43,51,.10);
+
   --bg:#0f1117;--bg2:#161b27;--bg3:#1e2535;--bg4:#252d3d;
-  --acc:#6366f1;--acc2:#818cf8;--acc3:#4f46e5;
+  /* acc remappé sur --vlz-ocean */
+  --acc:var(--vlz-ocean);--acc2:#00a8b3;--acc3:var(--vlz-ocean-strong);
   --grn:#22c55e;--grn2:#16a34a;
   --red:#ef4444;--red2:#dc2626;
-  --ylw:#f59e0b;--ylw2:#d97706;
-  --blu:#3b82f6;--cyn:#06b6d4;
+  --ylw:var(--vlz-gold);--ylw2:var(--vlz-gold-strong);
+  --blu:#3b82f6;--cyn:var(--vlz-ocean);
   --fg:#e2e8f0;--fg2:#94a3b8;--fg3:#64748b;
-  --brd:rgba(255,255,255,.08);
-  --rad:12px;--rad2:8px;
+  --brd:rgba(0,140,149,.15);
+  --rad:var(--vlz-radius-md);--rad2:var(--vlz-radius-sm);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -873,18 +883,8 @@ html.vl-dark #vl-tm-btn{background:#1e2538;color:#94a3b8;box-shadow:4px 4px 12px
 window.__MODULE_NAME__ = 'documents';
 
 /* ── CONFIG ──────────────────────────────────────── */
-var SB_URL = (function(){
-  if(window.VERALUZ_SB_URL) return window.VERALUZ_SB_URL;
-  if(window.parent && window.parent.VERALUZ_SB_URL) return window.parent.VERALUZ_SB_URL;
-  return 'https://dfdmasejsoibxrvubegu.supabase.co';
-})();
-var SB_KEY = (function(){
-  /* PROMPT 019B — même pattern que RH_EMBEDDED / AI_CENTER (clé anon publique, RLS protège) */
-  if(window.VERALUZ_SB_KEY) return window.VERALUZ_SB_KEY;
-  try { if(window.parent && window.parent !== window && window.parent.VERALUZ_SB_KEY)
-    return window.parent.VERALUZ_SB_KEY; } catch(e){}
-  return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
-})();
+/* LOT D : accès Documents exclusivement via documents-secure.
+   Plus de clé anon ni d'appel REST direct à veraluz_documents. */
 
 /* ── STATE ───────────────────────────────────────── */
 var ALL_DOCS = [];
@@ -947,49 +947,30 @@ function expColor(days){
   return 'color:var(--grn)';
 }
 
-/* ── FETCH ───────────────────────────────────────── */
-function sbGet(table, params){
-  var url = SB_URL+'/rest/v1/'+table+'?'+params+'&limit=500';
-  return fetch(url,{headers:{
-    'apikey': SB_KEY,
-    'Authorization':'Bearer '+SB_KEY,
-    'Accept':'application/json'
-  }}).then(function(r){
-    if(!r.ok) throw new Error(r.status);
-    return r.json();
-  });
+/* ── APPEL SÉCURISÉ ──────────────────────────────── */
+/* Toutes les opérations Documents passent par documents-secure via le broker CORE.
+   Jamais d'accès REST direct à veraluz_documents. */
+function docsRequest(action, payload){
+  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
+    return Promise.reject(new Error('CORE_BROKER_UNAVAILABLE'));
+  }
+  return window.parent.veraluzSecureRequest('documents-secure',
+    Object.assign({ action: action }, payload || {}));
 }
 
-function sbPost(table, data){
-  return fetch(SB_URL+'/rest/v1/'+table,{
-    method:'POST',
-    headers:{
-      'apikey': SB_KEY,
-      'Authorization':'Bearer '+SB_KEY,
-      'Content-Type':'application/json',
-      'Prefer':'return=representation'
-    },
-    body: JSON.stringify(data)
-  }).then(function(r){
-    if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||r.status); });
-    return r.json();
-  });
+function isAuthError(e){
+  return e.message === 'CORE_BROKER_UNAVAILABLE'
+    || (e.status && (e.status === 401 || e.status === 403));
 }
 
-function sbPatch(table, id, data){
-  return fetch(SB_URL+'/rest/v1/'+table+'?id=eq.'+id,{
-    method:'PATCH',
-    headers:{
-      'apikey': SB_KEY,
-      'Authorization':'Bearer '+SB_KEY,
-      'Content-Type':'application/json',
-      'Prefer':'return=representation'
-    },
-    body: JSON.stringify(data)
-  }).then(function(r){
-    if(!r.ok) return r.json().then(function(e){ throw new Error(e.message||r.status); });
-    return r.json();
-  });
+function authErrorMsg(e){
+  if(e.message === 'CORE_BROKER_UNAVAILABLE')
+    return 'Module chargé hors du CORE VERALUZ — accès non disponible en mode autonome.';
+  if(e.status === 401)
+    return 'Session expirée ou invalide. Veuillez vous reconnecter au CORE VERALUZ.';
+  if(e.status === 403)
+    return 'Accès refusé : rôle insuffisant pour le module Documents.';
+  return 'Erreur d'accès (' + (e.message||e.status||'?') + ').';
 }
 
 /* ── TAB NAVIGATION ──────────────────────────────── */
@@ -1010,8 +991,8 @@ function showTab(name){
 
 /* ── LOAD ALL DOCS ───────────────────────────────── */
 function loadDocs(){
-  return sbGet('veraluz_documents','select=*&order=created_at.desc')
-    .then(function(docs){ ALL_DOCS=docs||[]; return docs; });
+  return docsRequest('list')
+    .then(function(res){ ALL_DOCS=res.documents||[]; return ALL_DOCS; });
 }
 
 /* ── OVERVIEW ────────────────────────────────────── */
@@ -1088,13 +1069,9 @@ function loadOverview(){
   }).catch(function(e){
     document.getElementById('overview-loading').style.display='none';
     document.getElementById('overview-empty').style.display='';
-    var _code=parseInt(e.message)||0;
-    var _msg=_code===401?'Connexion Supabase refusée (401). La clé anon est absente ou invalide. Rechargez la page.'
-      :_code===403?'Accès refusé par RLS (403). Vérifiez les policies de veraluz_documents.'
-      :_code===404||String(e.message).indexOf('veraluz_documents')>=0?'Table veraluz_documents introuvable. Vérifiez la migration PROMPT 019.'
-      :'Erreur Supabase ('+esc(e.message)+'). Vérifiez la connexion réseau.';
+    var _msg=isAuthError(e)?authErrorMsg(e):'Erreur de chargement ('+esc(e.message||'?')+'). Vérifiez la connexion réseau.';
     document.getElementById('overview-empty').innerHTML=
-      '<div class="empty-icon">⚠️</div><p style="font-size:13px;">'+_msg+'</p>';
+      '<div class="empty-icon">'+(isAuthError(e)?'🔒':'⚠️')+'</div><p style="font-size:13px;">'+_msg+'</p>';
   });
 }
 
@@ -1273,13 +1250,12 @@ function loadMissing(){
 
 function createMissingDoc(title,cat,conf){
   if(!confirm('Créer une fiche "manquant" pour : '+title+' ?')) return;
-  sbPost('veraluz_documents',{
-    title:title, category:cat, confidentiality_level:conf,
-    status:'missing', uploaded_by:'checklist_auto'
+  docsRequest('create',{
+    title:title, category:cat, confidentiality_level:conf, status:'missing'
   }).then(function(){
     alert('Fiche créée. Document marqué comme manquant.');
     loadMissing();
-  }).catch(function(e){ alert('Erreur: '+e.message); });
+  }).catch(function(e){ alert(isAuthError(e)?authErrorMsg(e):'Erreur: '+e.message); });
 }
 
 function addMissingToChecklist(){
@@ -1342,28 +1318,27 @@ function submitDocument(){
   if(!title){ showFormMsg('⚠️ Le titre est obligatoire.','warn'); return; }
   if(!category){ showFormMsg('⚠️ La catégorie est obligatoire.','warn'); return; }
 
+  /* uploaded_by et storage_bucket calculés côté serveur (documents-secure) */
   var data={
     title:title, category:category, document_type:dtype,
     confidentiality_level:conf, status:status,
     expiry_date:expiry, reminder_date:reminder,
-    related_module:module, uploaded_by:uploader, notes:notes,
-    storage_bucket: EDIT_ID ? undefined : CAT_BUCKETS[category] || 'veraluz-documents-private'
+    related_module:module, notes:notes
   };
-  // Nettoyer les undefined
-  Object.keys(data).forEach(function(k){ if(data[k]===undefined) delete data[k]; });
+  // Nettoyer les valeurs nulles/vides
+  Object.keys(data).forEach(function(k){ if(data[k]===null||data[k]===undefined||data[k]==='') delete data[k]; });
 
   showFormMsg('⏳ Enregistrement…','info');
 
-  var promise = EDIT_ID
-    ? sbPatch('veraluz_documents', EDIT_ID, data)
-    : sbPost('veraluz_documents', data);
+  var actionName = EDIT_ID ? 'update' : 'create';
+  var payload = EDIT_ID ? Object.assign({id:EDIT_ID}, data) : data;
 
-  promise.then(function(){
+  docsRequest(actionName, payload).then(function(){
     showFormMsg('✅ Document enregistré avec succès.','ok');
     resetForm();
     ALL_DOCS=[];
   }).catch(function(e){
-    showFormMsg('❌ Erreur: '+e.message,'danger');
+    showFormMsg(isAuthError(e)?authErrorMsg(e):'❌ Erreur: '+e.message,'danger');
   });
 }
 
@@ -1442,59 +1417,49 @@ function editDoc(id){
 
 function archiveDoc(id){
   if(!confirm('Archiver ce document ?')) return;
-  sbPatch('veraluz_documents',id,{status:'archived'}).then(function(){
+  docsRequest('archive',{id:id}).then(function(){
     ALL_DOCS=[];
     loadAll();
-  }).catch(function(e){ alert('Erreur: '+e.message); });
+  }).catch(function(e){ alert(isAuthError(e)?authErrorMsg(e):'Erreur: '+e.message); });
 }
 
 /* ── INIT ────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function(){
-  // Hériter des clés du parent (VERALUZ_OS_CORE)
-  try {
-    if(window.parent && window.parent !== window){
-      if(window.parent.VERALUZ_SB_URL) SB_URL = window.parent.VERALUZ_SB_URL;
-      if(window.parent.VERALUZ_SB_KEY) SB_KEY = window.parent.VERALUZ_SB_KEY;
+  // Vérifier que le broker CORE est disponible avant tout chargement
+  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
+    var empty=document.getElementById('overview-empty');
+    if(empty){
+      empty.innerHTML='<div class="empty-icon">🔒</div>'+
+        '<p style="font-size:13px;">Module chargé hors du CORE VERALUZ. '+
+        'Ouvrez ce module depuis l\'application principale.</p>';
+      empty.style.display='';
     }
-  } catch(e){}
+    return;
+  }
   loadOverview();
 });
 
-/* ── PROMPT 019B — Diagnostic connexion Supabase ─────────────── */
+/* ── LOT D — Diagnostic documents-secure ─────────────── */
 function runDocsDiag(){
   var wrap = document.getElementById('docs-diag-result');
   if(!wrap) return;
   wrap.style.display = '';
   wrap.innerHTML = '⏳ Test en cours…';
-
-  var url  = SB_URL || '';
-  var key  = SB_KEY || '';
   var lines = [];
 
-  lines.push('URL Supabase : ' + (url ? '✅ ' + url : '❌ ABSENTE'));
-  lines.push('Clé anon détectée : ' + (key ? '✅ oui' : '❌ NON — 401 probable'));
-  if(key) lines.push('Longueur clé : ' + key.length + ' caractères');
+  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
+    lines.push('❌ Broker CORE non disponible — module hors de VERALUZ_OS_CORE');
+    wrap.innerHTML = lines.join('<br>'); return;
+  }
+  lines.push('✅ Broker CORE détecté (veraluzSecureRequest)');
 
-  if(!key){ wrap.innerHTML = lines.join('<br>'); return; }
-
-  fetch(url+'/rest/v1/veraluz_documents?select=id&limit=1',{
-    headers:{ 'apikey':key, 'Authorization':'Bearer '+key, 'Accept':'application/json' }
-  }).then(function(r){
-    lines.push('Requête GET veraluz_documents : HTTP ' + r.status);
-    if(r.status===200||r.status===206){
-      lines.push('✅ Connexion OK — la table est accessible');
-    } else if(r.status===401){
-      lines.push('❌ 401 — Clé anon rejetée par Supabase. Vérifiez la clé et les policies anon.');
-    } else if(r.status===403){
-      lines.push('\u274C 403 — RLS bloque l\'acc\u00e8s anon. Ajoutez GRANT SELECT \u2026 TO anon.');
-    } else if(r.status===404){
-      lines.push('❌ 404 — Table veraluz_documents introuvable. Migration PROMPT 019 non appliquée ?');
-    } else {
-      lines.push('⚠️ Code inattendu : '+r.status);
-    }
+  docsRequest('list').then(function(res){
+    lines.push('✅ documents-secure → list : '+((res.documents||[]).length)+' document(s)');
     wrap.innerHTML = lines.join('<br>');
-  }).catch(function(err){
-    lines.push('❌ Erreur réseau : ' + err.message);
+  }).catch(function(e){
+    if(e.status===401) lines.push('⚠️ Session invalide ou expirée (401) — reconnectez-vous');
+    else if(e.status===403) lines.push('⚠️ Accès refusé (403) — rôle insuffisant');
+    else lines.push('❌ Erreur documents-secure : '+e.message);
     wrap.innerHTML = lines.join('<br>');
   });
 }

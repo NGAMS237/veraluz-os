@@ -1,0 +1,113 @@
+/*
+ * VERALUZ Signature UI System v1
+ * Tokens de référence — non importés globalement pendant UI-0.
+ */
+
+:root {
+  --vlz-ink: #082b33;
+  --vlz-ink-strong: #041b21;
+  --vlz-ocean: #008c95;
+  --vlz-ocean-strong: #006a73;
+  --vlz-gold: #c9a84c;
+  --vlz-gold-strong: #7a5c10;
+  --vlz-gold-soft: #f7edd1;
+
+  --vlz-canvas: #f5f2ea;
+  --vlz-surface: #fffcf5;
+  --vlz-surface-raised: #ffffff;
+  --vlz-surface-soft: #eaf2f1;
+
+  --vlz-text: #15262a;
+  --vlz-text-secondary: #54666a;
+  --vlz-text-muted: #7c8b8e;
+  --vlz-border: rgba(8, 43, 51, 0.14);
+
+  --vlz-success: #2e7d5b;
+  --vlz-warning: #b8690b;
+  --vlz-danger: #b93f44;
+  --vlz-info: #006a73;
+
+  --vlz-radius-sm: 14px;
+  --vlz-radius-md: 18px;
+  --vlz-radius-lg: 24px;
+  --vlz-radius-xl: 32px;
+  --vlz-radius-organic: 48px;
+  --vlz-radius-signature: 64px;
+  --vlz-radius-pill: 9999px;
+
+  --vlz-shadow-small: 0 6px 20px rgba(8, 43, 51, 0.07);
+  --vlz-shadow-soft: 0 14px 38px rgba(8, 43, 51, 0.10);
+
+  --vlz-motion-fast: 140ms;
+  --vlz-motion-normal: 220ms;
+
+  --vlz-font-ui: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+[data-theme="dark"],
+.vlz-dark {
+  --vlz-canvas: #06171c;
+  --vlz-surface: #0b252c;
+  --vlz-surface-raised: #103139;
+  --vlz-surface-soft: #153b43;
+
+  --vlz-text: #f8f5ec;
+  --vlz-text-secondary: #c2d0d1;
+  --vlz-text-muted: #8fa4a7;
+  --vlz-border: rgba(226, 239, 238, 0.14);
+
+  --vlz-gold-strong: #e2c775;
+  --vlz-ocean-strong: #59c4c8;
+
+  --vlz-shadow-small: 0 6px 20px rgba(0, 0, 0, 0.18);
+  --vlz-shadow-soft: 0 14px 38px rgba(0, 0, 0, 0.24);
+}
+
+.vlz-card {
+  background: var(--vlz-surface-raised);
+  border: 1px solid var(--vlz-border);
+  border-radius: var(--vlz-radius-lg);
+  box-shadow: var(--vlz-shadow-small);
+}
+
+.vlz-card-signature-right {
+  border-radius: var(--vlz-radius-lg) var(--vlz-radius-lg)
+    var(--vlz-radius-signature) var(--vlz-radius-lg);
+}
+
+.vlz-card-signature-left {
+  border-radius: var(--vlz-radius-lg) var(--vlz-radius-lg)
+    var(--vlz-radius-lg) var(--vlz-radius-signature);
+}
+
+.vlz-pill {
+  border-radius: var(--vlz-radius-pill);
+}
+
+.vlz-financial-number {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.vlz-interactive:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--vlz-ocean) 55%, white);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .vlz-card-signature-right,
+  .vlz-card-signature-left {
+    border-radius: var(--vlz-radius-xl);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .vlz-interactive {
+    transition:
+      background-color var(--vlz-motion-fast) ease,
+      border-color var(--vlz-motion-fast) ease,
+      color var(--vlz-motion-fast) ease,
+      transform var(--vlz-motion-fast) ease;
+  }
+}
+

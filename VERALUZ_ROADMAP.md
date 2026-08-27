@@ -1,6 +1,6 @@
 # VERALUZ OS — Feuille de route canonique
 
-Dernière mise à jour : 2026-08-26
+Dernière mise à jour : 2026-08-27
 
 Ce document conserve l'ordre de travail entre les conversations et les agents.
 Le dépôt GitHub et l'état PROD vérifié restent les vérités techniques.
@@ -14,6 +14,32 @@ Le dépôt GitHub et l'état PROD vérifié restent les vérités techniques.
 - Aucun déploiement PROD sans autorisation explicite de Blaise.
 - Préserver les flux déjà validés en production.
 - Une donnée = une source canonique ; ne pas créer de système parallèle.
+
+## Fondation transversale de design
+
+### UI-0 — VERALUZ Signature UI — AUDIT COMPLET 2026-08-27
+
+Identité propre adoptée : **VERALUZ Signature UI System** (dérivée du paquet Horizon, personnalisée VERALUZ).
+
+- Atlantique profond / Nuit de Kribi pour la structure
+- Océan Veraluz pour l'interaction et l'information
+- Or Veraluz comme accent rare
+- Ivoire sable / Blanc coquillage pour les surfaces claires
+- Cartes signature asymétriques uniquement sur les grandes synthèses
+- Interfaces opérationnelles Restaurant, KDS, Livreur et Planning plus sobres
+- CSS-first, accessibilité, mobile et performance obligatoires
+- Aucun changement métier, DB, RLS, Auth ou API dans les lots UI
+
+Autorité documentaire : `docs/design/veraluz-signature/`
+
+**Résultats audit UI-0 (2026-08-27) :**
+- 5 systèmes CSS parallèles, 100+ variables concurrentes, 0 token `--vlz-*` présent
+- Guest Portal : le plus proche VERALUZ Signature
+- Livreur : `--gold:#c9a84c` correspondance exacte avec `--vlz-gold`
+- Restaurant/KDS : 170 couleurs hardcodées — migration la plus lourde
+- Livrables : `VERALUZ_UI_AUDIT.md` et `VERALUZ_UI_PILOT_PLAN.md` dans `docs/design/veraluz-signature/`
+
+Prochain : **UI-1** pilote sur Dashboard, profil client/séjour et folio — sur autorisation explicite de Blaise.
 
 ## Lots de récupération
 

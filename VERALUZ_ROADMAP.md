@@ -81,8 +81,8 @@ Invariants :
 **Branche** : `claude/recovery-lot-d-documents-ssot` — BASE : `0afdb5c`
 **Statut** : PRÊT POUR DÉPLOIEMENT CIBLÉ — en attente autorisation Blaise
 
-Table canonique : `veraluz_documents` (11 lignes réelles). Migration `20260827_recovery_lot_d_documents_ssot.sql` écrite, dry-run PASS.
-Correctif : capture schéma PROD dans Git + remplacement policies `dev_anon_*` par `prod_staff_*` avec `with_check` strict sur bucket et enum.
+Table canonique : `veraluz_documents` (11 lignes réelles). Migration v2 écrite, dry-run PASS (ROLLBACK propre, anon_can_select=false confirmé).
+Correctif : capture schéma PROD dans Git; accès anon fermé (REVOKE + zéro policy RLS); Edge Function `documents-secure` (validateSession + gerant uniquement); `DOCUMENTS_EMBEDDED.html` migré vers broker CORE; tokens VERALUZ Signature injectés.
 Aucun système Documents parallèle. Aucune donnée modifiée.
 OCR, scan, factures, bons de livraison, QR, PDF/branding et reçus thermiques 80 mm viennent après cet alignement.
 

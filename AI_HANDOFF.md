@@ -13,7 +13,7 @@ RECOVERY LOT D | `claude/recovery-lot-d-documents-ssot` | Documents/SSOT — mig
 
 ## Transmissions récentes
 
-`2026-08-27 | Claude | UI-0 MERGED MAIN + LOT D PRÊT | main | 0afdb5c | UI-0 fast-forward main validé; branche Lot D créée; migration 20260827_recovery_lot_d_documents_ssot.sql écrite; dry-run 11/11 lignes intactes; 3 policies prod_staff_* remplacent dev_anon_*; RECOVERY_LOT_D_TESTS.md + RECOVERY_LOT_D_DEPLOY_PLAN.md rédigés; AI_HANDOFF.md + VERALUZ_ROADMAP.md mis à jour | GATE LOT D — en attente autorisation déploiement PROD | aucun LOCK | prochaine action : Blaise autorise apply_migration Lot D`
+`2026-08-27 | Claude | LOT D CORRIGÉ — PRÊT POUR DÉPLOIEMENT | claude/recovery-lot-d-documents-ssot | d26e95e→e25ccb2→bc8c9eb | Revue sécurité appliquée : anon REST fermé (REVOKE + zéro policy RLS); Edge Function documents-secure créée (validateSession + hasCapability + field whitelists); migration v2 (no BEGIN/COMMIT, pre-flight DO, contraintes IF NOT EXISTS, SECURITY INVOKER trigger); DOCUMENTS_EMBEDDED.html migré vers broker CORE; tokens VERALUZ Signature injectés; dry-run PASS 11 lignes; anon_can_select=false confirmé | GATE LOT D — en attente autorisation déploiement PROD | aucun LOCK | autoriser apply_migration + deploy_edge_function documents-secure`
 
 `2026-08-27 | Claude | UI-0 VERALUZ SIGNATURE AUDIT | claude/ui-0-veraluz-signature-audit | EN COURS | docs/design/veraluz-signature/ installé; VERALUZ_UI_AUDIT.md + VERALUZ_UI_PILOT_PLAN.md écrits; 5 systèmes CSS identifiés; 100+ variables concurrentes; RESTAURANT 170 couleurs hardcodées; Guest Portal le plus proche Signature; Livreur --gold exact; aucun --vlz-* encore présent | AUDIT COMPLET — aucun écran modifié | aucun LOCK | pousser branche, attendre autorisation UI-1`
 

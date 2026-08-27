@@ -1,170 +1,259 @@
-# RECOVERY LOT D — TESTS CIBLÉS DOCUMENTS/SSOT
+# RECOVERY LOT D — TESTS CIBLÉS DOCUMENTS/SSOT (v2 — post revue sécurité)
 
-**Statut** : PRÊT (à exécuter après déploiement en PROD)  
+**Statut** : PRÊT (à exécuter après déploiement en PROD)
 **Auteur** : Claude (agent) — 2026-08-27
 
 ---
 
-## 1. Tests techniques post-migration (SQL)
+## 1. Tests SQL post-migration
 
-### 1.1 Table et structure
-
-```sql
--- Vérifie que la table existe avec toutes les colonnes attendues
-SELECT column_name, data_type, is_nullable
-FROM information_schema.columns
-WHERE table_schema='public' AND table_name='veraluz_documents'
-ORDER BY ordinal_position;
--- Attendu : 21 colonnes (id → updated_at)
-
--- Vérifie les contraintes CHECK
-SELECT constraint_name, check_clause
-FROM information_schema.check_constraints
-WHERE constraint_schema='public'
-  AND constraint_name IN ('veraluz_documents_confidentiality_check','veraluz_documents_status_check','veraluz_documents_storage_bucket_check');
--- Attendu : 3 contraintes présentes
-```
-
-### 1.2 Intégrité des données (aucune perte)
+### 1.1 Intégrité des données (aucune perte)
 
 ```sql
 SELECT COUNT(*) AS total FROM public.veraluz_documents;
 -- Attendu : 11 (inchangé)
-
--- Aucun document avec bucket non autorisé
-SELECT COUNT(*) FROM public.veraluz_documents
-WHERE storage_bucket IS NOT NULL
-  AND storage_bucket NOT IN (
-    'veraluz-documents-private','veraluz-bank-private',
-    'veraluz-legal-private','veraluz-hr-private','veraluz-payslips-private'
-  );
--- Attendu : 0
 ```
 
-### 1.3 RLS — policies de production
+### 1.2 Policies : zéro policy anon/authenticated
 
 ```sql
-SELECT policyname, cmd, roles
-FROM pg_policies
-WHERE tablename='veraluz_documents'
+SELECT policyname, roles, cmd
+FROM pg_policies WHERE tablename='veraluz_documents'
 ORDER BY policyname;
--- Attendu : 3 policies prod_staff_* uniquement
--- Aucune ligne dev_anon_*
+-- Attendu : 0 lignes (RLS ON + default DENY ALL)
 ```
 
-### 1.4 Trigger
+### 1.3 Privileges directs : anon bloqué
+
+```sql
+SELECT has_table_privilege('anon','public.veraluz_documents','SELECT') AS anon_select;
+SELECT has_table_privilege('anon','public.veraluz_documents','INSERT') AS anon_insert;
+SELECT has_table_privilege('anon','public.veraluz_documents','UPDATE') AS anon_update;
+-- Attendu : false / false / false
+```
+
+### 1.4 Constraints check
+
+```sql
+SELECT constraint_name FROM information_schema.table_constraints
+WHERE table_schema='public' AND table_name='veraluz_documents'
+  AND constraint_name IN (
+    'veraluz_documents_confidentiality_check',
+    'veraluz_documents_status_check',
+    'veraluz_documents_storage_bucket_check');
+-- Attendu : 3 lignes
+```
+
+### 1.5 Trigger
 
 ```sql
 SELECT trigger_name, event_manipulation, action_timing
-FROM information_schema.triggers
-WHERE event_object_table='veraluz_documents';
+FROM information_schema.triggers WHERE event_object_table='veraluz_documents';
 -- Attendu : trg_veraluz_documents_updated_at, UPDATE, BEFORE
 ```
 
-### 1.5 Indexes
+### 1.6 Indexes
 
 ```sql
 SELECT indexname FROM pg_indexes WHERE tablename='veraluz_documents' ORDER BY indexname;
--- Attendu : 5 index (pkey + 4 idx_veraluz_documents_*)
-```
-
-### 1.6 Test INSERT valide (nettoyer après)
-
-```sql
-BEGIN;
-INSERT INTO public.veraluz_documents (title, category, confidentiality_level, status)
-VALUES ('TEST_LOT_D_SYNTHETIQUE', 'test', 'internal', 'active')
-RETURNING id;
--- Attendu : 1 ligne retournée avec UUID
-
-SELECT COUNT(*) FROM public.veraluz_documents WHERE title='TEST_LOT_D_SYNTHETIQUE';
--- Attendu : 1
-ROLLBACK;
--- Données synthétiques supprimées par ROLLBACK
-```
-
-### 1.7 Test INSERT avec bucket non autorisé (doit échouer)
-
-```sql
-BEGIN;
-INSERT INTO public.veraluz_documents (title, category, storage_bucket)
-VALUES ('TEST_BUCKET_INVALIDE', 'test', 'bucket-public-non-autorise');
--- Attendu : ERROR — violates check constraint veraluz_documents_storage_bucket_check
-ROLLBACK;
-```
-
-### 1.8 Test UPDATE avec valeur invalide (doit échouer)
-
-```sql
-BEGIN;
-UPDATE public.veraluz_documents
-SET status = 'statut_inexistant'
-WHERE id = (SELECT id FROM public.veraluz_documents LIMIT 1);
--- Attendu : ERROR — new row for relation violates check constraint
-ROLLBACK;
-```
-
-### 1.9 Test DELETE bloqué par RLS
-
-```sql
-BEGIN;
-SET ROLE anon;
-DELETE FROM public.veraluz_documents WHERE id = (SELECT id FROM public.veraluz_documents LIMIT 1);
--- Attendu : 0 rows affected (bloqué par RLS — aucune policy DELETE)
-RESET ROLE;
-ROLLBACK;
+-- Attendu : 5 (pkey + 4 idx_*)
 ```
 
 ---
 
-## 2. Non-régressions relations (RH / Finance / Réservations)
+## 2. Tests comportementaux : REST anon direct fermé
 
-Ces tables ne sont PAS touchées par Lot D. Vérification rapide :
-
-```sql
--- Aucune FK depuis/vers veraluz_documents — normal
-SELECT COUNT(*) FROM information_schema.referential_constraints
-WHERE constraint_schema='public'
-  AND (unique_constraint_name ILIKE '%document%' OR constraint_name ILIKE '%document%');
--- Attendu : 0 (couplage souple par related_module + related_record_id)
-
--- veraluz_hr_documents inchangé (Lot A)
-SELECT relrowsecurity FROM pg_class WHERE relname='veraluz_hr_documents';
--- Attendu : true (RLS ON, 0 policies = default deny — correct)
-
--- project_documents inchangé (module Chantier)
-SELECT COUNT(*) FROM public.project_documents;
--- Attendu : 0 (aucune donnée)
-```
-
----
-
-## 3. Checklist manuelle (Blaise)
-
-À effectuer dans le navigateur après déploiement :
-
-- [ ] Ouvrir `DOCUMENTS_EMBEDDED.html` — le module charge sans erreur 401/403
-- [ ] Vérifier affichage desktop et mobile
-- [ ] Basculer entre thème clair et sombre
-- [ ] Ajouter un document synthétique (titre, catégorie, date expiration)
-  - [ ] Confirmer qu'il apparaît dans "Tous les documents" et "Récents"
-- [ ] Modifier le document synthétique (changer statut ou notes)
-  - [ ] Confirmer que `updated_at` est mis à jour
-- [ ] Archiver le document synthétique
-  - [ ] Confirmer qu'il passe au statut `archived`
-- [ ] Vérifier que le bouton Supprimer est absent ou bloqué
-- [ ] Supprimer manuellement la donnée synthétique via l'interface ou SQL
-  ```sql
-  DELETE FROM public.veraluz_documents WHERE title ILIKE '%synthétique%' OR title ILIKE '%test%';
-  ```
-- [ ] Confirmer que les 11 documents originaux sont toujours présents
-
----
-
-## 4. git diff --check
+### 2.1 Lire sans session (doit échouer 401/403)
 
 ```bash
-cd /path/to/veraluz-os
+curl -s -o /dev/null -w "%{http_code}" \
+  -H "apikey: <ANON_KEY>" \
+  -H "Authorization: Bearer <ANON_KEY>" \
+  "https://dfdmasejsoibxrvubegu.supabase.co/rest/v1/veraluz_documents?select=id"
+# Attendu : 401 ou 403
+```
+
+### 2.2 Insérer sans session (doit échouer)
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" -X POST \
+  -H "apikey: <ANON_KEY>" \
+  -H "Authorization: Bearer <ANON_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"TEST","category":"other"}' \
+  "https://dfdmasejsoibxrvubegu.supabase.co/rest/v1/veraluz_documents"
+# Attendu : 401 ou 403
+```
+
+---
+
+## 3. Tests documents-secure (session réelle)
+
+### 3.1 Session absente → 401
+
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+  -d '{"action":"list"}' \
+  "https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/documents-secure"
+# Attendu : {"ok":false,"error":"session_required"}
+```
+
+### 3.2 Session invalide → 401
+
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+  -H "x-veraluz-session: tok_invalide_00000000" \
+  -d '{"action":"list"}' \
+  "https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/documents-secure"
+# Attendu : {"ok":false,"error":"invalid_or_expired_session"}
+```
+
+### 3.3 session_token dans le body → 400
+
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+  -H "x-veraluz-session: <TOKEN_VALIDE>" \
+  -d '{"action":"list","session_token":"foo"}' \
+  "https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/documents-secure"
+# Attendu : {"ok":false,"error":"session_token_in_body_forbidden"}
+```
+
+### 3.4 Employé non-gérant → 403
+
+```bash
+# Utiliser un token d'employé non-gérant (livreur, barman, etc.)
+curl -s -X POST -H "Content-Type: application/json" \
+  -H "x-veraluz-session: <TOKEN_NON_GERANT>" \
+  -d '{"action":"list"}' \
+  "https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/documents-secure"
+# Attendu : {"ok":false,"error":"documents_access_forbidden"}
+```
+
+### 3.5 Gérant valide → liste
+
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+  -H "x-veraluz-session: <TOKEN_GERANT>" \
+  -d '{"action":"list"}' \
+  "https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/documents-secure"
+# Attendu : {"ok":true,"documents":[...]} avec 11 entrées
+```
+
+### 3.6 Gérant — créer un document synthétique
+
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+  -H "x-veraluz-session: <TOKEN_GERANT>" \
+  -d '{"action":"create","title":"TEST_LOT_D_SYNTHÉTIQUE","category":"other"}' \
+  "https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/documents-secure"
+# Attendu : {"ok":true,"document":{"id":"...","title":"TEST_LOT_D_SYNTHÉTIQUE",...}}
+# Vérifier : storage_bucket = "veraluz-documents-private" (dérivé serveur-side)
+# Vérifier : uploaded_by = actor.id (jamais fourni par le client)
+```
+
+### 3.7 Champs non autorisés rejetés
+
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+  -H "x-veraluz-session: <TOKEN_GERANT>" \
+  -d '{"action":"create","title":"T","category":"other","uploaded_by":"hacker","storage_bucket":"bucket-public"}' \
+  "https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/documents-secure"
+# Attendu : {"ok":false,"error":"unexpected_fields","fields":["uploaded_by","storage_bucket"]}
+```
+
+### 3.8 Aucune suppression définitive
+
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+  -H "x-veraluz-session: <TOKEN_GERANT>" \
+  -d '{"action":"delete","id":"<UUID>"}' \
+  "https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/documents-secure"
+# Attendu : {"ok":false,"error":"unknown_action","action":"delete"}
+```
+
+### 3.9 Modifier + vérifier updated_at
+
+```bash
+# update action sur l'ID du document synthétique créé en 3.6
+curl -s -X POST -H "Content-Type: application/json" \
+  -H "x-veraluz-session: <TOKEN_GERANT>" \
+  -d '{"action":"update","id":"<UUID>","notes":"test note"}' \
+  "https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/documents-secure"
+# Attendu : {"ok":true,"document":{"updated_at":"..."}}
+# Vérifier : updated_at > created_at
+```
+
+### 3.10 Archiver le document synthétique
+
+```bash
+curl -s -X POST -H "Content-Type: application/json" \
+  -H "x-veraluz-session: <TOKEN_GERANT>" \
+  -d '{"action":"archive","id":"<UUID>"}' \
+  "https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/documents-secure"
+# Attendu : {"ok":true,"document":{"status":"archived"}}
+```
+
+### 3.11 Nettoyer la donnée synthétique (service_role ou via test SQL)
+
+```sql
+DELETE FROM public.veraluz_documents WHERE title='TEST_LOT_D_SYNTHÉTIQUE';
+SELECT COUNT(*) FROM public.veraluz_documents;
+-- Attendu : 11 documents originaux intacts
+```
+
+---
+
+## 4. Vrai dry-run ROLLBACK — migration externe
+
+```sql
+BEGIN;
+\i supabase/migrations/20260827_recovery_lot_d_documents_ssot.sql
+SELECT COUNT(*) FROM public.veraluz_documents; -- doit être 11
+ROLLBACK;
+-- Vérifier post-ROLLBACK que les 3 policies dev_anon_* sont revenues
+SELECT COUNT(*) FROM pg_policies WHERE tablename='veraluz_documents';
+-- Attendu : 3 (dev_anon_* restaurées par le ROLLBACK)
+```
+
+---
+
+## 5. Non-régressions relations
+
+```sql
+-- Aucune FK depuis/vers veraluz_documents — couplage souple correct
+SELECT COUNT(*) FROM information_schema.referential_constraints
+WHERE constraint_schema='public' AND constraint_name ILIKE '%document%';
+-- Attendu : 0
+
+-- veraluz_hr_documents : RLS ON, 0 policy (default deny) — inchangé
+SELECT relrowsecurity FROM pg_class WHERE relname='veraluz_hr_documents';
+-- Attendu : true
+
+-- project_documents : hors scope Lot D — inchangé
+SELECT COUNT(*) FROM public.project_documents;
+-- Attendu : 0
+```
+
+---
+
+## 6. Checklist manuelle (Blaise)
+
+- [ ] Ouvrir `DOCUMENTS_EMBEDDED.html` depuis VERALUZ_OS_CORE — module charge sans erreur
+- [ ] Vérifier desktop et mobile
+- [ ] Tester clair et sombre
+- [ ] Ajouter un document synthétique — vérifier que `uploaded_by` et `storage_bucket` sont correctement définis côté serveur
+- [ ] Modifier le document (changer statut ou notes)
+- [ ] Archiver le document synthétique
+- [ ] Vérifier que DELETE est absent ou bloqué
+- [ ] Ouvrir `DOCUMENTS_EMBEDDED.html` en dehors du CORE (onglet direct) — doit afficher le message d'indisponibilité
+- [ ] Supprimer la donnée synthétique
+- [ ] Confirmer que les 11 documents originaux sont intacts
+
+---
+
+## 7. git diff --check
+
+```bash
 git diff --check claude/recovery-lot-d-documents-ssot
 # Attendu : aucune sortie (pas de whitespace errors)
 ```

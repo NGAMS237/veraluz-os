@@ -35,22 +35,18 @@ supabase/migrations/20260827_recovery_lot_d_documents_ssot.sql
 | Crée 3 policies `prod_staff_*` | `CREATE POLICY` |
 | Assure les GRANTs | `GRANT SELECT, INSERT, UPDATE` |
 
-### Policies production
+### Accès post-migration
 
-| Policy | Rôle | Opération | Condition |
-|---|---|---|---|
-| `prod_staff_read_documents` | anon | SELECT | `true` |
-| `prod_staff_insert_documents` | anon | INSERT | with_check : valeurs enum valides + bucket autorisé |
-| `prod_staff_update_documents` | anon | UPDATE | using: `true` · with_check : valeurs enum valides + bucket autorisé |
-| DELETE | — | — | Bloqué (aucune policy) |
+**Aucune policy RLS anon ou authenticated.** RLS ON + zéro policy = default DENY ALL.
+Tout accès passe par l'Edge Function `documents-secure` (service_role côté serveur).
 
-### Buckets autorisés dans with_check
-
-- `veraluz-documents-private`
-- `veraluz-bank-private`
-- `veraluz-legal-private`
-- `veraluz-hr-private`
-- `veraluz-payslips-private`
+| Canal | Résultat |
+|---|---|
+| REST direct anon key | 401 / 403 (REVOKE + RLS deny) |
+| documents-secure sans session | 401 session_required |
+| documents-secure session invalide | 401 invalid_or_expired_session |
+| documents-secure non-gérant | 403 documents_access_forbidden |
+| documents-secure gérant valide | 200 OK |
 
 ---
 
@@ -67,11 +63,17 @@ supabase/migrations/20260827_recovery_lot_d_documents_ssot.sql
 # 1. Vérifier HEAD main avant déploiement
 git ls-remote origin main
 
-# 2. Appliquer la migration via Supabase MCP ou CLI
-# Via MCP (depuis l'agent) :
+# 2. Appliquer la migration (sans BEGIN/COMMIT — fichier idempotent)
+# Via Supabase MCP apply_migration depuis l'agent :
 #   apply_migration(project_id='dfdmasejsoibxrvubegu',
 #                  name='recovery_lot_d_documents_ssot',
-#                  query=<contenu du fichier SQL>)
+#                  query=<contenu 20260827_recovery_lot_d_documents_ssot.sql>)
+
+# 3b. Déployer documents-secure Edge Function
+# Via Supabase MCP deploy_edge_function depuis l'agent :
+#   deploy_edge_function(project_id='dfdmasejsoibxrvubegu',
+#                        name='documents-secure',
+#                        files=[index.ts, ../_shared/_rbac.ts])
 
 # 3. Vérifier post-migration
 # → COUNT(*) FROM veraluz_documents doit rester 11
@@ -92,10 +94,8 @@ git ls-remote origin main
 En cas de problème post-déploiement :
 
 ```sql
--- Restaure les policies dev_anon_* (état PROD avant Lot D)
-DROP POLICY IF EXISTS prod_staff_read_documents ON public.veraluz_documents;
-DROP POLICY IF EXISTS prod_staff_insert_documents ON public.veraluz_documents;
-DROP POLICY IF EXISTS prod_staff_update_documents ON public.veraluz_documents;
+-- Restaure les 3 policies dev_anon_* et regrant anon (état PROD avant Lot D)
+GRANT SELECT, INSERT, UPDATE ON public.veraluz_documents TO anon;
 
 CREATE POLICY dev_anon_read_documents_metadata ON public.veraluz_documents
   FOR SELECT TO anon USING (true);
@@ -108,6 +108,9 @@ CREATE POLICY dev_anon_insert_documents ON public.veraluz_documents
 
 CREATE POLICY dev_anon_update_documents ON public.veraluz_documents
   FOR UPDATE TO anon USING (true) WITH CHECK (true);
+
+-- Déployer l'ancienne version de DOCUMENTS_EMBEDDED.html via git revert
+-- git revert <commit_bc8c9eb> --no-commit
 ```
 
 Le rollback est rapide (DDL policies uniquement). Aucune donnée n'est affectée dans les deux sens.

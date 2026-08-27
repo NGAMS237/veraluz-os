@@ -4,1136 +4,931 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>VERALUZ — Documents</title>
-<script>if(localStorage.getItem('vl_theme')==='dark')document.documentElement.classList.add('vl-dark');</script>
 <style>
-/* ═══════════════════════════════════════════════════════════════════════
-   VERALUZ Signature UI System v1 — Module Documents
-   Light : Ivoire sable / Blanc coquillage / Océan Veraluz / Or Veraluz
-   Dark  : Nuit de Kribi / Atlantique profond — toggle via html.vl-dark
-   ═══════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════
+   VERALUZ Signature UI System v1 — Module Documents (Rebuild D2)
+   Clair : Ivoire sable / Blanc coquillage
+   Sombre : Nuit de Kribi / Atlantique profond
+   Toggle : html.vl-dark (localStorage vl_theme)
+   ═══════════════════════════════════════════════════════════════ */
 
-/* ── Tokens canoniques — mode clair ──────────────────────────────────── */
+/* ── Tokens canoniques — mode clair ── */
 :root {
-  /* Couleurs VERALUZ Signature */
-  --vlz-ink: #082b33;
-  --vlz-ink-strong: #041b21;
-  --vlz-ocean: #008c95;
-  --vlz-ocean-strong: #006a73;
-  --vlz-gold: #c9a84c;
-  --vlz-gold-strong: #7a5c10;
-  --vlz-gold-soft: #f7edd1;
-
-  /* Surfaces — mode clair */
-  --vlz-canvas: #f5f2ea;
-  --vlz-surface: #fffcf5;
-  --vlz-surface-raised: #ffffff;
-  --vlz-surface-soft: #eaf2f1;
-
-  /* Texte */
-  --vlz-text: #15262a;
-  --vlz-text-secondary: #54666a;
-  --vlz-text-muted: #7c8b8e;
-  --vlz-border: rgba(8, 43, 51, 0.14);
-  --vlz-border-strong: rgba(8, 43, 51, 0.22);
-
-  /* Sémantiques */
-  --vlz-success: #2e7d5b;
-  --vlz-success-bg: rgba(46, 125, 91, 0.10);
-  --vlz-warning: #b8690b;
-  --vlz-warning-bg: rgba(184, 105, 11, 0.10);
-  --vlz-danger: #b93f44;
-  --vlz-danger-bg: rgba(185, 63, 68, 0.10);
-  --vlz-info: #006a73;
-  --vlz-info-bg: rgba(0, 140, 149, 0.10);
-
-  /* Géométrie */
-  --vlz-radius-sm: 14px;
-  --vlz-radius-md: 18px;
-  --vlz-radius-lg: 24px;
-  --vlz-radius-pill: 9999px;
-
-  /* Ombres */
-  --vlz-shadow-small: 0 6px 20px rgba(8, 43, 51, 0.07);
-  --vlz-shadow-soft: 0 14px 38px rgba(8, 43, 51, 0.10);
-
-  /* Motion */
-  --vlz-motion-fast: 140ms;
-
-  /* Alias internes (compatibilité classes existantes) */
-  --bg: var(--vlz-canvas);
-  --bg2: var(--vlz-surface);
-  --bg3: var(--vlz-surface-raised);
-  --bg4: var(--vlz-surface-soft);
-  --fg: var(--vlz-text);
-  --fg2: var(--vlz-text-secondary);
-  --fg3: var(--vlz-text-muted);
-  --acc: var(--vlz-ocean);
-  --acc2: var(--vlz-ocean-strong);
-  --acc3: #005f66;
-  --brd: var(--vlz-border);
-  --rad: var(--vlz-radius-md);
-  --rad2: var(--vlz-radius-sm);
-  --grn: var(--vlz-success);
-  --ylw: var(--vlz-gold);
-  --ylw2: var(--vlz-gold-strong);
-  --red: var(--vlz-danger);
-  --red2: #9b2a2e;
-  --blu: var(--vlz-ocean);
-  --cyn: var(--vlz-ocean);
+  --vlz-ink:           #082b33;
+  --vlz-ink-strong:    #041b21;
+  --vlz-ocean:         #008c95;
+  --vlz-ocean-hover:   #007a82;
+  --vlz-ocean-soft:    rgba(0,140,149,.10);
+  --vlz-gold:          #c9a84c;
+  --vlz-gold-soft:     #f7edd1;
+  --vlz-canvas:        #f5f2ea;
+  --vlz-surface:       #fffcf5;
+  --vlz-surface-raised:#ffffff;
+  --vlz-surface-soft:  #eaf2f1;
+  --vlz-text:          #15262a;
+  --vlz-text-2:        #54666a;
+  --vlz-text-3:        #7c8b8e;
+  --vlz-border:        rgba(8,43,51,.13);
+  --vlz-border-strong: rgba(8,43,51,.20);
+  --vlz-success:       #2e7d5b;
+  --vlz-success-bg:    rgba(46,125,91,.10);
+  --vlz-warning:       #b8690b;
+  --vlz-warning-bg:    rgba(184,105,11,.10);
+  --vlz-danger:        #b93f44;
+  --vlz-danger-bg:     rgba(185,63,68,.10);
+  --vlz-info:          #006a73;
+  --vlz-info-bg:       rgba(0,140,149,.10);
+  --vlz-r-sm:  14px;
+  --vlz-r-md:  18px;
+  --vlz-r-lg:  24px;
+  --vlz-r-pill:9999px;
+  --vlz-sh-sm: 0 4px 16px rgba(8,43,51,.07);
+  --vlz-sh-md: 0 12px 36px rgba(8,43,51,.10);
+  /* Alias pour JS hérité */
+  --bg:var(--vlz-canvas); --bg2:var(--vlz-surface); --bg3:var(--vlz-surface-raised);
+  --bg4:var(--vlz-surface-soft);
+  --fg:var(--vlz-text); --fg2:var(--vlz-text-2); --fg3:var(--vlz-text-3);
+  --acc:var(--vlz-ocean); --acc2:#59c4c8; --acc3:#005f66;
+  --brd:var(--vlz-border); --rad:var(--vlz-r-md); --rad2:var(--vlz-r-sm);
+  --grn:var(--vlz-success); --ylw:var(--vlz-gold); --ylw2:#7a5c10;
+  --red:var(--vlz-danger); --red2:#9b2a2e;
 }
-
-/* ── Tokens — mode sombre ─────────────────────────────────────────────── */
+/* ── Tokens — mode sombre ── */
 html.vl-dark {
-  --vlz-canvas: #06171c;
-  --vlz-surface: #0b252c;
-  --vlz-surface-raised: #103139;
-  --vlz-surface-soft: #153b43;
-  --vlz-text: #f0ece1;
-  --vlz-text-secondary: #b8c8ca;
-  --vlz-text-muted: #8fa4a7;
-  --vlz-border: rgba(226, 239, 238, 0.13);
-  --vlz-border-strong: rgba(226, 239, 238, 0.22);
-  --vlz-gold-strong: #e2c775;
-  --vlz-ocean-strong: #59c4c8;
-  --vlz-success: #4aba8c;
-  --vlz-success-bg: rgba(74, 186, 140, 0.12);
-  --vlz-warning: #e8952a;
-  --vlz-warning-bg: rgba(232, 149, 42, 0.12);
-  --vlz-danger: #e05a5f;
-  --vlz-danger-bg: rgba(224, 90, 95, 0.12);
-  --vlz-info: #59c4c8;
-  --vlz-info-bg: rgba(89, 196, 200, 0.12);
-  --vlz-shadow-small: 0 6px 20px rgba(0, 0, 0, 0.22);
-  --vlz-shadow-soft: 0 14px 38px rgba(0, 0, 0, 0.30);
-
-  --bg: var(--vlz-canvas);
-  --bg2: var(--vlz-surface);
-  --bg3: var(--vlz-surface-raised);
-  --bg4: var(--vlz-surface-soft);
-  --fg: var(--vlz-text);
-  --fg2: var(--vlz-text-secondary);
-  --fg3: var(--vlz-text-muted);
-  --acc: var(--vlz-ocean);
-  --acc2: var(--vlz-ocean-strong);
-  --brd: var(--vlz-border);
-  --grn: var(--vlz-success);
-  --ylw: var(--vlz-gold);
-  --ylw2: var(--vlz-gold-strong);
-  --red: var(--vlz-danger);
+  --vlz-canvas:        #06171c;
+  --vlz-surface:       #0b252c;
+  --vlz-surface-raised:#103139;
+  --vlz-surface-soft:  #153b43;
+  --vlz-text:          #f0ece1;
+  --vlz-text-2:        #b8c8ca;
+  --vlz-text-3:        #8fa4a7;
+  --vlz-border:        rgba(226,239,238,.12);
+  --vlz-border-strong: rgba(226,239,238,.20);
+  --vlz-ocean:         #00a8b0;
+  --vlz-ocean-hover:   #00bfc8;
+  --vlz-ocean-soft:    rgba(0,168,176,.14);
+  --vlz-success:       #4aba8c;
+  --vlz-success-bg:    rgba(74,186,140,.12);
+  --vlz-warning:       #e8952a;
+  --vlz-warning-bg:    rgba(232,149,42,.12);
+  --vlz-danger:        #e05a5f;
+  --vlz-danger-bg:     rgba(224,90,95,.12);
+  --vlz-info:          #59c4c8;
+  --vlz-info-bg:       rgba(89,196,200,.12);
+  --vlz-sh-sm: 0 4px 16px rgba(0,0,0,.22);
+  --vlz-sh-md: 0 12px 36px rgba(0,0,0,.30);
+  --bg:var(--vlz-canvas); --bg2:var(--vlz-surface); --bg3:var(--vlz-surface-raised);
+  --bg4:var(--vlz-surface-soft);
+  --fg:var(--vlz-text); --fg2:var(--vlz-text-2); --fg3:var(--vlz-text-3);
+  --acc:var(--vlz-ocean); --acc2:#59c4c8;
+  --brd:var(--vlz-border);
+  --grn:var(--vlz-success); --ylw:var(--vlz-gold); --ylw2:#e2c775;
+  --red:var(--vlz-danger);
 }
 
-/* ── Base ─────────────────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── Base ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:Inter,"Segoe UI",system-ui,-apple-system,sans-serif;
+  background:var(--vlz-canvas);color:var(--vlz-text);
+  font-size:14px;min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--vlz-border-strong);border-radius:3px;}
+code{font-family:"SF Mono",Consolas,monospace;font-size:.87em;
+  background:var(--vlz-surface-soft);padding:2px 6px;border-radius:5px;}
+a{color:var(--vlz-ocean);text-decoration:none;}
 
-body {
-  font-family: Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
-  background: var(--vlz-canvas);
-  color: var(--vlz-text);
-  font-size: 14px;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
+/* ── MODULE HEADER ── */
+.mod-hdr{
+  background:var(--vlz-ink);
+  padding:18px 20px 0;
 }
+html.vl-dark .mod-hdr{background:var(--vlz-ink-strong);}
+.mod-hdr-top{
+  display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;
+  padding-bottom:16px;
+}
+.mod-hdr-icon{
+  width:42px;height:42px;border-radius:12px;flex-shrink:0;
+  background:rgba(255,255,255,.10);
+  display:flex;align-items:center;justify-content:center;
+}
+.mod-hdr-text{flex:1;min-width:0;}
+.mod-hdr-title{
+  font-size:20px;font-weight:700;color:#fff;
+  letter-spacing:-.02em;line-height:1.2;
+}
+.mod-hdr-sub{font-size:12px;color:rgba(255,255,255,.50);margin-top:3px;}
+.mod-hdr-accent{
+  display:block;width:32px;height:3px;
+  background:var(--vlz-gold);border-radius:2px;margin-top:7px;
+}
+.mod-hdr-actions{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-left:auto;
+}
+.mod-search{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.09);
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:var(--vlz-r-sm);
+  padding:7px 12px;
+}
+.mod-search svg{opacity:.55;flex-shrink:0;}
+.mod-search input{
+  background:none;border:none;outline:none;
+  color:#fff;font-size:13px;font-family:inherit;
+  width:180px;
+}
+.mod-search input::placeholder{color:rgba(255,255,255,.45);}
+.btn-add{
+  display:inline-flex;align-items:center;gap:7px;
+  background:var(--vlz-ocean);color:#fff;
+  border:none;border-radius:var(--vlz-r-sm);
+  padding:8px 16px;font-size:13px;font-weight:600;
+  font-family:inherit;cursor:pointer;white-space:nowrap;
+  transition:background 120ms;
+}
+.btn-add:hover{background:var(--vlz-ocean-hover);}
+.btn-add:focus-visible{outline:3px solid rgba(0,140,149,.45);outline-offset:2px;}
 
-code {
-  font-family: "SF Mono", "Consolas", monospace;
-  font-size: 0.88em;
-  background: var(--vlz-surface-soft);
-  padding: 1px 5px;
-  border-radius: 4px;
+/* ── SECONDARY NAV ── */
+.sec-nav{
+  display:flex;gap:2px;
+  background:var(--vlz-ink);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  overflow-x:auto;scrollbar-width:none;
 }
-
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--vlz-border-strong); border-radius: 3px; }
-
-/* ── HEADER — Atlantique profond, jamais violet ───────────────────────── */
-.hdr {
-  background: var(--vlz-ink);
-  padding: 16px 20px 14px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+html.vl-dark .sec-nav{background:var(--vlz-ink-strong);}
+.sec-nav::-webkit-scrollbar{display:none;}
+.sec-tab{
+  background:none;border:none;
+  color:rgba(255,255,255,.52);
+  padding:10px 14px 11px;
+  border-radius:0;cursor:pointer;
+  font-size:13px;white-space:nowrap;
+  font-family:inherit;
+  border-bottom:2px solid transparent;
+  transition:color 120ms,border-color 120ms;
 }
-html.vl-dark .hdr {
-  background: var(--vlz-ink-strong);
-  border-bottom-color: rgba(0, 0, 0, 0.30);
-}
-.hdr-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.hdr-icon { font-size: 26px; }
-.hdr-title { font-size: 19px; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
-.hdr-sub { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 2px; }
-/* Or Veraluz — accent discret dans le header */
-.hdr-accent {
-  display: inline-block;
-  width: 28px; height: 3px;
-  background: var(--vlz-gold);
-  border-radius: 2px;
-  margin-top: 5px;
-}
-
-/* ── TABS ─────────────────────────────────────────────────────────────── */
-.tabs {
-  display: flex; gap: 2px;
-  padding: 10px 16px 0;
-  background: var(--vlz-surface);
-  border-bottom: 1px solid var(--vlz-border);
-  overflow-x: auto; scrollbar-width: none;
-}
-.tabs::-webkit-scrollbar { display: none; }
-html.vl-dark .tabs {
-  background: var(--vlz-surface);
-  border-bottom-color: var(--vlz-border);
-}
-.tab {
-  background: transparent; border: none;
-  color: var(--vlz-text-secondary);
-  padding: 8px 13px;
-  border-radius: var(--vlz-radius-sm) var(--vlz-radius-sm) 0 0;
-  cursor: pointer; font-size: 13px; white-space: nowrap;
-  font-family: inherit;
-  transition: color var(--vlz-motion-fast), background var(--vlz-motion-fast);
-}
-.tab:hover { color: var(--vlz-text); background: var(--vlz-surface-soft); }
-.tab.active {
-  color: var(--vlz-ocean);
-  background: var(--vlz-surface-raised);
-  border-bottom: 2px solid var(--vlz-ocean);
-  font-weight: 600;
-}
-html.vl-dark .tab.active { color: var(--vlz-ocean-strong); }
-
-/* ── PANELS ───────────────────────────────────────────────────────────── */
-.panel { display: none; padding: 20px; }
-.panel.active { display: block; }
-
-/* ── STAT CARDS ───────────────────────────────────────────────────────── */
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 12px;
-}
-.card {
-  background: var(--vlz-surface-raised);
-  border: 1px solid var(--vlz-border);
-  border-radius: var(--vlz-radius-md);
-  padding: 16px;
-  box-shadow: var(--vlz-shadow-small);
-  transition: box-shadow var(--vlz-motion-fast), transform var(--vlz-motion-fast);
-}
-.card:hover {
-  box-shadow: var(--vlz-shadow-soft);
-  transform: translateY(-1px);
-}
-html.vl-dark .card { background: var(--vlz-surface-raised); }
-.card-icon { font-size: 22px; margin-bottom: 8px; }
-.card-val { font-size: 28px; font-weight: 700; color: var(--vlz-text); font-variant-numeric: tabular-nums; }
-.card-lbl { font-size: 12px; color: var(--vlz-text-secondary); margin-top: 4px; }
-.card-sub { font-size: 11px; color: var(--vlz-text-muted); margin-top: 2px; }
-
-/* Status accent — barre latérale sémantique */
-.stat-ok   { border-left: 3px solid var(--vlz-success); }
-.stat-warn { border-left: 3px solid var(--vlz-warning); }
-.stat-err  { border-left: 3px solid var(--vlz-danger); }
-.stat-info { border-left: 3px solid var(--vlz-ocean); }
-
-/* ── TABLE ────────────────────────────────────────────────────────────── */
-.tbl-wrap {
-  overflow-x: auto;
-  border-radius: var(--vlz-radius-md);
-  border: 1px solid var(--vlz-border);
-  box-shadow: var(--vlz-shadow-small);
-}
-table { width: 100%; border-collapse: collapse; }
-th {
-  background: var(--vlz-surface-soft);
-  color: var(--vlz-text-secondary);
-  font-size: 11px; text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 10px 14px; text-align: left; white-space: nowrap;
-}
-td {
-  padding: 10px 14px;
-  border-top: 1px solid var(--vlz-border);
-  font-size: 13px; vertical-align: middle;
-  background: var(--vlz-surface-raised);
-}
-tr:hover td { background: var(--vlz-surface-soft); }
-html.vl-dark td { background: var(--vlz-surface); }
-html.vl-dark tr:hover td { background: var(--vlz-surface-raised); }
-html.vl-dark th { background: var(--vlz-surface-raised); }
-
-/* ── BADGES ───────────────────────────────────────────────────────────── */
-.badge {
-  display: inline-block; padding: 2px 9px;
-  border-radius: var(--vlz-radius-pill);
-  font-size: 11px; font-weight: 600;
-}
-.badge-active   { background: var(--vlz-success-bg); color: var(--vlz-success); }
-.badge-expired  { background: var(--vlz-danger-bg);  color: var(--vlz-danger); }
-.badge-missing  { background: var(--vlz-warning-bg); color: var(--vlz-warning); }
-.badge-archived { background: var(--vlz-border);     color: var(--vlz-text-muted); }
-.badge-pending  { background: var(--vlz-info-bg);    color: var(--vlz-info); }
-.badge-public        { background: var(--vlz-success-bg); color: var(--vlz-success);  border: 1px solid rgba(46,125,91,.25); }
-.badge-internal      { background: var(--vlz-info-bg);    color: var(--vlz-info);     border: 1px solid rgba(0,140,149,.25); }
-.badge-confidential  { background: var(--vlz-warning-bg); color: var(--vlz-warning);  border: 1px solid rgba(184,105,11,.25); }
-.badge-restricted    { background: var(--vlz-danger-bg);  color: var(--vlz-danger);   border: 1px solid rgba(185,63,68,.25); }
-.badge-ok    { background: var(--vlz-success-bg); color: var(--vlz-success); }
-.badge-warn  { background: var(--vlz-warning-bg); color: var(--vlz-warning); }
-.badge-danger{ background: var(--vlz-danger-bg);  color: var(--vlz-danger); }
-.badge-cat   { background: var(--vlz-surface-soft); color: var(--vlz-text-secondary); }
-
-/* ── SECTION HEADERS ──────────────────────────────────────────────────── */
-.sec-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-.sec-hdr h2 { font-size: 16px; font-weight: 600; color: var(--vlz-text); }
-.sec-hdr .count {
-  background: var(--vlz-surface-soft);
-  color: var(--vlz-text-secondary);
-  padding: 2px 10px; border-radius: var(--vlz-radius-pill); font-size: 12px;
+.sec-tab:hover{color:rgba(255,255,255,.80);}
+.sec-tab.active{
+  color:#fff;border-bottom-color:var(--vlz-gold);
+  font-weight:600;
 }
 
-/* ── FORMS ────────────────────────────────────────────────────────────── */
-.form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group label { font-size: 12px; color: var(--vlz-text-secondary); font-weight: 500; }
+/* ── PANELS ── */
+.panels{padding:20px;min-height:calc(100vh - 140px);}
+.panel{display:none;}
+.panel.active{display:block;}
 
-.form-group input,
-.form-group select,
-.form-group textarea {
-  background: var(--vlz-surface);
-  border: 1px solid var(--vlz-border-strong);
-  border-radius: var(--vlz-radius-sm);
-  color: var(--vlz-text);
-  padding: 9px 12px;
-  font-size: 13px; font-family: inherit; width: 100%;
-  transition: border-color var(--vlz-motion-fast), box-shadow var(--vlz-motion-fast);
+/* ── SECTION TITLE ── */
+.sec-title{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:18px;flex-wrap:wrap;
 }
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: var(--vlz-ocean);
-  box-shadow: 0 0 0 3px rgba(0, 140, 149, 0.15);
-}
-html.vl-dark .form-group input,
-html.vl-dark .form-group select,
-html.vl-dark .form-group textarea {
-  background: var(--vlz-surface-raised);
-  border-color: var(--vlz-border);
-}
-.form-group select option { background: var(--vlz-surface-raised); }
-
-/* ── BUTTONS ──────────────────────────────────────────────────────────── */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 18px;
-  border-radius: var(--vlz-radius-sm);
-  font-size: 13px; font-weight: 600;
-  cursor: pointer; border: none; font-family: inherit;
-  transition: opacity var(--vlz-motion-fast), transform var(--vlz-motion-fast);
-}
-.btn:active { transform: scale(0.98); }
-.btn:focus-visible {
-  outline: 3px solid rgba(0, 140, 149, 0.45);
-  outline-offset: 2px;
-}
-.btn-primary {
-  background: var(--vlz-ink);
-  color: #fff;
-}
-.btn-primary:hover { background: var(--vlz-ink-strong); }
-html.vl-dark .btn-primary { background: var(--vlz-ocean); }
-html.vl-dark .btn-primary:hover { background: #007a82; }
-
-.btn-secondary {
-  background: var(--vlz-surface-soft);
-  color: var(--vlz-text);
-  border: 1px solid var(--vlz-border-strong);
-}
-.btn-secondary:hover { border-color: var(--vlz-ocean); color: var(--vlz-ocean); }
-
-.btn-danger {
-  background: var(--vlz-danger-bg);
-  color: var(--vlz-danger);
-  border: 1px solid rgba(185, 63, 68, 0.30);
-}
-.btn-sm { padding: 5px 12px; font-size: 12px; }
-
-/* ── ALERTS ───────────────────────────────────────────────────────────── */
-.alert {
-  display: flex; gap: 10px;
-  padding: 12px 16px;
-  border-radius: var(--vlz-radius-sm);
-  border: 1px solid;
-  margin-bottom: 16px;
-  font-size: 13px; line-height: 1.5;
-}
-.alert-info    { background: var(--vlz-info-bg);    border-color: rgba(0,140,149,.25);    color: var(--vlz-info); }
-.alert-warn    { background: var(--vlz-warning-bg); border-color: rgba(184,105,11,.25);   color: var(--vlz-warning); }
-.alert-danger  { background: var(--vlz-danger-bg);  border-color: rgba(185,63,68,.25);    color: var(--vlz-danger); }
-.alert-ok      { background: var(--vlz-success-bg); border-color: rgba(46,125,91,.25);    color: var(--vlz-success); }
-
-/* ── FOLDERS ──────────────────────────────────────────────────────────── */
-.folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
-.folder {
-  background: var(--vlz-surface-raised);
-  border: 1px solid var(--vlz-border);
-  border-radius: var(--vlz-radius-md);
-  padding: 16px; cursor: pointer;
-  text-align: center;
-  box-shadow: var(--vlz-shadow-small);
-  transition: box-shadow var(--vlz-motion-fast), transform var(--vlz-motion-fast), border-color var(--vlz-motion-fast);
-}
-.folder:hover {
-  border-color: var(--vlz-ocean);
-  box-shadow: var(--vlz-shadow-soft);
-  transform: translateY(-1px);
-}
-.folder-icon { font-size: 30px; margin-bottom: 8px; }
-.folder-name { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--vlz-text); }
-.folder-stats { font-size: 11px; color: var(--vlz-text-secondary); }
-
-/* ── SECURITY ITEMS ───────────────────────────────────────────────────── */
-.sec-items { display: flex; flex-direction: column; gap: 10px; }
-.sec-item {
-  background: var(--vlz-surface-raised);
-  border: 1px solid var(--vlz-border);
-  border-radius: var(--vlz-radius-sm);
-  padding: 14px 16px;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  box-shadow: var(--vlz-shadow-small);
-}
-.sec-item-lbl { font-size: 13px; font-weight: 500; color: var(--vlz-text); }
-.sec-item-sub { font-size: 11px; color: var(--vlz-text-muted); margin-top: 2px; }
-
-/* ── CHECKLIST ────────────────────────────────────────────────────────── */
-.checklist { display: flex; flex-direction: column; gap: 8px; }
-.chk-item {
-  background: var(--vlz-surface-raised);
-  border: 1px solid var(--vlz-border);
-  border-radius: var(--vlz-radius-sm);
-  padding: 12px 16px;
-  display: flex; align-items: center; gap: 12px;
-}
-.chk-item.missing { border-left: 3px solid var(--vlz-warning); }
-.chk-item.present { border-left: 3px solid var(--vlz-success); opacity: 0.7; }
-.chk-info { flex: 1; }
-.chk-title { font-size: 13px; font-weight: 500; color: var(--vlz-text); }
-.chk-cat { font-size: 11px; color: var(--vlz-text-secondary); }
-
-/* ── RENEWAL ──────────────────────────────────────────────────────────── */
-.renewal-group { margin-bottom: 20px; }
-.renewal-group h3 {
-  font-size: 12px; font-weight: 600;
-  color: var(--vlz-text-secondary);
-  margin-bottom: 10px;
-  text-transform: uppercase; letter-spacing: 0.5px;
-}
-.exp-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.exp-red { background: var(--vlz-danger); }
-.exp-ylw { background: var(--vlz-warning); }
-.exp-grn { background: var(--vlz-success); }
-
-/* ── GUIDE ────────────────────────────────────────────────────────────── */
-.guide-section { margin-bottom: 24px; }
-.guide-section h3 {
-  font-size: 15px; font-weight: 600;
-  margin-bottom: 10px; padding-bottom: 6px;
-  border-bottom: 1px solid var(--vlz-border);
-  color: var(--vlz-text);
-}
-.guide-section p, .guide-section li { font-size: 13px; color: var(--vlz-text-secondary); line-height: 1.7; }
-.guide-section ul { padding-left: 20px; }
-.guide-section li { margin-bottom: 4px; }
-
-/* ── LOADING / EMPTY ──────────────────────────────────────────────────── */
-.loading { text-align: center; color: var(--vlz-text-secondary); padding: 40px; font-size: 13px; }
-.spinner {
-  display: inline-block; width: 18px; height: 18px;
-  border: 2px solid var(--vlz-border-strong);
-  border-top-color: var(--vlz-ocean);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-right: 8px; vertical-align: middle;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.empty { text-align: center; padding: 48px 20px; color: var(--vlz-text-secondary); }
-.empty-icon { font-size: 38px; margin-bottom: 12px; }
-.empty p { font-size: 13px; line-height: 1.6; max-width: 400px; margin: 0 auto; }
-
-/* ── MODAL ────────────────────────────────────────────────────────────── */
-.modal-overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(4, 27, 33, 0.60);
-  z-index: 1000;
-  align-items: center; justify-content: center; padding: 20px;
-  backdrop-filter: blur(2px);
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: var(--vlz-surface-raised);
-  border: 1px solid var(--vlz-border);
-  border-radius: var(--vlz-radius-lg);
-  box-shadow: var(--vlz-shadow-soft);
-  width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
-}
-.modal-hdr {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--vlz-border);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.modal-hdr h3 { font-size: 15px; font-weight: 600; color: var(--vlz-text); }
-.modal-close {
-  background: none; border: none;
-  color: var(--vlz-text-muted); font-size: 18px; cursor: pointer;
-  padding: 2px 6px; border-radius: 6px;
-  transition: color var(--vlz-motion-fast);
-}
-.modal-close:hover { color: var(--vlz-text); }
-.modal-body { padding: 20px; }
-.modal-foot {
-  padding: 14px 20px;
-  border-top: 1px solid var(--vlz-border);
-  display: flex; gap: 10px; justify-content: flex-end;
+.sec-title h2{font-size:15px;font-weight:600;color:var(--vlz-text);}
+.count-chip{
+  background:var(--vlz-surface-soft);
+  color:var(--vlz-text-2);border:1px solid var(--vlz-border);
+  padding:2px 10px;border-radius:var(--vlz-r-pill);font-size:11px;
 }
 
-/* ── FILTERS & SEARCH ─────────────────────────────────────────────────── */
-.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-.filter-chip {
-  background: var(--vlz-surface-raised);
-  border: 1px solid var(--vlz-border-strong);
-  border-radius: var(--vlz-radius-pill);
-  padding: 4px 14px;
-  font-size: 12px; color: var(--vlz-text-secondary);
-  cursor: pointer;
-  transition: all var(--vlz-motion-fast);
+/* ── CARDS OVERVIEW ── */
+.stat-cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(175px,1fr));
+  gap:12px;margin-bottom:24px;
 }
-.filter-chip:hover { border-color: var(--vlz-ocean); color: var(--vlz-ocean); }
-.filter-chip.active {
-  background: var(--vlz-ocean);
-  border-color: var(--vlz-ocean);
-  color: #fff;
-  font-weight: 600;
+.stat-card{
+  background:var(--vlz-surface-raised);
+  border:1px solid var(--vlz-border);
+  border-radius:var(--vlz-r-md);
+  padding:16px;
+  box-shadow:var(--vlz-sh-sm);
+  transition:box-shadow 120ms,transform 120ms;
+  position:relative;overflow:hidden;
 }
-html.vl-dark .filter-chip.active { background: var(--vlz-ocean); }
+.stat-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:3px;border-radius:2px 0 0 2px;
+}
+.stat-card.c-info::before{background:var(--vlz-ocean);}
+.stat-card.c-ok::before{background:var(--vlz-success);}
+.stat-card.c-warn::before{background:var(--vlz-warning);}
+.stat-card.c-danger::before{background:var(--vlz-danger);}
+.stat-card:hover{box-shadow:var(--vlz-sh-md);transform:translateY(-1px);}
+.sc-val{font-size:30px;font-weight:700;color:var(--vlz-text);font-variant-numeric:tabular-nums;}
+.sc-lbl{font-size:12px;color:var(--vlz-text-2);margin-top:4px;}
+.sc-sub{font-size:11px;color:var(--vlz-text-3);margin-top:2px;}
 
-.search-bar { display: flex; gap: 10px; margin-bottom: 16px; }
-.search-bar input {
-  flex: 1;
-  background: var(--vlz-surface-raised);
-  border: 1px solid var(--vlz-border-strong);
-  border-radius: var(--vlz-radius-sm);
-  color: var(--vlz-text);
-  padding: 8px 14px; font-size: 13px; font-family: inherit;
+/* ── SYNTHESIS SURFACE (asymétrie Signature) ── */
+.synthesis{
+  background:var(--vlz-surface-raised);
+  border:1px solid var(--vlz-border);
+  border-radius:var(--vlz-r-lg) var(--vlz-r-sm) var(--vlz-r-lg) var(--vlz-r-lg);
+  box-shadow:var(--vlz-sh-sm);
+  padding:20px;margin-bottom:24px;
 }
-.search-bar input:focus {
-  outline: none;
-  border-color: var(--vlz-ocean);
-  box-shadow: 0 0 0 3px rgba(0, 140, 149, 0.15);
+.synthesis-hdr{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:16px;
+}
+.synthesis-hdr h3{font-size:14px;font-weight:600;color:var(--vlz-text-2);}
+
+/* ── CATEGORY BARS ── */
+.cat-bars{display:flex;flex-direction:column;gap:10px;}
+.cat-row{display:grid;grid-template-columns:130px 1fr 36px;align-items:center;gap:10px;}
+.cat-row span{font-size:12px;color:var(--vlz-text-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-row .cv{font-size:12px;font-weight:600;color:var(--vlz-text);text-align:right;}
+.prog-bar{height:4px;background:var(--vlz-border);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:2px;background:var(--vlz-ocean);}
+
+/* ── ALERTS ── */
+.alert{
+  display:flex;gap:10px;align-items:flex-start;
+  padding:12px 15px;border-radius:var(--vlz-r-sm);
+  border:1px solid;margin-bottom:16px;font-size:13px;line-height:1.5;
+}
+.alert svg{flex-shrink:0;margin-top:1px;}
+.alert-info{background:var(--vlz-info-bg);border-color:rgba(0,140,149,.22);color:var(--vlz-info);}
+.alert-warn{background:var(--vlz-warning-bg);border-color:rgba(184,105,11,.22);color:var(--vlz-warning);}
+.alert-danger{background:var(--vlz-danger-bg);border-color:rgba(185,63,68,.22);color:var(--vlz-danger);}
+.alert-ok{background:var(--vlz-success-bg);border-color:rgba(46,125,91,.22);color:var(--vlz-success);}
+
+/* ── RECENT TABLE ── */
+.tbl-wrap{overflow-x:auto;border-radius:var(--vlz-r-md);border:1px solid var(--vlz-border);box-shadow:var(--vlz-sh-sm);}
+table{width:100%;border-collapse:collapse;}
+th{
+  background:var(--vlz-surface-soft);color:var(--vlz-text-2);
+  font-size:11px;text-transform:uppercase;letter-spacing:.5px;
+  padding:10px 14px;text-align:left;white-space:nowrap;
+}
+td{
+  padding:10px 14px;border-top:1px solid var(--vlz-border);
+  font-size:13px;vertical-align:middle;
+  background:var(--vlz-surface-raised);
+}
+tr:hover td{background:var(--vlz-surface-soft);}
+html.vl-dark td{background:var(--vlz-surface);}
+html.vl-dark tr:hover td{background:var(--vlz-surface-raised);}
+html.vl-dark th{background:var(--vlz-surface-raised);}
+
+/* ── FILTERS ── */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.chip{
+  background:var(--vlz-surface-raised);
+  border:1px solid var(--vlz-border-strong);
+  border-radius:var(--vlz-r-pill);
+  padding:4px 13px;font-size:12px;color:var(--vlz-text-2);
+  cursor:pointer;font-family:inherit;
+  transition:all 120ms;
+}
+.chip:hover{border-color:var(--vlz-ocean);color:var(--vlz-ocean);}
+.chip.active{background:var(--vlz-ocean);border-color:var(--vlz-ocean);color:#fff;font-weight:600;}
+
+/* ── BADGES ── */
+.badge{display:inline-block;padding:2px 9px;border-radius:var(--vlz-r-pill);font-size:11px;font-weight:600;}
+.badge-active{background:var(--vlz-success-bg);color:var(--vlz-success);}
+.badge-expired{background:var(--vlz-danger-bg);color:var(--vlz-danger);}
+.badge-missing{background:var(--vlz-warning-bg);color:var(--vlz-warning);}
+.badge-archived{background:var(--vlz-border);color:var(--vlz-text-3);}
+.badge-pending{background:var(--vlz-info-bg);color:var(--vlz-info);}
+.badge-info{background:var(--vlz-info-bg);color:var(--vlz-info);}
+.badge-public{background:var(--vlz-success-bg);color:var(--vlz-success);border:1px solid rgba(46,125,91,.22);}
+.badge-internal{background:var(--vlz-info-bg);color:var(--vlz-info);border:1px solid rgba(0,140,149,.22);}
+.badge-confidential{background:var(--vlz-warning-bg);color:var(--vlz-warning);border:1px solid rgba(184,105,11,.22);}
+.badge-restricted{background:var(--vlz-danger-bg);color:var(--vlz-danger);border:1px solid rgba(185,63,68,.22);}
+.badge-cat{background:var(--vlz-surface-soft);color:var(--vlz-text-2);}
+
+/* ── DOCUMENT CARDS (mobile) ── */
+.doc-cards{display:flex;flex-direction:column;gap:10px;}
+.doc-card{
+  background:var(--vlz-surface-raised);
+  border:1px solid var(--vlz-border);
+  border-radius:var(--vlz-r-md);
+  padding:14px 16px;
+  box-shadow:var(--vlz-sh-sm);
+}
+.doc-card-title{font-size:14px;font-weight:600;color:var(--vlz-text);margin-bottom:8px;}
+.doc-card-meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.doc-card-actions{display:flex;gap:8px;}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:var(--vlz-r-sm);
+  font-size:13px;font-weight:600;cursor:pointer;
+  border:none;font-family:inherit;
+  transition:opacity 120ms,background 120ms;
+}
+.btn:focus-visible{outline:3px solid rgba(0,140,149,.40);outline-offset:2px;}
+.btn-primary{background:var(--vlz-ink);color:#fff;}
+.btn-primary:hover{background:var(--vlz-ink-strong);}
+html.vl-dark .btn-primary{background:var(--vlz-ocean);}
+html.vl-dark .btn-primary:hover{background:var(--vlz-ocean-hover);}
+.btn-secondary{background:var(--vlz-surface-soft);color:var(--vlz-text);border:1px solid var(--vlz-border-strong);}
+.btn-secondary:hover{border-color:var(--vlz-ocean);color:var(--vlz-ocean);}
+.btn-danger{background:var(--vlz-danger-bg);color:var(--vlz-danger);border:1px solid rgba(185,63,68,.25);}
+.btn-sm{padding:5px 11px;font-size:12px;}
+.btn-ghost{background:none;border:1px solid var(--vlz-border-strong);color:var(--vlz-text-2);}
+.btn-ghost:hover{border-color:var(--vlz-ocean);color:var(--vlz-ocean);}
+
+/* ── LOADING / EMPTY ── */
+.loading{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:48px 20px;color:var(--vlz-text-2);font-size:13px;
+}
+.spinner{
+  width:18px;height:18px;border:2px solid var(--vlz-border-strong);
+  border-top-color:var(--vlz-ocean);border-radius:50%;
+  animation:spin .8s linear infinite;flex-shrink:0;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty-state{
+  text-align:center;padding:56px 20px;color:var(--vlz-text-2);
+}
+.empty-state svg{margin:0 auto 16px;opacity:.4;display:block;}
+.empty-state h3{font-size:15px;font-weight:600;margin-bottom:8px;color:var(--vlz-text);}
+.empty-state p{font-size:13px;color:var(--vlz-text-2);max-width:360px;margin:0 auto;line-height:1.6;}
+
+/* ── STANDALONE WARNING ── */
+.standalone-wall{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:32px 20px;
+}
+.standalone-box{
+  background:var(--vlz-surface-raised);
+  border:1px solid var(--vlz-border);
+  border-radius:var(--vlz-r-lg);
+  padding:36px 28px;text-align:center;
+  max-width:420px;box-shadow:var(--vlz-sh-md);
+}
+.standalone-box svg{margin:0 auto 16px;display:block;color:var(--vlz-text-3);}
+.standalone-box h2{font-size:17px;font-weight:600;margin-bottom:10px;color:var(--vlz-text);}
+.standalone-box p{font-size:13px;color:var(--vlz-text-2);line-height:1.6;}
+
+/* ── MODAL ── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(4,27,33,.60);backdrop-filter:blur(3px);
+  z-index:900;align-items:center;justify-content:center;padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal{
+  background:var(--vlz-surface-raised);
+  border:1px solid var(--vlz-border);
+  border-radius:var(--vlz-r-lg);
+  box-shadow:var(--vlz-sh-md);
+  width:100%;max-width:580px;max-height:90vh;
+  overflow-y:auto;
+}
+.modal-hdr{
+  padding:18px 22px;border-bottom:1px solid var(--vlz-border);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;background:var(--vlz-surface-raised);z-index:1;
+}
+.modal-hdr h3{font-size:15px;font-weight:600;color:var(--vlz-text);}
+.modal-close{
+  background:none;border:none;color:var(--vlz-text-3);
+  font-size:20px;cursor:pointer;padding:2px 6px;
+  border-radius:6px;line-height:1;font-family:inherit;
+  transition:color 120ms,background 120ms;
+}
+.modal-close:hover{color:var(--vlz-text);background:var(--vlz-surface-soft);}
+.modal-body{padding:22px;}
+.modal-foot{
+  padding:16px 22px;border-top:1px solid var(--vlz-border);
+  display:flex;gap:10px;justify-content:flex-end;
 }
 
-/* ── PROGRESS BAR ─────────────────────────────────────────────────────── */
-.prog-bar { height: 5px; background: var(--vlz-border); border-radius: 3px; overflow: hidden; margin-top: 6px; }
-.prog-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
-
-/* ── TOGGLE THEME FAB ─────────────────────────────────────────────────── */
-#vl-tm-btn {
-  position: fixed;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  right: 14px;
-  z-index: 9990;
-  width: 36px; height: 36px;
-  border-radius: var(--vlz-radius-sm);
-  border: 1px solid var(--vlz-border-strong);
-  background: var(--vlz-surface-raised);
-  color: var(--vlz-text-secondary);
-  cursor: pointer; font-size: 15px;
-  box-shadow: var(--vlz-shadow-small);
-  display: flex; align-items: center; justify-content: center;
-  transition: box-shadow var(--vlz-motion-fast), transform var(--vlz-motion-fast);
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:16px;margin-bottom:18px;}
+.fg{display:flex;flex-direction:column;gap:5px;}
+.fg label{font-size:12px;color:var(--vlz-text-2);font-weight:500;}
+.fg input,.fg select,.fg textarea{
+  background:var(--vlz-surface);
+  border:1px solid var(--vlz-border-strong);
+  border-radius:var(--vlz-r-sm);
+  color:var(--vlz-text);padding:9px 12px;
+  font-size:13px;font-family:inherit;width:100%;
+  transition:border-color 120ms,box-shadow 120ms;
 }
-#vl-tm-btn:hover { transform: scale(1.06); box-shadow: var(--vlz-shadow-soft); }
-
-/* ── RESPONSIVE ───────────────────────────────────────────────────────── */
-@media (max-width: 600px) {
-  .cards { grid-template-columns: 1fr 1fr; }
-  .form-grid { grid-template-columns: 1fr; }
-  .folders { grid-template-columns: 1fr 1fr; }
-  .tbl-wrap { border-radius: var(--vlz-radius-sm); }
-  .hdr { padding: 14px 16px 12px; }
-  .panel { padding: 16px; }
+.fg input:focus,.fg select:focus,.fg textarea:focus{
+  outline:none;border-color:var(--vlz-ocean);
+  box-shadow:0 0 0 3px rgba(0,140,149,.13);
 }
-@media (max-width: 380px) {
-  .cards { grid-template-columns: 1fr; }
+html.vl-dark .fg input,html.vl-dark .fg select,html.vl-dark .fg textarea{
+  background:var(--vlz-surface-raised);border-color:var(--vlz-border);
+}
+.fg select option{background:var(--vlz-surface-raised);}
+.fg-full{grid-column:1/-1;}
+.form-msg{
+  font-size:13px;padding:10px 14px;border-radius:var(--vlz-r-sm);
+  margin-top:4px;display:none;
+}
+.form-msg.visible{display:block;}
+.form-msg.info{background:var(--vlz-info-bg);color:var(--vlz-info);}
+.form-msg.ok{background:var(--vlz-success-bg);color:var(--vlz-success);}
+.form-msg.warn{background:var(--vlz-warning-bg);color:var(--vlz-warning);}
+.form-msg.danger{background:var(--vlz-danger-bg);color:var(--vlz-danger);}
+
+/* ── CHECKLIST ── */
+.chk-grp{margin-bottom:20px;}
+.chk-grp-title{
+  font-size:12px;font-weight:600;color:var(--vlz-text-2);
+  text-transform:uppercase;letter-spacing:.5px;
+  margin-bottom:10px;padding-bottom:6px;
+  border-bottom:1px solid var(--vlz-border);
+}
+.chk-items{display:flex;flex-direction:column;gap:8px;}
+.chk-item{
+  background:var(--vlz-surface-raised);
+  border:1px solid var(--vlz-border);
+  border-radius:var(--vlz-r-sm);
+  padding:12px 14px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:var(--vlz-sh-sm);
+}
+.chk-item.missing{border-left:3px solid var(--vlz-warning);}
+.chk-item.present{border-left:3px solid var(--vlz-success);opacity:.75;}
+.chk-info{flex:1;}
+.chk-title{font-size:13px;font-weight:500;color:var(--vlz-text);}
+.chk-cat{font-size:11px;color:var(--vlz-text-2);margin-top:2px;}
+
+/* ── RENEWAL ── */
+.renew-grp{margin-bottom:22px;}
+.renew-grp-title{
+  font-size:12px;font-weight:600;color:var(--vlz-text-2);
+  margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;
+}
+.renew-item{
+  display:flex;align-items:center;gap:12px;
+  background:var(--vlz-surface-raised);
+  border:1px solid var(--vlz-border);
+  border-radius:var(--vlz-r-sm);
+  padding:12px 14px;margin-bottom:8px;
+  box-shadow:var(--vlz-sh-sm);
+}
+.exp-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.exp-red{background:var(--vlz-danger);}
+.exp-ylw{background:var(--vlz-warning);}
+.exp-grn{background:var(--vlz-success);}
+.renew-info{flex:1;}
+.renew-title{font-size:13px;font-weight:500;color:var(--vlz-text);}
+.renew-sub{font-size:11px;color:var(--vlz-text-2);margin-top:2px;}
+
+/* ── FOLDERS ── */
+.folders-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+  gap:12px;
+}
+.folder-card{
+  background:var(--vlz-surface-raised);
+  border:1px solid var(--vlz-border);
+  border-radius:var(--vlz-r-md);
+  padding:18px 14px 14px;
+  text-align:center;cursor:pointer;
+  box-shadow:var(--vlz-sh-sm);
+  transition:border-color 120ms,box-shadow 120ms,transform 120ms;
+}
+.folder-card:hover{
+  border-color:var(--vlz-ocean);
+  box-shadow:var(--vlz-sh-md);transform:translateY(-1px);
+}
+.folder-card svg{display:block;margin:0 auto 10px;color:var(--vlz-ocean);}
+.folder-name{font-size:13px;font-weight:600;color:var(--vlz-text);margin-bottom:4px;}
+.folder-stats{font-size:11px;color:var(--vlz-text-2);}
+
+/* ── SECURITY ── */
+.sec-items{display:flex;flex-direction:column;gap:10px;}
+.sec-item{
+  background:var(--vlz-surface-raised);
+  border:1px solid var(--vlz-border);
+  border-radius:var(--vlz-r-sm);
+  padding:14px 16px;
+  display:flex;align-items:flex-start;justify-content:space-between;gap:14px;
+  box-shadow:var(--vlz-sh-sm);
+}
+.si-left{}
+.si-label{font-size:13px;font-weight:600;color:var(--vlz-text);}
+.si-sub{font-size:11px;color:var(--vlz-text-2);margin-top:3px;line-height:1.5;}
+
+/* ── VIEW-DOC MODAL TABLE ── */
+.detail-row{display:grid;grid-template-columns:140px 1fr;gap:6px 14px;padding:7px 0;border-bottom:1px solid var(--vlz-border);}
+.detail-row:last-child{border-bottom:none;}
+.detail-lbl{font-size:12px;color:var(--vlz-text-2);}
+.detail-val{font-size:13px;color:var(--vlz-text);}
+
+/* ── DIAG ── */
+.diag-result{
+  background:var(--vlz-surface-soft);
+  border:1px solid var(--vlz-border);
+  border-radius:var(--vlz-r-sm);
+  padding:12px 16px;font-size:12px;
+  font-family:Consolas,monospace;
+  margin-top:12px;display:none;
+  color:var(--vlz-text-2);line-height:1.8;
 }
 
-/* ── MOTION RÉDUIT ────────────────────────────────────────────────────── */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+/* ── THEME TOGGLE FAB ── */
+#vl-tm-btn{
+  position:fixed;bottom:14px;right:14px;z-index:800;
+  width:36px;height:36px;border-radius:var(--vlz-r-sm);
+  border:1px solid var(--vlz-border-strong);
+  background:var(--vlz-surface-raised);
+  color:var(--vlz-text-2);cursor:pointer;
+  box-shadow:var(--vlz-sh-sm);font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  transition:box-shadow 120ms,transform 120ms;font-family:inherit;
+}
+#vl-tm-btn:hover{transform:scale(1.07);box-shadow:var(--vlz-sh-md);}
+
+/* ── RESPONSIVE ── */
+@media(max-width:640px){
+  .stat-cards{grid-template-columns:1fr 1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .folders-grid{grid-template-columns:1fr 1fr;}
+  .cat-row{grid-template-columns:100px 1fr 28px;}
+  .mod-search{display:none;}
+  .tbl-wrap{display:none;}
+  .doc-cards{display:flex;}
+  .panels{padding:14px;}
+}
+@media(min-width:641px){
+  .doc-cards{display:none;}
+}
+@media(max-width:380px){
+  .stat-cards{grid-template-columns:1fr;}
+  .folders-grid{grid-template-columns:1fr;}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;}
 }
 </style>
 </head>
 <body>
-<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Thème">🌙</button>
 
-<!-- HEADER -->
-<div class="hdr">
-  <div class="hdr-row">
-    <span class="hdr-icon">🗂️</span>
-    <div>
-      <div class="hdr-title">Coffre Documentaire VERALUZ</div>
-      <div class="hdr-sub">Métadonnées · Échéances · Catégories · Sécurité</div>
-    </div>
+<!-- ══ STANDALONE GUARD ══════════════════════════════════════════════ -->
+<div id="standalone-wall" class="standalone-wall" style="display:none;">
+  <div class="standalone-box">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+    <h2>Accès restreint</h2>
+    <p>Ce module doit être ouvert depuis l'application principale VERALUZ OS. Il n'est pas accessible en mode autonome.</p>
   </div>
 </div>
 
-<!-- TABS -->
-<div class="tabs">
-  <button class="tab active" onclick="showTab('overview')">📊 Vue d'ensemble</button>
-  <button class="tab" onclick="showTab('all')">📋 Tous les documents</button>
-  <button class="tab" onclick="showTab('renewal')">⏰ À renouveler</button>
-  <button class="tab" onclick="showTab('missing')">⚠️ Documents manquants</button>
-  <button class="tab" onclick="showTab('folders')">🗂️ Dossiers</button>
-  <button class="tab" onclick="showTab('upload')">➕ Ajouter</button>
-  <button class="tab" onclick="showTab('security')">🔒 Sécurité</button>
-  <button class="tab" onclick="showTab('guide')">📖 Guide</button>
-</div>
+<!-- ══ MODULE PRINCIPAL ═══════════════════════════════════════════════ -->
+<div id="app-root" style="display:none;">
 
-<!-- ============================================================ -->
-<!-- PANEL: VUE D'ENSEMBLE                                         -->
-<!-- ============================================================ -->
-<div id="panel-overview" class="panel active">
-  <div class="sec-hdr"><h2>Vue d'ensemble</h2></div>
-
-  <div class="alert alert-warn" id="alert-checklist" style="display:none">
-    <span>⚠️</span>
-    <span id="alert-checklist-msg"></span>
+<!-- Header -->
+<header class="mod-hdr">
+  <div class="mod-hdr-top">
+    <div class="mod-hdr-icon" aria-hidden="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    </div>
+    <div class="mod-hdr-text">
+      <div class="mod-hdr-title">Documents</div>
+      <div class="mod-hdr-sub">Coffre documentaire — Résidence Veraluz</div>
+      <span class="mod-hdr-accent"></span>
+    </div>
+    <div class="mod-hdr-actions">
+      <div class="mod-search" role="search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" id="hdr-search" placeholder="Rechercher un document..." oninput="onHdrSearch()" aria-label="Rechercher">
+      </div>
+      <button class="btn-add" onclick="openAddModal()" aria-label="Ajouter un document">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Ajouter
+      </button>
+    </div>
   </div>
+  <!-- Navigation secondaire -->
+  <nav class="sec-nav" role="navigation" aria-label="Navigation module">
+    <button class="sec-tab active" onclick="showTab('overview')" id="tab-overview">Vue d'ensemble</button>
+    <button class="sec-tab" onclick="showTab('all')" id="tab-all">Tous les documents</button>
+    <button class="sec-tab" onclick="showTab('renewal')" id="tab-renewal">Échéances</button>
+    <button class="sec-tab" onclick="showTab('missing')" id="tab-missing">Manquants</button>
+    <button class="sec-tab" onclick="showTab('folders')" id="tab-folders">Dossiers</button>
+    <button class="sec-tab" onclick="showTab('security')" id="tab-security">Sécurité</button>
+  </nav>
+</header>
 
-  <div id="overview-loading" class="loading"><span class="spinner"></span>Chargement des documents…</div>
+<!-- ═══ PANELS ════════════════════════════════════════════════════════ -->
+<main class="panels">
 
-  <div id="overview-content" style="display:none">
-    <!-- Stat cards -->
-    <div class="cards" id="overview-cards" style="margin-bottom:20px;"></div>
-
-    <!-- Par catégorie -->
-    <div class="sec-hdr" style="margin-top:8px;">
-      <h2>Par catégorie</h2>
+<!-- PANEL: VUE D'ENSEMBLE -->
+<section class="panel active" id="panel-overview">
+  <div id="overview-loading" class="loading"><div class="spinner"></div>Chargement des documents…</div>
+  <div id="overview-empty" class="empty-state" style="display:none;">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+    </svg>
+    <h3>Aucun document</h3>
+    <p>Aucun document trouvé dans le coffre.</p>
+  </div>
+  <div id="overview-content" style="display:none;">
+    <div id="alert-checklist" class="alert alert-warn" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span id="alert-checklist-msg"></span>
     </div>
-    <div id="overview-cats"></div>
-
-    <!-- Derniers ajoutés -->
-    <div class="sec-hdr" style="margin-top:20px;">
-      <h2>Derniers documents</h2>
+    <!-- Cartes synthèse -->
+    <div class="stat-cards" id="overview-cards"></div>
+    <!-- Surface asymétrique Signature -->
+    <div class="synthesis">
+      <div class="synthesis-hdr">
+        <h3>Répartition par catégorie</h3>
+      </div>
+      <div class="cat-bars" id="overview-cats"></div>
     </div>
+    <!-- Documents récents -->
+    <div class="sec-title"><h2>Documents récents</h2></div>
     <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th>Titre</th><th>Catégorie</th><th>Statut</th><th>Confidentialité</th><th>Ajouté</th>
+          <th>Titre</th><th>Catégorie</th><th>Statut</th>
+          <th>Confidentialité</th><th>Ajouté le</th>
         </tr></thead>
         <tbody id="recent-docs"></tbody>
       </table>
     </div>
+    <!-- Échéances proches -->
+    <div class="sec-title" style="margin-top:24px;"><h2>Prochaines échéances</h2></div>
+    <div id="overview-deadlines"></div>
   </div>
+</section>
 
-  <div id="overview-empty" class="empty" style="display:none">
-    <div class="empty-icon">🗂️</div>
-    <p>Aucun document enregistré pour le moment. Commencez par ajouter les métadonnées des documents importants.</p>
-    <br>
-    <button class="btn btn-primary" onclick="showTab('upload')">➕ Ajouter un document</button>
-  </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PANEL: TOUS LES DOCUMENTS                                     -->
-<!-- ============================================================ -->
-<div id="panel-all" class="panel">
-  <div class="sec-hdr">
+<!-- PANEL: TOUS LES DOCUMENTS -->
+<section class="panel" id="panel-all">
+  <div class="sec-title">
     <h2>Tous les documents</h2>
-    <button class="btn btn-primary btn-sm" onclick="showTab('upload')">➕ Ajouter</button>
+    <span class="count-chip" id="all-count">—</span>
   </div>
-
-  <div class="search-bar">
-    <input type="text" id="search-input" placeholder="Rechercher un document…" oninput="filterDocs()">
+  <!-- Filtres catégorie -->
+  <div class="filter-row" id="filter-cats">
+    <button class="chip active" onclick="setCatFilter('',this)">Toutes catégories</button>
+    <button class="chip" onclick="setCatFilter('legal',this)">Juridique</button>
+    <button class="chip" onclick="setCatFilter('bank',this)">Banque</button>
+    <button class="chip" onclick="setCatFilter('tax',this)">Fiscalité</button>
+    <button class="chip" onclick="setCatFilter('hr',this)">RH</button>
+    <button class="chip" onclick="setCatFilter('supplier',this)">Fournisseur</button>
+    <button class="chip" onclick="setCatFilter('insurance',this)">Assurance</button>
+    <button class="chip" onclick="setCatFilter('property',this)">Propriété</button>
+    <button class="chip" onclick="setCatFilter('other',this)">Autre</button>
   </div>
-
-  <div class="filters" id="filter-cats">
-    <span class="filter-chip active" onclick="setCatFilter('',this)">Tous</span>
-    <span class="filter-chip" onclick="setCatFilter('legal',this)">⚖️ Juridique</span>
-    <span class="filter-chip" onclick="setCatFilter('bank',this)">🏦 Banque</span>
-    <span class="filter-chip" onclick="setCatFilter('tax',this)">🧾 Fiscalité</span>
-    <span class="filter-chip" onclick="setCatFilter('hr',this)">👥 RH</span>
-    <span class="filter-chip" onclick="setCatFilter('insurance',this)">🛡️ Assurance</span>
-    <span class="filter-chip" onclick="setCatFilter('property',this)">🏠 Propriété</span>
-    <span class="filter-chip" onclick="setCatFilter('supplier',this)">🤝 Fournisseur</span>
-    <span class="filter-chip" onclick="setCatFilter('finance',this)">📊 Finance</span>
-    <span class="filter-chip" onclick="setCatFilter('other',this)">Autres</span>
+  <!-- Filtres statut -->
+  <div class="filter-row" id="filter-status">
+    <button class="chip active" onclick="setStatusFilter('',this)">Tous statuts</button>
+    <button class="chip" onclick="setStatusFilter('active',this)">Actif</button>
+    <button class="chip" onclick="setStatusFilter('missing',this)">Manquant</button>
+    <button class="chip" onclick="setStatusFilter('expired',this)">Expiré</button>
+    <button class="chip" onclick="setStatusFilter('archived',this)">Archivé</button>
   </div>
-
-  <div class="filters" id="filter-status">
-    <span class="filter-chip active" onclick="setStatusFilter('',this)">Tous statuts</span>
-    <span class="filter-chip" onclick="setStatusFilter('active',this)">Actif</span>
-    <span class="filter-chip" onclick="setStatusFilter('missing',this)">Manquant</span>
-    <span class="filter-chip" onclick="setStatusFilter('expired',this)">Expiré</span>
-    <span class="filter-chip" onclick="setStatusFilter('pending_review',this)">En révision</span>
-    <span class="filter-chip" onclick="setStatusFilter('archived',this)">Archivé</span>
+  <div id="all-loading" class="loading" style="display:none;"><div class="spinner"></div>Chargement…</div>
+  <!-- Desktop table -->
+  <div class="tbl-wrap" id="all-table" style="display:none;">
+    <table>
+      <thead><tr>
+        <th>Titre</th><th>Catégorie</th><th>Statut</th>
+        <th>Confidentialité</th><th>Expiration</th><th>Fichier</th><th>Actions</th>
+      </tr></thead>
+      <tbody id="all-tbody"></tbody>
+    </table>
   </div>
+  <!-- Mobile cards -->
+  <div class="doc-cards" id="all-cards"></div>
+</section>
 
-  <div id="all-loading" class="loading"><span class="spinner"></span>Chargement…</div>
-  <div id="all-table" style="display:none">
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr>
-          <th>Titre</th><th>Catégorie</th><th>Statut</th><th>Confidentialité</th>
-          <th>Expiration</th><th>Fichier</th><th>Actions</th>
-        </tr></thead>
-        <tbody id="all-tbody"></tbody>
-      </table>
-    </div>
-    <div style="margin-top:10px;font-size:12px;color:var(--fg2)" id="all-count"></div>
-  </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PANEL: À RENOUVELER                                          -->
-<!-- ============================================================ -->
-<div id="panel-renewal" class="panel">
-  <div class="sec-hdr"><h2>Documents à renouveler</h2></div>
-  <div class="alert alert-info">
-    <span>ℹ️</span>
-    <span>Les documents avec une date d'expiration définie sont listés ici par urgence.</span>
+<!-- PANEL: ÉCHÉANCES -->
+<section class="panel" id="panel-renewal">
+  <div id="renewal-empty" class="empty-state" style="display:none;">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+    <h3>Aucune échéance à venir</h3>
+    <p>Aucun document avec date d'expiration dans les 90 prochains jours.</p>
   </div>
   <div id="renewal-content">
-    <div class="renewal-group" id="rg-expired">
-      <h3>🔴 Expirés</h3>
+    <div class="renew-grp">
+      <div class="renew-grp-title" style="color:var(--vlz-danger);">Expirés</div>
       <div id="rg-expired-list"></div>
     </div>
-    <div class="renewal-group" id="rg-30">
-      <h3>🟠 Expirent dans 30 jours</h3>
+    <div class="renew-grp">
+      <div class="renew-grp-title" style="color:var(--vlz-danger);">Moins de 30 jours</div>
       <div id="rg-30-list"></div>
     </div>
-    <div class="renewal-group" id="rg-60">
-      <h3>🟡 Expirent dans 31-60 jours</h3>
+    <div class="renew-grp">
+      <div class="renew-grp-title" style="color:var(--vlz-warning);">30 à 60 jours</div>
       <div id="rg-60-list"></div>
     </div>
-    <div class="renewal-group" id="rg-90">
-      <h3>🟢 Expirent dans 61-90 jours</h3>
+    <div class="renew-grp">
+      <div class="renew-grp-title" style="color:var(--vlz-success);">60 à 90 jours</div>
       <div id="rg-90-list"></div>
     </div>
-    <div id="renewal-empty" class="empty" style="display:none">
-      <div class="empty-icon">✅</div>
-      <p>Aucun document à renouveler dans les 90 prochains jours.<br>Pensez à renseigner les dates d'expiration de vos documents.</p>
-    </div>
   </div>
-</div>
+</section>
 
-<!-- ============================================================ -->
-<!-- PANEL: DOCUMENTS MANQUANTS                                   -->
-<!-- ============================================================ -->
-<div id="panel-missing" class="panel">
-  <div class="sec-hdr">
+<!-- PANEL: DOCUMENTS MANQUANTS -->
+<section class="panel" id="panel-missing">
+  <div class="sec-title">
     <h2>Documents manquants</h2>
-    <span class="count" id="missing-count-badge">…</span>
   </div>
-  <div class="alert alert-warn">
-    <span>⚠️</span>
-    <span>Ces documents sont recommandés pour la gestion de VERALUZ. Complétez la checklist progressivement.</span>
+  <div id="missing-loading" class="loading"><div class="spinner"></div>Analyse de la checklist…</div>
+  <div id="missing-content" style="display:none;"></div>
+</section>
+
+<!-- PANEL: DOSSIERS -->
+<section class="panel" id="panel-folders">
+  <div class="sec-title"><h2>Dossiers par catégorie</h2></div>
+  <div id="folders-loading" class="loading"><div class="spinner"></div>Chargement…</div>
+  <div class="folders-grid" id="folders-grid" style="display:none;"></div>
+</section>
+
+<!-- PANEL: SÉCURITÉ -->
+<section class="panel" id="panel-security">
+  <div class="sec-title"><h2>Sécurité documentaire</h2></div>
+  <div class="alert alert-info" style="margin-bottom:20px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>Tous les documents transitent exclusivement par l'Edge Function <code>documents-secure</code> via le broker CORE. Aucun accès REST direct.</span>
   </div>
-
-  <div id="missing-loading" class="loading"><span class="spinner"></span>Chargement…</div>
-  <div id="missing-content" style="display:none">
-    <div id="missing-groups"></div>
-    <div style="margin-top:20px;">
-      <button class="btn btn-primary" onclick="addMissingToChecklist()">➕ Ajouter d'autres documents manquants</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PANEL: DOSSIERS                                              -->
-<!-- ============================================================ -->
-<div id="panel-folders" class="panel">
-  <div class="sec-hdr"><h2>Dossiers</h2></div>
-  <div id="folders-loading" class="loading"><span class="spinner"></span>Chargement…</div>
-  <div id="folders-grid" class="folders" style="display:none"></div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PANEL: UPLOAD / AJOUTER                                      -->
-<!-- ============================================================ -->
-<div id="panel-upload" class="panel">
-  <div class="sec-hdr"><h2>Ajouter un document</h2></div>
-
-  <div class="alert alert-info">
-    <span>ℹ️</span>
-    <div>
-      <strong>Mode A actif — Métadonnées uniquement.</strong><br>
-      Enregistrez les informations du document. L'upload de fichier sera disponible dans une prochaine version via Edge Function sécurisée.
-    </div>
-  </div>
-
-  <div class="alert alert-warn">
-    <span>🔒</span>
-    <span>Upload fichier désactivé en mode développement. Ajoutez seulement les métadonnées.</span>
-  </div>
-
-  <div style="max-width:700px;">
-    <div class="form-grid">
-      <div class="form-group" style="grid-column:1/-1">
-        <label>Titre du document *</label>
-        <input type="text" id="doc-title" placeholder="ex: Attestation bancaire Afriland First Bank">
-      </div>
-      <div class="form-group">
-        <label>Catégorie *</label>
-        <select id="doc-category">
-          <option value="">— Choisir —</option>
-          <option value="legal">⚖️ Juridique</option>
-          <option value="bank">🏦 Banque</option>
-          <option value="tax">🧾 Fiscalité</option>
-          <option value="hr">👥 RH</option>
-          <option value="supplier">🤝 Fournisseur</option>
-          <option value="insurance">🛡️ Assurance</option>
-          <option value="property">🏠 Propriété</option>
-          <option value="finance">📊 Finance</option>
-          <option value="operations">⚙️ Opérations</option>
-          <option value="identity">🪪 Identité</option>
-          <option value="other">📄 Autre</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Type de document</label>
-        <input type="text" id="doc-type" placeholder="ex: attestation, contrat, facture…">
-      </div>
-      <div class="form-group">
-        <label>Niveau de confidentialité *</label>
-        <select id="doc-confidentiality">
-          <option value="internal">🔵 Interne</option>
-          <option value="confidential">🟡 Confidentiel</option>
-          <option value="restricted">🔴 Restreint</option>
-          <option value="public">🟢 Public</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Statut *</label>
-        <select id="doc-status">
-          <option value="active">✅ Actif</option>
-          <option value="missing">⚠️ Manquant</option>
-          <option value="pending_review">🔄 En révision</option>
-          <option value="expired">❌ Expiré</option>
-          <option value="archived">📦 Archivé</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Date d'expiration</label>
-        <input type="date" id="doc-expiry">
-      </div>
-      <div class="form-group">
-        <label>Date de rappel</label>
-        <input type="date" id="doc-reminder">
-      </div>
-      <div class="form-group">
-        <label>Module lié</label>
-        <select id="doc-module">
-          <option value="">— Aucun —</option>
-          <option value="rh">RH</option>
-          <option value="finance">Finance</option>
-          <option value="paiements">Paiements</option>
-          <option value="reservations">Réservations</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Ajouté par</label>
-        <input type="text" id="doc-uploader" placeholder="Votre nom ou rôle">
-      </div>
-      <div class="form-group" style="grid-column:1/-1">
-        <label>Notes</label>
-        <textarea id="doc-notes" rows="3" placeholder="Informations complémentaires…"></textarea>
-      </div>
-
-      <!-- Upload section — désactivé -->
-      <div class="form-group" style="grid-column:1/-1">
-        <label>Fichier (désactivé en mode DEV)</label>
-        <div style="background:var(--bg3);border:2px dashed var(--brd);border-radius:var(--rad2);
-                    padding:24px;text-align:center;color:var(--fg3);">
-          <div style="font-size:24px;margin-bottom:8px;">🔒</div>
-          <div style="font-size:13px;">Upload fichier désactivé</div>
-          <div style="font-size:11px;margin-top:4px;">Activé via Edge Function <code>veraluz-document-upload</code> (PROMPT 020+)</div>
-        </div>
-      </div>
-    </div>
-
-    <div style="margin-top:20px;display:flex;gap:10px;">
-      <button class="btn btn-primary" onclick="submitDocument()">💾 Enregistrer les métadonnées</button>
-      <button class="btn btn-secondary" onclick="resetForm()">✕ Effacer</button>
-    </div>
-    <div id="form-msg" style="margin-top:12px;font-size:13px;"></div>
-  </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PANEL: SÉCURITÉ                                              -->
-<!-- ============================================================ -->
-<div id="panel-security" class="panel">
-  <div class="sec-hdr"><h2>Sécurité Documentaire</h2></div>
-
-  <div class="alert alert-warn">
-    <span>⚠️</span>
-    <span><strong>Mode DEV actif.</strong> RLS Niveau B non appliquée. À durcir dans PROMPT 023 avec authentification Supabase complète.</span>
-  </div>
-
   <div class="sec-items">
     <div class="sec-item">
-      <div><div class="sec-item-lbl">Buckets Storage privés</div>
-           <div class="sec-item-sub">5 buckets créés — public = false — aucune URL publique permanente</div></div>
-      <span class="badge badge-ok">✅ ACTIFS</span>
+      <div class="si-left">
+        <div class="si-label">Broker CORE VERALUZ</div>
+        <div class="si-sub">Toutes les requêtes passent par <code>window.parent.veraluzSecureRequest</code> — aucun token exposé côté navigateur.</div>
+      </div>
+      <span class="badge badge-active">Actif</span>
     </div>
     <div class="sec-item">
-      <div><div class="sec-item-lbl">Documents publics dans buckets sensibles</div>
-           <div class="sec-item-sub">veraluz-hr-private / legal-private / bank-private / payslips-private</div></div>
-      <span class="badge badge-ok">🚫 INTERDIT</span>
+      <div class="si-left">
+        <div class="si-label">Edge Function documents-secure</div>
+        <div class="si-sub">Validation de session SHA-256, RBAC <code>documents.read</code> / <code>documents.manage</code>, service_role uniquement côté serveur.</div>
+      </div>
+      <span class="badge badge-active">Déployée</span>
     </div>
     <div class="sec-item">
-      <div><div class="sec-item-lbl">Upload fichier frontend (mode DEV)</div>
-           <div class="sec-item-sub">Upload désactivé — passera par Edge Function côté serveur</div></div>
-      <span class="badge badge-warn">⏳ DÉSACTIVÉ</span>
+      <div class="si-left">
+        <div class="si-label">RLS — Row Level Security</div>
+        <div class="si-sub">RLS activé, zéro politique publique. Accès direct REST bloqué pour anon et authenticated.</div>
+      </div>
+      <span class="badge badge-restricted">Restreint</span>
     </div>
     <div class="sec-item">
-      <div><div class="sec-item-lbl">URL signée pour accès fichier</div>
-           <div class="sec-item-sub">Max 15 minutes — à configurer via Edge Function (PROMPT 020+)</div></div>
-      <span class="badge badge-warn">⏳ À ACTIVER</span>
+      <div class="si-left">
+        <div class="si-label">Buckets de stockage</div>
+        <div class="si-sub" id="buckets-list"></div>
+      </div>
+      <span class="badge badge-confidential">Privés</span>
     </div>
     <div class="sec-item">
-      <div><div class="sec-item-lbl">Agent IA — lecture contenu fichier</div>
-           <div class="sec-item-sub">legal_docs_ai accède uniquement aux métadonnées (titre, catégorie, statut, expiration)</div></div>
-      <span class="badge badge-ok">🚫 INTERDIT</span>
-    </div>
-    <div class="sec-item">
-      <div><div class="sec-item-lbl">Agent juridique legal_docs_ai</div>
-           <div class="sec-item-sub">Statut draft — non activé en production — validation humaine obligatoire</div></div>
-      <span class="badge badge-warn">📋 DRAFT</span>
-    </div>
-    <div class="sec-item">
-      <div><div class="sec-item-lbl">Suppression définitive de document</div>
-           <div class="sec-item-sub">Aucune politique DELETE pour anon dans veraluz_documents</div></div>
-      <span class="badge badge-ok">🚫 DÉSACTIVÉE</span>
-    </div>
-    <div class="sec-item">
-      <div><div class="sec-item-lbl">service_role dans le frontend</div>
-           <div class="sec-item-sub">Jamais exposé — uniquement côté serveur (Edge Function)</div></div>
-      <span class="badge badge-ok">🚫 ABSENT</span>
-    </div>
-    <div class="sec-item">
-      <div><div class="sec-item-lbl">RLS veraluz_documents — niveau A</div>
-           <div class="sec-item-sub">Métadonnées lisibles en DEV (anon read). DELETE bloquée.</div></div>
-      <span class="badge badge-warn">⚠️ DEV</span>
-    </div>
-    <div class="sec-item">
-      <div><div class="sec-item-lbl">RLS Niveau B (production)</div>
-           <div class="sec-item-sub">SQL préparé mais non appliqué — rôles par utilisateur Supabase requis</div></div>
-      <span class="badge badge-danger">🔴 PROMPT 023</span>
-    </div>
-    <div class="sec-item">
-      <div><div class="sec-item-lbl">Documents confidential / restricted</div>
-           <div class="sec-item-sub">Actuellement accessibles en lecture DEV — à restreindre en production</div></div>
-      <span class="badge badge-danger">🔴 À DURCIR</span>
-    </div>
-    <div class="sec-item">
-      <div><div class="sec-item-lbl">Buckets hr-private / legal-private / bank-private</div>
-           <div class="sec-item-sub">Aucune policy de lecture anon — accès uniquement via service_role serveur</div></div>
-      <span class="badge badge-ok">✅ SÉCURISÉS</span>
+      <div class="si-left">
+        <div class="si-label">Accès IA — legal_docs_ai</div>
+        <div class="si-sub">Accès limité aux métadonnées : titre, catégorie, statut, expiration. Aucun accès au contenu des fichiers.</div>
+      </div>
+      <span class="badge badge-internal">Restreint</span>
     </div>
   </div>
-
-  <div style="margin-top:20px;background:var(--bg2);border:1px solid rgba(239,68,68,.3);
-              border-radius:var(--rad);padding:16px;">
-    <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:10px;">🔴 Actions à réaliser avant production</div>
-    <ul style="font-size:12px;color:var(--fg2);padding-left:18px;line-height:2;">
-      <li>Appliquer RLS Niveau B (PROMPT 023) — rôles Supabase auth</li>
-      <li>Configurer Edge Function <code>veraluz-document-upload</code> avec service_role côté serveur</li>
-      <li>Activer URLs signées 15 min max pour accès aux fichiers</li>
-      <li>Restreindre lecture des métadonnées confidential/restricted aux rôles autorisés</li>
-      <li>Ne jamais rendre publics les buckets privés</li>
-    </ul>
+  <div style="margin-top:24px;">
+    <div class="sec-title"><h2>Diagnostic</h2></div>
+    <button class="btn btn-ghost" onclick="runDocsDiag()">Tester la connexion documents-secure</button>
+    <div class="diag-result" id="docs-diag-result"></div>
   </div>
+</section>
 
-  <!-- PROMPT 019B — Bouton diagnostic connexion Supabase (DEV) -->
-  <div id="docs-diag-wrap" style="margin-top:20px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--rad);padding:16px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-size:13px;font-weight:600;">🔌 Diagnostic connexion Supabase</div>
-      <button class="btn btn-secondary btn-sm" onclick="runDocsDiag()" style="font-size:11px;">Tester la connexion</button>
-    </div>
-    <div id="docs-diag-result" style="font-size:12px;color:var(--fg2);font-family:monospace;line-height:1.8;display:none;"></div>
-  </div>
-</div>
+</main><!-- /panels -->
+</div><!-- /app-root -->
 
-<!-- ============================================================ -->
-<!-- PANEL: GUIDE                                                  -->
-<!-- ============================================================ -->
-<div id="panel-guide" class="panel">
-  <div class="sec-hdr"><h2>Guide d'utilisation</h2></div>
-
-  <div class="guide-section">
-    <h3>📋 Comment ajouter un document</h3>
-    <p>Allez dans l'onglet <strong>Ajouter</strong> et renseignez les métadonnées :</p>
-    <ul>
-      <li>Titre clair et précis (ex: <em>Attestation bancaire Afriland 2026</em>)</li>
-      <li>Catégorie (juridique, banque, fiscalité, RH…)</li>
-      <li>Niveau de confidentialité adapté</li>
-      <li>Date d'expiration si applicable (très important pour les rappels)</li>
-      <li>Notes complémentaires (numéro de référence, contact, etc.)</li>
-    </ul>
-    <p style="margin-top:8px;">Le fichier lui-même sera uploadé dans une prochaine version via un canal sécurisé.</p>
-  </div>
-
-  <div class="guide-section">
-    <h3>📄 Différence entre métadonnées et fichier</h3>
-    <p><strong>Métadonnées</strong> = informations sur le document : titre, catégorie, date d'expiration, statut. Stockées dans la base de données <code>veraluz_documents</code>.</p>
-    <p style="margin-top:6px;"><strong>Fichier</strong> = le document lui-même (PDF, scan, image). Stocké dans un bucket Supabase Storage privé. Jamais accessible publiquement. Accessible uniquement via URL signée de courte durée (15 min max).</p>
-  </div>
-
-  <div class="guide-section">
-    <h3>🔐 Niveaux de confidentialité</h3>
-    <ul>
-      <li><span class="badge badge-public">public</span> — Information non sensible, peut être partagée librement</li>
-      <li style="margin-top:6px;"><span class="badge badge-internal">internal</span> — Usage interne uniquement — pas de partage externe</li>
-      <li style="margin-top:6px;"><span class="badge badge-confidential">confidential</span> — Données sensibles — accès restreint aux managers et propriétaire</li>
-      <li style="margin-top:6px;"><span class="badge badge-restricted">restricted</span> — Très sensible — accès propriétaire uniquement (contrats bancaires, titres, NIF…)</li>
-    </ul>
-  </div>
-
-  <div class="guide-section">
-    <h3>🏦 Pourquoi les documents bancaires et RH restent privés</h3>
-    <p>Les documents bancaires (relevés, conventions, IBAN) et RH (contrats, bulletins) contiennent des informations personnelles et financières protégées. Ils doivent rester dans des buckets privés et ne jamais être accessibles via une URL publique.</p>
-    <ul style="margin-top:8px;">
-      <li>Bucket <code>veraluz-bank-private</code> → documents bancaires</li>
-      <li>Bucket <code>veraluz-hr-private</code> → contrats et dossiers employés</li>
-      <li>Bucket <code>veraluz-legal-private</code> → statuts, actes, NIF</li>
-      <li>Bucket <code>veraluz-payslips-private</code> → bulletins de paie (future paie formelle)</li>
-    </ul>
-  </div>
-
-  <div class="guide-section">
-    <h3>🤖 Comment l'agent juridique utilisera les métadonnées</h3>
-    <p>L'agent <code>legal_docs_ai</code> (statut : <strong>draft</strong>) pourra dans le futur :</p>
-    <ul>
-      <li>Détecter les documents manquants dans la checklist</li>
-      <li>Alerter sur les documents expirés ou proches de l'expiration</li>
-      <li>Préparer des questions pour le notaire, le fiscaliste ou la banque</li>
-      <li>Créer des recommandations à valider par le propriétaire</li>
-    </ul>
-    <p style="margin-top:8px;"><strong>Ce qu'il ne fera pas :</strong> lire le contenu des fichiers, donner des avis juridiques définitifs, signer ou envoyer des documents, remplacer un avocat ou notaire.</p>
-  </div>
-
-  <div class="guide-section">
-    <h3>⚙️ Ce qui n'est pas encore automatisé</h3>
-    <ul>
-      <li>Upload de fichiers (PROMPT 020+)</li>
-      <li>Notifications automatiques d'expiration par email/SMS</li>
-      <li>Génération automatique de bulletins de paie</li>
-      <li>Export bancaire de documents</li>
-      <li>Activation de l'agent juridique (PROMPT 021+)</li>
-      <li>Partage sécurisé externe avec lien signé</li>
-    </ul>
-  </div>
-
-  <!-- PROMPT 019B — Roadmap Assistant Documents / OCR -->
-  <div class="guide-section" style="border:1px solid rgba(99,102,241,.25);border-radius:var(--rad);padding:16px;background:rgba(99,102,241,.04);">
-    <h3>🤖 Roadmap — Assistant Documents (OCR + IA)</h3>
-    <p style="font-size:12px;color:var(--fg2);margin-bottom:12px;">
-      Le workflow complet d'analyse automatique de documents est prévu dans les prochains prompts.
-      <strong>Aucune de ces étapes n'est active aujourd'hui.</strong> Validation humaine obligatoire à chaque étape.
-    </p>
-    <ol style="font-size:12px;line-height:2.2;padding-left:18px;color:var(--fg);">
-      <li>
-        <strong>Upload sécurisé</strong> — Le fichier est envoyé via Edge Function
-        vers le bucket privé correspondant à la catégorie du document. Jamais directement du frontend.
-      </li>
-      <li>
-        <strong>Extraction texte / OCR côté serveur</strong> — L'Edge Function lit le fichier
-        (PDF ou image), extrait le texte brut via un service OCR sécurisé. Le contenu brut
-        est stocké dans <code>veraluz_document_extracted_text</code>.
-      </li>
-      <li>
-        <strong>Détection automatique (IA)</strong> — L'agent <code>legal_docs_ai</code> analyse
-        le texte et suggère :
-        <ul style="margin-top:4px;">
-          <li>Titre du document</li>
-          <li>Catégorie (juridique, banque, fiscalité, RH…)</li>
-          <li>Type précis (contrat, attestation, extrait, relevé…)</li>
-          <li>Dates clés (signature, début, fin, expiration)</li>
-          <li>Parties concernées (noms, sociétés, numéros)</li>
-          <li>Montants mentionnés (si applicable)</li>
-          <li>Échéances et délais</li>
-          <li>Statut recommandé (actif, expiré, à renouveler)</li>
-        </ul>
-        Ces suggestions sont stockées dans <code>veraluz_document_ai_suggestions</code>.
-      </li>
-      <li>
-        <strong>Pré-remplissage des champs</strong> — Les métadonnées suggérées apparaissent
-        pré-remplies dans le formulaire. L'utilisateur peut corriger chaque champ.
-        Aucun champ n'est enregistré sans action humaine.
-      </li>
-      <li>
-        <strong>Validation humaine obligatoire</strong> — Le propriétaire ou manager
-        confirme ou corrige les suggestions IA dans <code>veraluz_document_approvals</code>.
-        L'IA ne peut jamais valider elle-même.
-      </li>
-      <li>
-        <strong>Archivage</strong> — Après validation, le document passe en statut <em>active</em>.
-        L'accès au fichier se fait uniquement via URL signée (max 15 min).
-      </li>
-      <li>
-        <strong>Signature interne</strong> (si nécessaire) — Pour les documents nécessitant
-        une signature, un workflow de signature électronique interne est déclenché.
-        Géré via <code>veraluz_document_signatures</code>.
-      </li>
-      <li>
-        <strong>Journal d'audit</strong> — Chaque action (upload, lecture, modification, signature,
-        suppression logique) est enregistrée dans <code>veraluz_document_audit_logs</code>
-        avec horodatage, auteur et détail de l'action.
-      </li>
-    </ol>
-    <div style="margin-top:14px;padding:10px 14px;background:rgba(245,158,11,.08);
-                border:1px solid rgba(245,158,11,.3);border-radius:var(--rad2);font-size:11px;color:var(--fg2);">
-      <strong>⚠️ Tables futures (non créées) :</strong>
-      <code>veraluz_document_analysis_jobs</code> ·
-      <code>veraluz_document_extracted_text</code> ·
-      <code>veraluz_document_ai_suggestions</code> ·
-      <code>veraluz_document_approvals</code> ·
-      <code>veraluz_document_signatures</code> ·
-      <code>veraluz_document_audit_logs</code>
-      — À créer dans PROMPT 022+.
-    </div>
-  </div>
-</div>
-
-<!-- MODAL DÉTAILS DOCUMENT -->
-<div class="modal-overlay" id="doc-modal">
+<!-- ══ MODAL: DÉTAIL DOCUMENT ══════════════════════════════════════════ -->
+<div class="modal-overlay" id="doc-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal">
     <div class="modal-hdr">
-      <h3 id="modal-title">Détails du document</h3>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <h3 id="modal-title">Document</h3>
+      <button class="modal-close" onclick="closeModal()" aria-label="Fermer">&times;</button>
     </div>
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-foot">
-      <button class="btn btn-secondary btn-sm" onclick="closeModal()">Fermer</button>
-      <button class="btn btn-primary btn-sm" id="modal-edit-btn">✏️ Modifier</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Fermer</button>
+      <button class="btn btn-secondary btn-sm" id="modal-edit-btn">Modifier</button>
     </div>
   </div>
 </div>
 
+<!-- ══ MODAL: AJOUTER / MODIFIER ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="add-modal" role="dialog" aria-modal="true" aria-labelledby="add-modal-title">
+  <div class="modal">
+    <div class="modal-hdr">
+      <h3 id="add-modal-title">Ajouter un document</h3>
+      <button class="modal-close" onclick="closeAddModal()" aria-label="Fermer">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" id="add-form-grid">
+        <div class="fg fg-full">
+          <label for="doc-title">Titre <span style="color:var(--vlz-danger)">*</span></label>
+          <input type="text" id="doc-title" placeholder="ex: Attestation bancaire Afriland First Bank">
+        </div>
+        <div class="fg">
+          <label for="doc-category">Catégorie <span style="color:var(--vlz-danger)">*</span></label>
+          <select id="doc-category">
+            <option value="">-- Sélectionner --</option>
+            <option value="legal">Juridique</option>
+            <option value="bank">Banque</option>
+            <option value="tax">Fiscalité</option>
+            <option value="hr">RH</option>
+            <option value="supplier">Fournisseur</option>
+            <option value="insurance">Assurance</option>
+            <option value="property">Propriété</option>
+            <option value="finance">Finance</option>
+            <option value="operations">Opérations</option>
+            <option value="identity">Identité</option>
+            <option value="other">Autre</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="doc-type">Type de document</label>
+          <input type="text" id="doc-type" placeholder="ex: Contrat, Attestation, Déclaration…">
+        </div>
+        <div class="fg">
+          <label for="doc-confidentiality">Confidentialité</label>
+          <select id="doc-confidentiality">
+            <option value="public">Public</option>
+            <option value="internal" selected>Interne</option>
+            <option value="confidential">Confidentiel</option>
+            <option value="restricted">Restreint</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="doc-status">Statut</label>
+          <select id="doc-status">
+            <option value="active">Actif</option>
+            <option value="missing">Manquant</option>
+            <option value="pending_review">En révision</option>
+            <option value="archived">Archivé</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="doc-expiry">Date d'expiration</label>
+          <input type="date" id="doc-expiry">
+        </div>
+        <div class="fg">
+          <label for="doc-reminder">Date de rappel</label>
+          <input type="date" id="doc-reminder">
+        </div>
+        <div class="fg">
+          <label for="doc-module">Module lié</label>
+          <select id="doc-module">
+            <option value="">-- Aucun --</option>
+            <option value="rh">RH</option>
+            <option value="finance">Finance</option>
+            <option value="restaurant">Restaurant</option>
+            <option value="reservations">Réservations</option>
+            <option value="appro">Approvisionnnement</option>
+            <option value="maintenance">Maintenance</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label for="doc-uploader">Ajouté par (nom)</label>
+          <input type="text" id="doc-uploader" placeholder="Nom de la personne">
+        </div>
+        <div class="fg fg-full">
+          <label for="doc-notes">Notes</label>
+          <textarea id="doc-notes" rows="3" placeholder="Informations complémentaires…"></textarea>
+        </div>
+      </div>
+      <div class="form-msg" id="form-msg"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="closeAddModal()">Annuler</button>
+      <button class="btn btn-primary" onclick="submitDocument()" id="form-submit-btn">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ THEME FAB ═══════════════════════════════════════════════════════ -->
+<button id="vl-tm-btn" onclick="toggleVlTheme()" title="Basculer le thème" aria-label="Basculer le thème"></button>
+
+<!-- ══ SCRIPTS ════════════════════════════════════════════════════════ -->
 <script>
-window.__MODULE_NAME__ = 'documents';
-
-/* ── CONFIG ──────────────────────────────────────── */
-/* LOT D : accès Documents exclusivement via documents-secure.
-   Plus de clé anon ni d'appel REST direct à veraluz_documents. */
-
-/* ── STATE ───────────────────────────────────────── */
+/* ── STATE ── */
 var ALL_DOCS = [];
 var CURRENT_CAT = '';
 var CURRENT_STATUS = '';
 var EDIT_ID = null;
 
-/* ── PRIVATE BUCKETS ─────────────────────────────── */
+/* ── PRIVATE BUCKETS ── */
 var PRIVATE_BUCKETS = [
   'veraluz-documents-private',
   'veraluz-hr-private',
@@ -1142,12 +937,12 @@ var PRIVATE_BUCKETS = [
   'veraluz-payslips-private'
 ];
 
-/* ── CAT MAP ─────────────────────────────────────── */
+/* ── CAT MAPS ── */
 var CAT_LABELS = {
-  legal:'⚖️ Juridique', bank:'🏦 Banque', tax:'🧾 Fiscalité',
-  hr:'👥 RH', supplier:'🤝 Fournisseur', insurance:'🛡️ Assurance',
-  property:'🏠 Propriété', finance:'📊 Finance', operations:'⚙️ Opérations',
-  identity:'🪪 Identité', other:'📄 Autre'
+  legal:'Juridique', bank:'Banque', tax:'Fiscalité',
+  hr:'RH', supplier:'Fournisseur', insurance:'Assurance',
+  property:'Propriété', finance:'Finance', operations:'Opérations',
+  identity:'Identité', other:'Autre'
 };
 var CAT_BUCKETS = {
   legal:'veraluz-legal-private', bank:'veraluz-bank-private',
@@ -1158,28 +953,27 @@ var CAT_BUCKETS = {
   other:'veraluz-documents-private'
 };
 
-/* ── UTILS ───────────────────────────────────────── */
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+/* ── UTILS ── */
+function esc(s){ return String(s||'')  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function badgeStatus(s){
   var map={active:'active',expired:'expired',missing:'missing',
            archived:'archived',pending_review:'pending'};
   var labels={active:'Actif',expired:'Expiré',missing:'Manquant',
               archived:'Archivé',pending_review:'Révision'};
-  return '<span class="badge badge-'+(map[s]||'info')+'">'+esc(labels[s]||s)+'</span>';
+  return '<span class="badge badge-'+(map[s]||'info')+'">'+ esc(labels[s]||s)+'</span>';
 }
 function badgeConf(c){
   var labels={public:'Public',internal:'Interne',confidential:'Confidentiel',restricted:'Restreint'};
-  return '<span class="badge badge-'+esc(c)+'">'+esc(labels[c]||c)+'</span>';
+  return '<span class="badge badge-'+esc(c)+'">'+ esc(labels[c]||c)+'</span>';
 }
 function fmtDate(d){
   if(!d) return '—';
-  try{ var dt=new Date(d); return dt.toLocaleDateString('fr-FR'); }catch(e){ return d; }
+  try{ return new Date(d).toLocaleDateString('fr-FR'); }catch(e){ return d; }
 }
 function daysUntil(d){
   if(!d) return null;
-  var diff=new Date(d)-new Date();
-  return Math.round(diff/(1000*60*60*24));
+  return Math.round((new Date(d)-new Date())/(86400000));
 }
 function expColor(days){
   if(days===null) return '';
@@ -1188,9 +982,8 @@ function expColor(days){
   return 'color:var(--grn)';
 }
 
-/* ── APPEL SÉCURISÉ ──────────────────────────────── */
-/* Toutes les opérations Documents passent par documents-secure via le broker CORE.
-   Jamais d'accès REST direct à veraluz_documents. */
+/* ── SECURE BROKER ── */
+/* Jamais d'accès REST direct. Toutes les ops passent par documents-secure via CORE. */
 function docsRequest(action, payload){
   if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
     return Promise.reject(new Error('CORE_BROKER_UNAVAILABLE'));
@@ -1198,31 +991,28 @@ function docsRequest(action, payload){
   return window.parent.veraluzSecureRequest('documents-secure',
     Object.assign({ action: action }, payload || {}));
 }
-
 function isAuthError(e){
-  return e.message === 'CORE_BROKER_UNAVAILABLE'
-    || (e.status && (e.status === 401 || e.status === 403));
+  return e.message==='CORE_BROKER_UNAVAILABLE'
+    || (e.status && (e.status===401 || e.status===403));
 }
-
 function authErrorMsg(e){
-  if(e.message === 'CORE_BROKER_UNAVAILABLE')
+  if(e.message==='CORE_BROKER_UNAVAILABLE')
     return 'Module chargé hors du CORE VERALUZ — accès non disponible en mode autonome.';
-  if(e.status === 401)
-    return 'Session expirée ou invalide. Veuillez vous reconnecter au CORE VERALUZ.';
-  if(e.status === 403)
+  if(e.status===401)
+    return 'Session expirée ou invalide. Reconnectez-vous au CORE VERALUZ.';
+  if(e.status===403)
     return 'Accès refusé : rôle insuffisant pour le module Documents.';
-  return 'Erreur d'accès (' + (e.message||e.status||'?') + ').';
+  return 'Erreur d\u2019accès (' + (e.message||e.status||'?') + ').';
 }
 
-/* ── TAB NAVIGATION ──────────────────────────────── */
+/* ── TAB NAVIGATION ── */
 function showTab(name){
-  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.sec-tab').forEach(function(t){t.classList.remove('active');});
   var panel=document.getElementById('panel-'+name);
   if(panel) panel.classList.add('active');
-  document.querySelectorAll('.tab').forEach(function(t){
-    if(t.getAttribute('onclick').indexOf("'"+name+"'")>=0) t.classList.add('active');
-  });
+  var tab=document.getElementById('tab-'+name);
+  if(tab) tab.classList.add('active');
   if(name==='overview') loadOverview();
   if(name==='all') loadAll();
   if(name==='renewal') loadRenewal();
@@ -1230,151 +1020,205 @@ function showTab(name){
   if(name==='folders') loadFolders();
 }
 
-/* ── LOAD ALL DOCS ───────────────────────────────── */
-function loadDocs(){
-  return docsRequest('list')
-    .then(function(res){ ALL_DOCS=res.documents||[]; return ALL_DOCS; });
+/* ── SEARCH FROM HEADER ── */
+function onHdrSearch(){
+  var q=(document.getElementById('hdr-search').value||'')    .toLowerCase().trim();
+  if(document.getElementById('panel-all').classList.contains('active')){
+    renderAll(ALL_DOCS);
+  } else if(q){
+    showTab('all');
+  }
 }
 
-/* ── OVERVIEW ────────────────────────────────────── */
+/* ── LOAD DOCS ── */
+function loadDocs(){
+  return docsRequest('list').then(function(res){
+    ALL_DOCS=res.documents||[];
+    return ALL_DOCS;
+  });
+}
+
+/* ── OVERVIEW ── */
 function loadOverview(){
-  document.getElementById('overview-loading').style.display='';
-  document.getElementById('overview-content').style.display='none';
-  document.getElementById('overview-empty').style.display='none';
+  var $loading=document.getElementById('overview-loading');
+  var $empty=document.getElementById('overview-empty');
+  var $content=document.getElementById('overview-content');
+  $loading.style.display='';$empty.style.display='none';$content.style.display='none';
 
   loadDocs().then(function(docs){
-    document.getElementById('overview-loading').style.display='none';
-    if(!docs||!docs.length){
-      document.getElementById('overview-empty').style.display='';
-      return;
-    }
-    document.getElementById('overview-content').style.display='';
+    $loading.style.display='none';
+    if(!docs||!docs.length){ $empty.style.display=''; return; }
+    $content.style.display='';
 
     var total=docs.length;
     var active=docs.filter(function(d){return d.status==='active';}).length;
     var expired=docs.filter(function(d){return d.status==='expired';}).length;
     var missing=docs.filter(function(d){return d.status==='missing';}).length;
     var soon=docs.filter(function(d){
-      var n=daysUntil(d.expiry_date);
-      return n!==null && n>=0 && n<=30;
+      var n=daysUntil(d.expiry_date);return n!==null&&n>=0&&n<=30;
     }).length;
 
+    var $ac=document.getElementById('alert-checklist');
     if(missing>0){
-      document.getElementById('alert-checklist').style.display='';
+      $ac.style.display='';
       document.getElementById('alert-checklist-msg').textContent=
-        missing+' document(s) manquant(s) dans la checklist. Complétez le coffre documentaire progressivement.';
-    }
+        missing+' document(s) manquant(s). Complétez progressivement le coffre documentaire.';
+    } else { $ac.style.display='none'; }
 
-    var cards=[
-      {icon:'📋',val:total,lbl:'Total documents',cls:'stat-info'},
-      {icon:'✅',val:active,lbl:'Actifs',cls:'stat-ok'},
-      {icon:'⚠️',val:missing,lbl:'Manquants',cls:'stat-warn'},
-      {icon:'⏰',val:soon,lbl:'À renouveler (30j)',cls:soon>0?'stat-warn':'stat-ok'},
-      {icon:'❌',val:expired,lbl:'Expirés',cls:expired>0?'stat-err':'stat-ok'},
-      {icon:'🔒',val:PRIVATE_BUCKETS.length,lbl:'Buckets privés actifs',cls:'stat-ok'}
-    ];
-    document.getElementById('overview-cards').innerHTML=cards.map(function(c){
-      return '<div class="card '+c.cls+'"><div class="card-icon">'+c.icon+'</div>'+
-             '<div class="card-val">'+c.val+'</div>'+
-             '<div class="card-lbl">'+c.lbl+'</div></div>';
+    // Stat cards
+    document.getElementById('overview-cards').innerHTML=[
+      {val:total, lbl:'Total documents', cls:'c-info'},
+      {val:active, lbl:'Actifs', cls:'c-ok'},
+      {val:missing, lbl:'Manquants', cls:'c-warn'},
+      {val:soon, lbl:'À renouveler (30 j)', cls:soon>0?'c-warn':'c-ok'},
+      {val:expired, lbl:'Expirés', cls:expired>0?'c-danger':'c-ok'},
+      {val:PRIVATE_BUCKETS.length, lbl:'Buckets privés', cls:'c-info'}
+    ].map(function(c){
+      return '<div class="stat-card '+c.cls+'"><div class="sc-val">'+c.val+'</div>'+
+             '<div class="sc-lbl">'+c.lbl+'</div></div>';
     }).join('');
 
-    // Par catégorie
+    // Cat bars
     var cats={};
-    docs.forEach(function(d){ cats[d.category]=(cats[d.category]||0)+1; });
-    var catHtml='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;">';
-    Object.keys(cats).sort().forEach(function(c){
-      var count=cats[c];
-      var pct=Math.round(count/total*100);
-      catHtml+='<div style="background:var(--bg2);border:1px solid var(--brd);border-radius:var(--rad2);padding:12px;">'+
-        '<div style="display:flex;justify-content:space-between;margin-bottom:6px;">'+
-        '<span style="font-size:13px;">'+esc(CAT_LABELS[c]||c)+'</span>'+
-        '<span style="font-size:13px;font-weight:600;">'+count+'</span></div>'+
-        '<div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%;background:var(--acc);"></div></div>'+
-        '</div>';
-    });
-    catHtml+='</div>';
-    document.getElementById('overview-cats').innerHTML=catHtml;
+    docs.forEach(function(d){cats[d.category]=(cats[d.category]||0)+1;});
+    document.getElementById('overview-cats').innerHTML=
+      Object.keys(cats).sort().map(function(c){
+        var n=cats[c],pct=Math.round(n/total*100);
+        return '<div class="cat-row"><span>'+esc(CAT_LABELS[c]||c)+'</span>'+
+          '<div class="prog-bar"><div class="prog-fill" style="width:'+pct+'%"></div></div>'+
+          '<span class="cv">'+n+'</span></div>';
+      }).join('');
 
-    // Derniers docs
-    var recent=docs.slice(0,8);
-    document.getElementById('recent-docs').innerHTML=recent.map(function(d){
+    // Recent docs
+    document.getElementById('recent-docs').innerHTML=docs.slice(0,8).map(function(d){
       return '<tr>'+
         '<td><strong>'+esc(d.title)+'</strong></td>'+
-        '<td><span class="badge badge-cat">'+esc(CAT_LABELS[d.category]||d.category)+'</span></td>'+
+        '<td>'+'<span class="badge badge-cat">'+esc(CAT_LABELS[d.category]||d.category)+'</span>'+'</td>'+
         '<td>'+badgeStatus(d.status)+'</td>'+
         '<td>'+badgeConf(d.confidentiality_level)+'</td>'+
-        '<td style="font-size:12px;color:var(--fg2);">'+fmtDate(d.created_at)+'</td>'+
+        '<td style="font-size:12px;color:var(--vlz-text-2)">'+fmtDate(d.created_at)+'</td>'+
         '</tr>';
     }).join('');
+
+    // Upcoming deadlines (next 30 days)
+    var upcoming=docs.filter(function(d){
+      var n=daysUntil(d.expiry_date);return n!==null&&n>=0&&n<=30;
+    }).sort(function(a,b){return daysUntil(a.expiry_date)-daysUntil(b.expiry_date);});
+    var $dl=document.getElementById('overview-deadlines');
+    if(!upcoming.length){
+      $dl.innerHTML='<div class="alert alert-ok"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>Aucun document à renouveler dans les 30 prochains jours.</span></div>';
+    } else {
+      $dl.innerHTML=upcoming.map(function(d){
+        var days=daysUntil(d.expiry_date);
+        return '<div class="renew-item">'+
+          '<div class="exp-dot exp-red"></div>'+
+          '<div class="renew-info">'+
+            '<div class="renew-title">'+esc(d.title)+'</div>'+
+            '<div class="renew-sub">'+esc(CAT_LABELS[d.category]||d.category)+' · Expire le '+fmtDate(d.expiry_date)+' — <span style="color:var(--red)">dans '+days+'j</span></div>'+
+          '</div>'+
+          badgeConf(d.confidentiality_level)+
+        '</div>';
+      }).join('');
+    }
   }).catch(function(e){
-    document.getElementById('overview-loading').style.display='none';
-    document.getElementById('overview-empty').style.display='';
-    var _msg=isAuthError(e)?authErrorMsg(e):'Erreur de chargement ('+esc(e.message||'?')+'). Vérifiez la connexion réseau.';
-    document.getElementById('overview-empty').innerHTML=
-      '<div class="empty-icon">'+(isAuthError(e)?'🔒':'⚠️')+'</div><p style="font-size:13px;">'+_msg+'</p>';
+    $loading.style.display='none';$empty.style.display='';
+    $empty.innerHTML='<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>'+
+      '<h3>'+( isAuthError(e)?'Accès restreint':'Erreur de chargement')+'</h3>'+
+      '<p>'+esc(isAuthError(e)?authErrorMsg(e):'Vérifiez la connexion réseau. ('+(e.message||'?')+')' )+'</p>';
   });
 }
 
-/* ── ALL DOCS ────────────────────────────────────── */
+/* ── ALL DOCS ── */
 function loadAll(){
-  document.getElementById('all-loading').style.display='';
-  document.getElementById('all-table').style.display='none';
-  loadDocs().then(renderAll);
+  var $loading=document.getElementById('all-loading');
+  var $table=document.getElementById('all-table');
+  var $cards=document.getElementById('all-cards');
+  $loading.style.display='';$table.style.display='none';$cards.innerHTML='';
+  loadDocs().then(renderAll).catch(function(e){
+    $loading.style.display='none';$table.style.display='';
+    document.getElementById('all-tbody').innerHTML=
+      '<tr><td colspan="7" style="text-align:center;color:var(--vlz-danger);padding:28px;">'+
+      esc(isAuthError(e)?authErrorMsg(e):'Erreur: '+e.message)+'</td></tr>';
+  });
 }
 function filterDocs(){renderAll(ALL_DOCS);}
 function setCatFilter(cat,el){
   CURRENT_CAT=cat;
-  document.querySelectorAll('#filter-cats .filter-chip').forEach(function(c){c.classList.remove('active');});
-  el.classList.add('active');
-  renderAll(ALL_DOCS);
+  document.querySelectorAll('#filter-cats .chip').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');renderAll(ALL_DOCS);
 }
 function setStatusFilter(st,el){
   CURRENT_STATUS=st;
-  document.querySelectorAll('#filter-status .filter-chip').forEach(function(c){c.classList.remove('active');});
-  el.classList.add('active');
-  renderAll(ALL_DOCS);
+  document.querySelectorAll('#filter-status .chip').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');renderAll(ALL_DOCS);
 }
 function renderAll(docs){
-  document.getElementById('all-loading').style.display='none';
-  document.getElementById('all-table').style.display='';
-  var q=(document.getElementById('search-input').value||'').toLowerCase();
+  var $loading=document.getElementById('all-loading');
+  var $table=document.getElementById('all-table');
+  var $cards=document.getElementById('all-cards');
+  $loading.style.display='none';$table.style.display='';
+
+  // Sync search from header input
+  var hdrQ=(document.getElementById('hdr-search').value||'')    .toLowerCase().trim();
+  var q=hdrQ;
+
   var filtered=docs.filter(function(d){
     if(CURRENT_CAT && d.category!==CURRENT_CAT) return false;
     if(CURRENT_STATUS && d.status!==CURRENT_STATUS) return false;
-    if(q && (d.title||'').toLowerCase().indexOf(q)<0 &&
-            (d.document_type||'').toLowerCase().indexOf(q)<0 &&
-            (d.notes||'').toLowerCase().indexOf(q)<0) return false;
+    if(q && (d.title||'')      .toLowerCase().indexOf(q)<0 &&
+       (d.document_type||'')      .toLowerCase().indexOf(q)<0 &&
+       (d.notes||'')      .toLowerCase().indexOf(q)<0) return false;
     return true;
   });
   document.getElementById('all-count').textContent=filtered.length+' document(s)';
+
   if(!filtered.length){
+    $table.style.display='';
     document.getElementById('all-tbody').innerHTML=
-      '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:30px;">Aucun document trouvé</td></tr>';
+      '<tr><td colspan="7" style="text-align:center;color:var(--vlz-text-2);padding:36px;">Aucun document trouvé</td></tr>';
+    $cards.innerHTML='<div class="empty-state"><h3>Aucun résultat</h3><p>Essayez d\u2019autres filtres.</p></div>';
     return;
   }
+
+  // Desktop table
   document.getElementById('all-tbody').innerHTML=filtered.map(function(d){
     var days=daysUntil(d.expiry_date);
     var expStr=d.expiry_date
-      ? '<span style="'+expColor(days)+'">'+fmtDate(d.expiry_date)+(days!==null?' ('+days+'j)':'')+'</span>'
+      ? '<span style="'+expColor(days)+'">'+fmtDate(d.expiry_date)+(days!==null?' ('+days+'j)':'')+ '</span>'
       : '—';
-    var hasFile=d.storage_path?'<span style="color:var(--grn)">✅ Oui</span>':'<span style="color:var(--fg3)">— Non</span>';
     return '<tr>'+
-      '<td><strong>'+esc(d.title)+'</strong>'+(d.document_type?'<br><span style="font-size:11px;color:var(--fg3)">'+esc(d.document_type)+'</span>':'')+'</td>'+
+      '<td><strong>'+esc(d.title)+'</strong>'+(d.document_type?'<br><span style="font-size:11px;color:var(--vlz-text-2)">'+esc(d.document_type)+'</span>':'')+'</td>'+
       '<td><span class="badge badge-cat">'+esc(CAT_LABELS[d.category]||d.category)+'</span></td>'+
       '<td>'+badgeStatus(d.status)+'</td>'+
       '<td>'+badgeConf(d.confidentiality_level)+'</td>'+
       '<td style="font-size:12px;">'+expStr+'</td>'+
-      '<td style="font-size:12px;">'+hasFile+'</td>'+
-      '<td>'+
-        '<button class="btn btn-secondary btn-sm" onclick="viewDoc(\''+d.id+'\')">👁 Voir</button> '+
-        '<button class="btn btn-secondary btn-sm" onclick="archiveDoc(\''+d.id+'\')">📦</button>'+
-      '</td>'+
-      '</tr>';
+      '<td style="font-size:12px;">'+( d.storage_path        ?'<span style="color:var(--grn)">Oui</span>'        :'<span style="color:var(--fg3)">Non</span>')+'</td>'+
+      '<td style="white-space:nowrap;">'+
+        '<button class="btn btn-ghost btn-sm" data-id="'+ esc(d.id)+'" onclick="viewDoc(this.dataset.id)">Voir</button> '+
+        '<button class="btn btn-secondary btn-sm" data-id="'+ esc(d.id)+'" onclick="editDoc(this.dataset.id)">Modifier</button> '+
+        '<button class="btn btn-ghost btn-sm" data-id="'+ esc(d.id)+'" onclick="archiveDoc(this.dataset.id)" title="Archiver">'+
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></button>'+
+      '</td>'+'</tr>';
+  }).join('');
+
+  // Mobile cards
+  $cards.innerHTML=filtered.map(function(d){
+    var days=daysUntil(d.expiry_date);
+    return '<div class="doc-card">'+
+      '<div class="doc-card-title">'+esc(d.title)+'</div>'+
+      '<div class="doc-card-meta">'+
+        '<span class="badge badge-cat">'+esc(CAT_LABELS[d.category]||d.category)+'</span>'+
+        badgeStatus(d.status)+badgeConf(d.confidentiality_level)+
+        (d.expiry_date?'<span style="font-size:11px;'+expColor(days)+'">exp. '+fmtDate(d.expiry_date)+'</span>':'')+
+      '</div>'+
+      '<div class="doc-card-actions">'+
+        '<button class="btn btn-ghost btn-sm" data-id="'+ esc(d.id)+'" onclick="viewDoc(this.dataset.id)">Voir</button>'+
+        '<button class="btn btn-secondary btn-sm" data-id="'+ esc(d.id)+'" onclick="editDoc(this.dataset.id)">Modifier</button>'+
+      '</div>'+'</div>';
   }).join('');
 }
 
-/* ── RENEWAL ─────────────────────────────────────── */
+/* ── RENEWAL ── */
 function loadRenewal(){
   loadDocs().then(function(docs){
     var expired=[],d30=[],d60=[],d90=[];
@@ -1388,24 +1232,27 @@ function loadRenewal(){
     });
     var total=expired.length+d30.length+d60.length+d90.length;
     document.getElementById('renewal-empty').style.display=total?'none':'';
+    document.getElementById('renewal-content').style.display=total?'':' none';
 
-    function renderRenewGroup(arr,containerId,dotClass){
-      var el=document.getElementById(containerId);
-      el.innerHTML=!arr.length?'<div style="font-size:12px;color:var(--fg3);padding:8px;">Aucun</div>':
-        arr.map(function(item){
-          var d=item.d;
-          return '<div class="chk-item" style="margin-bottom:6px;">'+
-            '<div class="exp-dot '+dotClass+'"></div>'+
-            '<div class="chk-info">'+
-              '<div class="chk-title">'+esc(d.title)+'</div>'+
-              '<div class="chk-cat">'+esc(CAT_LABELS[d.category]||d.category)+
-              ' · Expire le '+fmtDate(d.expiry_date)+
-              (item.days<0?' — <span style="color:var(--red)">Expiré depuis '+(Math.abs(item.days))+'j</span>':
-               ' — <span style="color:var(--ylw)">Dans '+item.days+'j</span>')+'</div>'+
-            '</div>'+
-            badgeConf(d.confidentiality_level)+
+    function renderRenewGroup(arr,id,dotCls){
+      document.getElementById(id).innerHTML=!arr.length
+        ?'<div style="font-size:12px;color:var(--vlz-text-3);padding:8px 0;">Aucun</div>'
+        :arr.map(function(item){
+            var d=item.d;
+            return '<div class="renew-item">'+
+              '<div class="exp-dot '+dotCls+'"></div>'+
+              '<div class="renew-info">'+
+                '<div class="renew-title">'+esc(d.title)+'</div>'+
+                '<div class="renew-sub">'+esc(CAT_LABELS[d.category]||d.category)+' · '+
+                  fmtDate(d.expiry_date)+' — '+
+                  (item.days<0
+                    ?'<span style="color:var(--red)">Expiré depuis '+Math.abs(item.days)+'j</span>'
+                    :'<span style="color:var(--ylw)">Dans '+item.days+'j</span>')+
+                '</div>'+
+              '</div>'+
+              badgeConf(d.confidentiality_level)+
             '</div>';
-        }).join('');
+          }).join('');
     }
     renderRenewGroup(expired,'rg-expired-list','exp-red');
     renderRenewGroup(d30,'rg-30-list','exp-red');
@@ -1414,40 +1261,40 @@ function loadRenewal(){
   });
 }
 
-/* ── MISSING ─────────────────────────────────────── */
+/* ── MISSING ── */
 var MISSING_CHECKLIST = {
-  'Société / Juridique': [
+  'Société / Juridique':[
     {title:'Statuts de la société',cat:'legal',conf:'restricted'},
     {title:'RCCM / Immatriculation',cat:'legal',conf:'confidential'},
     {title:'Acte constitutif',cat:'legal',conf:'restricted'},
     {title:'NIF / Identifiant fiscal',cat:'tax',conf:'confidential'},
     {title:'Procès-verbal important',cat:'legal',conf:'confidential'}
   ],
-  'Banque': [
+  'Banque':[
     {title:'Attestation bancaire',cat:'bank',conf:'restricted'},
     {title:'Convention de compte bancaire',cat:'bank',conf:'restricted'},
     {title:'Coordonnées bancaires société',cat:'bank',conf:'restricted'},
     {title:'Documents de prêt',cat:'bank',conf:'restricted'}
   ],
-  'Fiscalité': [
+  'Fiscalité':[
     {title:'Attestation de régularité fiscale',cat:'tax',conf:'confidential'},
     {title:'Déclarations fiscales importantes',cat:'tax',conf:'confidential'},
     {title:'Quittances impôts',cat:'tax',conf:'confidential'},
     {title:'Patente',cat:'tax',conf:'confidential'}
   ],
-  'RH': [
+  'RH':[
     {title:'Contrats employés',cat:'hr',conf:'confidential'},
     {title:'Pièces identité employés',cat:'hr',conf:'confidential'},
     {title:'Attestations de travail',cat:'hr',conf:'internal'}
   ],
-  'Propriété / Résidence': [
+  'Propriété / Résidence':[
     {title:'Titre foncier / Propriété',cat:'property',conf:'restricted'},
     {title:'Bail',cat:'property',conf:'confidential'},
     {title:'Plans du bâtiment',cat:'property',conf:'internal'},
     {title:'Permis de construire / Autorisations',cat:'property',conf:'confidential'},
     {title:'Assurance bâtiment',cat:'insurance',conf:'confidential'}
   ],
-  'Fournisseurs': [
+  'Fournisseurs':[
     {title:'Contrats fournisseurs',cat:'supplier',conf:'internal'},
     {title:'Devis acceptés',cat:'supplier',conf:'internal'},
     {title:'Bons de commande importants',cat:'supplier',conf:'internal'}
@@ -1455,131 +1302,127 @@ var MISSING_CHECKLIST = {
 };
 
 function loadMissing(){
-  document.getElementById('missing-loading').style.display='';
-  document.getElementById('missing-content').style.display='none';
+  var $loading=document.getElementById('missing-loading');
+  var $content=document.getElementById('missing-content');
+  $loading.style.display='';$content.style.display='none';
   loadDocs().then(function(docs){
-    document.getElementById('missing-loading').style.display='none';
-    document.getElementById('missing-content').style.display='';
+    $loading.style.display='none';$content.style.display='';
     var existingTitles=docs.map(function(d){return d.title.toLowerCase();});
-    var missingCount=0;
     var html='';
     Object.keys(MISSING_CHECKLIST).forEach(function(grp){
-      html+='<div style="margin-bottom:20px;"><div style="font-size:13px;font-weight:600;'+
-            'color:var(--fg2);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--brd);">'+esc(grp)+'</div>'+
-            '<div class="checklist">';
+      html+='<div class="chk-grp"><div class="chk-grp-title">'+esc(grp)+'</div>'+
+            '<div class="chk-items">';
       MISSING_CHECKLIST[grp].forEach(function(item){
         var present=existingTitles.indexOf(item.title.toLowerCase())>=0;
-        if(!present) missingCount++;
         html+='<div class="chk-item '+(present?'present':'missing')+'">'+
-          '<div style="font-size:16px;">'+(present?'✅':'⚠️')+'</div>'+
-          '<div class="chk-info">'+
-            '<div class="chk-title">'+esc(item.title)+'</div>'+
-            '<div class="chk-cat">'+esc(CAT_LABELS[item.cat]||item.cat)+
-              ' · '+badgeConf(item.conf)+'</div>'+
+          '<div style="flex-shrink:0;color:'+(present?'var(--vlz-success)':'var(--vlz-warning)')+'">'+
+          (present
+            ?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>'
+            :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>')+
           '</div>'+
-          (!present?'<button class="btn btn-primary btn-sm" onclick="createMissingDoc(\''+
-            esc(item.title)+'\',\''+item.cat+'\',\''+item.conf+'\')">➕ Créer</button>':'<span style="color:var(--grn);font-size:12px;">Présent</span>')+
-          '</div>';
+          '<div class="chk-info"><div class="chk-title">'+esc(item.title)+'</div>'+
+            '<div class="chk-cat">'+esc(CAT_LABELS[item.cat]||item.cat)+'</div></div>'+
+          badgeConf(item.conf)+
+          (!present
+            ?'<button class="btn btn-primary btn-sm" data-title="'+esc(item.title)+'" data-cat="'+item.cat+'" data-conf="'+item.conf+'" onclick="createMissingDoc(this.dataset.title,this.dataset.cat,this.dataset.conf)">Cr\xc3\xa9er</button>'
+            :'<span style="font-size:11px;color:var(--vlz-success)">Présent</span>')+
+        '</div>';
       });
       html+='</div></div>';
     });
-    document.getElementById('missing-groups').innerHTML=html;
-    document.getElementById('missing-count-badge').textContent=missingCount+' manquants';
-    document.getElementById('missing-count-badge').className='count';
+    $content.innerHTML=html;
   });
 }
 
-function createMissingDoc(title,cat,conf){
-  if(!confirm('Créer une fiche "manquant" pour : '+title+' ?')) return;
-  docsRequest('create',{
-    title:title, category:cat, confidentiality_level:conf, status:'missing'
-  }).then(function(){
-    alert('Fiche créée. Document marqué comme manquant.');
-    loadMissing();
-  }).catch(function(e){ alert(isAuthError(e)?authErrorMsg(e):'Erreur: '+e.message); });
-}
-
-function addMissingToChecklist(){
-  showTab('upload');
-  document.getElementById('doc-status').value='missing';
-}
-
-/* ── FOLDERS ─────────────────────────────────────── */
+/* ── FOLDERS ── */
 function loadFolders(){
-  document.getElementById('folders-loading').style.display='';
-  document.getElementById('folders-grid').style.display='none';
+  var $loading=document.getElementById('folders-loading');
+  var $grid=document.getElementById('folders-grid');
+  $loading.style.display='';$grid.style.display='none';
   loadDocs().then(function(docs){
-    document.getElementById('folders-loading').style.display='none';
-    document.getElementById('folders-grid').style.display='';
-    var cats=Object.keys(CAT_LABELS);
-    document.getElementById('folders-grid').innerHTML=cats.map(function(c){
+    $loading.style.display='none';$grid.style.display='';
+    $grid.innerHTML=Object.keys(CAT_LABELS).map(function(c){
       var catDocs=docs.filter(function(d){return d.category===c;});
       var active=catDocs.filter(function(d){return d.status==='active';}).length;
       var expired=catDocs.filter(function(d){return d.status==='expired';}).length;
       var missing=catDocs.filter(function(d){return d.status==='missing';}).length;
-      var confRestr=catDocs.filter(function(d){return d.confidentiality_level==='restricted';}).length;
-      var confConf=catDocs.filter(function(d){return d.confidentiality_level==='confidential';}).length;
-      var domConf=confRestr>0?'restricted':(confConf>0?'confidential':'internal');
-      return '<div class="folder" onclick="openFolder(\''+c+'\')">'+
-        '<div class="folder-icon">'+CAT_LABELS[c].split(' ')[0]+'</div>'+
-        '<div class="folder-name">'+CAT_LABELS[c].split(' ').slice(1).join(' ')+'</div>'+
-        '<div class="folder-stats">'+
-          catDocs.length+' doc' +(catDocs.length>1?'s':'')+
-          (active?' · '+active+' actif':'')+(expired?' · <span style="color:var(--red)">'+expired+' exp.</span>':'')+
-          (missing?' · <span style="color:var(--ylw)">'+missing+' manq.</span>':'')+
-        '</div>'+
-        '<div style="margin-top:6px;">'+badgeConf(domConf)+'</div>'+
-        '</div>';
+      var stats=catDocs.length+' doc'+(catDocs.length!==1?'s':'')+
+        (active?' · '+active+' actif':'')+
+        (expired?' · <span style="color:var(--red)">'+expired+' exp.</span>':'')+
+        (missing?' · <span style="color:var(--ylw)">'+missing+' manq.</span>':'');
+      return '<div class="folder-card" data-cat="'+ c +'" onclick="openFolder(this.dataset.cat)" tabindex="0" role="button" aria-label="'+('Dossier '+esc(CAT_LABELS[c]||c))+'">'+
+        '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>'+
+        '<div class="folder-name">'+esc(CAT_LABELS[c]||c)+'</div>'+
+        '<div class="folder-stats">'+stats+'</div>'+'</div>';
     }).join('');
+    // Keyboard nav for folders
+    $grid.querySelectorAll('.folder-card').forEach(function(el){
+      el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){el.click();}});
+    });
   });
 }
-
 function openFolder(cat){
-  CURRENT_CAT=cat;
-  showTab('all');
-  document.querySelectorAll('#filter-cats .filter-chip').forEach(function(c){
+  CURRENT_CAT=cat;showTab('all');
+  document.querySelectorAll('#filter-cats .chip').forEach(function(c){
     c.classList.remove('active');
-    if(c.getAttribute('onclick') && c.getAttribute('onclick').indexOf("'"+cat+"'")>=0) c.classList.add('active');
+    if(c.getAttribute('onclick')&&c.getAttribute('onclick').indexOf("'"+cat+"'")>=0)
+      c.classList.add('active');
   });
 }
 
-/* ── SUBMIT DOC ──────────────────────────────────── */
+/* ── MODAL ADD/EDIT ── */
+function openAddModal(){
+  EDIT_ID=null;
+  document.getElementById('add-modal-title').textContent='Ajouter un document';
+  document.getElementById('form-submit-btn').textContent='Enregistrer';
+  resetForm();
+  document.getElementById('add-modal').classList.add('open');
+  setTimeout(function(){document.getElementById('doc-title').focus();},80);
+}
+function closeAddModal(){
+  document.getElementById('add-modal').classList.remove('open');
+  EDIT_ID=null;
+}
+
+/* ── SUBMIT DOC ── */
 function submitDocument(){
-  var title=(document.getElementById('doc-title').value||'').trim();
+  var title=(document.getElementById('doc-title').value||'')    .trim();
   var category=document.getElementById('doc-category').value;
   var conf=document.getElementById('doc-confidentiality').value;
   var status=document.getElementById('doc-status').value;
   var expiry=document.getElementById('doc-expiry').value||null;
   var reminder=document.getElementById('doc-reminder').value||null;
   var module=document.getElementById('doc-module').value||null;
-  var uploader=(document.getElementById('doc-uploader').value||'').trim()||null;
-  var notes=(document.getElementById('doc-notes').value||'').trim()||null;
-  var dtype=(document.getElementById('doc-type').value||'').trim()||null;
+  var uploader=(document.getElementById('doc-uploader').value||'')    .trim()||null;
+  var notes=(document.getElementById('doc-notes').value||'')    .trim()||null;
+  var dtype=(document.getElementById('doc-type').value||'')    .trim()||null;
 
-  if(!title){ showFormMsg('⚠️ Le titre est obligatoire.','warn'); return; }
-  if(!category){ showFormMsg('⚠️ La catégorie est obligatoire.','warn'); return; }
+  if(!title){showFormMsg('Le titre est obligatoire.','warn');return;}
+  if(!category){showFormMsg('La catégorie est obligatoire.','warn');return;}
 
-  /* uploaded_by et storage_bucket calculés côté serveur (documents-secure) */
-  var data={
-    title:title, category:category, document_type:dtype,
-    confidentiality_level:conf, status:status,
-    expiry_date:expiry, reminder_date:reminder,
-    related_module:module, notes:notes
-  };
-  // Nettoyer les valeurs nulles/vides
-  Object.keys(data).forEach(function(k){ if(data[k]===null||data[k]===undefined||data[k]==='') delete data[k]; });
+  var data={title:title,category:category,document_type:dtype,
+    confidentiality_level:conf,status:status,
+    expiry_date:expiry,reminder_date:reminder,
+    related_module:module,notes:notes};
+  Object.keys(data).forEach(function(k){
+    if(data[k]===null||data[k]===undefined||data[k]==='') delete data[k];
+  });
 
-  showFormMsg('⏳ Enregistrement…','info');
+  showFormMsg('Enregistrement en cours…','info');
+  document.getElementById('form-submit-btn').disabled=true;
 
-  var actionName = EDIT_ID ? 'update' : 'create';
-  var payload = EDIT_ID ? Object.assign({id:EDIT_ID}, data) : data;
+  var actionName=EDIT_ID?'update':'create';
+  var payload=EDIT_ID?Object.assign({id:EDIT_ID},data):data;
 
-  docsRequest(actionName, payload).then(function(){
-    showFormMsg('✅ Document enregistré avec succès.','ok');
-    resetForm();
-    ALL_DOCS=[];
+  docsRequest(actionName,payload).then(function(){
+    showFormMsg('Document enregistré avec succès.','ok');
+    document.getElementById('form-submit-btn').disabled=false;
+    resetForm();ALL_DOCS=[];
+    setTimeout(closeAddModal,1200);
+    loadAll();showTab('all');
   }).catch(function(e){
-    showFormMsg(isAuthError(e)?authErrorMsg(e):'❌ Erreur: '+e.message,'danger');
+    document.getElementById('form-submit-btn').disabled=false;
+    showFormMsg(isAuthError(e)?authErrorMsg(e):'Erreur: '+e.message,'danger');
   });
 }
 
@@ -1593,130 +1436,159 @@ function resetForm(){
   document.getElementById('doc-module').value='';
   EDIT_ID=null;
 }
-
 function showFormMsg(msg,type){
   var el=document.getElementById('form-msg');
-  var colors={info:'var(--acc2)',ok:'var(--grn)',warn:'var(--ylw)',danger:'var(--red)'};
-  el.style.color=colors[type]||'var(--fg2)';
-  el.textContent=msg;
+  el.className='form-msg visible '+type;el.textContent=msg;
 }
 
-/* ── VIEW DOC ────────────────────────────────────── */
+/* ── VIEW DOC MODAL ── */
 function viewDoc(id){
   var d=ALL_DOCS.filter(function(x){return x.id===id;})[0];
   if(!d) return;
-  document.getElementById('modal-title').textContent=d.title;
   var days=daysUntil(d.expiry_date);
+  document.getElementById('modal-title').textContent=d.title;
   document.getElementById('modal-body').innerHTML=
-    '<table style="width:100%;border-collapse:collapse;font-size:13px;">'+
-    row('Titre', esc(d.title))+
-    row('Catégorie', esc(CAT_LABELS[d.category]||d.category))+
-    row('Type', esc(d.document_type||'—'))+
-    row('Statut', badgeStatus(d.status))+
-    row('Confidentialité', badgeConf(d.confidentiality_level))+
-    row('Expiration', d.expiry_date?(fmtDate(d.expiry_date)+(days!==null?' (<span style="'+expColor(days)+'">'+days+'j</span>)':'')):'—')+
-    row('Rappel', fmtDate(d.reminder_date))+
-    row('Module lié', esc(d.related_module||'—'))+
-    row('Ajouté par', esc(d.uploaded_by||'—'))+
-    row('Révisé par', esc(d.reviewed_by||'—'))+
-    row('Fichier', d.storage_path?'<span style="color:var(--grn)">✅ Présent (privé)</span>':'<span style="color:var(--fg3)">Non uploadé</span>')+
-    row('Bucket', d.storage_bucket?('<code>'+esc(d.storage_bucket)+'</code>'):'—')+
-    row('Notes', esc(d.notes||'—'))+
-    row('Créé le', fmtDate(d.created_at))+
-    row('Mis à jour', fmtDate(d.updated_at))+
-    '</table>'+
-    (d.storage_path?'<div class="alert alert-info" style="margin-top:14px;"><span>🔒</span>'+
-    '<span>Fichier stocké dans un bucket privé. Accès via URL signée (15 min max) — disponible dans PROMPT 020+.</span></div>':'');
-  document.getElementById('modal-edit-btn').onclick=function(){ closeModal(); editDoc(id); };
+    [[' Titre',esc(d.title)],
+     ['Catégorie',esc(CAT_LABELS[d.category]||d.category)],
+     ['Type',esc(d.document_type||'—')],
+     ['Statut',badgeStatus(d.status)],
+     ['Confidentialité',badgeConf(d.confidentiality_level)],
+     ['Expiration',d.expiry_date?(fmtDate(d.expiry_date)+(days!==null?' (<span style="'+expColor(days)+'">'+days+'j</span>)':'')):'—'],
+     ['Rappel',fmtDate(d.reminder_date)],
+     ['Module lié',esc(d.related_module||'—')],
+     ['Ajouté par',esc(d.uploaded_by||'—')],
+     ['Révisé par',esc(d.reviewed_by||'—')],
+     ['Fichier',d.storage_path?'<span style="color:var(--grn)">Présent (privé)':'<span style="color:var(--fg3)">Non uploadé</span>'],
+     ['Bucket',d.storage_bucket?('<code>'+esc(d.storage_bucket)+'</code>'):'—'],
+     ['Notes',esc(d.notes||'—')],
+     ['Créé le',fmtDate(d.created_at)],
+     ['Mis à jour',fmtDate(d.updated_at)]
+    ].map(function(r){
+      return '<div class="detail-row"><div class="detail-lbl">'+r[0]+'</div><div class="detail-val">'+r[1]+'</div></div>';
+    }).join('')+
+    (d.storage_path?'<div class="alert alert-info" style="margin-top:14px;">'+
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'+
+      '<span>Fichier stocké dans un bucket privé — accès via URL signée.</span></div>':''  );
+  document.getElementById('modal-edit-btn').onclick=function(){closeModal();editDoc(id);};
   document.getElementById('doc-modal').classList.add('open');
 }
+function closeModal(){document.getElementById('doc-modal').classList.remove('open');}
 
-function row(lbl,val){
-  return '<tr><td style="padding:7px 0;color:var(--fg2);width:140px;vertical-align:top;">'+esc(lbl)+'</td>'+
-         '<td style="padding:7px 0;">'+val+'</td></tr>';
-}
-
-function closeModal(){ document.getElementById('doc-modal').classList.remove('open'); }
-
+/* ── EDIT DOC ── */
 function editDoc(id){
   var d=ALL_DOCS.filter(function(x){return x.id===id;})[0];
   if(!d) return;
   EDIT_ID=id;
-  showTab('upload');
-  document.getElementById('doc-title').value=d.title||'';
-  document.getElementById('doc-category').value=d.category||'';
-  document.getElementById('doc-type').value=d.document_type||'';
-  document.getElementById('doc-confidentiality').value=d.confidentiality_level||'internal';
-  document.getElementById('doc-status').value=d.status||'active';
-  document.getElementById('doc-expiry').value=d.expiry_date||'';
-  document.getElementById('doc-reminder').value=d.reminder_date||'';
-  document.getElementById('doc-module').value=d.related_module||'';
-  document.getElementById('doc-uploader').value=d.uploaded_by||'';
-  document.getElementById('doc-notes').value=d.notes||'';
-  showFormMsg('✏️ Mode modification — ID: '+id,'info');
+  document.getElementById('add-modal-title').textContent='Modifier le document';
+  document.getElementById('form-submit-btn').textContent='Enregistrer les modifications';
+  document.getElementById('doc-title').value=d.title||''  ;
+  document.getElementById('doc-category').value=d.category||''  ;
+  document.getElementById('doc-type').value=d.document_type||''  ;
+  document.getElementById('doc-confidentiality').value=d.confidentiality_level||'internal'  ;
+  document.getElementById('doc-status').value=d.status||'active'  ;
+  document.getElementById('doc-expiry').value=d.expiry_date||''  ;
+  document.getElementById('doc-reminder').value=d.reminder_date||''  ;
+  document.getElementById('doc-module').value=d.related_module||''  ;
+  document.getElementById('doc-uploader').value=d.uploaded_by||''  ;
+  document.getElementById('doc-notes').value=d.notes||''  ;
+  showFormMsg('Mode modification','info'  );
+  document.getElementById('add-modal').classList.add('open'  );
 }
 
+/* ── ARCHIVE ── */
 function archiveDoc(id){
   if(!confirm('Archiver ce document ?')) return;
   docsRequest('archive',{id:id}).then(function(){
-    ALL_DOCS=[];
-    loadAll();
-  }).catch(function(e){ alert(isAuthError(e)?authErrorMsg(e):'Erreur: '+e.message); });
+    ALL_DOCS=[];loadAll();
+  }).catch(function(e){alert(isAuthError(e)?authErrorMsg(e):'Erreur: '+e.message);});
 }
 
-/* ── INIT ────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', function(){
-  // Vérifier que le broker CORE est disponible avant tout chargement
-  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
-    var empty=document.getElementById('overview-empty');
-    if(empty){
-      empty.innerHTML='<div class="empty-icon">🔒</div>'+
-        '<p style="font-size:13px;">Module chargé hors du CORE VERALUZ. '+
-        'Ouvrez ce module depuis l\'application principale.</p>';
-      empty.style.display='';
-    }
-    return;
-  }
-  loadOverview();
-});
+/* ── CREATE MISSING ── */
+function createMissingDoc(title,cat,conf){
+  if(!confirm('Créer une fiche manquante pour : '+title+' ?')) return;
+  docsRequest('create',{title:title,category:cat,confidentiality_level:conf,status:'missing'})
+  .then(function(){alert('Fiche créée.');loadMissing();})
+  .catch(function(e){alert(isAuthError(e)?authErrorMsg(e):'Erreur: '+e.message);});
+}
 
-/* ── LOT D — Diagnostic documents-secure ─────────────── */
+/* ── DIAG ── */
 function runDocsDiag(){
-  var wrap = document.getElementById('docs-diag-result');
-  if(!wrap) return;
-  wrap.style.display = '';
-  wrap.innerHTML = '⏳ Test en cours…';
-  var lines = [];
-
-  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
-    lines.push('❌ Broker CORE non disponible — module hors de VERALUZ_OS_CORE');
-    wrap.innerHTML = lines.join('<br>'); return;
+  var wrap=document.getElementById('docs-diag-result');
+  wrap.style.display='';wrap.innerHTML='Test en cours…';
+  var lines=[];
+  if(!window.parent||typeof window.parent.veraluzSecureRequest!=='function'  ){
+    lines.push('ERREUR — Broker CORE non disponible');
+    wrap.innerHTML=lines.join('<br>');return;
   }
-  lines.push('✅ Broker CORE détecté (veraluzSecureRequest)');
-
+  lines.push('OK — Broker CORE détecté');
   docsRequest('list').then(function(res){
-    lines.push('✅ documents-secure → list : '+((res.documents||[]).length)+' document(s)');
-    wrap.innerHTML = lines.join('<br>');
+    lines.push('OK — documents-secure list : '+(( res.documents||[]).length)+' document(s)');
+    wrap.innerHTML=lines.join('<br>');
   }).catch(function(e){
-    if(e.status===401) lines.push('⚠️ Session invalide ou expirée (401) — reconnectez-vous');
-    else if(e.status===403) lines.push('⚠️ Accès refusé (403) — rôle insuffisant');
-    else lines.push('❌ Erreur documents-secure : '+e.message);
-    wrap.innerHTML = lines.join('<br>');
+    if(e.status===401) lines.push('AVERTISSEMENT — Session invalide (401)');
+    else if(e.status===403) lines.push('AVERTISSEMENT — Accès refusé (403)');
+    else lines.push('ERREUR — '+e.message);
+    wrap.innerHTML=lines.join('<br>');
   });
 }
 
-// Fermer modal sur overlay click
-document.getElementById('doc-modal').addEventListener('click',function(e){
-  if(e.target===this) closeModal();
+/* ── SECURITY PANEL INIT ── */
+function initSecurityPanel(){
+  var el=document.getElementById('buckets-list');
+  if(el) el.innerHTML=PRIVATE_BUCKETS.map(function(b){
+    return '<code style="display:inline-block;margin:2px;">'+esc(b)+'</code>';
+  }).join(' ');
+}
+
+/* ── INIT ── */
+document.addEventListener('DOMContentLoaded',function(){
+  var hasBroker=window.parent&&typeof window.parent.veraluzSecureRequest==='function'  ;
+  if(!hasBroker){
+    document.getElementById('standalone-wall').style.display=''  ;
+    document.getElementById('app-root').style.display='none'  ;
+    return;
+  }
+  document.getElementById('standalone-wall').style.display='none'  ;
+  document.getElementById('app-root').style.display=''  ;
+  initSecurityPanel();
+  loadOverview();
+});
+
+/* ── MODAL CLOSE ON OVERLAY ── */
+['doc-modal','add-modal'].forEach(function(id){
+  document.getElementById(id).addEventListener('click',function(e){
+    if(e.target===this) this.classList.remove('open'  );
+  });
+});
+
+/* ── KEYBOARD: CLOSE MODAL ON ESC ── */
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'  ){
+    document.querySelectorAll('.modal-overlay.open').forEach(function(m){
+      m.classList.remove('open'  );
+    });
+  }
 });
 </script>
 
 <script>
-/* ── Veraluz Theme toggle — PROMPT 036F ─────────────────────────────── */
-function applyVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';document.documentElement.classList.toggle('vl-dark',dark);var btn=document.getElementById('vl-tm-btn');if(btn)btn.textContent=dark?'☀️':'🌙';}
-function toggleVlTheme(){var dark=localStorage.getItem('vl_theme')==='dark';localStorage.setItem('vl_theme',dark?'light':'dark');applyVlTheme();try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*');}catch(e){}}
+/* ── THEME TOGGLE ── */
+function applyVlTheme(){
+  var dark=localStorage.getItem('vl_theme')==='dark'  ;
+  document.documentElement.classList.toggle('vl-dark',dark);
+  var btn=document.getElementById('vl-tm-btn'  );
+  if(btn) btn.textContent=dark?'☀':'🌙'  ;
+}
+function toggleVlTheme(){
+  var dark=localStorage.getItem('vl_theme')==='dark'  ;
+  localStorage.setItem('vl_theme',dark?'light':'dark'  );
+  applyVlTheme();
+  try{window.parent.postMessage({type:'vl-theme',theme:dark?'light':'dark'},'*'  );}catch(e){}
+}
 document.addEventListener('DOMContentLoaded',applyVlTheme);
-window.addEventListener('message',function(e){if(e.data&&e.data.type==='vl-theme')applyVlTheme();});
+window.addEventListener('message',function(e){
+  if(e.data&&e.data.type==='vl-theme') applyVlTheme();
+});
 </script>
 </body>
 </html>

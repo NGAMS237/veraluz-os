@@ -822,8 +822,18 @@ html.vl-dark .fg input,html.vl-dark .fg select,html.vl-dark .fg textarea{
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-foot">
       <button class="btn btn-ghost btn-sm" onclick="closeModal()">Fermer</button>
+      <span id="modal-upload-status" style="font-size:.8rem;color:var(--fg3);"></span>
+      <button class="btn btn-ghost btn-sm" id="modal-consult-btn" style="display:none;" onclick="consultDoc()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Consulter
+      </button>
+      <button class="btn btn-secondary btn-sm" id="modal-upload-btn" style="display:none;" onclick="triggerFileUpload()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+        <span id="modal-upload-label">Uploader un fichier</span>
+      </button>
       <button class="btn btn-secondary btn-sm" id="modal-edit-btn">Modifier</button>
     </div>
+    <input type="file" id="doc-file-input" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx" style="display:none;" onchange="handleFileSelected(this)">
   </div>
 </div>
 
@@ -1442,9 +1452,12 @@ function showFormMsg(msg,type){
 }
 
 /* ── VIEW DOC MODAL ── */
+var CURRENT_VIEW_ID = null;
+
 function viewDoc(id){
   var d=ALL_DOCS.filter(function(x){return x.id===id;})[0];
   if(!d) return;
+  CURRENT_VIEW_ID = id;
   var days=daysUntil(d.expiry_date);
   document.getElementById('modal-title').textContent=d.title;
   document.getElementById('modal-body').innerHTML=
@@ -1470,8 +1483,76 @@ function viewDoc(id){
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'+
       '<span>Fichier stocké dans un bucket privé — accès via URL signée.</span></div>':''  );
   document.getElementById('modal-edit-btn').onclick=function(){closeModal();editDoc(id);};
+  // File action buttons
+  var hasFile = !!(d.storage_path);
+  var consultBtn = document.getElementById('modal-consult-btn');
+  var uploadBtn  = document.getElementById('modal-upload-btn');
+  var uploadLbl  = document.getElementById('modal-upload-label');
+  consultBtn.style.display = hasFile ? '' : 'none';
+  uploadBtn.style.display  = (typeof window.parent.veraluzUploadDocument === 'function') ? '' : 'none';
+  uploadLbl.textContent    = hasFile ? 'Remplacer le fichier' : 'Uploader un fichier';
+  document.getElementById('modal-upload-status').textContent = '';
   document.getElementById('doc-modal').classList.add('open');
 }
+function consultDoc(){
+  if(!CURRENT_VIEW_ID) return;
+  var statusEl = document.getElementById('modal-upload-status');
+  statusEl.textContent = 'Génération URL…';
+  docsRequest('get_signed_url', {id: CURRENT_VIEW_ID}).then(function(res){
+    statusEl.textContent = '';
+    if(res && res.ok && res.url){
+      window.open(res.url, '_blank', 'noopener,noreferrer');
+    } else {
+      statusEl.style.color = 'var(--red,#c0392b)';
+      statusEl.textContent = 'Erreur: ' + (res && res.error ? res.error : 'URL indisponible');
+    }
+  }).catch(function(e){
+    statusEl.style.color = 'var(--red,#c0392b)';
+    statusEl.textContent = 'Erreur réseau';
+  });
+}
+
+function triggerFileUpload(){
+  document.getElementById('doc-file-input').value = '';
+  document.getElementById('doc-file-input').click();
+}
+
+function handleFileSelected(input){
+  var file = input.files && input.files[0];
+  if(!file || !CURRENT_VIEW_ID) return;
+  var statusEl = document.getElementById('modal-upload-status');
+  var uploadBtn = document.getElementById('modal-upload-btn');
+  statusEl.style.color = 'var(--fg3)';
+  statusEl.textContent = 'Envoi en cours…';
+  uploadBtn.disabled = true;
+  if(typeof window.parent.veraluzUploadDocument !== 'function'){
+    statusEl.style.color = 'var(--red,#c0392b)';
+    statusEl.textContent = 'Broker upload non disponible';
+    uploadBtn.disabled = false;
+    return;
+  }
+  window.parent.veraluzUploadDocument(CURRENT_VIEW_ID, file).then(function(res){
+    uploadBtn.disabled = false;
+    if(res && res.ok){
+      statusEl.style.color = 'var(--grn,#27ae60)';
+      statusEl.textContent = 'Fichier enregistré ✓';
+      // Refresh data
+      ALL_DOCS = [];
+      loadAll();
+      // Update consult button
+      document.getElementById('modal-consult-btn').style.display = '';
+      document.getElementById('modal-upload-label').textContent = 'Remplacer le fichier';
+    } else {
+      statusEl.style.color = 'var(--red,#c0392b)';
+      statusEl.textContent = 'Erreur: ' + (res && (res.error || res.code) ? (res.error || res.code) : 'Échec upload');
+    }
+  }).catch(function(e){
+    uploadBtn.disabled = false;
+    statusEl.style.color = 'var(--red,#c0392b)';
+    statusEl.textContent = 'Erreur réseau: ' + String(e.message || e);
+  });
+}
+
 function closeModal(){document.getElementById('doc-modal').classList.remove('open');}
 
 /* ── EDIT DOC ── */

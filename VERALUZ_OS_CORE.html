@@ -3801,6 +3801,27 @@ window.veraluzSecureRequest = function (endpoint, payload) {
   });
 };
 
+
+window.veraluzUploadDocument = async function(documentId, file) {
+  var tok = getSessionToken();
+  if (!tok) return { ok: false, code: 'no_session' };
+  if (!documentId || !file) return { ok: false, code: 'missing_params' };
+  var fd = new FormData();
+  fd.append('document_id', String(documentId));
+  fd.append('file', file);
+  try {
+    var resp = await fetch(SUPA_URL + '/functions/v1/veraluz-document-upload', {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'X-Veraluz-Session': tok },
+      body: fd
+    });
+    var json = await resp.json();
+    return json;
+  } catch(e) {
+    return { ok: false, code: 'network_error', message: String(e.message || e) };
+  }
+};
+
 document.addEventListener('DOMContentLoaded', function(){
   applyVlTheme(); /* PROMPT 036B — Veraluz Theme : appliquer préférence dark/light */
   purgeLegacyPinCache(); /* PROMPT 008B — purge cache PIN legacy */

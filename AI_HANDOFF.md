@@ -51,3 +51,29 @@ Trois commandes `delivered` sans `room_charge` actif, antérieures au Lot C.
 `date | agent | lot | branche | commit | tests | statut | fichiers réservés | prochaine action`
 
 LOCK : `LOCK | agent | branche | tâche | fichiers/zones`
+
+---
+
+## LOT D.1 — DOCUMENT FILES (branche: claude/recovery-lot-d1-document-files)
+
+**Statut** : COMPLÉTÉ (branche, pas encore mergée)  
+**Base main** : `02ee59e72a0cb01d84455d2573ebcca7820c2f08`
+
+### Changements
+- **`supabase/functions/veraluz-document-upload/index.ts`** (nouveau, 339 lignes)  
+  Auth X-Veraluz-Session, RBAC documents.manage, validation MIME+extension+magic bytes, 5 types (PDF/JPEG/PNG/DOCX/XLSX), limites 10 MB / 20 MB (legal/bank/property/identity), path opaque `{cat}/{docId}/{ts}_{rnd}_{filename}`, bucket par catégorie (4 buckets privés), mise à jour DB, rollback Storage si DB échoue, suppression ancien fichier avant re-upload.
+
+- **`supabase/functions/documents-secure/index.ts`** (modifié)  
+  + action `get_signed_url` : URL signée 15 min, require documents.read, isValidUUID check.
+
+- **`VERALUZ_OS_CORE.html`** (modifié)  
+  + `window.veraluzUploadDocument(documentId, file)` — broker upload sécurisé (token en mémoire, FormData, fetch vers EF, aucun secret exposé iframe).
+
+- **`DOCUMENTS_EMBEDDED.html`** (modifié)  
+  UI complète : bouton Consulter (URL signée), bouton Uploader/Remplacer, état "fichier présent", progression upload, rollback visuel si erreur. Aucun accès Storage direct. Aucune clé dans le browser.
+
+### Pré-requis déploiement
+4 buckets Supabase Storage privés à créer : `veraluz-legal-private`, `veraluz-bank-private`, `veraluz-hr-private`, `veraluz-documents-private`.
+
+### Prochain lot
+Lot E (à définir par Blaise). Ne pas commencer sans autorisation explicite.

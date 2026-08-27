@@ -443,5 +443,52 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, document: data }, 200, origin);
   }
 
+
+  // ── GET_SIGNED_URL ────────────────────────────────────────────────────────
+  // Génère une URL de lecture signée (max 15 min) pour un fichier existant.
+  // Requiert documents.read. Aucun secret exposé côté navigateur.
+  if (action === 'get_signed_url') {
+    if (!canRead) {
+      return json({ ok: false, error: 'documents_read_forbidden' }, 403, origin);
+    }
+
+    if (!isValidUUID(body.id)) {
+      return json({ ok: false, error: 'invalid_id' }, 400, origin);
+    }
+    const docId = String(body.id);
+
+    // Récupérer bucket + path depuis la fiche
+    const { data: doc, error: fetchErr } = await db
+      .from('veraluz_documents')
+      .select('id, storage_bucket, storage_path, file_name, file_type')
+      .eq('id', docId)
+      .single();
+
+    if (fetchErr || !doc) {
+      return json({ ok: false, error: 'document_not_found' }, 404, origin);
+    }
+    if (!doc.storage_bucket || !doc.storage_path) {
+      return json({ ok: false, error: 'no_file_attached' }, 404, origin);
+    }
+
+    // Générer l'URL signée — 900 secondes = 15 minutes
+    const { data: signedData, error: signErr } = await db.storage
+      .from(doc.storage_bucket)
+      .createSignedUrl(doc.storage_path, 900);
+
+    if (signErr || !signedData?.signedUrl) {
+      console.error('[documents-secure] signed_url_failed', signErr?.message);
+      return json({ ok: false, error: 'signed_url_failed' }, 500, origin);
+    }
+
+    return json({
+      ok:         true,
+      url:        signedData.signedUrl,
+      expires_in: 900,
+      file_name:  doc.file_name,
+      file_type:  doc.file_type,
+    }, 200, origin);
+  }
+
   return json({ ok: false, error: 'unknown_action', action }, 400, origin);
 });

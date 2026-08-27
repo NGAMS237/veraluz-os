@@ -112,3 +112,19 @@ Unifier paramètres, extensions Guest, événements, communications et tâches p
 - Actions des agents et approbations après stabilisation métier.
 - Supervision opérationnelle de Chloé après disponibilité des actions contrôlées.
 - SaaS multi-résidences volontairement différé jusqu'à validation réelle de l'exploitation.
+
+---
+
+## LOT D.1 — DOCUMENT FILES ✅ (branche prête)
+
+| Élément | État |
+|---|---|
+| EF `veraluz-document-upload` | ✅ Écrite (non déployée) |
+| EF `documents-secure` + `get_signed_url` | ✅ Mise à jour (non déployée) |
+| Broker `veraluzUploadDocument` dans CORE | ✅ Ajouté |
+| UI upload/consult dans DOCUMENTS | ✅ Complète |
+| Tests (RECOVERY_LOT_D1_TESTS.md) | ✅ Rédigés |
+| Plan déploiement (RECOVERY_LOT_D1_DEPLOY_PLAN.md) | ✅ Rédigé |
+| Merge vers main | ⏳ En attente autorisation Blaise |
+
+**LOT E** : Non commencé — à définir.

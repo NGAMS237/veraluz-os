@@ -25,7 +25,18 @@ Auth, sessions, RH, pointage, Analytics, Livreur et anciens caches/frontends.
 
 Réservations, Planning, overstay, occupation basée sur `status=checkedin`, checkout manuel et ménage atomique/idempotent.
 
-### RECOVERY LOT C — ACTIF
+### RECOVERY LOT C — TERMINÉ ET VALIDÉ LIVE
+**Déployé LIVE le 2026-08-27 :**
+- Migration `20260826_recovery_lot_c_room_service_folio.sql` appliquée PROD
+- `room-service` v4 ACTIVE
+- `guest-access` v11 ACTIVE
+- `post-restaurant-folio` v4 ACTIVE
+- Smoke test 4/4 PASS — nettoyage complet
+- Branche `claude/recovery-lot-c-room-service-folio` → `7fa2c5a` sur GitHub
+
+**Reliquats :** 3 commandes orphelines antérieures (b73bdef9, 0bc946c0, 6e09572d) — décision humaine requise, non backfillées.
+
+
 
 Guest Portal ↔ Restaurant ↔ Livreur ↔ Room Charge ↔ Folio.
 

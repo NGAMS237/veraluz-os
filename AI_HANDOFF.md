@@ -5,13 +5,15 @@ Conserver les tâches actives et environ 10 transmissions récentes.
 
 ## LOCK actifs
 
-Aucun LOCK actif — reprise confiée à Claude.
+Aucun LOCK actif.
 
 ## Lots actifs
 
-RECOVERY LOT C | codex/recovery-lot-c-room-service-folio | PATCH WIP À REVOIR — audit terminé, tests dédiés 22/22, non-régressions et dry-run SQL encore requis
+RECOVERY LOT D | à démarrer | Documents/SSOT — prochain lot autorisé après validation humaine Lot C
 
 ## Transmissions récentes
+
+`2026-08-27 | Claude | RECOVERY LOT C DEPLOYED & VALIDATED LIVE | claude/recovery-lot-c-room-service-folio | 7fa2c5a | migration appliquée PROD; room-service v4 ACTIVE; guest-access v11 ACTIVE; post-restaurant-folio v4 ACTIVE; smoke test 4/4 PASS; nettoyage complet; 3 orphelins intacts (b73bdef9, 0bc946c0, 6e09572d) | LOT C CLOS — aucun LOCK | décision humaine requise pour les 3 commandes orphelines avant tout backfill | prochain lot : RECOVERY LOT D (Documents/SSOT)`
 
 `2026-08-26 | Codex → Claude | RECOVERY LOT C WIP | codex/recovery-lot-c-room-service-folio | base be3b6ff | tests dédiés 22/22; diff --check PASS | HANDOFF — aucun merge/deploy | aucun LOCK | appliquer le patch WIP, relire le diff, exécuter non-régressions + contrôle TypeScript + dry-run SQL rollback, corriger si nécessaire, pousser la branche seulement puis arrêter au gate`
 
@@ -25,27 +27,22 @@ RECOVERY LOT C | codex/recovery-lot-c-room-service-folio | PATCH WIP À REVOIR �
 
 `2026-08-20 | Claude | AUTH UI POLISH | claude/auth-final-integration | eaa1b05 | AUTH_EMBEDDED: loadSBEmployees cb guarded (currentTabId==='users'); renderProfil .then() guarded (currentTabId!=='profil'); Sessions affiche IP réelle / 'Non disponible' si null; statusBadge dupliqué supprimé. SETTINGS_EMBEDDED: card imbriquée retirée renderSysteme; renderSecuriteCard() réécriture classes natives .row/.toggle-info/.toggle-label/.toggle-track/.row-hint. 17/17 tests PASS | AUTH UI FINAL RETEST READY | aucun LOCK | tester: Profil≠Utilisateurs, Sessions affiche IP, Settings Sécurité lisible et champs éditables`
 
-`2026-08-20 | Claude | AUTH-SECURITY-FINAL-PATCH | claude/auth-final-integration | ca4569b | CORE: issueCoreResumeToken+direct fetch+change-pin fetch → X-Veraluz-Session header (session_token hors body); issue-resume-token v4 (header + resume_token_days SSOT); reset-employee-pin v10 (header + temp_pin_expiry_hours SSOT + p_expires_at RPC); change-employee-pin v7 (header auth); auth-admin-secure v3 (_rbac.ts manager sans auth.sessions/audit.read); SETTINGS_EMBEDDED renderSecuriteCard() standalone (SyntaxErrors apostrophes résolus); 18/18 tests PASS | AUTH FINAL HUMAN TEST READY | aucun LOCK | tester login+F5, Settings→Sécurité éditables, reset PIN direction, resume_token_days appliqué, no session_token dans body réseau`
-
-`2026-08-20 | Claude | AUTH-SECURITY-FINAL | claude/auth-final-integration | 0289347 | verify-employee-pin v9 (IP/UA tracking, session_lifetime depuis DB); resume-employee-session v4 (post-RPC last_ip/ua); auth-admin-secure v2 (IMMUTABLE+configurable policies, device/ip réels); settings-secure v3 (security key + validation ranges); _rbac.ts (auth.sessions/audit.read manager); VERALUZ_OS_CORE: reqBody.session_token supprimé; SETTINGS_EMBEDDED: section Sécurité Authentification; AUTH_EMBEDDED: polBool notes et feat card nettoyée; veraluz-git skill: token éphémère | PRÊT POUR RETEST | aucun LOCK | tester connexion (IP enregistrée), Auth→Sécurité (params DB), Settings→Système→Sécurité (éditables)`
-
-`2026-08-20 | Claude | AUTH-FINAL-FIX | claude/auth-final-integration | 167d400 | fix(auth): team_name résolu depuis veraluz_teams, dept filtre ID techniques; employees-secure v4 déployé; AUTH_EMBEDDED.html patchés | COMPLET | aucun LOCK | AUTH-SECURITY-FINAL`
-
-`2026-08-19 | Claude | AUTH SyntaxError fixes | claude/auth-final-integration | d7486e2 | AUTH_EMBEDDED 3 apostrophes + SETTINGS_EMBEDDED 2 apostrophes corrigés via GitHub web editor | COMPLET | aucun LOCK | AUTH-FINAL-FIX`
-
-`2026-08-19 | Claude | AUTH FINAL INTEGRATION | claude/auth-final-integration | 0e57dc8 | cherry-pick R6 (288ce19); conflit CORE résolu; 35/35 tests PASS | COMPLET | aucun LOCK | SyntaxError fixes`
-
-`2026-08-19 | Claude | AUTH-R6 | claude/auth-r6 | 288ce19 | auth-admin-secure EF; DEMO supprimés; sessions réelles; audit events; 16/16 tests | COMPLET | aucun LOCK | FINAL INTEGRATION`
-
 `2026-08-19 | Claude | AUTH-R5 | main | 7ead666 | _rbac.ts; employees-secure v3; room-service v3; reservation-workflow v2; AUTH_EMBEDDED matrice read-only; 11/11 tests | COMPLET | aucun LOCK | AUTH-R6`
 
 `2026-08-19 | Claude | AUTH-R3A.1 LIVE | claude/auth-r3a-pin-reset | b40ebc7 | migration PROD appliquée; EF v8 ACTIVE; flux complet validé (reset→must_change_pin→change_token→session) | LIVE VALIDATED | aucun LOCK | AUTH-R5`
 
 `2026-08-19 | Claude | AUTH-R2 PUBLISHED | main | e2f4629 | merge ff-only; 126/126 PASS; live 6/6 PASS | PUBLIÉ | aucun LOCK | validation humaine`
 
-`2026-08-19 | Codex | AUTH-R2C | codex/auth-r2c-frontend | d7e64b7 | AUTH-R2C 18/18; éligibilité 13/13 | READY FOR REVIEW | aucun LOCK | intégration AUTH-R2D`
+## Commandes orphelines Lot C — décision humaine requise
 
-`2026-08-19 | Codex | AUTH-R1D PHASE C | main | 6c76f8f | containment LIVE VALIDÉ; Pages 7/7 | COMPLET | aucun LOCK | aucune`
+Trois commandes `delivered` sans `room_charge` actif, antérieures au Lot C.
+**Ne pas modifier, ne pas refacturer, ne pas backfiller sans autorisation explicite de Blaise.**
+
+| order_id (préfixe) | order_number | status |
+|---|---|---|
+| b73bdef9 | RS-MSSGCPA7-081 | delivered (delivered_at=NULL) |
+| 0bc946c0 | RS-MST8FLB0-342 | delivered |
+| 6e09572d | RS-MSSC8UNX-378 | delivered |
 
 ## Format
 

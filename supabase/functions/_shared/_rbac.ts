@@ -42,6 +42,7 @@ const ROLE_CAPS: Record<string, readonly string[]> = {
     'messages.read','messages.send','messages.admin',
     'reports.read','settings.read','settings.manage',
     'auth.users.manage','auth.sessions.manage',
+    'documents.read','documents.manage',
   ],
   manager: [
     'reservations.read','reservations.write','reservations.checkin','reservations.checkout',

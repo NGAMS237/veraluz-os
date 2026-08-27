@@ -1,5 +1,5 @@
 -- =============================================================================
--- RECOVERY LOT D — DOCUMENTS SSOT (v2 — corrigé après revue sécurité)
+-- RECOVERY LOT D — DOCUMENTS SSOT (v3 — correction finale ciblée)
 -- Migration : 20260827_recovery_lot_d_documents_ssot.sql
 -- Auteur    : Claude (agent) — autorisé par Blaise 2026-08-27
 -- Objectif  : Aligner veraluz_documents (créée en PROD hors migration) avec
@@ -9,46 +9,9 @@
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
--- 0. PRÉ-FLIGHT : vérifier que les 11 lignes existantes sont propres
---    avant d'ajouter les contraintes.
---    En cas de violation le DO lèvera une exception et arrêtera la migration.
--- ---------------------------------------------------------------------------
-DO $$
-DECLARE
-  bad_confidentiality integer;
-  bad_status          integer;
-  bad_bucket          integer;
-BEGIN
-  SELECT COUNT(*) INTO bad_confidentiality
-  FROM public.veraluz_documents
-  WHERE confidentiality_level NOT IN ('public','internal','confidential','restricted');
-
-  SELECT COUNT(*) INTO bad_status
-  FROM public.veraluz_documents
-  WHERE status NOT IN ('active','expired','archived','missing','pending_review');
-
-  SELECT COUNT(*) INTO bad_bucket
-  FROM public.veraluz_documents
-  WHERE storage_bucket IS NOT NULL
-    AND storage_bucket NOT IN (
-      'veraluz-documents-private','veraluz-bank-private',
-      'veraluz-legal-private','veraluz-hr-private','veraluz-payslips-private'
-    );
-
-  IF bad_confidentiality > 0 THEN
-    RAISE EXCEPTION 'PRE-FLIGHT FAILED: % row(s) with invalid confidentiality_level', bad_confidentiality;
-  END IF;
-  IF bad_status > 0 THEN
-    RAISE EXCEPTION 'PRE-FLIGHT FAILED: % row(s) with invalid status', bad_status;
-  END IF;
-  IF bad_bucket > 0 THEN
-    RAISE EXCEPTION 'PRE-FLIGHT FAILED: % row(s) with unauthorized storage_bucket', bad_bucket;
-  END IF;
-END;
-$$;
-
--- ---------------------------------------------------------------------------
 -- 1. TABLE CANONIQUE (installation vierge — no-op si la table existe déjà)
+--    CREATE TABLE FIRST — le pré-flight vient APRES pour eviter l'echec
+--    en install fraiche (table absente).
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.veraluz_documents (
   id                    uuid        NOT NULL DEFAULT gen_random_uuid(),
@@ -76,13 +39,59 @@ CREATE TABLE IF NOT EXISTS public.veraluz_documents (
 );
 
 COMMENT ON TABLE public.veraluz_documents IS
-  'Table canonique SSOT des métadonnées documentaires VERALUZ. '
-  'Accès exclusivement via Edge Function documents-secure (service_role). '
-  'Aucun accès anon ni authenticated direct.';
+  'Table canonique SSOT des metadonnees documentaires VERALUZ. '
+  'Acces exclusivement via Edge Function documents-secure (service_role). '
+  'Aucun acces anon ni authenticated direct.';
 
 -- ---------------------------------------------------------------------------
--- 2. CONTRAINTES CHECK — ajoutées séparément (table existante en PROD)
---    Chaque DO $$ vérifie l'existence avant d'ajouter.
+-- 2. PRE-FLIGHT : verifie l integrite des donnees existantes.
+--    Garde dans un IF tbl_exists — no-op sur install fraiche (table vide).
+--    En cas de violation, leve une exception et arrete la migration.
+-- ---------------------------------------------------------------------------
+DO $$
+DECLARE
+  tbl_exists          boolean;
+  bad_confidentiality integer := 0;
+  bad_status          integer := 0;
+  bad_bucket          integer := 0;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'veraluz_documents'
+  ) INTO tbl_exists;
+
+  IF tbl_exists THEN
+    SELECT COUNT(*) INTO bad_confidentiality
+    FROM public.veraluz_documents
+    WHERE confidentiality_level NOT IN ('public','internal','confidential','restricted');
+
+    SELECT COUNT(*) INTO bad_status
+    FROM public.veraluz_documents
+    WHERE status NOT IN ('active','expired','archived','missing','pending_review');
+
+    SELECT COUNT(*) INTO bad_bucket
+    FROM public.veraluz_documents
+    WHERE storage_bucket IS NOT NULL
+      AND storage_bucket NOT IN (
+        'veraluz-documents-private','veraluz-bank-private',
+        'veraluz-legal-private','veraluz-hr-private','veraluz-payslips-private'
+      );
+
+    IF bad_confidentiality > 0 THEN
+      RAISE EXCEPTION 'PRE-FLIGHT FAILED: % row(s) with invalid confidentiality_level', bad_confidentiality;
+    END IF;
+    IF bad_status > 0 THEN
+      RAISE EXCEPTION 'PRE-FLIGHT FAILED: % row(s) with invalid status', bad_status;
+    END IF;
+    IF bad_bucket > 0 THEN
+      RAISE EXCEPTION 'PRE-FLIGHT FAILED: % row(s) with unauthorized storage_bucket', bad_bucket;
+    END IF;
+  END IF;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- 3. CONTRAINTES CHECK — ajoutees separement (table existante en PROD)
 -- ---------------------------------------------------------------------------
 DO $$
 BEGIN
@@ -139,7 +148,7 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------------
--- 3. INDEXES (idempotents)
+-- 4. INDEXES (idempotents)
 -- ---------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_veraluz_documents_category
   ON public.veraluz_documents (category);
@@ -155,14 +164,11 @@ CREATE INDEX IF NOT EXISTS idx_veraluz_documents_confidentiality
   ON public.veraluz_documents (confidentiality_level);
 
 -- ---------------------------------------------------------------------------
--- 4. TRIGGER updated_at
---    Fonction SECURITY INVOKER (pas de SECURITY DEFINER — pas de privilège
---    élevé requis, aucun risque d'exposition à PUBLIC).
+-- 5. TRIGGER updated_at (SECURITY INVOKER — pas de SECURITY DEFINER)
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.update_veraluz_documents_updated_at()
   RETURNS trigger
   LANGUAGE plpgsql
-  -- SECURITY INVOKER est la valeur par défaut et la plus sûre ici
   SET search_path = 'public'
 AS $$
 BEGIN
@@ -171,7 +177,6 @@ BEGIN
 END;
 $$;
 
--- Pas d'exposition de la fonction à PUBLIC
 REVOKE ALL ON FUNCTION public.update_veraluz_documents_updated_at() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.update_veraluz_documents_updated_at() TO service_role;
 
@@ -181,13 +186,14 @@ CREATE TRIGGER trg_veraluz_documents_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_veraluz_documents_updated_at();
 
 -- ---------------------------------------------------------------------------
--- 5. ROW LEVEL SECURITY
+-- 6. ROW LEVEL SECURITY
 -- ---------------------------------------------------------------------------
 ALTER TABLE public.veraluz_documents ENABLE ROW LEVEL SECURITY;
 
 -- ---------------------------------------------------------------------------
--- 6. SUPPRIMER TOUTES LES POLICIES ANON (dev et prod)
---    Plus aucune policy anon ou authenticated — seul service_role accède.
+-- 7. SUPPRIMER TOUTES LES POLICIES ANON (dev et prod)
+--    RLS ON + zero policy = default DENY ALL pour anon et authenticated.
+--    service_role bypass RLS nativement dans Supabase.
 -- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS dev_anon_read_documents_metadata ON public.veraluz_documents;
 DROP POLICY IF EXISTS dev_anon_insert_documents        ON public.veraluz_documents;
@@ -196,25 +202,24 @@ DROP POLICY IF EXISTS prod_staff_read_documents        ON public.veraluz_documen
 DROP POLICY IF EXISTS prod_staff_insert_documents      ON public.veraluz_documents;
 DROP POLICY IF EXISTS prod_staff_update_documents      ON public.veraluz_documents;
 
--- Aucune nouvelle policy anon/authenticated.
--- RLS ON + zéro policy = default DENY ALL pour anon et authenticated.
--- service_role bypass RLS par définition Supabase (pas de policy nécessaire).
-
 -- ---------------------------------------------------------------------------
--- 7. RÉVOQUER LES ACCÈS DIRECTS
---    Retire tous les droits REST directs à anon et authenticated.
---    Ne touche pas service_role (bypass RLS natif Supabase).
+-- 8. REVOQUER LES ACCES DIRECTS anon / authenticated
 -- ---------------------------------------------------------------------------
 REVOKE SELECT, INSERT, UPDATE, DELETE ON public.veraluz_documents FROM anon;
 REVOKE SELECT, INSERT, UPDATE, DELETE ON public.veraluz_documents FROM authenticated;
 
--- service_role : droit complet (accès via Edge Function côté serveur uniquement)
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.veraluz_documents TO service_role;
 
 -- =============================================================================
--- DRY-RUN EXTERNE (recommandé avant déploiement réel) :
+-- DRY-RUN EXTERNE (recommande avant deploiement reel) :
 --   BEGIN;
 --   \i supabase/migrations/20260827_recovery_lot_d_documents_ssot.sql
 --   SELECT COUNT(*) FROM public.veraluz_documents; -- doit rester 11
 --   ROLLBACK;
+--
+-- Scenarios valides :
+--   a) PROD (11 docs) : pre-flight passe, contraintes ajoutees, donnees intactes
+--   b) Install fraiche (table absente) : CREATE TABLE cree la table vide,
+--      tbl_exists=true mais COUNT=0 sur tous les checks -> OK
+--   c) 2e execution idempotente : IF NOT EXISTS no-op partout -> OK
 -- =============================================================================

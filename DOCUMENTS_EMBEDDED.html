@@ -996,10 +996,21 @@ function expColor(days){
 /* Jamais d'accès REST direct. Toutes les ops passent par documents-secure via CORE. */
 function docsRequest(action, payload){
   if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
-    return Promise.reject(new Error('CORE_BROKER_UNAVAILABLE'));
+    return Promise.reject(Object.assign(new Error('CORE_BROKER_UNAVAILABLE'),{status:0,code:'CORE_BROKER_UNAVAILABLE'}));
   }
   return window.parent.veraluzSecureRequest('documents-secure',
-    Object.assign({ action: action }, payload || {}));
+    Object.assign({ action: action }, payload || {}))
+  .then(function(res){
+    var status = res.status;
+    var body   = res.body || {};
+    if(status === 0){
+      throw Object.assign(new Error('network_error'),{status:0,code:'network_error'});
+    }
+    if(!body.ok || status < 200 || status >= 300){
+      throw Object.assign(new Error(body.error||'request_failed'),{status:status,code:body.error||'request_failed'});
+    }
+    return body;
+  });
 }
 function isAuthError(e){
   return e.message==='CORE_BROKER_UNAVAILABLE'
@@ -1205,6 +1216,7 @@ function renderAll(docs){
       '<td style="font-size:12px;">'+( d.has_file        ?'<span style="color:var(--grn)">Oui</span>'        :'<span style="color:var(--fg3)">Non</span>')+'</td>'+
       '<td style="white-space:nowrap;">'+
         '<button class="btn btn-ghost btn-sm" data-id="'+ esc(d.id)+'" onclick="viewDoc(this.dataset.id)">Voir</button> '+
+        '<button class="btn btn-ghost btn-sm" data-id="'+ esc(d.id)+'" onclick="quickUpload(this.dataset.id)">'+(d.has_file?'Remplacer':'Uploader')+'</button> '+
         '<button class="btn btn-secondary btn-sm" data-id="'+ esc(d.id)+'" onclick="editDoc(this.dataset.id)">Modifier</button> '+
         '<button class="btn btn-ghost btn-sm" data-id="'+ esc(d.id)+'" onclick="archiveDoc(this.dataset.id)" title="Archiver">'+
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg></button>'+
@@ -1223,6 +1235,7 @@ function renderAll(docs){
       '</div>'+
       '<div class="doc-card-actions">'+
         '<button class="btn btn-ghost btn-sm" data-id="'+ esc(d.id)+'" onclick="viewDoc(this.dataset.id)">Voir</button>'+
+        '<button class="btn btn-ghost btn-sm" data-id="'+ esc(d.id)+'" onclick="quickUpload(this.dataset.id)">'+(d.has_file?'Remplacer':'Uploader')+'</button>'+
         '<button class="btn btn-secondary btn-sm" data-id="'+ esc(d.id)+'" onclick="editDoc(this.dataset.id)">Modifier</button>'+
       '</div>'+'</div>';
   }).join('');
@@ -1499,11 +1512,11 @@ function consultDoc(){
   statusEl.textContent = 'Génération URL…';
   docsRequest('get_signed_url', {id: CURRENT_VIEW_ID}).then(function(res){
     statusEl.textContent = '';
-    if(res && res.ok && res.url){
+    if(res && res.url){
       window.open(res.url, '_blank', 'noopener,noreferrer');
     } else {
       statusEl.style.color = 'var(--red,#c0392b)';
-      statusEl.textContent = 'Erreur: ' + (res && res.error ? res.error : 'URL indisponible');
+      statusEl.textContent = 'URL indisponible';
     }
   }).catch(function(e){
     statusEl.style.color = 'var(--red,#c0392b)';
@@ -1553,6 +1566,11 @@ function handleFileSelected(input){
 }
 
 function closeModal(){document.getElementById('doc-modal').classList.remove('open');}
+function quickUpload(id){
+  CURRENT_VIEW_ID = id;
+  document.getElementById('doc-file-input').value = '';
+  document.getElementById('doc-file-input').click();
+}
 
 /* ── EDIT DOC ── */
 function editDoc(id){

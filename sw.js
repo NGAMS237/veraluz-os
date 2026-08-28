@@ -10,7 +10,7 @@
  * À chaque changement important des fichiers statiques, incrémenter CACHE_NAME.
  */
 
-var CACHE_NAME = 'veraluz-pwa-v035-ui-d2';
+var CACHE_NAME = 'veraluz-pwa-v036-documents-hotfix';
 
 // Contrôle d'activation (mettre false pour désactiver en dev si besoin)
 var VERALUZ_PWA_ENABLED = true;

@@ -131,20 +131,31 @@ function checkMagic(bytes: Uint8Array, magics: number[][]): boolean {
 }
 
 /**
- * Vérifie la présence de la signature Office interne dans un ZIP.
- * DOCX → wordprocessingml, XLSX → spreadsheetml (dans [Content_Types].xml).
+ * Vérifie que le ZIP contient les entrées du répertoire central requises.
+ * Lit les en-têtes PK\x01\x02 (central directory) — ne décompresse rien.
+ * DOCX : ['[Content_Types].xml', 'word/document.xml']
+ * XLSX : ['[Content_Types].xml', 'xl/workbook.xml']
  */
-function hasOfficeSignature(bytes: Uint8Array, kind: 'docx' | 'xlsx'): boolean {
-  const needle = new TextEncoder().encode(
-    kind === 'docx' ? 'wordprocessingml' : 'spreadsheetml'
-  );
-  outer: for (let i = 0; i <= bytes.length - needle.length; i++) {
-    for (let j = 0; j < needle.length; j++) {
-      if (bytes[i + j] !== needle[j]) continue outer;
+function hasZipEntries(bytes: Uint8Array, required: string[]): boolean {
+  const found = new Set<string>();
+  const dec = new TextDecoder('utf-8', { fatal: false });
+  let i = 0;
+  while (i <= bytes.length - 46) {
+    // Signature répertoire central : PK\x01\x02
+    if (bytes[i] === 0x50 && bytes[i+1] === 0x4B &&
+        bytes[i+2] === 0x01 && bytes[i+3] === 0x02) {
+      const fnLen      = bytes[i+28] | (bytes[i+29] << 8);
+      const extraLen   = bytes[i+30] | (bytes[i+31] << 8);
+      const commentLen = bytes[i+32] | (bytes[i+33] << 8);
+      const nameStart  = i + 46;
+      if (nameStart + fnLen > bytes.length) break;
+      found.add(dec.decode(bytes.subarray(nameStart, nameStart + fnLen)));
+      i = nameStart + fnLen + extraLen + commentLen;
+    } else {
+      i++;
     }
-    return true;
   }
-  return false;
+  return required.every(r => found.has(r));
 }
 
 /** Chemin Storage non devinable via UUID v4 */
@@ -304,12 +315,12 @@ Deno.serve(async (req: Request) => {
 
   // Validation Office interne (DOCX / XLSX)
   if (fileMime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    if (!hasOfficeSignature(fileBytes, 'docx')) {
+    if (!hasZipEntries(fileBytes, ['[Content_Types].xml', 'word/document.xml'])) {
       return json({ ok: false, error: 'invalid_file_content' }, 415, origin);
     }
   }
   if (fileMime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-    if (!hasOfficeSignature(fileBytes, 'xlsx')) {
+    if (!hasZipEntries(fileBytes, ['[Content_Types].xml', 'xl/workbook.xml'])) {
       return json({ ok: false, error: 'invalid_file_content' }, 415, origin);
     }
   }
@@ -327,8 +338,11 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: 'upload_failed' }, 500, origin);
   }
 
-  // 2. Mettre à jour DB (CAS : select('id') pour vérifier 1 ligne affectée)
-  const { data: updated, error: dbErr } = await db
+  // 2. Mettre à jour DB — CAS vrai
+  //    Si un ancien fichier existait : filtrer aussi sur storage_path + storage_bucket
+  //    Sinon (première fois)         : filtrer sur storage_path IS NULL
+  //    → zéro ligne = conflit concurrent → rollback nouveau → 409
+  let dbQuery = db
     .from('veraluz_documents')
     .update({
       storage_bucket: bucket,
@@ -338,14 +352,27 @@ Deno.serve(async (req: Request) => {
       file_size:      fileSize,
       updated_at:     new Date().toISOString(),
     })
-    .eq('id', documentId)
-    .select('id');
+    .eq('id', documentId);
 
-  if (dbErr || !updated || updated.length === 0) {
-    // Rollback : supprimer le nouveau fichier uploadé
+  if (doc.storage_path && doc.storage_bucket) {
+    dbQuery = dbQuery
+      .eq('storage_path',   doc.storage_path)
+      .eq('storage_bucket', doc.storage_bucket);
+  } else {
+    dbQuery = dbQuery.is('storage_path', null);
+  }
+
+  const { data: updated, error: dbErr } = await dbQuery.select('id');
+
+  if (dbErr) {
     await db.storage.from(bucket).remove([storagePath]);
-    console.error('[veraluz-document-upload] db_update_failed — new file rolled back');
+    console.error('[veraluz-document-upload] db_error — new file rolled back');
     return json({ ok: false, error: 'db_update_failed' }, 500, origin);
+  }
+  if (!updated || updated.length === 0) {
+    // Conflit concurrent : un autre upload a modifié la fiche entre-temps
+    await db.storage.from(bucket).remove([storagePath]);
+    return json({ ok: false, error: 'document_changed_retry' }, 409, origin);
   }
 
   // 3. Supprimer l'ANCIEN fichier (seulement après réussite DB)

@@ -30,6 +30,12 @@ et les résultats sont réels.
 | S-14 | `hasOfficeSignature` vérifie XLSX (`spreadsheetml`) | PASS (code) |
 | S-15 | `has_file` utilisé dans DOCUMENTS_EMBEDDED.html (remplace `storage_path`) | PASS |
 
+| S-16 | CAS ancien path : `.eq('storage_path', doc.storage_path)` présent si fichier existant | PASS (code) |
+| S-17 | CAS path NULL : `.is('storage_path', null)` présent si pas de fichier | PASS (code) |
+| S-18 | Conflit CAS → rollback nouveau fichier + HTTP 409 `document_changed_retry` | PASS (code) |
+| S-19 | `hasZipEntries` lit les entrées PK\x01\x02 (répertoire central), pas le contenu compressé | PASS (code) |
+| S-20 | Aucune recherche `%test%` dans RECOVERY_LOT_D1_TESTS.md (évite faux match « Attestation ») | PASS |
+
 ---
 
 ## PRÉ-DÉPLOIEMENT — à valider avant `supabase functions deploy`
@@ -44,7 +50,7 @@ Ces tests doivent passer en PROD avant tout déploiement EF.
 | P-04 | Colonne `status` présente dans `veraluz_employees` | idem |
 | P-05 | `veraluz_documents` a les colonnes : `storage_bucket`, `storage_path`, `file_name`, `file_type`, `file_size` | idem |
 | P-06 | 11 fiches PROD intactes : `SELECT count(*) FROM veraluz_documents` = 11 | SQL |
-| P-07 | Aucune fiche a `status = 'synthétique'` ou données de test | SQL : `SELECT id FROM veraluz_documents WHERE title LIKE '%test%'` |
+| P-07 | Aucune fiche de test synthétique résiduelle | SQL : `SELECT id FROM veraluz_documents WHERE title LIKE 'LOT-D1-TEST-%'` → 0 ligne attendue |
 
 ---
 
@@ -81,7 +87,7 @@ Ces tests nécessitent les EF vivantes en PROD. Résultats à renseigner par Bla
 | # | Scénario | Attendu |
 |---|---|---|
 | M-01 | Ouvrir une fiche sans fichier dans DOCUMENTS_EMBEDDED.html | Bouton "Uploader un fichier" visible, "Consulter" absent |
-| M-02 | Uploader un PDF valide | Barre de progression, message "Fichier enregistré ✓", "Consulter" apparaît |
+| M-02 | Uploader un PDF valide | État "Envoi en cours" affiché, puis message "Fichier enregistré ✓", bouton "Consulter" apparaît |
 | M-03 | Cliquer "Consulter" | Nouvel onglet avec le fichier (URL signée valide ≤ 15 min) |
 | M-04 | Uploader un fichier trop grand | Message d'erreur clair, aucun crash UI |
 | M-05 | Uploader un type non autorisé | Message d'erreur clair |

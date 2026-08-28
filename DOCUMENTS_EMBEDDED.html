@@ -1567,9 +1567,10 @@ function handleFileSelected(input){
 
 function closeModal(){document.getElementById('doc-modal').classList.remove('open');}
 function quickUpload(id){
-  CURRENT_VIEW_ID = id;
-  document.getElementById('doc-file-input').value = '';
-  document.getElementById('doc-file-input').click();
+  /* Ouvre la fiche (modal) pour afficher le suivi, puis déclenche le sélecteur. */
+  viewDoc(id);
+  /* viewDoc() positionne CURRENT_VIEW_ID — on déclenche le picker ensuite. */
+  setTimeout(function(){ triggerFileUpload(); }, 0);
 }
 
 /* ── EDIT DOC ── */

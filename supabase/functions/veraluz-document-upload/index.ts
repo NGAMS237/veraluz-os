@@ -1,70 +1,61 @@
 /**
- * VERALUZ — Edge Function : veraluz-document-upload (v1)
- * RECOVERY LOT D.1 — Document Files
+ * VERALUZ — Edge Function : veraluz-document-upload (v2 hardened)
+ * RECOVERY LOT D.1 — HARDENING
  *
- * Méthode      : POST multipart/form-data
- * Auth         : X-Veraluz-Session (SHA-256 hash lookup dans veraluz_employee_sessions)
- * Autorisation : documents.manage → rôle gérant uniquement (socle Lot D)
- * service_role : strictement côté serveur, jamais exposé
- * Buckets      : tous privés, choix côté serveur selon catégorie de la fiche
- *
- * Body attendu (multipart/form-data) :
- *   file        — fichier binaire
- *   document_id — UUID de la fiche existante dans veraluz_documents
- *
- * Types autorisés : PDF, JPEG, PNG, DOCX, XLSX
- * Taille max     : 10 MB (20 MB pour catégories legal / bank / property / identity)
- *
- * Flux :
- *   1. Auth + RBAC
- *   2. Récupérer la fiche existante (catégorie → bucket)
- *   3. Valider MIME, extension, signature binaire, taille
- *   4. Nettoyer le nom de fichier
- *   5. Générer un chemin non devinable
- *   6. Supprimer l'ancien fichier si la fiche avait déjà un storage_path
- *   7. Uploader vers le bucket privé
- *   8. Mettre à jour veraluz_documents
- *      — si l'écriture DB échoue, supprimer l'objet Storage (cleanup)
- * Pas de DELETE de fiche. Pas d'accès direct côté navigateur.
+ * Corrections v2 :
+ *  - Auth alignée sur documents-secure (revoked_at IS NULL, expires_at, status actif)
+ *  - Origine non autorisée → 403
+ *  - Remplacement atomique : nouveau upload → CAS DB → rollback nouveau si DB échoue →
+ *    suppression ancien seulement après réussite DB
+ *  - Chemin Storage via crypto.randomUUID() (non devinable)
+ *  - Limites taille par bucket : legal 20 MB, bank 5 MB, hr/documents 10 MB
+ *  - Vérification interne DOCX/XLSX (présence de la signature Office dans le ZIP)
+ *  - Aucun message technique Storage/DB retourné au navigateur
+ *  - Réponse : has_file, file_name, file_type, file_size uniquement (pas de path/bucket)
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { normalizeRole, hasCapability } from '../_shared/_rbac.ts';
-import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_ROLE_KEY  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const SUPABASE_URL     = Deno.env.get('SUPABASE_URL')!;
+const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const ALLOWED_ORIGINS = [
   'https://ngams237.github.io',
+  'https://NGAMS237.github.io',
   'http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080',
   'http://127.0.0.1:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:8080',
 ];
 
-// Buckets privés par catégorie (choix serveur uniquement)
+const ACTIVE_STATUSES = new Set(['actif', 'active']);
+
+// Buckets privés par catégorie (décision serveur)
 const CAT_BUCKETS: Record<string, string> = {
   legal:      'veraluz-legal-private',
+  property:   'veraluz-legal-private',
+  identity:   'veraluz-legal-private',
   bank:       'veraluz-bank-private',
-  tax:        'veraluz-documents-private',
   hr:         'veraluz-hr-private',
+  tax:        'veraluz-documents-private',
   supplier:   'veraluz-documents-private',
   insurance:  'veraluz-documents-private',
-  property:   'veraluz-legal-private',
   finance:    'veraluz-documents-private',
   operations: 'veraluz-documents-private',
-  identity:   'veraluz-legal-private',
   other:      'veraluz-documents-private',
 };
 
-// Catégories avec limite haute (20 MB)
-const LARGE_LIMIT_CATS = new Set(['legal', 'bank', 'property', 'identity']);
-const SIZE_10MB  = 10 * 1024 * 1024;
-const SIZE_20MB  = 20 * 1024 * 1024;
+// Limite de taille par bucket (en octets)
+const BUCKET_MAX_SIZE: Record<string, number> = {
+  'veraluz-legal-private':     20 * 1024 * 1024,
+  'veraluz-bank-private':       5 * 1024 * 1024,
+  'veraluz-hr-private':        10 * 1024 * 1024,
+  'veraluz-documents-private': 10 * 1024 * 1024,
+};
 
-// Types MIME autorisés + extensions validées
+// Types MIME autorisés : MIME → { ext, magic }
 const ALLOWED: Record<string, { ext: string[]; magic: number[][] }> = {
   'application/pdf': {
     ext: ['pdf'],
@@ -80,16 +71,16 @@ const ALLOWED: Record<string, { ext: string[]; magic: number[][] }> = {
   },
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': {
     ext: ['docx'],
-    magic: [[0x50, 0x4B, 0x03, 0x04], [0x50, 0x4B, 0x05, 0x06]], // ZIP
+    magic: [[0x50, 0x4B, 0x03, 0x04]], // ZIP
   },
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
     ext: ['xlsx'],
-    magic: [[0x50, 0x4B, 0x03, 0x04], [0x50, 0x4B, 0x05, 0x06]], // ZIP
+    magic: [[0x50, 0x4B, 0x03, 0x04]], // ZIP
   },
 };
 
 // ---------------------------------------------------------------------------
-// CORS helpers
+// CORS
 // ---------------------------------------------------------------------------
 function corsHeaders(origin: string | null): Record<string, string> {
   const h: Record<string, string> = {
@@ -119,73 +110,95 @@ function isValidUUID(s: string): boolean {
 }
 
 async function sha256Hex(data: string): Promise<string> {
-  const enc = new TextEncoder();
-  const buf = await crypto.subtle.digest('SHA-256', enc.encode(data));
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/** Nettoyer le nom de fichier — garder uniquement alphanum, tiret, underscore, point */
 function sanitizeFilename(name: string): string {
-  // Extraire l'extension d'abord
-  const lastDot = name.lastIndexOf('.');
-  const base    = lastDot > 0 ? name.slice(0, lastDot) : name;
-  const ext     = lastDot > 0 ? name.slice(lastDot + 1).toLowerCase() : '';
+  const lastDot  = name.lastIndexOf('.');
+  const base     = lastDot > 0 ? name.slice(0, lastDot) : name;
+  const ext      = lastDot > 0 ? name.slice(lastDot + 1).toLowerCase() : '';
   const cleanBase = base
-    .normalize('NFD').replace(/[̀-ͯ]/g, '') // diacritics
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-zA-Z0-9_\-]/g, '_')
     .replace(/__+/g, '_')
     .slice(0, 80);
   return ext ? `${cleanBase}.${ext}` : cleanBase;
 }
 
-/** Vérifier la signature binaire (magic bytes) */
 function checkMagic(bytes: Uint8Array, magics: number[][]): boolean {
-  return magics.some(magic =>
-    magic.every((b, i) => bytes[i] === b)
-  );
+  return magics.some(magic => magic.every((b, i) => bytes[i] === b));
 }
 
-/** Générer un chemin Storage non devinable */
+/**
+ * Vérifie la présence de la signature Office interne dans un ZIP.
+ * DOCX → wordprocessingml, XLSX → spreadsheetml (dans [Content_Types].xml).
+ */
+function hasOfficeSignature(bytes: Uint8Array, kind: 'docx' | 'xlsx'): boolean {
+  const needle = new TextEncoder().encode(
+    kind === 'docx' ? 'wordprocessingml' : 'spreadsheetml'
+  );
+  outer: for (let i = 0; i <= bytes.length - needle.length; i++) {
+    for (let j = 0; j < needle.length; j++) {
+      if (bytes[i + j] !== needle[j]) continue outer;
+    }
+    return true;
+  }
+  return false;
+}
+
+/** Chemin Storage non devinable via UUID v4 */
 function generatePath(category: string, documentId: string, filename: string): string {
-  const ts  = Date.now();
-  const rnd = Math.random().toString(36).slice(2, 10);
-  return `${category}/${documentId}/${ts}_${rnd}_${filename}`;
+  const uid = crypto.randomUUID();
+  return `${category}/${documentId}/${uid}_${filename}`;
 }
 
 // ---------------------------------------------------------------------------
-// Auth + RBAC
+// Auth alignée sur documents-secure
 // ---------------------------------------------------------------------------
 async function authenticate(
   req: Request,
-  db: ReturnType<typeof createClient>
+  db: ReturnType<typeof createClient>,
+  origin: string | null,
 ): Promise<{ actor: { id: string; role: string } } | { error: Response }> {
-  const origin = req.headers.get('origin');
   const rawToken = req.headers.get('x-veraluz-session');
-  if (!rawToken) return { error: json({ ok: false, code: 'missing_session' }, 401, origin) };
+  if (!rawToken || rawToken.length < 16) {
+    return { error: json({ ok: false, error: 'unauthorized' }, 401, origin) };
+  }
 
   const tokenHash = await sha256Hex(rawToken);
-  const now = new Date().toISOString();
 
-  const { data: session, error } = await db
+  const { data: session, error: sessionErr } = await db
     .from('veraluz_employee_sessions')
-    .select('employee_id, expires_at')
+    .select('employee_id')
     .eq('token_hash', tokenHash)
-    .eq('is_active', true)
-    .single();
+    .is('revoked_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle();
 
-  if (error || !session) return { error: json({ ok: false, code: 'invalid_session' }, 401, origin) };
-  if (new Date(session.expires_at) < new Date(now))
-    return { error: json({ ok: false, code: 'session_expired' }, 401, origin) };
+  if (sessionErr) {
+    console.error('[veraluz-document-upload] session_lookup_error');
+    return { error: json({ ok: false, error: 'server_error' }, 500, origin) };
+  }
+  if (!session) {
+    return { error: json({ ok: false, error: 'unauthorized' }, 401, origin) };
+  }
 
-  const { data: emp } = await db
+  const { data: emp, error: empErr } = await db
     .from('veraluz_employees')
-    .select('id, role')
+    .select('id, role, status')
     .eq('id', session.employee_id)
-    .single();
+    .maybeSingle();
 
-  if (!emp) return { error: json({ ok: false, code: 'employee_not_found' }, 401, origin) };
+  if (empErr) {
+    console.error('[veraluz-document-upload] employee_lookup_error');
+    return { error: json({ ok: false, error: 'server_error' }, 500, origin) };
+  }
+  if (!emp || !ACTIVE_STATUSES.has(String(emp.status || '').toLowerCase())) {
+    return { error: json({ ok: false, error: 'unauthorized' }, 401, origin) };
+  }
 
-  return { actor: { id: emp.id, role: emp.role } };
+  return { actor: { id: String(emp.id), role: normalizeRole(emp.role) } };
 }
 
 // ---------------------------------------------------------------------------
@@ -194,28 +207,32 @@ async function authenticate(
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('origin');
 
+  // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders(origin) });
   }
 
-  if (req.method !== 'POST') {
-    return json({ ok: false, code: 'method_not_allowed' }, 405, origin);
+  // Origine non autorisée → 403
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return json({ ok: false, error: 'forbidden_origin' }, 403, origin);
   }
 
-  // Service client (service_role — serveur uniquement)
+  if (req.method !== 'POST') {
+    return json({ ok: false, error: 'method_not_allowed' }, 405, origin);
+  }
+
   const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: { persistSession: false },
   });
 
   // Auth
-  const authResult = await authenticate(req, db);
+  const authResult = await authenticate(req, db, origin);
   if ('error' in authResult) return authResult.error;
   const { actor } = authResult;
 
-  // RBAC : documents.manage requis
-  const role = normalizeRole(actor.role);
-  if (!hasCapability(role, 'documents.manage')) {
-    return json({ ok: false, code: 'forbidden' }, 403, origin);
+  // RBAC : documents.manage obligatoire
+  if (!hasCapability(actor.role, 'documents.manage')) {
+    return json({ ok: false, error: 'documents_manage_forbidden' }, 403, origin);
   }
 
   // Parser multipart/form-data
@@ -223,93 +240,95 @@ Deno.serve(async (req: Request) => {
   try {
     formData = await req.formData();
   } catch {
-    return json({ ok: false, code: 'invalid_form_data' }, 400, origin);
+    return json({ ok: false, error: 'invalid_form_data' }, 400, origin);
   }
 
-  const documentId = (formData.get('document_id') ?? '') as string;
+  const documentId = String(formData.get('document_id') ?? '').trim();
   const fileEntry  = formData.get('file') as File | null;
 
-  if (!documentId || !isValidUUID(documentId)) {
-    return json({ ok: false, code: 'invalid_document_id' }, 400, origin);
+  if (!isValidUUID(documentId)) {
+    return json({ ok: false, error: 'invalid_document_id' }, 400, origin);
   }
   if (!fileEntry || !(fileEntry instanceof File)) {
-    return json({ ok: false, code: 'missing_file' }, 400, origin);
+    return json({ ok: false, error: 'missing_file' }, 400, origin);
   }
 
-  // Récupérer la fiche existante
+  // Récupérer la fiche (catégorie + fichier actuel)
   const { data: doc, error: docErr } = await db
     .from('veraluz_documents')
     .select('id, category, storage_bucket, storage_path')
     .eq('id', documentId)
-    .single();
+    .maybeSingle();
 
-  if (docErr || !doc) {
-    return json({ ok: false, code: 'document_not_found' }, 404, origin);
+  if (docErr) {
+    console.error('[veraluz-document-upload] doc_fetch_error');
+    return json({ ok: false, error: 'server_error' }, 500, origin);
+  }
+  if (!doc) {
+    return json({ ok: false, error: 'document_not_found' }, 404, origin);
   }
 
-  const bucket     = CAT_BUCKETS[doc.category] ?? 'veraluz-documents-private';
-  const maxSize    = LARGE_LIMIT_CATS.has(doc.category) ? SIZE_20MB : SIZE_10MB;
+  const bucket  = CAT_BUCKETS[doc.category] ?? 'veraluz-documents-private';
+  const maxSize = BUCKET_MAX_SIZE[bucket] ?? (10 * 1024 * 1024);
 
-  // Lire les bytes
+  // Lire le fichier
   const fileBuffer = await fileEntry.arrayBuffer();
   const fileBytes  = new Uint8Array(fileBuffer);
   const fileSize   = fileBytes.byteLength;
   const fileMime   = fileEntry.type || 'application/octet-stream';
   const fileName   = sanitizeFilename(fileEntry.name || 'document');
 
-  // Validation taille
   if (fileSize === 0) {
-    return json({ ok: false, code: 'file_empty' }, 400, origin);
+    return json({ ok: false, error: 'file_empty' }, 400, origin);
   }
   if (fileSize > maxSize) {
-    return json({
-      ok: false,
-      code: 'file_too_large',
-      max_bytes: maxSize,
-      received_bytes: fileSize,
-    }, 400, origin);
+    return json({ ok: false, error: 'file_too_large' }, 413, origin);
   }
 
   // Validation MIME
   const mimeSpec = ALLOWED[fileMime];
   if (!mimeSpec) {
-    return json({ ok: false, code: 'mime_not_allowed', received: fileMime }, 400, origin);
+    return json({ ok: false, error: 'invalid_file_type' }, 415, origin);
   }
 
   // Validation extension
   const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
   if (!mimeSpec.ext.includes(ext)) {
-    return json({ ok: false, code: 'extension_mismatch', ext, mime: fileMime }, 400, origin);
+    return json({ ok: false, error: 'invalid_file_type' }, 415, origin);
   }
 
-  // Validation signature binaire (magic bytes)
+  // Validation magic bytes (signature binaire)
   if (!checkMagic(fileBytes, mimeSpec.magic)) {
-    return json({ ok: false, code: 'invalid_file_signature' }, 400, origin);
+    return json({ ok: false, error: 'invalid_file_content' }, 415, origin);
   }
 
-  // Générer chemin Storage non devinable
+  // Validation Office interne (DOCX / XLSX)
+  if (fileMime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    if (!hasOfficeSignature(fileBytes, 'docx')) {
+      return json({ ok: false, error: 'invalid_file_content' }, 415, origin);
+    }
+  }
+  if (fileMime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+    if (!hasOfficeSignature(fileBytes, 'xlsx')) {
+      return json({ ok: false, error: 'invalid_file_content' }, 415, origin);
+    }
+  }
+
+  // ── REMPLACEMENT ATOMIQUE ────────────────────────────────────────────────
+  // 1. Uploader LE NOUVEAU fichier d'abord
   const storagePath = generatePath(doc.category, documentId, fileName);
 
-  // Supprimer l'ancien fichier si existant (pas de doublon)
-  if (doc.storage_path && doc.storage_bucket) {
-    await db.storage.from(doc.storage_bucket).remove([doc.storage_path]);
-    // Échec toléré — on continue
-  }
-
-  // Upload vers le bucket privé
   const { error: uploadErr } = await db.storage
     .from(bucket)
-    .upload(storagePath, fileBytes, {
-      contentType: fileMime,
-      upsert: false,
-    });
+    .upload(storagePath, fileBytes, { contentType: fileMime, upsert: false });
 
   if (uploadErr) {
-    return json({ ok: false, code: 'storage_upload_failed', detail: uploadErr.message }, 500, origin);
+    console.error('[veraluz-document-upload] upload_failed');
+    return json({ ok: false, error: 'upload_failed' }, 500, origin);
   }
 
-  // Mise à jour de la fiche DB
-  const { error: dbErr } = await db
+  // 2. Mettre à jour DB (CAS : select('id') pour vérifier 1 ligne affectée)
+  const { data: updated, error: dbErr } = await db
     .from('veraluz_documents')
     .update({
       storage_bucket: bucket,
@@ -319,21 +338,29 @@ Deno.serve(async (req: Request) => {
       file_size:      fileSize,
       updated_at:     new Date().toISOString(),
     })
-    .eq('id', documentId);
+    .eq('id', documentId)
+    .select('id');
 
-  if (dbErr) {
-    // Cleanup : supprimer l'objet uploadé pour éviter les orphelins
+  if (dbErr || !updated || updated.length === 0) {
+    // Rollback : supprimer le nouveau fichier uploadé
     await db.storage.from(bucket).remove([storagePath]);
-    return json({ ok: false, code: 'db_update_failed' }, 500, origin);
+    console.error('[veraluz-document-upload] db_update_failed — new file rolled back');
+    return json({ ok: false, error: 'db_update_failed' }, 500, origin);
   }
 
+  // 3. Supprimer l'ANCIEN fichier (seulement après réussite DB)
+  if (doc.storage_path && doc.storage_bucket) {
+    await db.storage.from(doc.storage_bucket).remove([doc.storage_path]);
+    // Échec toléré — l'ancien fichier devient orphelin mais la fiche est à jour
+  }
+
+  // Réponse : aucun path/bucket exposé
   return json({
-    ok:          true,
+    ok:        true,
     document_id: documentId,
-    file_name:   fileName,
-    file_size:   fileSize,
-    file_type:   fileMime,
-    storage_path: storagePath,
-    bucket,
+    has_file:  true,
+    file_name: fileName,
+    file_type: fileMime,
+    file_size: fileSize,
   }, 200, origin);
 });

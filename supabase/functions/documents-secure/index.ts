@@ -21,6 +21,12 @@ const ALLOWED_ORIGINS = [
 
 const ACTIVE_STATUSES = new Set(['actif', 'active']);
 
+/** Supprimer les champs Storage sensibles avant envoi au navigateur */
+function sanitizeDoc(doc: Record<string, unknown>): Record<string, unknown> {
+  const { storage_path, storage_bucket, ...rest } = doc as Record<string, unknown>;
+  return { ...rest, has_file: !!(storage_path) };
+}
+
 // Mapping catégorie → bucket privé — calculé côté serveur uniquement
 const CAT_BUCKETS: Record<string, string> = {
   legal:      'veraluz-legal-private',
@@ -230,7 +236,7 @@ Deno.serve(async (req: Request) => {
       console.error('[documents-secure] list_failed code=%s msg=%s', error.code, error.message);
       return json({ ok: false, error: 'server_error' }, 500, origin);
     }
-    return json({ ok: true, documents: data ?? [] }, 200, origin);
+    return json({ ok: true, documents: (data ?? []).map(sanitizeDoc) }, 200, origin);
   }
 
   // ── GET ───────────────────────────────────────────────────────────────────
@@ -251,7 +257,7 @@ Deno.serve(async (req: Request) => {
       return json({ ok: false, error: 'server_error' }, 500, origin);
     }
     if (!data) return json({ ok: false, error: 'document_not_found' }, 404, origin);
-    return json({ ok: true, document: data }, 200, origin);
+    return json({ ok: true, document: sanitizeDoc(data as Record<string, unknown>) }, 200, origin);
   }
 
   // ── CREATE ────────────────────────────────────────────────────────────────

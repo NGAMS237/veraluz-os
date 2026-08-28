@@ -1202,7 +1202,7 @@ function renderAll(docs){
       '<td>'+badgeStatus(d.status)+'</td>'+
       '<td>'+badgeConf(d.confidentiality_level)+'</td>'+
       '<td style="font-size:12px;">'+expStr+'</td>'+
-      '<td style="font-size:12px;">'+( d.storage_path        ?'<span style="color:var(--grn)">Oui</span>'        :'<span style="color:var(--fg3)">Non</span>')+'</td>'+
+      '<td style="font-size:12px;">'+( d.has_file        ?'<span style="color:var(--grn)">Oui</span>'        :'<span style="color:var(--fg3)">Non</span>')+'</td>'+
       '<td style="white-space:nowrap;">'+
         '<button class="btn btn-ghost btn-sm" data-id="'+ esc(d.id)+'" onclick="viewDoc(this.dataset.id)">Voir</button> '+
         '<button class="btn btn-secondary btn-sm" data-id="'+ esc(d.id)+'" onclick="editDoc(this.dataset.id)">Modifier</button> '+
@@ -1471,20 +1471,19 @@ function viewDoc(id){
      ['Module lié',esc(d.related_module||'—')],
      ['Ajouté par',esc(d.uploaded_by||'—')],
      ['Révisé par',esc(d.reviewed_by||'—')],
-     ['Fichier',d.storage_path?'<span style="color:var(--grn)">Présent (privé)':'<span style="color:var(--fg3)">Non uploadé</span>'],
-     ['Bucket',d.storage_bucket?('<code>'+esc(d.storage_bucket)+'</code>'):'—'],
+     ['Fichier',d.has_file?'<span style="color:var(--grn)">Présent (privé)</span>':'<span style="color:var(--fg3)">Non uploadé</span>'],
      ['Notes',esc(d.notes||'—')],
      ['Créé le',fmtDate(d.created_at)],
      ['Mis à jour',fmtDate(d.updated_at)]
     ].map(function(r){
       return '<div class="detail-row"><div class="detail-lbl">'+r[0]+'</div><div class="detail-val">'+r[1]+'</div></div>';
     }).join('')+
-    (d.storage_path?'<div class="alert alert-info" style="margin-top:14px;">'+
+    (d.has_file?'<div class="alert alert-info" style="margin-top:14px;">'+
       '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'+
       '<span>Fichier stocké dans un bucket privé — accès via URL signée.</span></div>':''  );
   document.getElementById('modal-edit-btn').onclick=function(){closeModal();editDoc(id);};
   // File action buttons
-  var hasFile = !!(d.storage_path);
+  var hasFile = !!(d.has_file);
   var consultBtn = document.getElementById('modal-consult-btn');
   var uploadBtn  = document.getElementById('modal-upload-btn');
   var uploadLbl  = document.getElementById('modal-upload-label');

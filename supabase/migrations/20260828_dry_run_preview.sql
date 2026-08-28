@@ -1,483 +1,225 @@
 -- ============================================================
--- DRY-RUN MIGRATION LOT E — BEGIN / ROLLBACK
--- Aucune modification persistee en PROD
--- Date: 2026-08-28
+-- DRY RUN PREVIEW — RECOVERY LOT E
+-- BEGIN … ROLLBACK — aucune donnée persistée
+-- Exécute la migration ET teste le comportement réel des fonctions.
+-- Les assertions suivantes auraient ÉCHOUÉ avec l'ancienne version.
 -- ============================================================
+
 BEGIN;
 
--- ============================================================
--- RECOVERY LOT E — Events · Notifications · Jobs
--- Migration idempotente — aucun DROP destructif
--- Date: 2026-08-28
--- ============================================================
--- STATUT: schema-ready, non-opérationnel
---   • pg_cron ABSENT de ce projet → aucun cron activé
---   • veraluz_jobs: enabled=false, dry_run=true
---   • veraluz_event_processing: traitement assuré par workers
---     internes (EFs service_role) uniquement
--- DÉPLOIEMENT: migration manuelle post-audit (pas de deploy auto)
--- ============================================================
+-- ─── Inclure le contenu de la migration ──────────────────────────────────────
+\i supabase/migrations/20260828_recovery_lot_e_events_notifications_jobs.sql
 
--- ────────────────────────────────────────────────────────────
--- 1a. EVENTS — enveloppe IMMUABLE (veraluz_events)
--- INSERT uniquement via EF service_role. Jamais modifiable après création.
--- ────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.veraluz_events (
-  id               TEXT        NOT NULL DEFAULT gen_random_uuid()::text PRIMARY KEY,
-  idempotency_key  TEXT        NOT NULL UNIQUE,         -- UNIQUE crée son propre index (pas de doublon)
-  event_type       TEXT        NOT NULL,                -- allowlisté par EF
-  source           TEXT        NOT NULL,                -- EF ou worker, jamais iframe
-  actor_id         TEXT        NULL,                    -- employee_id ou 'system'
-  actor_role       TEXT        NULL,
-  reservation_id   TEXT        NULL,
-  unit_id          TEXT        NULL,
-  payload          JSONB       NOT NULL DEFAULT '{}',
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT now()   -- horodatage serveur, immuable
-);
--- ⚠️  Aucune colonne mutable dans cette table (status, retry_count, etc.) →
---     état de traitement dans veraluz_event_processing ci-dessous.
-
--- Index sur enveloppe (idempotency_key déjà indexé par UNIQUE)
-CREATE INDEX IF NOT EXISTS idx_veraluz_events_type        ON public.veraluz_events(event_type);
-CREATE INDEX IF NOT EXISTS idx_veraluz_events_created_at  ON public.veraluz_events(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_veraluz_events_reservation ON public.veraluz_events(reservation_id) WHERE reservation_id IS NOT NULL;
--- NB: idx_veraluz_events_idem SUPPRIMÉ — UNIQUE sur idempotency_key crée déjà un index btree.
-
-ALTER TABLE public.veraluz_events ENABLE ROW LEVEL SECURITY;
-
--- REVOKE ALL de toutes les sources non-service_role (public inclut anon + authenticated)
-REVOKE ALL ON public.veraluz_events FROM public, anon, authenticated;
-
+-- ─── BLOC DE VÉRIFICATION : tests comportementaux réels ──────────────────────
 DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename='veraluz_events' AND policyname='deny_all_public_veraluz_events'
-  ) THEN
-    CREATE POLICY deny_all_public_veraluz_events ON public.veraluz_events
-      FOR ALL TO public USING (false);
-  END IF;
-END $$;
-
--- ────────────────────────────────────────────────────────────
--- 1b. EVENTS — état de traitement MUTABLE (veraluz_event_processing)
--- Séparé de l'enveloppe pour garantir l'immuabilité de veraluz_events.
--- Workers workers internes uniquement (service_role).
--- ────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.veraluz_event_processing (
-  event_id       TEXT        NOT NULL PRIMARY KEY REFERENCES public.veraluz_events(id) ON DELETE CASCADE,
-  status         TEXT        NOT NULL DEFAULT 'pending'
-                 CHECK (status IN ('pending','processing','processed','failed','dead_letter')),
-  processed_at   TIMESTAMPTZ NULL,
-  retry_count    INT         NOT NULL DEFAULT 0,
-  last_error     TEXT        NULL,
-  worker_id      TEXT        NULL,
-  updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX IF NOT EXISTS idx_event_processing_status  ON public.veraluz_event_processing(status);
-CREATE INDEX IF NOT EXISTS idx_event_processing_updated ON public.veraluz_event_processing(updated_at DESC);
-
-ALTER TABLE public.veraluz_event_processing ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.veraluz_event_processing FROM public, anon, authenticated;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename='veraluz_event_processing' AND policyname='deny_all_veraluz_event_processing'
-  ) THEN
-    CREATE POLICY deny_all_veraluz_event_processing ON public.veraluz_event_processing
-      FOR ALL TO public USING (false);
-  END IF;
-END $$;
-
--- ────────────────────────────────────────────────────────────
--- 2a. NOTIFICATIONS (veraluz_notifications)
--- Notifications métier créées côté serveur par EFs service_role.
--- État de lecture par employé dans notification_reads (ci-dessous).
--- ────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.veraluz_notifications (
-  id              TEXT        NOT NULL DEFAULT gen_random_uuid()::text PRIMARY KEY,
-  event_id        TEXT        NULL REFERENCES public.veraluz_events(id) ON DELETE SET NULL,
-  title           TEXT        NOT NULL,
-  message         TEXT        NOT NULL DEFAULT '',
-  category        TEXT        NOT NULL DEFAULT 'system'
-                  CHECK (category IN ('system','reservation','payment','room_service','guest','maintenance','finance','hr','security')),
-  priority        TEXT        NOT NULL DEFAULT 'medium'
-                  CHECK (priority IN ('critical','high','medium','low')),
-  recipient_roles TEXT[]      NOT NULL DEFAULT '{}',   -- [] = tous les rôles autorisés
-  channels        TEXT[]      NOT NULL DEFAULT ARRAY['in_app'],
-  requires_ack    BOOLEAN     NOT NULL DEFAULT false,
-  metadata        JSONB       NOT NULL DEFAULT '{}',
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  created_by      TEXT        NULL                     -- actor_id (system ou employee_id)
-  -- NB: read_at / ack_at supprimés de cette table → voir notification_reads
-  --     pour l'état de lecture indépendant par employé.
-);
-
-CREATE INDEX IF NOT EXISTS idx_veraluz_notifications_created  ON public.veraluz_notifications(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_veraluz_notifications_priority ON public.veraluz_notifications(priority);
-CREATE INDEX IF NOT EXISTS idx_veraluz_notifications_category ON public.veraluz_notifications(category);
-CREATE INDEX IF NOT EXISTS idx_veraluz_notifications_roles    ON public.veraluz_notifications USING gin(recipient_roles);
-
-ALTER TABLE public.veraluz_notifications ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.veraluz_notifications FROM public, anon, authenticated;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename='veraluz_notifications' AND policyname='deny_all_veraluz_notifications'
-  ) THEN
-    CREATE POLICY deny_all_veraluz_notifications ON public.veraluz_notifications
-      FOR ALL TO public USING (false);
-  END IF;
-END $$;
-
--- ────────────────────────────────────────────────────────────
--- 2b. NOTIFICATION_READS — état de lecture PAR EMPLOYÉ
--- Chaque employé a son propre état (read, ack) indépendant des autres.
--- Insert par notifications-secure EF (service_role) uniquement.
--- ────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.notification_reads (
-  id              TEXT        NOT NULL DEFAULT gen_random_uuid()::text PRIMARY KEY,
-  notification_id TEXT        NOT NULL REFERENCES public.veraluz_notifications(id) ON DELETE CASCADE,
-  employee_id     TEXT        NOT NULL,                -- employee ayant lu/acquitté
-  employee_role   TEXT        NULL,
-  read_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-  ack_at          TIMESTAMPTZ NULL,
-  UNIQUE (notification_id, employee_id)                -- un seul enregistrement par (notif, employé)
-);
-
-CREATE INDEX IF NOT EXISTS idx_notification_reads_employee ON public.notification_reads(employee_id);
-CREATE INDEX IF NOT EXISTS idx_notification_reads_notif    ON public.notification_reads(notification_id);
-CREATE INDEX IF NOT EXISTS idx_notification_reads_unacked  ON public.notification_reads(employee_id) WHERE ack_at IS NULL;
-
-ALTER TABLE public.notification_reads ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.notification_reads FROM public, anon, authenticated;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename='notification_reads' AND policyname='deny_all_notification_reads'
-  ) THEN
-    CREATE POLICY deny_all_notification_reads ON public.notification_reads
-      FOR ALL TO public USING (false);
-  END IF;
-END $$;
-
--- ────────────────────────────────────────────────────────────
--- 3. JOBS SCHEDULER (veraluz_jobs)
--- STATUT: schema-ready, NON OPÉRATIONNEL
---   • pg_cron absent → aucun job ne se déclenche automatiquement
---   • Activation manuelle uniquement par direction/admin après audit
---   • enabled=false et dry_run=true par défaut pour tous les jobs
--- ────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.veraluz_jobs (
-  id              TEXT        NOT NULL DEFAULT gen_random_uuid()::text PRIMARY KEY,
-  name            TEXT        NOT NULL UNIQUE,
-  description     TEXT        NOT NULL DEFAULT '',
-  cron_expression TEXT        NOT NULL,               -- ex: '0 6 * * *'  (référence seulement)
-  worker_endpoint TEXT        NOT NULL,               -- nom EF interne (pas d'URL externe)
-  payload         JSONB       NOT NULL DEFAULT '{}',
-  enabled         BOOLEAN     NOT NULL DEFAULT false, -- DÉSACTIVÉ par défaut
-  dry_run         BOOLEAN     NOT NULL DEFAULT true,  -- DRY_RUN par défaut
-  -- Bilan d'exécution
-  last_run_at     TIMESTAMPTZ NULL,
-  last_run_status TEXT        NULL CHECK (last_run_status IN ('success','failure','dry_run',NULL)),
-  last_run_ms     INT         NULL,
-  last_error      TEXT        NULL,
-  run_count       INT         NOT NULL DEFAULT 0,
-  fail_count      INT         NOT NULL DEFAULT 0,
-  -- Concurrence : lease atomique (claim/release via fonction SQL dédiée)
-  running         BOOLEAN     NOT NULL DEFAULT false,
-  running_since   TIMESTAMPTZ NULL,
-  lease_token     TEXT        NULL,                   -- token unique du worker en cours
-  lease_expires_at TIMESTAMPTZ NULL,                  -- expiration du lease (évite les jobs bloqués)
-  -- Métadonnées
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  created_by      TEXT        NULL,
-  updated_by      TEXT        NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_veraluz_jobs_enabled  ON public.veraluz_jobs(enabled);
-CREATE INDEX IF NOT EXISTS idx_veraluz_jobs_running  ON public.veraluz_jobs(running) WHERE running = true;
-CREATE INDEX IF NOT EXISTS idx_veraluz_jobs_lease    ON public.veraluz_jobs(lease_expires_at) WHERE running = true;
-
-ALTER TABLE public.veraluz_jobs ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.veraluz_jobs FROM public, anon, authenticated;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename='veraluz_jobs' AND policyname='deny_all_public_veraluz_jobs'
-  ) THEN
-    CREATE POLICY deny_all_public_veraluz_jobs ON public.veraluz_jobs
-      FOR ALL TO public USING (false);
-  END IF;
-END $$;
-
--- Trigger updated_at
-CREATE OR REPLACE FUNCTION public.set_updated_at_veraluz_jobs()
-RETURNS TRIGGER LANGUAGE plpgsql
-SET search_path = public
-SECURITY DEFINER AS $$
-BEGIN NEW.updated_at = now(); RETURN NEW; END $$;
-
-DROP TRIGGER IF EXISTS trg_veraluz_jobs_updated_at ON public.veraluz_jobs;
-CREATE TRIGGER trg_veraluz_jobs_updated_at
-  BEFORE UPDATE ON public.veraluz_jobs
-  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at_veraluz_jobs();
-
--- ────────────────────────────────────────────────────────────
--- 3b. ATOMIC JOB CLAIM — claim_job_lease()
--- Garantit qu'un seul worker peut prendre un job à la fois.
--- Deux workers simultanés ne peuvent PAS obtenir le même lease.
--- Appelable uniquement par service_role (EF interne).
--- ────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.claim_job_lease(
-  p_job_name     TEXT,
-  p_worker_id    TEXT,
-  p_lease_secs   INT DEFAULT 300          -- durée du lease en secondes (défaut: 5 min)
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
 DECLARE
-  v_job    veraluz_jobs%ROWTYPE;
-  v_token  TEXT := gen_random_uuid()::text;
-  v_now    TIMESTAMPTZ := now();
+  v_result       JSONB;
+  v_notif_id     TEXT;
+  v_event_id     TEXT;
+  v_idem_key     TEXT := 'dry-run-idem-' || gen_random_uuid()::text;
+  v_job_name     TEXT := 'dry_run_test_job_' || left(gen_random_uuid()::text, 8);
+  v_token        TEXT;
+  v_notif_id2    TEXT;
+  v_err          TEXT;
 BEGIN
-  -- Tentative atomique : UPDATE + vérification en une seule opération
-  -- Conditions de claim :
-  --   (a) job enabled=true ET dry_run=false
-  --   (b) running=false OU lease_expires_at < now() (lease expiré → reprise)
-  UPDATE public.veraluz_jobs
-  SET
-    running          = true,
-    running_since    = v_now,
-    lease_token      = v_token,
-    lease_expires_at = v_now + (p_lease_secs || ' seconds')::interval,
-    updated_at       = v_now
-  WHERE name          = p_job_name
-    AND enabled       = true
-    AND dry_run       = false
-    AND (running = false OR lease_expires_at < v_now)
-  RETURNING * INTO v_job;
 
-  IF NOT FOUND THEN
-    -- Job non trouvé, déjà en cours (lease actif), désactivé ou dry_run
-    SELECT * INTO v_job FROM public.veraluz_jobs WHERE name = p_job_name;
-    RETURN jsonb_build_object(
-      'claimed', false,
-      'reason', CASE
-        WHEN v_job.id IS NULL         THEN 'job_not_found'
-        WHEN NOT v_job.enabled        THEN 'job_disabled'
-        WHEN v_job.dry_run            THEN 'job_dry_run'
-        WHEN v_job.running AND v_job.lease_expires_at >= v_now THEN 'lease_active'
-        ELSE 'unknown'
-      END,
-      'job_name', p_job_name
-    );
-  END IF;
+  RAISE NOTICE '═══════════════════════════════════════════════════════';
+  RAISE NOTICE 'DRY RUN LOT E — Tests comportementaux — BEGIN/ROLLBACK';
+  RAISE NOTICE '═══════════════════════════════════════════════════════';
 
-  RETURN jsonb_build_object(
-    'claimed',          true,
-    'job_id',           v_job.id,
-    'job_name',         v_job.name,
-    'lease_token',      v_token,
-    'lease_expires_at', v_now + (p_lease_secs || ' seconds')::interval,
-    'worker_id',        p_worker_id
-  );
-END $$;
+  -- ── T01 : Tables créées ──────────────────────────────────────────────────
+  ASSERT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='veraluz_events'),
+    'T01 FAIL: veraluz_events missing';
+  ASSERT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='veraluz_event_processing'),
+    'T01b FAIL: veraluz_event_processing missing';
+  ASSERT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='veraluz_notifications'),
+    'T01c FAIL: veraluz_notifications missing';
+  ASSERT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='notification_reads'),
+    'T01d FAIL: notification_reads missing';
+  ASSERT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='veraluz_jobs'),
+    'T01e FAIL: veraluz_jobs missing';
+  RAISE NOTICE 'T01 PASS: toutes les tables présentes';
 
--- Libération du lease après succès ou échec
-CREATE OR REPLACE FUNCTION public.release_job_lease(
-  p_job_name      TEXT,
-  p_lease_token   TEXT,
-  p_status        TEXT,          -- 'success' | 'failure'
-  p_duration_ms   INT DEFAULT NULL,
-  p_error         TEXT DEFAULT NULL
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_updated BOOLEAN := false;
-BEGIN
-  UPDATE public.veraluz_jobs
-  SET
-    running          = false,
-    running_since    = NULL,
-    lease_token      = NULL,
-    lease_expires_at = NULL,
-    last_run_at      = now(),
-    last_run_status  = p_status,
-    last_run_ms      = p_duration_ms,
-    last_error       = p_error,
-    run_count        = run_count + 1,
-    fail_count       = fail_count + CASE WHEN p_status = 'failure' THEN 1 ELSE 0 END,
-    updated_at       = now()
-  WHERE name        = p_job_name
-    AND lease_token = p_lease_token;
+  -- ── T02 : RLS activé sur toutes les tables ───────────────────────────────
+  ASSERT (SELECT rowsecurity FROM pg_class WHERE relname='veraluz_events' AND relnamespace='public'::regnamespace),
+    'T02 FAIL: RLS not enabled on veraluz_events';
+  ASSERT (SELECT rowsecurity FROM pg_class WHERE relname='veraluz_notifications' AND relnamespace='public'::regnamespace),
+    'T02b FAIL: RLS not enabled on veraluz_notifications';
+  ASSERT (SELECT rowsecurity FROM pg_class WHERE relname='veraluz_jobs' AND relnamespace='public'::regnamespace),
+    'T02c FAIL: RLS not enabled on veraluz_jobs';
+  RAISE NOTICE 'T02 PASS: RLS activé';
 
-  GET DIAGNOSTICS v_updated = ROW_COUNT;
-  RETURN jsonb_build_object('released', v_updated > 0, 'job_name', p_job_name);
-END $$;
+  -- ── T03 : idempotency_key UNIQUE sur veraluz_events ─────────────────────
+  INSERT INTO public.veraluz_events (idempotency_key, event_type, source, payload)
+  VALUES (v_idem_key, 'test_event', 'dry_run', '{}')
+  RETURNING id INTO v_event_id;
+  ASSERT v_event_id IS NOT NULL, 'T03 FAIL: insert veraluz_events échoué';
 
--- Récupération des leases expirés (appelé périodiquement par un worker de maintenance)
-CREATE OR REPLACE FUNCTION public.recover_expired_job_leases()
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_count INT;
-BEGIN
-  UPDATE public.veraluz_jobs
-  SET
-    running          = false,
-    running_since    = NULL,
-    lease_token      = NULL,
-    lease_expires_at = NULL,
-    last_run_status  = 'failure',
-    last_error       = 'lease_expired — lease recovery automatique',
-    fail_count       = fail_count + 1,
-    updated_at       = now()
-  WHERE running = true
-    AND lease_expires_at < now();
-
-  GET DIAGNOSTICS v_count = ROW_COUNT;
-  RETURN jsonb_build_object('recovered', v_count);
-END $$;
-
--- Permissions sur les fonctions : service_role uniquement
-REVOKE ALL ON FUNCTION public.claim_job_lease(TEXT,TEXT,INT)   FROM public, anon, authenticated;
-REVOKE ALL ON FUNCTION public.release_job_lease(TEXT,TEXT,TEXT,INT,TEXT) FROM public, anon, authenticated;
-REVOKE ALL ON FUNCTION public.recover_expired_job_leases()     FROM public, anon, authenticated;
-GRANT  EXECUTE ON FUNCTION public.claim_job_lease(TEXT,TEXT,INT)   TO service_role;
-GRANT  EXECUTE ON FUNCTION public.release_job_lease(TEXT,TEXT,TEXT,INT,TEXT) TO service_role;
-GRANT  EXECUTE ON FUNCTION public.recover_expired_job_leases() TO service_role;
-
--- ────────────────────────────────────────────────────────────
--- 4. GRANTS minimaux — service_role uniquement
--- ────────────────────────────────────────────────────────────
-GRANT ALL ON public.veraluz_events          TO service_role;
-GRANT ALL ON public.veraluz_event_processing TO service_role;
-GRANT ALL ON public.veraluz_notifications   TO service_role;
-GRANT ALL ON public.notification_reads      TO service_role;
-GRANT ALL ON public.veraluz_jobs            TO service_role;
-
--- ────────────────────────────────────────────────────────────
--- FIN MIGRATION LOT E
--- Schema: ready | Déploiement: manuel post-audit
--- Workers: non-opérationnels (pg_cron absent, enabled=false)
--- ────────────────────────────────────────────────────────────
-
-
--- == Verifications post-creation ===============================
-DO $$
-DECLARE r RECORD;
-BEGIN
-  FOR r IN SELECT tablename FROM pg_tables
-    WHERE schemaname='public'
-      AND tablename IN ('veraluz_events','veraluz_event_processing',
-                        'veraluz_notifications','notification_reads','veraluz_jobs')
-    ORDER BY tablename
-  LOOP
-    RAISE NOTICE '[DRY-RUN] TABLE OK: %', r.tablename;
-  END LOOP;
-
-  FOR r IN SELECT routine_name FROM information_schema.routines
-    WHERE routine_schema='public'
-      AND routine_name IN ('claim_job_lease','release_job_lease',
-                           'recover_expired_job_leases','set_updated_at_veraluz_jobs')
-    ORDER BY routine_name
-  LOOP
-    RAISE NOTICE '[DRY-RUN] FUNCTION OK: %', r.routine_name;
-  END LOOP;
-
-  IF EXISTS (SELECT 1 FROM information_schema.table_constraints
-    WHERE table_name='veraluz_events' AND constraint_type='UNIQUE') THEN
-    RAISE NOTICE '[DRY-RUN] UNIQUE idempotency_key OK';
-  END IF;
-
-  IF EXISTS (SELECT 1 FROM information_schema.table_constraints
-    WHERE table_name='notification_reads' AND constraint_type='UNIQUE') THEN
-    RAISE NOTICE '[DRY-RUN] UNIQUE notification_reads(notification_id,employee_id) OK';
-  END IF;
-
-  FOR r IN SELECT relname FROM pg_class
-    WHERE relrowsecurity=true
-      AND relname IN ('veraluz_events','veraluz_event_processing',
-                      'veraluz_notifications','notification_reads','veraluz_jobs')
-    ORDER BY relname
-  LOOP
-    RAISE NOTICE '[DRY-RUN] RLS ENABLED: %', r.relname;
-  END LOOP;
-
-  FOR r IN SELECT tablename, policyname FROM pg_policies
-    WHERE tablename IN ('veraluz_events','veraluz_event_processing',
-                        'veraluz_notifications','notification_reads','veraluz_jobs')
-    ORDER BY tablename
-  LOOP
-    RAISE NOTICE '[DRY-RUN] POLICY: % -> %', r.tablename, r.policyname;
-  END LOOP;
-
-  -- Test insertion evenement (enveloppe immuable)
-  INSERT INTO public.veraluz_events (id, idempotency_key, event_type, source, payload)
-    VALUES ('dry-evt-1','idem-dry-001','test.event','dry_run','{}');
-  RAISE NOTICE '[DRY-RUN] INSERT veraluz_events OK';
-
-  -- Test processing state separe
-  INSERT INTO public.veraluz_event_processing (event_id, status)
-    VALUES ('dry-evt-1','pending');
-  RAISE NOTICE '[DRY-RUN] INSERT veraluz_event_processing OK';
-
-  -- Test idempotence: deuxieme INSERT doit echouer (UNIQUE idempotency_key)
   BEGIN
-    INSERT INTO public.veraluz_events (id, idempotency_key, event_type, source, payload)
-      VALUES ('dry-evt-2','idem-dry-001','test.event','dry_run','{}');
-    RAISE WARNING '[DRY-RUN] ERREUR: deuxieme INSERT devrait avoir echoue!';
+    INSERT INTO public.veraluz_events (idempotency_key, event_type, source, payload)
+    VALUES (v_idem_key, 'test_event', 'dry_run', '{}');
+    ASSERT false, 'T03 FAIL: duplicate idempotency_key accepté (doit être rejeté)';
   EXCEPTION WHEN unique_violation THEN
-    RAISE NOTICE '[DRY-RUN] UNIQUE violation idempotency_key OK (second INSERT rejecte)';
+    RAISE NOTICE 'T03 PASS: idempotency_key UNIQUE — doublon rejeté';
   END;
 
-  -- Test claim atomique: job disabled => claim refuse
-  INSERT INTO public.veraluz_jobs (name, cron_expression, worker_endpoint)
-    VALUES ('dry-job-1','0 6 * * *','infra-scheduler');
-  DECLARE v_res JSONB;
+  -- ── T04 : veraluz_events IMMUABLE — UPDATE interdit ─────────────────────
   BEGIN
-    SELECT public.claim_job_lease('dry-job-1','worker-dry',60) INTO v_res;
-    IF NOT (v_res->>'claimed')::boolean THEN
-      RAISE NOTICE '[DRY-RUN] claim_job_lease refuse (job disabled) OK: %', v_res->>'reason';
-    ELSE
-      RAISE WARNING '[DRY-RUN] ERREUR: claim aurait du etre refuse!';
-    END IF;
+    UPDATE public.veraluz_events SET event_type = 'hacked' WHERE id = v_event_id;
+    ASSERT false, 'T04 FAIL: UPDATE accepté sur veraluz_events (doit être interdit)';
+  EXCEPTION WHEN raise_exception THEN
+    RAISE NOTICE 'T04 PASS: UPDATE sur veraluz_events correctement bloqué par trigger';
   END;
 
-  -- Test notification_reads UNIQUE par employe
-  INSERT INTO public.veraluz_notifications (id, title)
-    VALUES ('dry-notif-1','Dry Run Test');
-  INSERT INTO public.notification_reads (notification_id, employee_id)
-    VALUES ('dry-notif-1','emp-a');
-  INSERT INTO public.notification_reads (notification_id, employee_id)
-    VALUES ('dry-notif-1','emp-b');
-  -- emp-a et emp-b ont des etats independants
-  -- deuxieme insert pour emp-a: ON CONFLICT DO NOTHING
-  INSERT INTO public.notification_reads (notification_id, employee_id)
-    VALUES ('dry-notif-1','emp-a')
-    ON CONFLICT (notification_id, employee_id) DO NOTHING;
-  RAISE NOTICE '[DRY-RUN] notification_reads etat independant par employe OK';
+  -- ── T05 : veraluz_events IMMUABLE — DELETE interdit ─────────────────────
+  BEGIN
+    DELETE FROM public.veraluz_events WHERE id = v_event_id;
+    ASSERT false, 'T05 FAIL: DELETE accepté sur veraluz_events (doit être interdit)';
+  EXCEPTION WHEN raise_exception THEN
+    RAISE NOTICE 'T05 PASS: DELETE sur veraluz_events correctement bloqué par trigger';
+  END;
 
-  RAISE NOTICE '[DRY-RUN] TOUTES LES VERIFICATIONS PASS';
+  -- ── T06 : veraluz_notifications — idempotency_key UNIQUE ─────────────────
+  INSERT INTO public.veraluz_notifications (title, message, idempotency_key, channels)
+  VALUES ('Test notif', 'Message test', 'notif-idem-dry-run-001', ARRAY['in_app'])
+  RETURNING id INTO v_notif_id;
+  ASSERT v_notif_id IS NOT NULL, 'T06 FAIL: insert veraluz_notifications échoué';
+
+  BEGIN
+    INSERT INTO public.veraluz_notifications (title, message, idempotency_key, channels)
+    VALUES ('Test notif 2', 'Message 2', 'notif-idem-dry-run-001', ARRAY['in_app']);
+    ASSERT false, 'T06 FAIL: duplicate idempotency_key notifications accepté';
+  EXCEPTION WHEN unique_violation THEN
+    RAISE NOTICE 'T06 PASS: veraluz_notifications idempotency_key UNIQUE';
+  END;
+
+  -- ── T07 : notification_reads — UNIQUE(notification_id, employee_id) ──────
+  INSERT INTO public.notification_reads (notification_id, employee_id, employee_role)
+  VALUES (v_notif_id, 'emp-001', 'staff');
+
+  INSERT INTO public.notification_reads (notification_id, employee_id, employee_role)
+  VALUES (v_notif_id, 'emp-002', 'staff');  -- autre employé → doit réussir
+
+  BEGIN
+    INSERT INTO public.notification_reads (notification_id, employee_id, employee_role)
+    VALUES (v_notif_id, 'emp-001', 'staff');  -- même employé → doit échouer
+    ASSERT false, 'T07 FAIL: doublon notification_reads accepté';
+  EXCEPTION WHEN unique_violation THEN
+    RAISE NOTICE 'T07 PASS: notification_reads UNIQUE(notification_id, employee_id)';
+  END;
+
+  -- ── T08 : veraluz_notifications — CHECK channels valide ──────────────────
+  BEGIN
+    INSERT INTO public.veraluz_notifications (title, channels)
+    VALUES ('Bad channel', ARRAY['invalid_channel']);
+    ASSERT false, 'T08 FAIL: channel invalide accepté';
+  EXCEPTION WHEN check_violation THEN
+    RAISE NOTICE 'T08 PASS: channels CHECK constraint — valeur invalide rejetée';
+  END;
+
+  -- ── T09 : veraluz_notifications — CHECK recipient_roles valide ───────────
+  BEGIN
+    INSERT INTO public.veraluz_notifications (title, recipient_roles, channels)
+    VALUES ('Bad role', ARRAY['hacker'], ARRAY['in_app']);
+    ASSERT false, 'T09 FAIL: recipient_role invalide accepté';
+  EXCEPTION WHEN check_violation THEN
+    RAISE NOTICE 'T09 PASS: recipient_roles CHECK constraint — rôle invalide rejeté';
+  END;
+
+  -- ── T10 : claim_job_lease — job disabled → claimed=false ─────────────────
+  INSERT INTO public.veraluz_jobs (name, cron_expression, worker_endpoint, enabled, dry_run)
+  VALUES (v_job_name, '0 6 * * *', 'test-worker', false, false);
+
+  v_result := public.claim_job_lease(v_job_name, 'worker-test-001', 300);
+  ASSERT (v_result->>'claimed')::boolean = false, 'T10 FAIL: disabled job claim doit retourner claimed=false';
+  ASSERT v_result->>'reason' = 'job_disabled', 'T10 FAIL: reason doit être job_disabled, got: ' || (v_result->>'reason');
+  RAISE NOTICE 'T10 PASS: claim_job_lease job disabled → claimed=false';
+
+  -- ── T11 : claim_job_lease — job dry_run → claimed=false ──────────────────
+  UPDATE public.veraluz_jobs SET enabled=true, dry_run=true WHERE name=v_job_name;
+  v_result := public.claim_job_lease(v_job_name, 'worker-test-001', 300);
+  ASSERT (v_result->>'claimed')::boolean = false, 'T11 FAIL: dry_run job claim doit retourner claimed=false';
+  ASSERT v_result->>'reason' = 'job_dry_run', 'T11 FAIL: reason doit être job_dry_run';
+  RAISE NOTICE 'T11 PASS: claim_job_lease job dry_run → claimed=false';
+
+  -- ── T12 : claim_job_lease — enabled + non dry_run → claimed=true ─────────
+  UPDATE public.veraluz_jobs SET enabled=true, dry_run=false WHERE name=v_job_name;
+  v_result := public.claim_job_lease(v_job_name, 'worker-test-001', 300);
+  ASSERT (v_result->>'claimed')::boolean = true, 'T12 FAIL: claim doit réussir sur job enabled+non-dry_run';
+  v_token := v_result->>'lease_token';
+  ASSERT v_token IS NOT NULL AND length(v_token) > 0, 'T12 FAIL: lease_token absent';
+  RAISE NOTICE 'T12 PASS: claim_job_lease → claimed=true, lease_token présent';
+
+  -- ── T13 : deux workers ne peuvent pas obtenir le même job ─────────────────
+  v_result := public.claim_job_lease(v_job_name, 'worker-test-002', 300);
+  ASSERT (v_result->>'claimed')::boolean = false, 'T13 FAIL: second worker ne doit pas obtenir le lease';
+  ASSERT v_result->>'reason' = 'lease_active', 'T13 FAIL: reason doit être lease_active';
+  RAISE NOTICE 'T13 PASS: deux workers ne peuvent pas obtenir le même lease';
+
+  -- ── T14 : release_job_lease — mauvais token → released=false ─────────────
+  v_result := public.release_job_lease(v_job_name, 'wrong-token-xyz', 'success', 100, NULL);
+  ASSERT (v_result->>'released')::boolean = false, 'T14 FAIL: mauvais token doit retourner released=false';
+  RAISE NOTICE 'T14 PASS: release avec mauvais lease_token → released=false';
+
+  -- ── T15 : release_job_lease — bon token → released=true ──────────────────
+  v_result := public.release_job_lease(v_job_name, v_token, 'success', 500, NULL);
+  ASSERT (v_result->>'released')::boolean = true, 'T15 FAIL: bon token doit retourner released=true';
+  -- Vérifier que le job est bien libéré
+  ASSERT NOT EXISTS (SELECT 1 FROM public.veraluz_jobs WHERE name=v_job_name AND running=true),
+    'T15 FAIL: job toujours running après release';
+  RAISE NOTICE 'T15 PASS: release_job_lease bon token → released=true, job libéré';
+
+  -- ── T16 : release_job_lease — status invalide → erreur ───────────────────
+  v_result := public.release_job_lease(v_job_name, v_token, 'invalid_status', NULL, NULL);
+  ASSERT (v_result->>'released')::boolean = false, 'T16 FAIL: status invalide doit retourner released=false';
+  ASSERT v_result->>'reason' = 'invalid_status', 'T16 FAIL: reason doit être invalid_status';
+  RAISE NOTICE 'T16 PASS: release_job_lease status invalide rejeté';
+
+  -- ── T17 : claim_job_lease — lease_secs invalide ───────────────────────────
+  v_result := public.claim_job_lease(v_job_name, 'worker-001', 9999);
+  ASSERT (v_result->>'claimed')::boolean = false, 'T17 FAIL: lease_secs invalide doit retourner claimed=false';
+  ASSERT v_result->>'reason' = 'invalid_lease_secs', 'T17 FAIL: reason doit être invalid_lease_secs';
+  RAISE NOTICE 'T17 PASS: claim_job_lease lease_secs invalide rejeté';
+
+  -- ── T18 : recover_expired_job_leases — lease expiré récupéré ─────────────
+  -- Reclaim le job et forcer l'expiration
+  UPDATE public.veraluz_jobs
+  SET enabled=true, dry_run=false, running=false WHERE name=v_job_name;
+
+  v_result := public.claim_job_lease(v_job_name, 'worker-expire', 300);
+  ASSERT (v_result->>'claimed')::boolean = true, 'T18 setup FAIL: reclaim échoué';
+
+  -- Forcer l'expiration du lease
+  UPDATE public.veraluz_jobs SET lease_expires_at = now() - interval '1 second' WHERE name=v_job_name;
+
+  v_result := public.recover_expired_job_leases();
+  ASSERT (v_result->>'recovered')::int >= 1, 'T18 FAIL: aucun lease récupéré';
+  ASSERT NOT EXISTS (SELECT 1 FROM public.veraluz_jobs WHERE name=v_job_name AND running=true),
+    'T18 FAIL: job toujours running après recover';
+  RAISE NOTICE 'T18 PASS: recover_expired_job_leases — lease expiré récupéré';
+
+  RAISE NOTICE '═══════════════════════════════════════════════════════';
+  RAISE NOTICE 'T01–T18 : tous PASS ✓';
+  RAISE NOTICE '═══════════════════════════════════════════════════════';
+
 END $$;
 
+-- ─── ROLLBACK — aucune donnée ne persiste ─────────────────────────────────────
 ROLLBACK;
+
+-- ─── Vérification post-ROLLBACK : tables Lot E absentes ──────────────────────
+DO $$
+BEGIN
+  ASSERT NOT EXISTS (SELECT 1 FROM information_schema.tables
+    WHERE table_schema='public' AND table_name IN (
+      'veraluz_events','veraluz_event_processing',
+      'veraluz_notifications','notification_reads','veraluz_jobs'
+    )),
+    'POST-ROLLBACK FAIL: objets Lot E persistent après ROLLBACK';
+  RAISE NOTICE 'POST-ROLLBACK PASS: aucun objet Lot E persisté — dry-run propre';
+END $$;
+
 -- ============================================================
--- FIN DRY-RUN — Aucune modification persistee en PROD
+-- FIN DRY RUN — ROLLBACK OK | Aucune donnée PROD modifiée
+-- Aucun email envoyé | Aucun cron activé | Aucune donnée synthétique
 -- ============================================================

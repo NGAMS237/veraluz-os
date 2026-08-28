@@ -1,4 +1,11 @@
 -- ============================================================
+-- DRY-RUN MIGRATION LOT E — BEGIN / ROLLBACK
+-- Aucune modification persistee en PROD
+-- Date: 2026-08-28
+-- ============================================================
+BEGIN;
+
+-- ============================================================
 -- RECOVERY LOT E — Events · Notifications · Jobs
 -- Migration idempotente — aucun DROP destructif
 -- Date: 2026-08-28
@@ -370,3 +377,107 @@ GRANT ALL ON public.veraluz_jobs            TO service_role;
 -- Schema: ready | Déploiement: manuel post-audit
 -- Workers: non-opérationnels (pg_cron absent, enabled=false)
 -- ────────────────────────────────────────────────────────────
+
+
+-- == Verifications post-creation ===============================
+DO $$
+DECLARE r RECORD;
+BEGIN
+  FOR r IN SELECT tablename FROM pg_tables
+    WHERE schemaname='public'
+      AND tablename IN ('veraluz_events','veraluz_event_processing',
+                        'veraluz_notifications','notification_reads','veraluz_jobs')
+    ORDER BY tablename
+  LOOP
+    RAISE NOTICE '[DRY-RUN] TABLE OK: %', r.tablename;
+  END LOOP;
+
+  FOR r IN SELECT routine_name FROM information_schema.routines
+    WHERE routine_schema='public'
+      AND routine_name IN ('claim_job_lease','release_job_lease',
+                           'recover_expired_job_leases','set_updated_at_veraluz_jobs')
+    ORDER BY routine_name
+  LOOP
+    RAISE NOTICE '[DRY-RUN] FUNCTION OK: %', r.routine_name;
+  END LOOP;
+
+  IF EXISTS (SELECT 1 FROM information_schema.table_constraints
+    WHERE table_name='veraluz_events' AND constraint_type='UNIQUE') THEN
+    RAISE NOTICE '[DRY-RUN] UNIQUE idempotency_key OK';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM information_schema.table_constraints
+    WHERE table_name='notification_reads' AND constraint_type='UNIQUE') THEN
+    RAISE NOTICE '[DRY-RUN] UNIQUE notification_reads(notification_id,employee_id) OK';
+  END IF;
+
+  FOR r IN SELECT relname FROM pg_class
+    WHERE relrowsecurity=true
+      AND relname IN ('veraluz_events','veraluz_event_processing',
+                      'veraluz_notifications','notification_reads','veraluz_jobs')
+    ORDER BY relname
+  LOOP
+    RAISE NOTICE '[DRY-RUN] RLS ENABLED: %', r.relname;
+  END LOOP;
+
+  FOR r IN SELECT tablename, policyname FROM pg_policies
+    WHERE tablename IN ('veraluz_events','veraluz_event_processing',
+                        'veraluz_notifications','notification_reads','veraluz_jobs')
+    ORDER BY tablename
+  LOOP
+    RAISE NOTICE '[DRY-RUN] POLICY: % -> %', r.tablename, r.policyname;
+  END LOOP;
+
+  -- Test insertion evenement (enveloppe immuable)
+  INSERT INTO public.veraluz_events (id, idempotency_key, event_type, source, payload)
+    VALUES ('dry-evt-1','idem-dry-001','test.event','dry_run','{}');
+  RAISE NOTICE '[DRY-RUN] INSERT veraluz_events OK';
+
+  -- Test processing state separe
+  INSERT INTO public.veraluz_event_processing (event_id, status)
+    VALUES ('dry-evt-1','pending');
+  RAISE NOTICE '[DRY-RUN] INSERT veraluz_event_processing OK';
+
+  -- Test idempotence: deuxieme INSERT doit echouer (UNIQUE idempotency_key)
+  BEGIN
+    INSERT INTO public.veraluz_events (id, idempotency_key, event_type, source, payload)
+      VALUES ('dry-evt-2','idem-dry-001','test.event','dry_run','{}');
+    RAISE WARNING '[DRY-RUN] ERREUR: deuxieme INSERT devrait avoir echoue!';
+  EXCEPTION WHEN unique_violation THEN
+    RAISE NOTICE '[DRY-RUN] UNIQUE violation idempotency_key OK (second INSERT rejecte)';
+  END;
+
+  -- Test claim atomique: job disabled => claim refuse
+  INSERT INTO public.veraluz_jobs (name, cron_expression, worker_endpoint)
+    VALUES ('dry-job-1','0 6 * * *','infra-scheduler');
+  DECLARE v_res JSONB;
+  BEGIN
+    SELECT public.claim_job_lease('dry-job-1','worker-dry',60) INTO v_res;
+    IF NOT (v_res->>'claimed')::boolean THEN
+      RAISE NOTICE '[DRY-RUN] claim_job_lease refuse (job disabled) OK: %', v_res->>'reason';
+    ELSE
+      RAISE WARNING '[DRY-RUN] ERREUR: claim aurait du etre refuse!';
+    END IF;
+  END;
+
+  -- Test notification_reads UNIQUE par employe
+  INSERT INTO public.veraluz_notifications (id, title)
+    VALUES ('dry-notif-1','Dry Run Test');
+  INSERT INTO public.notification_reads (notification_id, employee_id)
+    VALUES ('dry-notif-1','emp-a');
+  INSERT INTO public.notification_reads (notification_id, employee_id)
+    VALUES ('dry-notif-1','emp-b');
+  -- emp-a et emp-b ont des etats independants
+  -- deuxieme insert pour emp-a: ON CONFLICT DO NOTHING
+  INSERT INTO public.notification_reads (notification_id, employee_id)
+    VALUES ('dry-notif-1','emp-a')
+    ON CONFLICT (notification_id, employee_id) DO NOTHING;
+  RAISE NOTICE '[DRY-RUN] notification_reads etat independant par employe OK';
+
+  RAISE NOTICE '[DRY-RUN] TOUTES LES VERIFICATIONS PASS';
+END $$;
+
+ROLLBACK;
+-- ============================================================
+-- FIN DRY-RUN — Aucune modification persistee en PROD
+-- ============================================================

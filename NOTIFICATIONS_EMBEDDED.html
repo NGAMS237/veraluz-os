@@ -1295,44 +1295,80 @@ function startRealtime(){
 // affiche des données de démonstration clairement étiquetées.
 // ════════════════════════════════════════════════
 
-var _NOTIF_DEMO_MODE = true; /* Activé jusqu'au déploiement de notifications-secure */
+/* _NOTIF_DEMO_MODE: true = bannière démo, skip REST, simulation bloquée.
+   Passer à false UNIQUEMENT après déploiement + validation de notifications-secure. */
+var _NOTIF_DEMO_MODE = true;
+
+/* ── Broker helper ─────────────────────────────────────────────────────────── */
+function notifRequest(action, payload) {
+  if (!window.parent || typeof window.parent.veraluzSecureRequest !== 'function') {
+    return Promise.reject(new Error('CORE_BROKER_UNAVAILABLE'));
+  }
+  return window.parent.veraluzSecureRequest('notifications-secure',
+    Object.assign({ action: action }, payload || {}))
+  .then(function(res) {
+    var d = res && res.body ? res.body : res;
+    if (!d || !d.ok) throw new Error(d && d.error ? d.error : 'notif_request_failed');
+    return d;
+  });
+}
 
 function loadNotificationsFromSupabase() {
-  /* LOT-E: Remplacer par broker CORE quand notifications-secure est déployé.
-     Pattern cible:
-       window.parent.veraluzSecureRequest('notifications-secure', {action:'list', limit:50})
-         .then(function(res){ if(res.ok) { notifications = res.notifications; ... } })
-     En attendant: données de démonstration, clairement marquées. */
   if (_NOTIF_DEMO_MODE) {
     _supabaseLoaded = true;
-    /* Afficher bannière demo si non déjà présente */
+    /* Bannière démo — clairement étiquetée, jamais en PROD sans validation */
     var banner = document.getElementById('notif-demo-banner');
     if (!banner) {
       var bar = document.createElement('div');
       bar.id = 'notif-demo-banner';
       bar.style.cssText = 'background:var(--amber,#f59e0b);color:#000;font-size:11px;padding:4px 12px;text-align:center;font-weight:600;';
-      bar.textContent = '⚠ Données de démonstration — Module Notifications en cours de raccordement (Lot E)';
+      bar.textContent = '⚠ Données de démonstration — notifications-secure non encore déployé';
       var main = document.querySelector('.main') || document.body;
       main.insertBefore(bar, main.firstChild);
     }
-    render();
-    return;
+    render(); return;
   }
-  /* Placeholder pour appel broker futur */
-  _supabaseLoaded = true;
-  render();
+  /* Production: broker → notifications-secure → list (filtrée côté serveur par rôle) */
+  notifRequest('list', { limit: 50 })
+  .then(function(d) {
+    if (d.notifications && Array.isArray(d.notifications)) {
+      notifications = d.notifications;
+    }
+    _supabaseLoaded = true;
+    render();
+  })
+  .catch(function(e) {
+    console.error('[Notifications] loadNotificationsFromSupabase:', e.message);
+    _supabaseLoaded = true;
+    render();
+  });
 }
 
 function saveNotifToSupabase(notif) {
-  /* LOT-E: sera remplacé par veraluzSecureRequest('notifications-secure', {action:'create', ...}) */
   if (_NOTIF_DEMO_MODE) return;
-  console.warn('[Notifications] saveNotifToSupabase désactivé — broker non encore déployé');
+  notifRequest('create', {
+    title:    notif.title    || 'Notification',
+    message:  notif.message  || '',
+    category: notif.category || 'system',
+    priority: notif.priority || 'medium',
+    recipient_roles: notif.recipient_roles || [],
+    requires_ack:    notif.requires_ack    || false,
+    metadata: notif.metadata || {}
+  })
+  .then(function(d){ console.log('[Notifications] created:', d.notification && d.notification.id); })
+  .catch(function(e){ console.error('[Notifications] saveNotifToSupabase:', e.message); });
 }
 
 function markReadInSupabase(notifId) {
-  /* LOT-E: sera remplacé par veraluzSecureRequest('notifications-secure', {action:'mark_read', id:notifId}) */
   if (_NOTIF_DEMO_MODE) return;
-  console.warn('[Notifications] markReadInSupabase désactivé — broker non encore déployé');
+  notifRequest('mark_read', { notification_id: notifId })
+  .catch(function(e){ console.error('[Notifications] markReadInSupabase:', e.message); });
+}
+
+function acknowledgeInSupabase(notifId) {
+  if (_NOTIF_DEMO_MODE) return;
+  notifRequest('acknowledge', { notification_id: notifId })
+  .catch(function(e){ console.error('[Notifications] acknowledgeInSupabase:', e.message); });
 }
 
 // INIT — simulation désactivée en production

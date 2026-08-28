@@ -611,7 +611,7 @@ Deno.serve(async (req: Request) => {
     // Charger room_number depuis l'unité
     const { data: unitRow } = await db
       .from('veraluz_units')
-      .select('name, number')
+      .select('name')
       .eq('id', session!.unit_id)
       .maybeSingle();
     const roomNumber = unitRow?.name ?? session!.unit_id; /* .number n'existe pas sur veraluz_units */

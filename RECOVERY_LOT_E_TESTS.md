@@ -1,110 +1,107 @@
-# RECOVERY LOT E — Tests & Résultats
-## Settings + Guest + Events + Communications + Scheduler
+# RECOVERY LOT E — Rapport de Tests
 
-**Branche** : `claude/recovery-lot-e-settings-events-comms-scheduler`
-**Base main** : `3d2d97d9fedbc04f1cd66d591cefb179e2ee2580`
-**Commits Lot E** : `7c4c01d` (Gate 0) → `f4e8cfb` (Phases 2-9)
-
----
-
-## Tests automatisés
-
-### Gate 0 — Whitelist broker
-`node --test tests/gate0-documents-whitelist.test.mjs`
-**8/8 PASS**
-
-| Test | Résultat |
-|------|---------|
-| G0-01 documents-secure dans whitelist | [AUTOMATISÉ — PASS] |
-| G0-02 endpoint inconnu absent | [AUTOMATISÉ — PASS] |
-| G0-03 event-worker/comms-worker absents | [AUTOMATISÉ — PASS] |
-| G0-04 veraluz-document-upload sur broker multipart | [AUTOMATISÉ — PASS] |
-| G0-05 service_role absent code exécutable CORE | [AUTOMATISÉ — PASS] |
-| G0-06 logique indexOf whitelist présente | [AUTOMATISÉ — PASS] |
-| G0-07 CACHE_NAME v037-lot-e | [AUTOMATISÉ — PASS] |
-| G0-08 endpoints critiques non régressés | [AUTOMATISÉ — PASS] |
-
-### Lot E — Settings + Events + Comms + Scheduler
-`node --test tests/recovery-lot-e-settings-events-comms-scheduler.test.mjs`
-**26/26 PASS**
-
-| Test | Résultat |
-|------|---------|
-| E-01 documents-secure whitelist | [AUTOMATISÉ — PASS] |
-| E-02 endpoint inconnu bloqué | [AUTOMATISÉ — PASS] |
-| E-03 workers service-only absents | [AUTOMATISÉ — PASS] |
-| E-04 loadSettings() sans localStorage SSOT | [AUTOMATISÉ — PASS] |
-| E-05 pas d'EmailJS direct | [AUTOMATISÉ — PASS] |
-| E-06 saveAll() sans localStorage(LS_KEY) | [AUTOMATISÉ — PASS] |
-| E-07 wifi.password masqué (settings-secure) | [AUTOMATISÉ — PASS] |
-| E-08 Wi-Fi checkedin uniquement | [AUTOMATISÉ — PASS] |
-| E-09 checkout 12:00 (Settings + guest-access) | [AUTOMATISÉ — PASS] |
-| E-10 confirmed ≠ checkedin (pas de promotion auto) | [AUTOMATISÉ — PASS] |
-| E-11 reservation_id depuis session validée | [AUTOMATISÉ — PASS] |
-| E-12 veraluz_events idempotency_key UNIQUE | [AUTOMATISÉ — PASS] |
-| E-13 source/actor_id colonnes serveur | [AUTOMATISÉ — PASS] |
-| E-14 REST anon direct supprimé (Notifications) | [AUTOMATISÉ — PASS] |
-| E-15 _NOTIF_DEMO_MODE=true par défaut | [AUTOMATISÉ — PASS] |
-| E-16 session_token body retiré (comms) | [AUTOMATISÉ — PASS] |
-| E-17 anti-double-envoi via comm_log | [AUTOMATISÉ — PASS] |
-| E-18 running/running_since anti-concurrence | [AUTOMATISÉ — PASS] |
-| E-19 jobs: enabled=false, dry_run=true par défaut | [AUTOMATISÉ — PASS] |
-| E-20 infra-scheduler autorisé, workers internes non | [AUTOMATISÉ — PASS] |
-| E-21 stack traces côté serveur uniquement | [AUTOMATISÉ — PASS] |
-| E-22 service_role absent scripts frontend | [AUTOMATISÉ — PASS] |
-| E-23 thèmes clair/sombre conservés | [AUTOMATISÉ — PASS] |
-| E-24 responsive mobile conservé | [AUTOMATISÉ — PASS] |
-| E-25 broker unwrap Documents non régressé | [AUTOMATISÉ — PASS] |
-| E-26 fichiers critiques B/C/Auth présents | [AUTOMATISÉ — PASS] |
-
-### Non-régression suites existantes
-| Suite | Résultat |
-|-------|---------|
-| hotfix-documents-broker-response (15 tests) | [AUTOMATISÉ — 15/15 PASS] |
-| recovery-lot-c-room-service-folio | [AUTOMATISÉ — ALL PASS] |
-| guest-portal-correctness | [AUTOMATISÉ — ALL PASS] |
-| guest-folio-checkedout | [AUTOMATISÉ — PASS] |
-| auth-r1-containment (15 tests) | [AUTOMATISÉ — 15/15 PASS] |
-| auth-r1c1-employees-secure (52 tests) | [AUTOMATISÉ — 21/52 PASS — 31 PRÉ-EXISTANTS] |
-| session-token-not-postmessaged (5 tests) | [AUTOMATISÉ — 5/5 PASS] |
-| recovery-lot-b1-checkout-durability | [AUTOMATISÉ — 13/14 PASS — 1 PRÉ-EXISTANT] |
-| recovery-lot-b-reservation-overstay | [AUTOMATISÉ — 34/34 PASS] |
-
-### DRY-RUN SQL
-Migration `20260828_recovery_lot_e_events_notifications_jobs.sql` — BEGIN/ROLLBACK PROD :
-**[DRY-RUN SQL — PASS]** — 3 tables créées, 3 lignes insérées, ROLLBACK propre.
+**Branche:** `claude/recovery-lot-e-settings-events-comms-scheduler`
+**Date:** 2026-08-28
+**Résultat:** 49/49 PASS (tests automatisés Node)
 
 ---
 
-## Tests POST-DÉPLOIEMENT (après autorisation Blaise)
+## Statut des tests
 
-| Test | Type |
-|------|------|
-| Appliquer migration en PROD | [POST-DÉPLOIEMENT] |
-| Vérifier veraluz_events, veraluz_notifications, veraluz_jobs créées | [POST-DÉPLOIEMENT] |
-| Vérifier RLS ON sur les 3 tables | [POST-DÉPLOIEMENT] |
-| Vérifier REVOKE anon/authenticated | [POST-DÉPLOIEMENT] |
-| Tester guest-access: checkout_time = 12:00 sur séjour réel | [POST-DÉPLOIEMENT] |
-| Vérifier documents-secure accessible (11 fiches visibles) | [POST-DÉPLOIEMENT] |
-| Vérifier communications-secure refuse session_token dans body | [POST-DÉPLOIEMENT] |
-| Déployer guest-access EF (v12) | [POST-DÉPLOIEMENT] |
-| Déployer communications-secure EF | [POST-DÉPLOIEMENT] |
+```
+node --test tests/recovery-lot-e-settings-events-comms-scheduler.test.mjs
+# tests 49 | pass 49 | fail 0
+```
+
+## Couverture par bloc
+
+### Bloc 1 — Whitelist & Sécurité navigateur (E-01 → E-03b)
+- E-01: `documents-secure` dans la whitelist CORE (non-régression Gate 0)
+- E-02: endpoint inconnu bloqué (`endpoint_not_whitelisted`)
+- E-03: `event-worker` et `comms-worker` absents de la whitelist navigateur
+- E-03b: `notifications-secure` dans la whitelist CORE ✅ NOUVEAU
+
+### Bloc 2 — Settings localStorage → DB (E-04 → E-06f)
+- E-04: `loadSettings()` sans localStorage SSOT
+- E-04b: `loadDbCanonical()` via broker CORE, pas de fetch direct ✅ NOUVEAU
+- E-05: pas d'envoi EmailJS direct (`api.emailjs.com` absent du code exécutable)
+- E-06: `saveAll()` ne stocke pas dans localStorage(LS_KEY)
+- E-06b: `saveAll()` appelle `veraluzSecureRequest(settings-secure)` + succès après `d.ok` ✅ NOUVEAU
+- E-06c: `discardChanges()` restaure depuis `_dbSett` (valeurs DB), pas depuis DEFAULTS ✅ NOUVEAU
+- E-06d: historique email via `_emailLog` en mémoire (pas localStorage SSOT) ✅ NOUVEAU
+- E-06e: campagnes email sans localStorage SSOT ✅ NOUVEAU
+- E-06f: `testEmail()` via broker `communications-secure` ✅ NOUVEAU
+
+### Bloc 3 — Settings-secure EF (E-07)
+- E-07: `wifi.password` masqué dans `get_settings`
+
+### Bloc 4 — Guest access (E-08 → E-11)
+- E-08: mot de passe Wi-Fi uniquement pour `checkedin`
+- E-09: `checkout_time` défaut 12:00 dans Settings et guest-access
+- E-09b: **CRITIQUE** — `.select('name, number')` absent (`veraluz_units.number` n'existe pas) ✅ NOUVEAU
+- E-10: `confirmed` ≠ `checkedin` (pas de promotion automatique)
+- E-11: `reservation_id` depuis session validée côté serveur
+
+### Bloc 5 — Events: immutabilité (E-12 → E-13)
+- E-12: `idempotency_key UNIQUE` dans `veraluz_events`
+- E-12b: enveloppe immuable — pas de `status` dans `veraluz_events` ✅ NOUVEAU
+- E-12c: `veraluz_event_processing` séparée pour l'état mutable ✅ NOUVEAU
+- E-12d: pas d'index redondant sur `idempotency_key` ✅ NOUVEAU
+- E-13: `REVOKE ALL FROM public, anon, authenticated` sur toutes les tables ✅ NOUVEAU
+
+### Bloc 6 — Notifications (E-14 → E-15f)
+- E-14: pas de REST anon direct dans NOTIFICATIONS_EMBEDDED
+- E-14b: NOTIFICATIONS_EMBEDDED utilise broker `notifications-secure` ✅ NOUVEAU
+- E-15: `_NOTIF_DEMO_MODE = true` par défaut
+- E-15b: `notification_reads` — état de lecture indépendant par employé ✅ NOUVEAU
+- E-15c: `notifications-secure` EF a les 4 actions (list/create/mark_read/acknowledge) ✅ NOUVEAU
+- E-15d: filtrage par rôle côté serveur (pas côté client) ✅ NOUVEAU
+- E-15e: pas de `session_token` dans le body — header `x-veraluz-session` uniquement ✅ NOUVEAU
+- E-15f: retourne 401/403 correctement ✅ NOUVEAU
+
+### Bloc 7 — Communications (E-16 → E-17)
+- E-16: `communications-secure` sans `session_token` dans le body
+- E-17: logique d'idempotence (comm_log)
+
+### Bloc 8 — Scheduler (E-18 → E-20)
+- E-18: colonnes `running`, `running_since`, `lease_token`, `lease_expires_at` dans `veraluz_jobs`
+- E-19: `enabled=false` et `dry_run=true` par défaut
+- E-19b: claim atomique — deux workers ne peuvent pas prendre le même job ✅ NOUVEAU
+- E-19c: `release_job_lease` et `recover_expired_job_leases` existent ✅ NOUVEAU
+- E-19d: fonctions SECURITY DEFINER + `search_path = public` ✅ NOUVEAU
+- E-20: workers absents de la whitelist navigateur
+
+### Bloc 9 — Sécurité générale (E-21 → E-22b)
+- E-21: pas de stack traces retournées au client
+- E-22: `service_role` absent du code exécutable CORE et SETTINGS
+- E-22b: REVOKE sur les fonctions scheduler ✅ NOUVEAU
+
+### Bloc 10 — Non-régression (E-23 → E-28)
+- E-23: thème clair/sombre conservé dans SETTINGS
+- E-24: media queries responsive conservées dans SETTINGS
+- E-25: DOCUMENTS_EMBEDDED utilise le broker unwrap `{status,body}`
+- E-26: fichiers critiques Lots B/C/Auth présents (+ `notifications-secure`) ✅ NOUVEAU
+- E-27: `notifications-secure` utilise `service_role` uniquement ✅ NOUVEAU
+- E-28: `veraluz_event_processing.event_id` = PK unique ✅ NOUVEAU
 
 ---
 
-## Tests MANUELS (Blaise)
+## Tests visuels (à effectuer par Blaise)
+- [ ] SETTINGS desktop/mobile clair/sombre — bouton Enregistrer → spinner → succès DB confirmé
+- [ ] SETTINGS — Annuler restaure les valeurs DB, pas les DEFAULTS
+- [ ] SETTINGS — email test → passe par broker (pas api.emailjs.com direct)
+- [ ] NOTIFICATIONS — bannière démo visible
+- [ ] GUEST_PORTAL — room number correct (pas d'erreur .number)
 
-| Test | Type |
-|------|------|
-| Vérifier 11 fiches documents visibles dans DOCUMENTS_EMBEDDED | [MANUEL BLAISE] |
-| Vérifier boutons Uploader/Remplacer visibles (desktop + mobile) | [MANUEL BLAISE] |
-| Vérifier checkout 12:00 affiché dans Guest Portal | [MANUEL BLAISE] |
-| Vérifier Wi-Fi visible uniquement pour séjour checkedin | [MANUEL BLAISE] |
-| Vérifier bannière "Données de démonstration" dans Notifications | [MANUEL BLAISE] |
-| Vérifier Settings se charge depuis DB (pas localStorage) | [MANUEL BLAISE] |
-| Vérifier thème clair/sombre Settings | [MANUEL BLAISE] |
-| Vérifier responsive mobile Settings | [MANUEL BLAISE] |
+## Dry-run SQL
+Fichier: `supabase/migrations/20260828_dry_run_preview.sql`
+À exécuter dans l'éditeur SQL Supabase avec BEGIN/ROLLBACK — aucun changement PROD.
 
----
-
-*AUTH-R1C1 21/52 et LOT-B1 13/14 : défauts pré-existants sur main, non introduits par Lot E.*
+## Contraintes respectées
+- aucun déploiement Supabase
+- aucune migration PROD
+- aucun merge ou fast-forward vers main
+- aucune donnée cliente modifiée
+- aucune communication réelle envoyée
+- aucun cron activé
+- service_role jamais dans le frontend

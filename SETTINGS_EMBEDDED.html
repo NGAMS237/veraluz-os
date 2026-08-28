@@ -456,13 +456,15 @@ var SB_SS = 'https://dfdmasejsoibxrvubegu.supabase.co/functions/v1/settings-secu
 var AK_SS = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
 function loadDbCanonical(cb){
-  fetch(SB_SS, {
-    method:'POST',
-    headers:{'Content-Type':'application/json','apikey':AK_SS,'Authorization':'Bearer '+AK_SS},
-    body:JSON.stringify({action:'get_settings', keys:['property','contact','booking','wifi','restaurant','security']})
-  })
-  .then(function(r){ return r.ok ? r.json() : Promise.reject(r.status); })
-  .then(function(d){
+  /* SETTINGS-SSOT: lecture via broker CORE → settings-secure (pas d'accès REST direct) */
+  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
+    console.warn('[SETTINGS] broker CORE indisponible — DB settings non chargés');
+    _dbSettLoaded=true; if(cb) cb(); return;
+  }
+  window.parent.veraluzSecureRequest('settings-secure',
+    {action:'get_settings', keys:['property','contact','booking','wifi','restaurant','security','email','branding','devises','tarifs','permissions']})
+  .then(function(res){
+    var d = res && res.body ? res.body : res;
     if(d && d.ok && d.settings){ Object.assign(_dbSett, d.settings); }
     _dbSettLoaded = true;
     if(cb) cb();
@@ -537,57 +539,74 @@ function goSection(id){
   renderSection(id);
 }
 
-/* ── Save All ── */
+/* ── Save All — persistence DB via broker, succès uniquement après confirmation serveur ── */
 function saveAll(){
   collectForm();
-  try{
-    /* LS_KEY retiré : localStorage n'est pas le SSOT des paramètres métier.
-       Les vrais paramètres sont persistés dans veraluz_settings via saveCanonical(). */
-    markClean();
-    toast('✓ Paramètres enregistrés');
-    /* Propager au Core */
-    emit('settings-updated', {section:currentSection, ts:new Date().toISOString()});
-    /* Propager les infos hôtel vers le Booking Engine */
-    if(S.hotel){
-      try{ localStorage.setItem('vz_hotel_info', JSON.stringify(S.hotel)); }catch(e){}
-      emit('hotel-info-updated', {
-        name:    S.hotel.name    || 'Résidence Veraluz',
-        tagline: S.hotel.tagline || '',
-        address: S.hotel.address || '',
-        phone:   S.hotel.phone   || '',
-        email:   S.hotel.email   || '',
-        website: S.hotel.website || '',
-        ts: new Date().toISOString()
-      });
+  if(!window.parent || typeof window.parent.veraluzSecureRequest !== 'function'){
+    toast('❌ Session requise pour sauvegarder', false); return;
+  }
+  var KEY_MAP = {
+    hotel:'property', contact:'contact', booking:'booking',
+    wifi:'wifi', restaurant:'restaurant', security:'security',
+    email:'email', devises:'devises', tarifs:'tarifs',
+    permissions:'permissions', branding:'branding', catalogue:'restaurant'
+  };
+  var dbKey   = KEY_MAP[currentSection] || currentSection;
+  var payload = S[dbKey] || S[currentSection] || {};
+  var btns = document.querySelectorAll('[onclick="saveAll()"]');
+  btns.forEach(function(b){ b.disabled=true; b.textContent='Enregistrement…'; });
+  window.parent.veraluzSecureRequest('settings-secure',
+    {action:'update_settings', key:dbKey, value:payload})
+  .then(function(res){
+    var d = res && res.body ? res.body : res;
+    btns.forEach(function(b){ b.disabled=false; b.textContent='Enregistrer'; });
+    if(d && d.ok){
+      if(!_dbSett) _dbSett={};
+      _dbSett[dbKey] = JSON.parse(JSON.stringify(payload));
+      markClean();
+      toast('✓ Enregistré (DB)');
+      emit('settings-updated', {section:currentSection, ts:new Date().toISOString()});
+      if(dbKey==='property'&&S.property){
+        try{ localStorage.setItem('vz_hotel_info', JSON.stringify(S.property)); }catch(e){}
+        emit('hotel-info-updated', {name:S.property.name||'Résidence Veraluz',
+          tagline:S.property.tagline||'',address:S.property.address||'',
+          phone:S.property.phone||'',email:S.property.email||'',
+          website:S.property.website||'',ts:new Date().toISOString()});
+      }
+      if(dbKey==='branding'&&S.branding&&S.branding.logo_url){
+        emit('logo-updated', {logo_url:S.branding.logo_url,ts:new Date().toISOString()});
+        try{ localStorage.setItem('vz_logo_data', S.branding.logo_url); }catch(e2){}
+      }
+      if(dbKey==='devises'&&S.devises){
+        emit('locale-updated', {language:S.devises.language,currency:S.devises.primary,
+          currency2:S.devises.secondary,date_fmt:S.devises.date_format,
+          time_fmt:S.devises.time_format,timezone:S.devises.timezone,
+          tax_tva:S.tarifs&&S.tarifs.tax_tva,tax_tourist:S.tarifs&&S.tarifs.tax_tourist,
+          tax_service:S.tarifs&&S.tarifs.tax_service,ts:new Date().toISOString()});
+      }
+      if(dbKey==='permissions'&&S.permissions&&currentSection==='permissions'){
+        emit('permissions-updated', {permissions:S.permissions,ts:new Date().toISOString()});
+      }
+    } else {
+      toast('❌ '+(d&&d.error||'Erreur serveur — paramètres non enregistrés'), false);
     }
-    /* Propager logo si changé */
-    if(S.branding && S.branding.logo_url){
-      emit('logo-updated', {logo_url:S.branding.logo_url, ts:new Date().toISOString()});
-      try{ localStorage.setItem('vz_logo_data', S.branding.logo_url); }catch(e2){}
-    }
-    /* Template ID EmailJS : stocké uniquement en DB (settings-secure), pas en localStorage. */
-    /* Propager langue/devise/taxes aux modules */
-    emit('locale-updated', {
-      language:  S.devises.language,
-      currency:  S.devises.primary,
-      currency2: S.devises.secondary,
-      date_fmt:  S.devises.date_format,
-      time_fmt:  S.devises.time_format,
-      timezone:  S.devises.timezone,
-      tax_tva:   S.tarifs.tax_tva,
-      tax_tourist: S.tarifs.tax_tourist,
-      tax_service: S.tarifs.tax_service,
-      ts: new Date().toISOString()
-    });
-    /* Propager permissions — RES-LIFECYCLE-1/A4: uniquement depuis onglet Permissions */
-    if(S.permissions && currentSection === 'permissions'){
-      emit('permissions-updated', {permissions:S.permissions, ts:new Date().toISOString()});
-    }
-  }catch(e){ toast('❌ Erreur sauvegarde', false); }
+  })
+  .catch(function(){
+    btns.forEach(function(b){ b.disabled=false; b.textContent='Enregistrer'; });
+    toast('❌ Erreur réseau — paramètres non sauvegardés', false);
+  });
 }
 
 function discardChanges(){
-  loadSettings(); markClean(); renderSection(currentSection); toast('↩ Modifications annulées');
+  /* Restaurer depuis _dbSett (valeurs DB confirmées), pas depuis DEFAULTS */
+  S = JSON.parse(JSON.stringify(DEFAULTS));
+  if(_dbSettLoaded && _dbSett && Object.keys(_dbSett).length > 0){
+    Object.keys(_dbSett).forEach(function(k){
+      if(_dbSett[k] && typeof _dbSett[k]==='object') S[k]=JSON.parse(JSON.stringify(_dbSett[k]));
+    });
+  }
+  markClean(); renderSection(currentSection);
+  toast('↩ Modifications annulées (valeurs DB restaurées)');
 }
 
 /* collectForm() — defined below with safe nested-object init */
@@ -1352,11 +1371,8 @@ function runCampagne(){
     if(idx >= total){
       campaign_log.sent = sent; campaign_log.errors = errors;
       campaign_log.finished_at = new Date().toISOString();
-      try{
-        var logs = JSON.parse(localStorage.getItem('vz_email_campaigns_log')||'[]');
-        logs.unshift(campaign_log);
-        localStorage.setItem('vz_email_campaigns_log', JSON.stringify(logs.slice(0,50)));
-      }catch(e){}
+      /* Historique campagne en mémoire — pas de localStorage SSOT comms */
+      logEmailSent('campagne', campaign_log.subject||'', 'ok');
       if(progress) progress.textContent = '✓ Campagne terminée : '+sent+'/'+total+' envoyés'+(errors?' ('+errors+' erreurs)':'');
       toast('✓ Campagne : '+sent+'/'+total+' emails envoyés');
       return;
@@ -1364,23 +1380,24 @@ function runCampagne(){
     var c = clients[idx];
     if(progress) progress.textContent = 'Envoi '+( idx+1)+'/'+total+' — '+c.email;
 
-    fetch('https://api.emailjs.com/api/v1.0/email/send',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        service_id:'service_mwiart1', template_id: tplId, user_id:'MqrKcqvO952CD5HOA',
-        template_params:{
-          to_email: c.email, to_name: c.name || c.email,
-          subject: subject, body_html: tpl.body,
-          from_name:'Résidence Veraluz', reply_to:'residenceveraluz@gmail.com'
-        }
-      })
-    }).then(function(r){
-      if(r.ok){ sent++; logEmailSent(c.email, subject, 'ok'); }
-      else { errors++; logEmailSent(c.email, subject, 'error'); }
-      setTimeout(function(){ sendNext(idx+1); }, 300);
+    /* SECURITY: pas de fetch direct api.emailjs.com — via broker uniquement */
+    if(!window.parent||typeof window.parent.veraluzSecureRequest!=='function'){
+      errors++; logEmailSent(c.email,subject,'error');
+      setTimeout(function(){ sendNext(idx+1); },300); return;
+    }
+    window.parent.veraluzSecureRequest('communications-secure',{
+      action:'send_email', to:c.email, to_name:c.name||c.email,
+      subject:subject, body_html:tpl.body,
+      from_name:'Résidence Veraluz', reply_to:'residenceveraluz@gmail.com',
+      template_id:tplId
+    }).then(function(res){
+      var d=res&&res.body?res.body:res;
+      if(d&&d.ok){ sent++; logEmailSent(c.email,subject,'ok'); }
+      else { errors++; logEmailSent(c.email,subject,'error'); }
+      setTimeout(function(){ sendNext(idx+1); },300);
     }).catch(function(){
-      errors++; logEmailSent(c.email, subject, 'error');
-      setTimeout(function(){ sendNext(idx+1); }, 300);
+      errors++; logEmailSent(c.email,subject,'error');
+      setTimeout(function(){ sendNext(idx+1); },300);
     });
   }
 
@@ -1388,17 +1405,15 @@ function runCampagne(){
 }
 
 /* ── Historique ── */
+/* SECURITY: historique email en mémoire — pas de localStorage SSOT comms */
+var _emailLog = [];
 function logEmailSent(to, subject, status){
-  try{
-    var log = JSON.parse(localStorage.getItem('vz_email_log')||'[]');
-    log.unshift({to:to, subject:subject, sent_at:new Date().toISOString(), status:status||'ok'});
-    localStorage.setItem('vz_email_log', JSON.stringify(log.slice(0,200)));
-  }catch(e){}
+  _emailLog.unshift({to:to, subject:subject, sent_at:new Date().toISOString(), status:status||'ok'});
+  if(_emailLog.length>200) _emailLog=_emailLog.slice(0,200);
 }
 
 function renderEmailHistorique(){
-  var log = [];
-  try{ log = JSON.parse(localStorage.getItem('vz_email_log')||'[]'); }catch(e){}
+  var log = _emailLog;
 
   var rows = log.length
     ? log.map(function(entry){
@@ -1429,7 +1444,7 @@ function renderEmailHistorique(){
 
 function clearEmailLog(){
   if(confirm('Effacer tout l\'historique des emails ?')){
-    try{ localStorage.removeItem('vz_email_log'); }catch(e){}
+    _emailLog = [];
     toast('✓ Historique effacé');
     renderSection('email');
   }
@@ -1437,33 +1452,29 @@ function clearEmailLog(){
 function testEmail(){
   collectForm();
   var tpl=(S.email&&S.email.template_id)||'';
-  if(!tpl){ toast('Entrez d abord le Template ID puis Enregistrer'); return; }
-  try{ localStorage.setItem('vz_email_template',tpl); }catch(ex){}
+  if(!tpl){ toast("Entrez d'abord le Template ID puis Enregistrer"); return; }
+  /* SECURITY: pas de fetch direct api.emailjs.com — via broker communications-secure */
   var to=(S.email&&S.email.test_address)||'residenceveraluz@gmail.com';
   var btn=document.querySelector('[onclick="testEmail()"]');
-  if(btn){ btn.disabled=true; btn.textContent='Envoi en cours...'; }
-  fetch('https://api.emailjs.com/api/v1.0/email/send',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      service_id:'service_mwiart1',
-      template_id:tpl,
-      user_id:'MqrKcqvO952CD5HOA',
-      template_params:{
-        to_email:to, to_name:'Admin Veraluz',
-        subject:'Test - Residence Veraluz OS',
-        body_html:'<div style="font-family:Arial,sans-serif;padding:24px;max-width:500px;"><h2 style="color:#0d7a5f;">Email operationnel !</h2><p>Le systeme email fonctionne.</p><p style="color:#888;font-size:12px;">Template: '+tpl+' | Service: service_mwiart1</p></div>',
-        from_name:'Residence Veraluz',
-        reply_to:'residenceveraluz@gmail.com'
-      }
-    })
-  }).then(function(r){
+  if(btn){ btn.disabled=true; btn.textContent='Envoi en cours…'; }
+  if(!window.parent||typeof window.parent.veraluzSecureRequest!=='function'){
     if(btn){ btn.disabled=false; btn.textContent='Envoyer un email de test'; }
-    if(r.ok){ toast('Email envoye a '+to+' - verifiez votre boite !'); logEmailSent(to,'Test - Residence Veraluz OS','ok'); }
-    else{ r.text().then(function(t){ toast('Erreur EmailJS: '+t.slice(0,100)); }); }
+    toast('❌ Session requise pour envoyer un email',false); return;
+  }
+  window.parent.veraluzSecureRequest('communications-secure',{
+    action:'send_email', to:to, to_name:'Admin Veraluz',
+    subject:'Test - Résidence Veraluz OS',
+    body_html:'<div style="font-family:Arial,sans-serif;padding:24px;max-width:500px;"><h2 style="color:#0d7a5f;">Email opérationnel !</h2><p>Le système email fonctionne.</p><p style="color:#888;font-size:12px;">Template: '+tpl+'</p></div>',
+    from_name:'Résidence Veraluz', reply_to:'residenceveraluz@gmail.com',
+    template_id:tpl, _test:true
+  }).then(function(res){
+    if(btn){ btn.disabled=false; btn.textContent='Envoyer un email de test'; }
+    var d=res&&res.body?res.body:res;
+    if(d&&d.ok){ toast('✓ Email envoyé à '+to+' — vérifiez votre boîte !'); logEmailSent(to,'Test - Résidence Veraluz OS','ok'); }
+    else{ toast('❌ Erreur: '+(d&&d.error||'Envoi échoué'),false); logEmailSent(to,'Test - Résidence Veraluz OS','error'); }
   }).catch(function(e){
     if(btn){ btn.disabled=false; btn.textContent='Envoyer un email de test'; }
-    toast('Erreur reseau: '+e.message);
+    toast('❌ Erreur réseau: '+e.message,false);
   });
 }
 

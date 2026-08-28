@@ -161,11 +161,13 @@ test('H-14: aucun appel DELETE dans DOCUMENTS_EMBEDDED', () => {
   assert.ok(!hasDELETE, "Méthode DELETE interdite dans DOCUMENTS_EMBEDDED.html");
 });
 
-/* ── H-15  Cache PWA v036 ── */
-test('H-15: sw.js CACHE_NAME est veraluz-pwa-v036-documents-hotfix', () => {
+/* ── H-15  Cache PWA >= v036 (v037 avec Lot E) ── */
+test('H-15: sw.js CACHE_NAME est >= veraluz-pwa-v036 (actuel: v037-lot-e)', () => {
+  // Le hotfix v036 a été intégré au v037 (Lot E). v035 ne doit jamais revenir.
   assert.ok(
+    SW.includes("CACHE_NAME = 'veraluz-pwa-v037-lot-e'") ||
     SW.includes("CACHE_NAME = 'veraluz-pwa-v036-documents-hotfix'"),
-    "sw.js: CACHE_NAME doit être veraluz-pwa-v036-documents-hotfix"
+    "sw.js: CACHE_NAME doit être >= veraluz-pwa-v036"
   );
   assert.ok(
     !SW.includes('veraluz-pwa-v035'),

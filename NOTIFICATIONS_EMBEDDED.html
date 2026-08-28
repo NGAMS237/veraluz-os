@@ -1275,7 +1275,7 @@ function simulateAlert(){
 
 // Simulation temps réel: nouvelle notification toutes les 45s
 function startRealtime(){
-  if(simulationInterval)return;
+  if(_NOTIF_DEMO_MODE||simulationInterval)return; /* simulation désactivée en production */
   simulationInterval=setInterval(()=>{
     const auto=[
       {title:'💳 Paiement reçu Orange Money',body:'Encaissement de 45 000 FCFA via Orange Money pour chambre 104.',cat:'payment',priority:'low'},
@@ -1288,91 +1288,56 @@ function startRealtime(){
 }
 
 // ════════════════════════════════════════════════
-// SUPABASE INTEGRATION
+// SUPABASE INTEGRATION — via broker CORE uniquement
+// REST anon direct interdit (sécurité).
+// La table veraluz_notifications sera créée par migration Lot E.
+// En attendant le déploiement de notifications-secure, le module
+// affiche des données de démonstration clairement étiquetées.
 // ════════════════════════════════════════════════
-const SUPA_URL = 'https://dfdmasejsoibxrvubegu.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRmZG1hc2Vqc29pYnhydnViZWd1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDgzOTMsImV4cCI6MjA5MjI4NDM5M30.dEsafV84HFmFqU6Yi4xKydIbUlkIVE7QMRMpFt8kqXY';
 
-function sbHdr(extra) {
-  return Object.assign({'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY}, extra||{});
-}
-
-let _supabaseLoaded = false;
+var _NOTIF_DEMO_MODE = true; /* Activé jusqu'au déploiement de notifications-secure */
 
 function loadNotificationsFromSupabase() {
-  fetch(SUPA_URL + '/rest/v1/veraluz_notifications?select=*&order=created_at.desc&limit=50', {
-    headers: sbHdr()
-  })
-  .then(function(r){
-    /* La table veraluz_notifications n'existe pas en base : PostgREST renvoie 404.
-       Sans ce garde, r.json() produisait un objet d'erreur traite comme une ligne. */
-    if (!r.ok) { throw new Error('HTTP ' + r.status); }
-    return r.json();
-  })
-  .then(function(rows) {
-    if (!Array.isArray(rows) || rows.length === 0) {
-      _supabaseLoaded = true;
-      render(); return;
+  /* LOT-E: Remplacer par broker CORE quand notifications-secure est déployé.
+     Pattern cible:
+       window.parent.veraluzSecureRequest('notifications-secure', {action:'list', limit:50})
+         .then(function(res){ if(res.ok) { notifications = res.notifications; ... } })
+     En attendant: données de démonstration, clairement marquées. */
+  if (_NOTIF_DEMO_MODE) {
+    _supabaseLoaded = true;
+    /* Afficher bannière demo si non déjà présente */
+    var banner = document.getElementById('notif-demo-banner');
+    if (!banner) {
+      var bar = document.createElement('div');
+      bar.id = 'notif-demo-banner';
+      bar.style.cssText = 'background:var(--amber,#f59e0b);color:#000;font-size:11px;padding:4px 12px;text-align:center;font-weight:600;';
+      bar.textContent = '⚠ Données de démonstration — Module Notifications en cours de raccordement (Lot E)';
+      var main = document.querySelector('.main') || document.body;
+      main.insertBefore(bar, main.firstChild);
     }
-    /* Mapper les colonnes Supabase → format local */
-    notifications = rows.map(function(r, i) {
-      return {
-        id:          r.id || i+1,
-        num:         'NTF-' + String(i+1).padStart(4,'0'),
-        title:       r.title || '(sans titre)',
-        body:        r.message || r.body || '',
-        category:    r.category || 'system',
-        priority:    r.priority || 'medium',
-        status:      r.read_at ? 'read' : 'unread',
-        channel:     (r.channels && r.channels[0]) || 'in_app',
-        channels:    r.channels || ['in_app'],
-        recipient:   r.recipient_role || 'Équipe',
-        date:        (r.created_at||'').replace('T',' ').slice(0,16),
-        requires_ack: r.requires_ack || false,
-        data:        r.metadata || {}
-      };
-    });
-    _supabaseLoaded = true;
-    updateBadges();
     render();
-    /* Émettre le compteur de non-lues vers le Core */
-    window.emitToCore('notification-count', { unread: unreadCount() });
-  })
-  .catch(function(err) {
-    console.warn('[Notifications] Supabase load failed, using demo data:', err);
-    _supabaseLoaded = true;
-    render();
-  });
+    return;
+  }
+  /* Placeholder pour appel broker futur */
+  _supabaseLoaded = true;
+  render();
 }
 
 function saveNotifToSupabase(notif) {
-  fetch(SUPA_URL + '/rest/v1/veraluz_notifications', {
-    method: 'POST',
-    headers: sbHdr({'Content-Type':'application/json','Prefer':'return=minimal'}),
-    body: JSON.stringify({
-      title:    notif.title,
-      message:  notif.body,
-      category: notif.category || 'system',
-      priority: notif.priority || 'medium',
-      channels: notif.channels || ['in_app'],
-      recipient_role: 'all',
-      requires_ack: notif.requires_ack || false,
-      metadata: notif.data || {}
-    })
-  }).catch(function(e){ console.warn('[Notifications] Save failed:', e); });
+  /* LOT-E: sera remplacé par veraluzSecureRequest('notifications-secure', {action:'create', ...}) */
+  if (_NOTIF_DEMO_MODE) return;
+  console.warn('[Notifications] saveNotifToSupabase désactivé — broker non encore déployé');
 }
 
 function markReadInSupabase(notifId) {
-  fetch(SUPA_URL + '/rest/v1/veraluz_notifications?id=eq.' + notifId, {
-    method: 'PATCH',
-    headers: sbHdr({'Content-Type':'application/json','Prefer':'return=minimal'}),
-    body: JSON.stringify({ read_at: new Date().toISOString() })
-  }).catch(function(e){ console.warn('[Notifications] markRead failed:', e); });
+  /* LOT-E: sera remplacé par veraluzSecureRequest('notifications-secure', {action:'mark_read', id:notifId}) */
+  if (_NOTIF_DEMO_MODE) return;
+  console.warn('[Notifications] markReadInSupabase désactivé — broker non encore déployé');
 }
 
-
-// INIT
+// INIT — simulation désactivée en production
 loadNotificationsFromSupabase();
+/* startRealtime() conservé pour la structure UI mais sans auto-simulation */
 startRealtime();
 </script>
 </body>

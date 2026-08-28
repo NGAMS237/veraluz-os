@@ -382,7 +382,7 @@ var DEFAULTS = {
     name:'Résidence Veraluz', tagline:'Vue sur mer · Kribi · Cameroun',
     address:'Boulevard de l\'Océan, Kribi, Sud Cameroun',
     phone:'+237 6XX XXX XXX', email:'contact@veraluz.cm',
-    website:'https://veraluz.cm', checkin:'14:00', checkout:'11:00',
+    website:'https://veraluz.cm', checkin:'14:00', checkout:'12:00',
     timezone:'Africa/Douala', total_rooms:9
   },
   branding: {
@@ -497,8 +497,9 @@ function saveSecurityParam(field, val){
 
 /* ── Load / Save ── */
 function loadSettings(){
-  try{ var sv=localStorage.getItem(LS_KEY); S=sv?JSON.parse(sv):JSON.parse(JSON.stringify(DEFAULTS)); }
-  catch(e){ S=JSON.parse(JSON.stringify(DEFAULTS)); }
+  /* SSOT = veraluz_settings (DB). localStorage ne sert jamais de SSOT métier. */
+  try{ S=JSON.parse(JSON.stringify(DEFAULTS)); }
+  catch(e){ S={}; }
   Object.keys(DEFAULTS).forEach(function(k){ if(!S[k]) S[k]=JSON.parse(JSON.stringify(DEFAULTS[k])); });
 }
 
@@ -540,7 +541,8 @@ function goSection(id){
 function saveAll(){
   collectForm();
   try{
-    localStorage.setItem(LS_KEY, JSON.stringify(S));
+    /* LS_KEY retiré : localStorage n'est pas le SSOT des paramètres métier.
+       Les vrais paramètres sont persistés dans veraluz_settings via saveCanonical(). */
     markClean();
     toast('✓ Paramètres enregistrés');
     /* Propager au Core */
@@ -563,10 +565,7 @@ function saveAll(){
       emit('logo-updated', {logo_url:S.branding.logo_url, ts:new Date().toISOString()});
       try{ localStorage.setItem('vz_logo_data', S.branding.logo_url); }catch(e2){}
     }
-    /* Sauvegarder Template ID EmailJS */
-    if(S.email && S.email.template_id){
-      try{ localStorage.setItem('vz_email_template', S.email.template_id); }catch(e2){}
-    }
+    /* Template ID EmailJS : stocké uniquement en DB (settings-secure), pas en localStorage. */
     /* Propager langue/devise/taxes aux modules */
     emit('locale-updated', {
       language:  S.devises.language,
@@ -1593,8 +1592,9 @@ function importSettings(input){
   var file=input.files[0]; if(!file) return;
   var reader=new FileReader();
   reader.onload=function(e){
-    try{ S=JSON.parse(e.target.result); localStorage.setItem(LS_KEY,JSON.stringify(S));
-      renderSection(currentSection); toast('✓ Paramètres importés'); markClean(); }
+    try{ S=JSON.parse(e.target.result);
+      /* Pas de localStorage — les settings importés sont en mémoire jusqu'à sauvegarde DB via saveCanonical */
+      renderSection(currentSection); markDirty(); toast('✓ Paramètres importés — cliquez Enregistrer pour persister'); }
     catch(err){ toast('❌ Fichier JSON invalide',false); }
   }; reader.readAsText(file);
 }

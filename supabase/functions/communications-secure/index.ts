@@ -169,7 +169,8 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const sessionToken = req.headers.get('x-veraluz-session') || body.session_token || null;
+    /* session_token dans le body retiré — X-Veraluz-Session header uniquement (sécurité transport) */
+    const sessionToken = req.headers.get('x-veraluz-session') || null;
     if (!sessionToken) return json({ ok: false, error: 'session_token_required' }, 401, cors);
     const actor = await validateSession(admin, sessionToken);
     if (!actor)        return json({ ok: false, error: 'invalid_or_expired_session' }, 401, cors);

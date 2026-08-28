@@ -424,7 +424,7 @@ Deno.serve(async (req: Request) => {
         check_in:          res.check_in,
         check_out:         res.check_out,
         checkin_time:      booking.checkin_time  || '15:00',
-        checkout_time:     booking.checkout_time || '11:00',
+        checkout_time:     booking.checkout_time || '12:00',
         reservation_status: resStatus,
         guests:            res.guests,
         contact: {
@@ -614,7 +614,7 @@ Deno.serve(async (req: Request) => {
       .select('name, number')
       .eq('id', session!.unit_id)
       .maybeSingle();
-    const roomNumber = unitRow?.number ?? unitRow?.name ?? session!.unit_id;
+    const roomNumber = unitRow?.name ?? session!.unit_id; /* .number n'existe pas sur veraluz_units */
 
     const orderNumber = generateOrderNumber();
 

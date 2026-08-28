@@ -128,3 +128,27 @@ Unifier paramètres, extensions Guest, événements, communications et tâches p
 | Merge vers main | ⏳ En attente autorisation Blaise |
 
 **LOT E** : Non commencé — à définir.
+
+## LOT E — Settings · Guest · Events · Comms · Scheduler
+
+**Statut** : BRANCHE PRÊTE — en attente autorisation déploiement
+**Branche** : `claude/recovery-lot-e-settings-events-comms-scheduler`
+**Base main** : `3d2d97d9fedbc04f1cd66d591cefb179e2ee2580`
+**Commits** : `7c4c01d` (Gate 0 whitelist) + `f4e8cfb` (Phases 2-9)
+
+### Changements inclus
+- **Gate 0** : `documents-secure` ajouté à `VERALUZ_BROKER_ALLOWED_ENDPOINTS` (défaut LIVE critique)
+- **Settings** : localStorage retiré comme SSOT métier, DB canonical via `settings-secure`
+- **Guest** : checkout_time 12:00, roomNumber sans `.number`, Wi-Fi checkedin seulement
+- **Communications** : retire `body.session_token` fallback, header uniquement
+- **Notifications** : supprime REST anon direct, mode démo avec bannière visible
+- **Migration** : `veraluz_events` (idempotency, source, actor), `veraluz_notifications`, `veraluz_jobs` (enabled=false, dry_run=true)
+- **PWA** : cache `veraluz-pwa-v037-lot-e`
+
+### Pré-requis déploiement
+1. Appliquer `20260828_recovery_lot_e_events_notifications_jobs.sql`
+2. Déployer `guest-access` v12 et `communications-secure`
+3. Fast-forward vers main
+
+### Lot E — NON déployé
+Validation manuelle Documents (11 fiches) encore en attente Blaise.

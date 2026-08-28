@@ -12,6 +12,8 @@ Aucun LOCK actif.
 Aucun lot actif.
 
 ## Transmissions récentes
+`2026-08-28 | Claude | RECOVERY LOT E IN PROGRESS | claude/recovery-lot-e-settings-events-comms-scheduler | 7c4c01d+f4e8cfb | Gate0 8/8 + LotE 26/26 PASS | BRANCHE POUSSÉE — en attente autorisation déploiement | aucun LOCK | documents-secure whitelist corrigée (Gate0 LIVE après fast-forward main 3d2d97d); Settings SSOT localStorage retiré; guest-access checkout 12:00 + sans .number; comms-secure no body.session_token; Notifications REST anon supprimé + mode démo; migration veraluz_events/notifications/jobs prête (DRY-RUN PASS); main avant Lot E = 3d2d97d; validation LIVE 11 fiches Documents en attente Blaise | prochain: autoriser migration + EFs + fast-forward Lot E`
+
 
 `2026-08-27 | Claude | RECOVERY LOT D DEPLOYED, VALIDATED & MERGED | main | 24c3ee7 | documents-secure v1 ACTIVE (verify_jwt=false, X-Veraluz-Session, gerant uniquement); migration recovery_lot_d_documents_ssot appliquée PROD (3 constraints CHECK, 4 index, trigger updated_at, REVOKE anon, 0 policy RLS); fast-forward main 0afdb5c→24c3ee7; smoke test create/update/archive PASS; 11 documents originaux intacts; 0 données synthétiques restantes | LOT D CLOS — aucun LOCK | tests visuels desktop/mobile/thème à effectuer par Blaise | prochain lot métier : RECOVERY LOT E (Settings + Guest + Events + Comms + Scheduler)`
 
